@@ -21,7 +21,11 @@ import "@xyflow/react/dist/style.css";
 import { FlowColumnNode, FlowColumnNodeData } from "./FlowColumnNode";
 import { FlowActionEdge } from "./FlowActionEdge";
 import { FlowBoardSidebar } from "./FlowBoardSidebar";
-import { FlowEdgeActionModal, FlowActionType, FlowEdgePropertyChanges } from "./FlowEdgeActionModal";
+import {
+  FlowEdgeActionModal,
+  FlowActionType,
+  FlowEdgePropertyChanges,
+} from "./FlowEdgeActionModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, Loader2, Check, X, GitBranch } from "lucide-react";
@@ -61,7 +65,9 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
+  const [pendingConnection, setPendingConnection] = useState<Connection | null>(
+    null,
+  );
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -69,15 +75,15 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
 
   // Fetch employees for responsible selector
   const { data: employees = [] } = useQuery({
-    queryKey: ['flow-employees', companyId],
+    queryKey: ["flow-employees", companyId],
     queryFn: async () => {
       if (!companyId) return [];
       const { data } = await supabase
-        .from('employees')
-        .select('user_id, name')
-        .eq('company_id', companyId)
-        .eq('status', 'active')
-        .order('name');
+        .from("employees")
+        .select("user_id, name")
+        .eq("company_id", companyId)
+        .eq("status", "active")
+        .order("name");
       return data || [];
     },
     enabled: !!companyId,
@@ -85,14 +91,14 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
 
   // Fetch classificações
   const { data: classificacoes = [] } = useQuery({
-    queryKey: ['flow-classificacoes', companyId],
+    queryKey: ["flow-classificacoes", companyId],
     queryFn: async () => {
       if (!companyId) return [];
       const { data } = await (supabase
-        .from('task_classificacoes' as unknown)
-        .select('id, nome')
-        .eq('company_id', companyId)
-        .order('nome') as unknown);
+        .from("task_classificacoes" as unknown)
+        .select("id, nome")
+        .eq("company_id", companyId)
+        .order("nome") as unknown);
       return (data || []) as { id: string; nome: string }[];
     },
     enabled: !!companyId,
@@ -115,7 +121,9 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
     if (!loadedRef.current) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => handleSave(), 2000);
-    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
   }, [nodes, edges]);
 
   // Focus name input
@@ -145,8 +153,10 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
       if (editingEdgeId) {
         setEdges((eds) =>
           eds.map((e) =>
-            e.id === editingEdgeId ? { ...e, data: { ...e.data, actionType, propertyChanges } } : e
-          )
+            e.id === editingEdgeId
+              ? { ...e, data: { ...e.data, actionType, propertyChanges } }
+              : e,
+          ),
         );
         setEditingEdgeId(null);
         return;
@@ -165,7 +175,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
       setEdges((eds) => [...eds, newEdge]);
       setPendingConnection(null);
     },
-    [pendingConnection, editingEdgeId, setEdges]
+    [pendingConnection, editingEdgeId, setEdges],
   );
 
   const getNodeLabel = (nodeId: string | null) => {
@@ -184,11 +194,16 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      const colData = event.dataTransfer.getData("application/task-flow-column");
+      const colData = event.dataTransfer.getData(
+        "application/task-flow-column",
+      );
       if (!colData) return;
 
       const col: BoardColumnWithOwner = JSON.parse(colData);
-      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
 
       const newNode: Node = {
         id: `col-${col.id}-${Date.now()}`,
@@ -206,7 +221,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [screenToFlowPosition, setNodes]
+    [screenToFlowPosition, setNodes],
   );
 
   const handleSave = async () => {
@@ -224,7 +239,10 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
   };
 
   const handleSaveName = async () => {
-    if (!tempName.trim()) { setIsEditingName(false); return; }
+    if (!tempName.trim()) {
+      setIsEditingName(false);
+      return;
+    }
     try {
       await updateFlowAsync({ id: flowId, name: tempName.trim() });
       setFlowName(tempName.trim());
@@ -243,18 +261,29 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
         setEdges((eds) => eds.filter((e) => !e.selected));
       }
     },
-    [setNodes, setEdges]
+    [setNodes, setEdges],
   );
 
-  const editingEdge = editingEdgeId ? edges.find(e => e.id === editingEdgeId) : null;
+  const editingEdge = editingEdgeId
+    ? edges.find((e) => e.id === editingEdgeId)
+    : null;
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-130px)] -m-8" onKeyDown={onKeyDown} tabIndex={0}>
+      <div
+        className="flex flex-col h-[calc(100vh-130px)] -m-8"
+        onKeyDown={onKeyDown}
+        tabIndex={0}
+      >
         {/* Page Header */}
         <div className="border-b bg-card px-6 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <Button aria-label="Fechar" variant="ghost" size="icon" onClick={() => navigate("/fluxos")}>
+            <Button
+              aria-label="Fechar"
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/fluxos")}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -273,13 +302,30 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
                     }}
                     className="h-8 text-lg font-semibold"
                   />
-                  <Button aria-label="Confirmar" size="icon" variant="ghost" onClick={handleSaveName}><Check className="h-4 w-4" /></Button>
-                  <Button aria-label="Editar" size="icon" variant="ghost" onClick={() => setIsEditingName(false)}><X className="h-4 w-4" /></Button>
+                  <Button
+                    aria-label="Confirmar"
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleSaveName}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    aria-label="Editar"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setIsEditingName(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               ) : (
                 <h1
                   className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => { setTempName(flowName); setIsEditingName(true); }}
+                  onClick={() => {
+                    setTempName(flowName);
+                    setIsEditingName(true);
+                  }}
                 >
                   {flowName}
                 </h1>
@@ -289,8 +335,17 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
             Salvar
           </Button>
         </div>
@@ -322,7 +377,10 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
                 pannable
                 zoomable
               />
-              <Panel position="top-center" className="bg-card/80 backdrop-blur-sm px-3 py-1 rounded-md text-sm text-muted-foreground">
+              <Panel
+                position="top-center"
+                className="bg-card/80 backdrop-blur-sm px-3 py-1 rounded-md text-sm text-muted-foreground"
+              >
                 Arraste colunas da barra lateral para criar seu fluxo
               </Panel>
             </ReactFlow>
@@ -331,20 +389,32 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
 
         <FlowEdgeActionModal
           isOpen={!!pendingConnection || !!editingEdgeId}
-          onClose={() => { setPendingConnection(null); setEditingEdgeId(null); }}
+          onClose={() => {
+            setPendingConnection(null);
+            setEditingEdgeId(null);
+          }}
           onConfirm={handleConfirmAction}
-          sourceName={editingEdgeId
-            ? getNodeLabel(editingEdge?.source ?? null)
-            : getNodeLabel(pendingConnection?.source ?? null)}
-          targetName={editingEdgeId
-            ? getNodeLabel(editingEdge?.target ?? null)
-            : getNodeLabel(pendingConnection?.target ?? null)}
-          defaultActionType={editingEdgeId
-            ? (editingEdge?.data?.actionType as FlowActionType) || 'move'
-            : undefined}
-          defaultPropertyChanges={editingEdgeId
-            ? (editingEdge?.data?.propertyChanges as FlowEdgePropertyChanges) || undefined
-            : undefined}
+          sourceName={
+            editingEdgeId
+              ? getNodeLabel(editingEdge?.source ?? null)
+              : getNodeLabel(pendingConnection?.source ?? null)
+          }
+          targetName={
+            editingEdgeId
+              ? getNodeLabel(editingEdge?.target ?? null)
+              : getNodeLabel(pendingConnection?.target ?? null)
+          }
+          defaultActionType={
+            editingEdgeId
+              ? (editingEdge?.data?.actionType as FlowActionType) || "move"
+              : undefined
+          }
+          defaultPropertyChanges={
+            editingEdgeId
+              ? (editingEdge?.data
+                  ?.propertyChanges as FlowEdgePropertyChanges) || undefined
+              : undefined
+          }
           employees={employees}
           classificacoes={classificacoes}
         />

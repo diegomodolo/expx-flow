@@ -34,7 +34,7 @@ interface OrganizeTasksParams {
   startDate: string;
   daysToOrganize?: number;
   scope?: {
-    type: 'all' | 'specific';
+    type: "all" | "specific";
     employeeId?: string;
     includePeriod: number;
     includeUnassigned: boolean;
@@ -43,7 +43,8 @@ interface OrganizeTasksParams {
 }
 
 export const useTaskOrganizer = () => {
-  const [organizationPlan, setOrganizationPlan] = useState<OrganizationPlan | null>(null);
+  const [organizationPlan, setOrganizationPlan] =
+    useState<OrganizationPlan | null>(null);
   const [isOrganizing, setIsOrganizing] = useState(false);
   const [organizingStep, setOrganizingStep] = useState(0);
   const [organizingMessage, setOrganizingMessage] = useState("");
@@ -54,37 +55,37 @@ export const useTaskOrganizer = () => {
   // Mutation para chamar a Edge Function de organização
   const organizeMutation = useMutation({
     mutationFn: async (params: OrganizeTasksParams) => {
-      console.log('🚀 Starting AI organization with params:', params);
-      
       // Simular progresso das etapas
       setOrganizingStep(0);
       setOrganizingMessage("Analisando tarefas e contexto...");
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setOrganizingStep(1);
       setOrganizingMessage("Avaliando disponibilidade dos colaboradores...");
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setOrganizingStep(2);
       setOrganizingMessage("Combinando tarefas com slots de tempo...");
-      
-      const { data, error } = await supabase.functions.invoke('organize-tasks-with-ai', {
-        body: params
-      });
+
+      const { data, error } = await supabase.functions.invoke(
+        "organize-tasks-with-ai",
+        {
+          body: params,
+        },
+      );
 
       if (error) {
-        console.error('Error calling organize function:', error);
+        console.error("Error calling organize function:", error);
         throw error;
       }
 
       setOrganizingStep(3);
       setOrganizingMessage("Otimizando distribuição final...");
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       return data as OrganizationPlan;
     },
     onSuccess: (data) => {
-      console.log('✅ Organization plan received:', data);
       setOrganizationPlan(data);
       toast({
         title: "Organização criada",
@@ -92,7 +93,7 @@ export const useTaskOrganizer = () => {
       });
     },
     onError: (error) => {
-      console.error('Error organizing tasks:', error);
+      console.error("Error organizing tasks:", error);
       toast({
         title: "Erro na organização",
         description: "Não foi possível organizar as tarefas com a IA.",
@@ -105,24 +106,24 @@ export const useTaskOrganizer = () => {
   const applyOrganizationMutation = useMutation({
     mutationFn: async (plan: OrganizationPlan) => {
       // Aplicar cada tarefa organizada
-      
+
       // Aplicar cada tarefa organizada
       const updates = await Promise.all(
         plan.organizedTasks.map(async (organizedTask) => {
-          const { 
-            taskId, 
-            slotId, 
-            date, 
-            estimatedMinutes, 
-            startOffsetMinutes, 
-            endOffsetMinutes 
+          const {
+            taskId,
+            slotId,
+            date,
+            estimatedMinutes,
+            startOffsetMinutes,
+            endOffsetMinutes,
           } = organizedTask;
-          
+
           // Buscar dados do slot para calcular horários
           const { data: slotData, error: slotError } = await supabase
-            .from('planner_time_slots')
-            .select('start_time, end_time')
-            .eq('id', slotId)
+            .from("planner_time_slots")
+            .select("start_time, end_time")
+            .eq("id", slotId)
             .single();
 
           if (slotError) {
@@ -131,21 +132,27 @@ export const useTaskOrganizer = () => {
           }
 
           // Calcular start_date e due_date baseado no offset dentro do slot
-          const [slotStartHour, slotStartMin] = slotData.start_time.split(':').map(Number);
+          const [slotStartHour, slotStartMin] = slotData.start_time
+            .split(":")
+            .map(Number);
           const slotStartInMinutes = slotStartHour * 60 + slotStartMin;
-          
+
           // Calcular horário específico baseado no offset
           const taskStartInMinutes = slotStartInMinutes + startOffsetMinutes;
           const taskEndInMinutes = slotStartInMinutes + endOffsetMinutes;
-          
+
           const taskStartHour = Math.floor(taskStartInMinutes / 60);
           const taskStartMin = taskStartInMinutes % 60;
           const taskEndHour = Math.floor(taskEndInMinutes / 60);
           const taskEndMin = taskEndInMinutes % 60;
-          
+
           // Criar objetos Date com horários específicos
-          const startDateTime = new Date(`${date}T${String(taskStartHour).padStart(2, '0')}:${String(taskStartMin).padStart(2, '0')}:00`);
-          const endDateTime = new Date(`${date}T${String(taskEndHour).padStart(2, '0')}:${String(taskEndMin).padStart(2, '0')}:00`);
+          const startDateTime = new Date(
+            `${date}T${String(taskStartHour).padStart(2, "0")}:${String(taskStartMin).padStart(2, "0")}:00`,
+          );
+          const endDateTime = new Date(
+            `${date}T${String(taskEndHour).padStart(2, "0")}:${String(taskEndMin).padStart(2, "0")}:00`,
+          );
 
           const updates = {
             start_date: startDateTime.toISOString(),
@@ -153,21 +160,13 @@ export const useTaskOrganizer = () => {
             deadline: date,
             organized_by_ai: true, // Marcar que foi organizada pela IA
             ai_estimated_minutes: estimatedMinutes,
-            ai_organization_date: new Date().toISOString() // Registrar quando foi organizada
+            ai_organization_date: new Date().toISOString(), // Registrar quando foi organizada
           };
 
-          console.log(`📅 Updating task ${taskId} with specific timing:`, {
-            title: organizedTask.taskTitle || 'Título não encontrado',
-            slot: organizedTask.slotName || 'Slot não encontrado',
-            taskTime: `${String(taskStartHour).padStart(2, '0')}:${String(taskStartMin).padStart(2, '0')} - ${String(taskEndHour).padStart(2, '0')}:${String(taskEndMin).padStart(2, '0')}`,
-            estimatedMinutes,
-            updates
-          });
-
           const { error: updateError } = await supabase
-            .from('tasks')
+            .from("tasks")
             .update(updates)
-            .eq('id', taskId);
+            .eq("id", taskId);
 
           if (updateError) {
             console.error(`Error updating task ${taskId}:`, updateError);
@@ -175,28 +174,26 @@ export const useTaskOrganizer = () => {
           }
 
           return { taskId, success: true };
-        })
+        }),
       );
 
       return updates;
     },
     onSuccess: (updates) => {
-      console.log('✅ Organization plan applied successfully:', updates);
-      
       // Invalidar queries para atualizar a UI
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["planner-tasks"] });
+
       toast({
         title: "Organização aplicada",
         description: `${updates.length} tarefas foram organizadas com sucesso.`,
       });
-      
+
       // Limpar o plano após aplicar
       setOrganizationPlan(null);
     },
     onError: (error) => {
-      console.error('Error applying organization:', error);
+      console.error("Error applying organization:", error);
       toast({
         title: "Erro ao aplicar organização",
         description: "Não foi possível aplicar a organização das tarefas.",

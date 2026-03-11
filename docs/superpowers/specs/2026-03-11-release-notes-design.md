@@ -13,18 +13,18 @@ Criar uma pagina de Release Notes acessivel pelo menu do perfil no PageHeader, q
 
 ## Tabela `release_notes`
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | PK, default gen_random_uuid() |
-| title | TEXT NOT NULL | Mensagem limpa (sem prefixo) |
-| category | TEXT NOT NULL | `feature`, `fix`, `improvement`, `other` |
-| description | TEXT | Body do PR ou null |
-| source_type | TEXT NOT NULL | `commit` ou `pr` |
-| source_ref | TEXT NOT NULL UNIQUE | SHA do commit ou numero do PR |
-| source_url | TEXT | Link pro GitHub |
-| author_name | TEXT | Nome do autor |
-| published_at | TIMESTAMPTZ NOT NULL | Data do commit/merge |
-| created_at | TIMESTAMPTZ | Default now() |
+| Coluna       | Tipo                 | Descricao                                |
+| ------------ | -------------------- | ---------------------------------------- |
+| id           | UUID                 | PK, default gen_random_uuid()            |
+| title        | TEXT NOT NULL        | Mensagem limpa (sem prefixo)             |
+| category     | TEXT NOT NULL        | `feature`, `fix`, `improvement`, `other` |
+| description  | TEXT                 | Body do PR ou null                       |
+| source_type  | TEXT NOT NULL        | `commit` ou `pr`                         |
+| source_ref   | TEXT NOT NULL UNIQUE | SHA do commit ou numero do PR            |
+| source_url   | TEXT                 | Link pro GitHub                          |
+| author_name  | TEXT                 | Nome do autor                            |
+| published_at | TIMESTAMPTZ NOT NULL | Data do commit/merge                     |
+| created_at   | TIMESTAMPTZ          | Default now()                            |
 
 - RLS habilitado
 - Policy: SELECT para authenticated (todos usuarios logados podem ler)
@@ -78,12 +78,12 @@ export function useReleaseNotes() {
 
 ## Categorias Visuais
 
-| Categoria | Label | Cor | Badge |
-|-----------|-------|-----|-------|
-| feature | Nova Feature | verde (emerald) | bg-emerald-100 text-emerald-700 |
-| fix | Correcao | vermelho (red) | bg-red-100 text-red-700 |
-| improvement | Melhoria | azul (blue) | bg-blue-100 text-blue-700 |
-| other | Outros | cinza (slate) | bg-slate-100 text-slate-700 |
+| Categoria   | Label        | Cor             | Badge                           |
+| ----------- | ------------ | --------------- | ------------------------------- |
+| feature     | Nova Feature | verde (emerald) | bg-emerald-100 text-emerald-700 |
+| fix         | Correcao     | vermelho (red)  | bg-red-100 text-red-700         |
+| improvement | Melhoria     | azul (blue)     | bg-blue-100 text-blue-700       |
+| other       | Outros       | cinza (slate)   | bg-slate-100 text-slate-700     |
 
 ## Menu do Perfil (DashboardHeader)
 
@@ -94,11 +94,14 @@ export function useReleaseNotes() {
 ## Rota (App.tsx)
 
 ```tsx
-<Route path="/release-notes" element={
-  <ProtectedRoute>
-    <ReleaseNotes />
-  </ProtectedRoute>
-} />
+<Route
+  path="/release-notes"
+  element={
+    <ProtectedRoute>
+      <ReleaseNotes />
+    </ProtectedRoute>
+  }
+/>
 ```
 
 Nao requer permissao especifica — todos usuarios autenticados podem acessar.

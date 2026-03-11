@@ -1,7 +1,12 @@
-import React from 'react';
-import { Plus, Trash2, Type, GitBranch } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import React from "react";
+import { Plus, Trash2, Type, GitBranch } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MindMapToolbarProps {
   hasSelection: boolean;
@@ -11,13 +16,26 @@ interface MindMapToolbarProps {
   onDelete: () => void;
 }
 
-export function MindMapToolbar({ hasSelection, onAddChild, onAddSibling, onEditLabel, onDelete }: MindMapToolbarProps) {
+export function MindMapToolbar({
+  hasSelection,
+  onAddChild,
+  onAddSibling,
+  onEditLabel,
+  onDelete,
+}: MindMapToolbarProps) {
   return (
     <TooltipProvider>
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-card border border-border rounded-xl shadow-lg px-2 py-1.5">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button aria-label="Adicionar" variant="ghost" size="icon" className="h-8 w-8" onClick={onAddChild} disabled={!hasSelection}>
+            <Button
+              aria-label="Adicionar"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onAddChild}
+              disabled={!hasSelection}
+            >
               <Plus className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
@@ -26,7 +44,14 @@ export function MindMapToolbar({ hasSelection, onAddChild, onAddSibling, onEditL
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button aria-label="Adicionar" variant="ghost" size="icon" className="h-8 w-8" onClick={onAddSibling} disabled={!hasSelection}>
+            <Button
+              aria-label="Adicionar"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onAddSibling}
+              disabled={!hasSelection}
+            >
               <GitBranch className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
@@ -35,7 +60,14 @@ export function MindMapToolbar({ hasSelection, onAddChild, onAddSibling, onEditL
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button aria-label="Editar" variant="ghost" size="icon" className="h-8 w-8" onClick={onEditLabel} disabled={!hasSelection}>
+            <Button
+              aria-label="Editar"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onEditLabel}
+              disabled={!hasSelection}
+            >
               <Type className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
@@ -46,7 +78,14 @@ export function MindMapToolbar({ hasSelection, onAddChild, onAddSibling, onEditL
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button aria-label="Excluir" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} disabled={!hasSelection}>
+            <Button
+              aria-label="Excluir"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={onDelete}
+              disabled={!hasSelection}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </TooltipTrigger>

@@ -1,15 +1,27 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   Settings,
   Calendar,
@@ -36,27 +48,37 @@ import {
   ChevronLeft,
   Plus,
   Globe,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import DOMPurify from "dompurify";
 import {
   useWordpressAutoPostConfigById,
   useWordpressAutoPostsByConfigId,
   WordpressAutoPost,
-} from '@/hooks/useWordpressAutoPostsById';
-import { useWordpressSites } from '@/hooks/useWordpressSites';
+} from "@/hooks/useWordpressAutoPostsById";
+import { useWordpressSites } from "@/hooks/useWordpressSites";
 
 interface WordpressAutoPostsManagerProps {
   configId: string;
   companyId: string;
 }
 
-const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export function WordpressAutoPostsManager({ configId, companyId }: WordpressAutoPostsManagerProps) {
+export function WordpressAutoPostsManager({
+  configId,
+  companyId,
+}: WordpressAutoPostsManagerProps) {
   const navigate = useNavigate();
-  
-  const { config, isLoading: configLoading, updateConfig, deleteConfig, isUpdating } = useWordpressAutoPostConfigById(configId);
+
+  const {
+    config,
+    isLoading: configLoading,
+    updateConfig,
+    deleteConfig,
+    isUpdating,
+  } = useWordpressAutoPostConfigById(configId);
   const { sites } = useWordpressSites(companyId);
   const {
     pendingPosts,
@@ -75,28 +97,30 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    post_briefing: '',
-    post_type: 'post',
-    post_status: 'draft',
-    post_category: '',
+    post_briefing: "",
+    post_type: "post",
+    post_status: "draft",
+    post_category: "",
     scheduled_days: [] as number[],
     scheduled_hours: [] as number[],
-    wordpress_site_id: '',
+    wordpress_site_id: "",
   });
-  const [editingPost, setEditingPost] = useState<WordpressAutoPost | null>(null);
-  const [editedTitle, setEditedTitle] = useState('');
-  const [editedContent, setEditedContent] = useState('');
+  const [editingPost, setEditingPost] = useState<WordpressAutoPost | null>(
+    null,
+  );
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedContent, setEditedContent] = useState("");
 
   useEffect(() => {
     if (config) {
       setEditForm({
         post_briefing: config.post_briefing,
-        post_type: config.post_type || 'post',
-        post_status: config.post_status || 'draft',
-        post_category: config.post_category || '',
+        post_type: config.post_type || "post",
+        post_status: config.post_status || "draft",
+        post_category: config.post_category || "",
         scheduled_days: config.scheduled_days || [],
         scheduled_hours: config.scheduled_hours || [],
-        wordpress_site_id: config.wordpress_site_id || '',
+        wordpress_site_id: config.wordpress_site_id || "",
       });
     }
   }, [config]);
@@ -108,7 +132,7 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
 
   const handleDeleteConfig = async () => {
     await deleteConfig();
-    navigate('/automatizadores/wordpress');
+    navigate("/automatizadores/wordpress");
   };
 
   const handleToggleEnabled = async (enabled: boolean) => {
@@ -117,14 +141,14 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
 
   const handleToggleDay = (day: number) => {
     const newDays = editForm.scheduled_days.includes(day)
-      ? editForm.scheduled_days.filter(d => d !== day)
+      ? editForm.scheduled_days.filter((d) => d !== day)
       : [...editForm.scheduled_days, day].sort((a, b) => a - b);
     setEditForm({ ...editForm, scheduled_days: newDays });
   };
 
   const handleToggleHour = (hour: number) => {
     const newHours = editForm.scheduled_hours.includes(hour)
-      ? editForm.scheduled_hours.filter(h => h !== hour)
+      ? editForm.scheduled_hours.filter((h) => h !== hour)
       : [...editForm.scheduled_hours, hour].sort((a, b) => a - b);
     setEditForm({ ...editForm, scheduled_hours: newHours });
   };
@@ -155,7 +179,10 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Configuração não encontrada</p>
-        <Button className="mt-4" onClick={() => navigate('/automatizadores/wordpress')}>
+        <Button
+          className="mt-4"
+          onClick={() => navigate("/automatizadores/wordpress")}
+        >
           Voltar
         </Button>
       </div>
@@ -167,20 +194,33 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/automatizadores/wordpress')}>
+          <Button
+            aria-label="Voltar"
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/automatizadores/wordpress")}
+          >
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{config.name || 'Automação WordPress'}</h1>
+            <h1 className="text-2xl font-bold">
+              {config.name || "Automação WordPress"}
+            </h1>
             <p className="text-muted-foreground text-sm">
-              {config.wordpress_sites?.name} • {config.wordpress_sites?.site_url}
+              {config.wordpress_sites?.name} •{" "}
+              {config.wordpress_sites?.site_url}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Switch checked={config.is_enabled} onCheckedChange={handleToggleEnabled} />
-            <span className="text-sm">{config.is_enabled ? 'Ativo' : 'Pausado'}</span>
+            <Switch
+              checked={config.is_enabled}
+              onCheckedChange={handleToggleEnabled}
+            />
+            <span className="text-sm">
+              {config.is_enabled ? "Ativo" : "Pausado"}
+            </span>
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -193,12 +233,16 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
               <AlertDialogHeader>
                 <AlertDialogTitle>Excluir Automação?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Todos os posts pendentes serão excluídos.
+                  Esta ação não pode ser desfeita. Todos os posts pendentes
+                  serão excluídos.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteConfig} className="bg-destructive text-destructive-foreground">
+                <AlertDialogAction
+                  onClick={handleDeleteConfig}
+                  className="bg-destructive text-destructive-foreground"
+                >
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -215,7 +259,11 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
               <Settings className="w-5 h-5" />
               Configuração
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => setIsEditing(!isEditing)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditing(!isEditing)}
+            >
               <Edit className="w-4 h-4" />
             </Button>
           </CardHeader>
@@ -226,7 +274,9 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                   <Label>Site WordPress</Label>
                   <Select
                     value={editForm.wordpress_site_id}
-                    onValueChange={(value) => setEditForm({ ...editForm, wordpress_site_id: value })}
+                    onValueChange={(value) =>
+                      setEditForm({ ...editForm, wordpress_site_id: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um site" />
@@ -245,7 +295,12 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                   <Label>Briefing do Conteúdo</Label>
                   <Textarea
                     value={editForm.post_briefing}
-                    onChange={(e) => setEditForm({ ...editForm, post_briefing: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        post_briefing: e.target.value,
+                      })
+                    }
                     rows={4}
                     placeholder="Descreva o tipo de conteúdo..."
                   />
@@ -256,7 +311,9 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                     <Label>Tipo</Label>
                     <Select
                       value={editForm.post_type}
-                      onValueChange={(value) => setEditForm({ ...editForm, post_type: value })}
+                      onValueChange={(value) =>
+                        setEditForm({ ...editForm, post_type: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -272,7 +329,9 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                     <Label>Status</Label>
                     <Select
                       value={editForm.post_status}
-                      onValueChange={(value) => setEditForm({ ...editForm, post_status: value })}
+                      onValueChange={(value) =>
+                        setEditForm({ ...editForm, post_status: value })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -289,7 +348,12 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                   <Label>Categoria (opcional)</Label>
                   <Input
                     value={editForm.post_category}
-                    onChange={(e) => setEditForm({ ...editForm, post_category: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        post_category: e.target.value,
+                      })
+                    }
                     placeholder="Nome da categoria"
                   />
                 </div>
@@ -300,7 +364,11 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                     {dayNames.map((day, index) => (
                       <Button
                         key={index}
-                        variant={editForm.scheduled_days.includes(index) ? 'default' : 'outline'}
+                        variant={
+                          editForm.scheduled_days.includes(index)
+                            ? "default"
+                            : "outline"
+                        }
                         size="sm"
                         onClick={() => handleToggleDay(index)}
                       >
@@ -316,7 +384,11 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                     {[6, 8, 10, 12, 14, 16, 18, 20].map((hour) => (
                       <Button
                         key={hour}
-                        variant={editForm.scheduled_hours.includes(hour) ? 'default' : 'outline'}
+                        variant={
+                          editForm.scheduled_hours.includes(hour)
+                            ? "default"
+                            : "outline"
+                        }
                         size="sm"
                         onClick={() => handleToggleHour(hour)}
                       >
@@ -327,8 +399,14 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1" onClick={handleSaveConfig} disabled={isUpdating}>
-                    {isUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <Button
+                    className="flex-1"
+                    onClick={handleSaveConfig}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
                     Salvar
                   </Button>
                   <Button variant="outline" onClick={() => setIsEditing(false)}>
@@ -356,7 +434,9 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Status</p>
                     <Badge variant="secondary">
-                      {config.post_status === 'publish' ? 'Publicar' : 'Rascunho'}
+                      {config.post_status === "publish"
+                        ? "Publicar"
+                        : "Rascunho"}
                     </Badge>
                   </div>
                 </div>
@@ -426,7 +506,10 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                     </div>
                     <div className="flex gap-2">
                       <Button onClick={handleSavePostEdit}>Salvar</Button>
-                      <Button variant="outline" onClick={() => setEditingPost(null)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => setEditingPost(null)}
+                      >
                         Cancelar
                       </Button>
                     </div>
@@ -442,12 +525,16 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                     )}
                     <h3 className="text-xl font-semibold">{nextPost.title}</h3>
                     {nextPost.excerpt && (
-                      <p className="text-muted-foreground">{nextPost.excerpt}</p>
+                      <p className="text-muted-foreground">
+                        {nextPost.excerpt}
+                      </p>
                     )}
                     <ScrollArea className="h-32 border rounded-lg p-3">
                       <div
                         className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: nextPost.content }}
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(nextPost.content),
+                        }}
                       />
                     </ScrollArea>
                     <div className="flex flex-wrap gap-2">
@@ -526,7 +613,10 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
               <CardContent>
                 <div className="space-y-3">
                   {pendingPosts.slice(1).map((post) => (
-                    <div key={post.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{post.title}</p>
                         <p className="text-sm text-muted-foreground">
@@ -534,7 +624,8 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
                         </p>
                       </div>
                       <div className="flex gap-1">
-                        <Button aria-label="Excluir"
+                        <Button
+                          aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           onClick={() => deletePost(post.id)}
@@ -558,18 +649,27 @@ export function WordpressAutoPostsManager({ configId, companyId }: WordpressAuto
               <CardContent>
                 <div className="space-y-3">
                   {publishedPosts.slice(0, 10).map((post) => (
-                    <div key={post.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{post.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          Publicado em {post.published_at ? formatScheduledDate(post.published_at) : '-'}
+                          Publicado em{" "}
+                          {post.published_at
+                            ? formatScheduledDate(post.published_at)
+                            : "-"}
                         </p>
                       </div>
                       {post.wordpress_post_url && (
-                        <Button aria-label="Fechar"
+                        <Button
+                          aria-label="Fechar"
                           variant="ghost"
                           size="icon"
-                          onClick={() => window.open(post.wordpress_post_url!, '_blank')}
+                          onClick={() =>
+                            window.open(post.wordpress_post_url!, "_blank")
+                          }
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>

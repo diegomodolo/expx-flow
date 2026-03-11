@@ -1,4 +1,12 @@
-import { Sun, Moon, LogOut, User, ChevronDown, FileText, Megaphone } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  LogOut,
+  User,
+  ChevronDown,
+  FileText,
+  Megaphone,
+} from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -119,7 +127,8 @@ export function DashboardHeader() {
           <NotificationCenter />
 
           {/* Workspace Quick Access */}
-          <Button aria-label="Fechar"
+          <Button
+            aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={() => navigate("/workspace")}
@@ -131,7 +140,8 @@ export function DashboardHeader() {
 
           {/* WhatsApp Chat - Only show if user has instances assigned */}
           {hasWhatsAppInstances && (
-            <Button aria-label="Fechar"
+            <Button
+              aria-label="Fechar"
               variant="ghost"
               size="icon"
               onClick={() => setIsWhatsAppOpen(true)}

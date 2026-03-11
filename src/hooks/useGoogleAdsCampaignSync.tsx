@@ -17,10 +17,10 @@ interface SyncOptions {
 interface ClientSyncResult {
   client_id: string;
   client_name: string;
-  status: 'success' | 'error';
+  status: "success" | "error";
   error_code?: string;
   error_message?: string;
-  action_required?: 'internal' | 'client' | 'none';
+  action_required?: "internal" | "client" | "none";
   campaigns_synced?: number;
   ad_groups_synced?: number;
   ads_synced?: number;
@@ -30,61 +30,72 @@ interface ClientSyncResult {
 function classifyGoogleAdsError(errorMessage: string): {
   code: string;
   userFriendlyMessage: string;
-  actionRequired: 'internal' | 'client' | 'none';
+  actionRequired: "internal" | "client" | "none";
 } {
-  if (errorMessage.includes('USER_PERMISSION_DENIED')) {
+  if (errorMessage.includes("USER_PERMISSION_DENIED")) {
     return {
-      code: 'USER_PERMISSION_DENIED',
-      userFriendlyMessage: 'Conta MCC não tem permissão para acessar este cliente. O cliente precisa conceder acesso à conta MCC no Google Ads.',
-      actionRequired: 'client',
+      code: "USER_PERMISSION_DENIED",
+      userFriendlyMessage:
+        "Conta MCC não tem permissão para acessar este cliente. O cliente precisa conceder acesso à conta MCC no Google Ads.",
+      actionRequired: "client",
     };
   }
-  if (errorMessage.includes('CUSTOMER_NOT_ENABLED')) {
+  if (errorMessage.includes("CUSTOMER_NOT_ENABLED")) {
     return {
-      code: 'CUSTOMER_NOT_ENABLED',
-      userFriendlyMessage: 'Conta do Google Ads está desativada ou pausada. O cliente precisa reativar a conta.',
-      actionRequired: 'client',
+      code: "CUSTOMER_NOT_ENABLED",
+      userFriendlyMessage:
+        "Conta do Google Ads está desativada ou pausada. O cliente precisa reativar a conta.",
+      actionRequired: "client",
     };
   }
-  if (errorMessage.includes('OAUTH_TOKEN_REVOKED') || errorMessage.includes('invalid_grant')) {
+  if (
+    errorMessage.includes("OAUTH_TOKEN_REVOKED") ||
+    errorMessage.includes("invalid_grant")
+  ) {
     return {
-      code: 'OAUTH_TOKEN_REVOKED',
-      userFriendlyMessage: 'Token de acesso revogado. Reconecte o Google Ads nas configurações.',
-      actionRequired: 'internal',
+      code: "OAUTH_TOKEN_REVOKED",
+      userFriendlyMessage:
+        "Token de acesso revogado. Reconecte o Google Ads nas configurações.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Token refresh failed')) {
+  if (errorMessage.includes("Token refresh failed")) {
     return {
-      code: 'TOKEN_REFRESH_FAILED',
-      userFriendlyMessage: 'Falha ao renovar credenciais. Reconecte o Google Ads.',
-      actionRequired: 'internal',
+      code: "TOKEN_REFRESH_FAILED",
+      userFriendlyMessage:
+        "Falha ao renovar credenciais. Reconecte o Google Ads.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Client does not have a Google Ads account configured')) {
+  if (
+    errorMessage.includes(
+      "Client does not have a Google Ads account configured",
+    )
+  ) {
     return {
-      code: 'NO_GOOGLE_ACCOUNT',
-      userFriendlyMessage: 'Cliente não tem conta Google Ads configurada.',
-      actionRequired: 'internal',
+      code: "NO_GOOGLE_ACCOUNT",
+      userFriendlyMessage: "Cliente não tem conta Google Ads configurada.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Google Ads integration is not active')) {
+  if (errorMessage.includes("Google Ads integration is not active")) {
     return {
-      code: 'INTEGRATION_INACTIVE',
-      userFriendlyMessage: 'Integração do Google Ads não está ativa.',
-      actionRequired: 'internal',
+      code: "INTEGRATION_INACTIVE",
+      userFriendlyMessage: "Integração do Google Ads não está ativa.",
+      actionRequired: "internal",
     };
   }
-  if (errorMessage.includes('Google Ads account not found')) {
+  if (errorMessage.includes("Google Ads account not found")) {
     return {
-      code: 'ACCOUNT_NOT_FOUND',
-      userFriendlyMessage: 'Conta do Google Ads não encontrada.',
-      actionRequired: 'internal',
+      code: "ACCOUNT_NOT_FOUND",
+      userFriendlyMessage: "Conta do Google Ads não encontrada.",
+      actionRequired: "internal",
     };
   }
   return {
-    code: 'UNKNOWN',
+    code: "UNKNOWN",
     userFriendlyMessage: errorMessage,
-    actionRequired: 'internal',
+    actionRequired: "internal",
   };
 }
 
@@ -96,17 +107,19 @@ export function useGoogleAdsCampaignSync() {
     clientName?: string;
   }>({ current: 0, total: 0 });
 
-  const syncCampaigns = async (options: SyncOptions): Promise<{
+  const syncCampaigns = async (
+    options: SyncOptions,
+  ): Promise<{
     success: boolean;
     synced?: { campaigns: number; adGroups: number; ads: number };
     error?: string;
     errorCode?: string;
-    actionRequired?: 'internal' | 'client' | 'none';
+    actionRequired?: "internal" | "client" | "none";
   }> => {
     const {
       clientId,
       companyId,
-      period = 'last_30_days',
+      period = "last_30_days",
       syncCampaigns = true,
       syncAdGroups = false,
       syncAds = false,
@@ -118,31 +131,36 @@ export function useGoogleAdsCampaignSync() {
       setSyncing(true);
 
       if (!silent) {
-        toast.loading("Sincronizando campanhas do Google Ads...", { id: "google-sync" });
+        toast.loading("Sincronizando campanhas do Google Ads...", {
+          id: "google-sync",
+        });
       }
 
-      const response = await supabase.functions.invoke('sync-google-ads-campaigns', {
-        body: {
-          clientId,
-          companyId,
-          period,
-          syncCampaigns,
-          syncAdGroups,
-          syncAds,
-          includeInactive,
-          silent,
+      const response = await supabase.functions.invoke(
+        "sync-google-ads-campaigns",
+        {
+          body: {
+            clientId,
+            companyId,
+            period,
+            syncCampaigns,
+            syncAdGroups,
+            syncAds,
+            includeInactive,
+            silent,
+          },
         },
-      });
+      );
 
       const data = response.data;
       const error = response.error;
 
       // Extract detailed error message from response
       if (error) {
-        let errorMessage = error.message || 'Unknown error';
+        let errorMessage = error.message || "Unknown error";
         // Try to get detailed error from context body
         const contextBody = (error as unknown).context?.body;
-        if (typeof contextBody === 'string' && contextBody.startsWith('{')) {
+        if (typeof contextBody === "string" && contextBody.startsWith("{")) {
           try {
             const parsed = JSON.parse(contextBody);
             errorMessage = parsed.error || errorMessage;
@@ -160,12 +178,12 @@ export function useGoogleAdsCampaignSync() {
       if (!silent) {
         toast.success(
           `Sincronizado: ${data.synced.campaigns} campanhas, ${data.synced.adGroups} grupos de anúncios, ${data.synced.ads} anúncios`,
-          { id: "google-sync" }
+          { id: "google-sync" },
         );
       }
 
       // Dispatch event for other components to refresh
-      window.dispatchEvent(new CustomEvent('clientsUpdated'));
+      window.dispatchEvent(new CustomEvent("clientsUpdated"));
 
       return {
         success: true,
@@ -173,13 +191,16 @@ export function useGoogleAdsCampaignSync() {
       };
     } catch (error: unknown) {
       console.error("Error syncing Google Ads campaigns:", error);
-      
-      const classification = classifyGoogleAdsError(error.message || '');
-      
+
+      const classification = classifyGoogleAdsError(error.message || "");
+
       if (!silent) {
-        toast.error(`Erro ao sincronizar: ${classification.userFriendlyMessage}`, { id: "google-sync" });
+        toast.error(
+          `Erro ao sincronizar: ${classification.userFriendlyMessage}`,
+          { id: "google-sync" },
+        );
       }
-      
+
       return {
         success: false,
         error: classification.userFriendlyMessage,
@@ -193,18 +214,26 @@ export function useGoogleAdsCampaignSync() {
 
   const validateCompanyUrls = async (companyId: string) => {
     try {
-      console.log('[validateCompanyUrls] Starting URL validation for company:', companyId);
-      const { data, error } = await supabase.functions.invoke('validate-client-urls', {
-        body: { company_id: companyId }
-      });
-      
+      const { data, error } = await supabase.functions.invoke(
+        "validate-client-urls",
+        {
+          body: { company_id: companyId },
+        },
+      );
+
       if (error) {
-        console.error('[validateCompanyUrls] URL validation failed:', error.message);
+        console.error(
+          "[validateCompanyUrls] URL validation failed:",
+          error.message,
+        );
       } else {
-        console.log('[validateCompanyUrls] URL validation completed:', data?.summary || data?.message);
+        // intentionally empty
       }
     } catch (urlError: unknown) {
-      console.error('[validateCompanyUrls] URL validation error:', urlError.message);
+      console.error(
+        "[validateCompanyUrls] URL validation error:",
+        urlError.message,
+      );
     }
   };
 
@@ -217,38 +246,36 @@ export function useGoogleAdsCampaignSync() {
       syncAds?: boolean;
       includeInactive?: boolean;
       excludeInactiveClients?: boolean;
-    } = {}
+    } = {},
   ) => {
     const startedAt = new Date().toISOString();
     const clientResults: ClientSyncResult[] = [];
-    
+
     try {
       setSyncing(true);
       setProgress({ current: 0, total: 0 });
 
-      console.log('[syncAllClients] Starting sync for company:', companyId);
-      console.log('[syncAllClients] Options:', options);
-
       // Get all clients with Google Ads accounts
       let query = supabase
-        .from('clients')
-        .select('id, name, google_account_id')
-        .eq('company_id', companyId)
-        .not('google_account_id', 'is', null);
+        .from("clients")
+        .select("id, name, google_account_id")
+        .eq("company_id", companyId)
+        .not("google_account_id", "is", null);
 
       if (options.excludeInactiveClients) {
         // Use 'red' which is the database enum value for inactive clients
-        query = query.neq('status', 'red');
+        query = query.neq("status", "red");
       }
 
       const { data: clients, error } = await query;
 
-      console.log('[syncAllClients] Query result:', { clients, error, count: clients?.length });
-
       if (error) throw error;
 
       if (!clients || clients.length === 0) {
-        console.warn('[syncAllClients] No clients found with Google Ads configured for company:', companyId);
+        console.warn(
+          "[syncAllClients] No clients found with Google Ads configured for company:",
+          companyId,
+        );
         toast.info("Nenhum cliente com Google Ads configurado");
         return;
       }
@@ -277,7 +304,7 @@ export function useGoogleAdsCampaignSync() {
           clientResults.push({
             client_id: client.id,
             client_name: client.name,
-            status: 'success',
+            status: "success",
             campaigns_synced: result.synced?.campaigns || 0,
             ad_groups_synced: result.synced?.adGroups || 0,
             ads_synced: result.synced?.ads || 0,
@@ -288,7 +315,7 @@ export function useGoogleAdsCampaignSync() {
           clientResults.push({
             client_id: client.id,
             client_name: client.name,
-            status: 'error',
+            status: "error",
             error_code: result.errorCode,
             error_message: result.error,
             action_required: result.actionRequired,
@@ -297,43 +324,49 @@ export function useGoogleAdsCampaignSync() {
       }
 
       // Determinar status geral
-      let overallStatus: 'completed' | 'partial' | 'failed' = 'completed';
+      let overallStatus: "completed" | "partial" | "failed" = "completed";
       if (errorCount > 0 && successCount > 0) {
-        overallStatus = 'partial';
+        overallStatus = "partial";
       } else if (errorCount > 0 && successCount === 0) {
-        overallStatus = 'failed';
+        overallStatus = "failed";
       }
 
       // Registrar no histórico de execuções
       const completedAt = new Date().toISOString();
       const { error: logError } = await supabase
-        .from('google_ads_sync_execution_logs')
-        .insert([{
-          company_id: companyId,
-          schedule_id: null, // null = sincronização manual
-          status: overallStatus,
-          clients_processed: successCount,
-          clients_total: clients.length,
-          sync_options: {
-            period: options.period || 'last_30_days',
-            campaigns: options.syncCampaigns ?? true,
-            adGroups: options.syncAdGroups ?? false,
-            ads: options.syncAds ?? false,
-            includeInactive: options.includeInactive ?? false,
-          } as Json,
-          execution_details: {
-            trigger: 'manual',
-            clients: clientResults.map(c => ({ ...c })),
-          } as Json,
-          error_message: errorCount > 0 ? `${errorCount} cliente(s) com erro` : null,
-          started_at: startedAt,
-          completed_at: completedAt,
-        }]);
+        .from("google_ads_sync_execution_logs")
+        .insert([
+          {
+            company_id: companyId,
+            schedule_id: null, // null = sincronização manual
+            status: overallStatus,
+            clients_processed: successCount,
+            clients_total: clients.length,
+            sync_options: {
+              period: options.period || "last_30_days",
+              campaigns: options.syncCampaigns ?? true,
+              adGroups: options.syncAdGroups ?? false,
+              ads: options.syncAds ?? false,
+              includeInactive: options.includeInactive ?? false,
+            } as Json,
+            execution_details: {
+              trigger: "manual",
+              clients: clientResults.map((c) => ({ ...c })),
+            } as Json,
+            error_message:
+              errorCount > 0 ? `${errorCount} cliente(s) com erro` : null,
+            started_at: startedAt,
+            completed_at: completedAt,
+          },
+        ]);
 
       if (logError) {
-        console.error('[syncAllClients] Error creating execution log:', logError);
+        console.error(
+          "[syncAllClients] Error creating execution log:",
+          logError,
+        );
       } else {
-        console.log('[syncAllClients] Execution log created successfully');
+        // intentionally empty
       }
 
       // ========== VALIDAR URLs APÓS SINCRONIZAÇÃO ==========
@@ -341,36 +374,36 @@ export function useGoogleAdsCampaignSync() {
       // ========== FIM DA VALIDAÇÃO DE URLs ==========
 
       toast.success(
-        `Sincronização concluída! ${successCount} clientes sincronizados${errorCount > 0 ? `, ${errorCount} com erro` : ''}`
+        `Sincronização concluída! ${successCount} clientes sincronizados${errorCount > 0 ? `, ${errorCount} com erro` : ""}`,
       );
     } catch (error: unknown) {
       console.error("Error syncing all clients:", error);
-      
+
       // Registrar falha no histórico
-      await supabase
-        .from('google_ads_sync_execution_logs')
-        .insert([{
+      await supabase.from("google_ads_sync_execution_logs").insert([
+        {
           company_id: companyId,
           schedule_id: null,
-          status: 'failed',
+          status: "failed",
           clients_processed: 0,
           clients_total: 0,
           sync_options: {
-            period: options.period || 'last_30_days',
+            period: options.period || "last_30_days",
             campaigns: options.syncCampaigns ?? true,
             adGroups: options.syncAdGroups ?? false,
             ads: options.syncAds ?? false,
             includeInactive: options.includeInactive ?? false,
           } as Json,
           execution_details: {
-            trigger: 'manual',
-            clients: clientResults.map(c => ({ ...c })),
+            trigger: "manual",
+            clients: clientResults.map((c) => ({ ...c })),
           } as Json,
           error_message: error.message,
           started_at: startedAt,
           completed_at: new Date().toISOString(),
-        }]);
-      
+        },
+      ]);
+
       toast.error(`Erro ao sincronizar clientes: ${error.message}`);
     } finally {
       setSyncing(false);

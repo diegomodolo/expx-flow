@@ -5,6 +5,7 @@ import { useState } from "react";
 export interface ReleaseNote {
   id: string;
   title: string;
+  friendly_title: string | null;
   category: "feature" | "fix" | "improvement" | "other";
   description: string | null;
   source_type: "commit" | "pr";
@@ -35,19 +36,28 @@ export function useReleaseNotes() {
     },
   });
 
-  const { data: totalCount = 0 } = useQuery({
-    queryKey: ["release-notes-count"],
+  const {
+    data: stats = { total: 0, feature: 0, fix: 0, improvement: 0, other: 0 },
+  } = useQuery({
+    queryKey: ["release-notes-stats"],
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("release_notes")
-        .select("*", { count: "exact", head: true });
+        .select("category");
 
       if (error) throw error;
-      return count || 0;
+      const rows = data || [];
+      return {
+        total: rows.length,
+        feature: rows.filter((r) => r.category === "feature").length,
+        fix: rows.filter((r) => r.category === "fix").length,
+        improvement: rows.filter((r) => r.category === "improvement").length,
+        other: rows.filter((r) => r.category === "other").length,
+      };
     },
   });
 
-  const hasMore = notes.length < totalCount;
+  const hasMore = notes.length < stats.total;
 
   const loadMore = () => {
     setLimit((prev) => prev + PAGE_SIZE);
@@ -55,20 +65,20 @@ export function useReleaseNotes() {
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke(
-        "sync-release-notes"
-      );
+      const { data, error } =
+        await supabase.functions.invoke("sync-release-notes");
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["release-notes"] });
-      queryClient.invalidateQueries({ queryKey: ["release-notes-count"] });
+      queryClient.invalidateQueries({ queryKey: ["release-notes-stats"] });
     },
   });
 
   return {
     notes,
+    stats,
     loading: isLoading,
     hasMore,
     loadMore,

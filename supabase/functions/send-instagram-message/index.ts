@@ -1,8 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
@@ -16,17 +18,33 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { company_id, instagram_account_id, ig_user_id, message, conversation_id } = body;
+    const {
+      company_id,
+      instagram_account_id,
+      ig_user_id,
+      message,
+      conversation_id,
+    } = body;
 
     if (!company_id || !instagram_account_id || !ig_user_id || !message) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: company_id, instagram_account_id, ig_user_id, message" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            "Missing required fields: company_id, instagram_account_id, ig_user_id, message",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Resolve the access token using the instagram-token-resolver pattern
-    const accessToken = await resolveInstagramAccessToken(supabase, instagram_account_id, company_id);
+    const accessToken = await resolveInstagramAccessToken(
+      supabase,
+      instagram_account_id,
+      company_id,
+    );
 
     // Send message via Meta Graph API (same Send API used for Messenger)
     const metaResponse = await fetch(
@@ -34,7 +52,7 @@ Deno.serve(async (req) => {
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -42,31 +60,34 @@ Deno.serve(async (req) => {
           message: { text: message },
           messaging_type: "RESPONSE",
         }),
-      }
+      },
     );
 
     const metaData = await metaResponse.json();
 
     if (!metaResponse.ok) {
       console.error("[send-instagram-message] Meta API error:", metaData);
-      throw new Error(`Meta API error: ${metaData.error?.message || JSON.stringify(metaData)}`);
+      throw new Error(
+        `Meta API error: ${metaData.error?.message || JSON.stringify(metaData)}`,
+      );
     }
 
-    console.log("[send-instagram-message] Sent message, mid:", metaData.message_id);
+    console.log(
+      "[send-instagram-message] Sent message, mid:",
+      metaData.message_id,
+    );
 
     // Persist the outgoing message
     if (conversation_id) {
-      await supabase
-        .from("instagram_messages")
-        .insert({
-          conversation_id,
-          company_id,
-          direction: "outgoing",
-          content: message,
-          message_type: "text",
-          external_id: metaData.message_id,
-          status: "sent",
-        });
+      await supabase.from("instagram_messages").insert({
+        conversation_id,
+        company_id,
+        direction: "outgoing",
+        content: message,
+        message_type: "text",
+        external_id: metaData.message_id,
+        status: "sent",
+      });
 
       // Update conversation preview
       await supabase
@@ -81,21 +102,24 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, message_id: metaData.message_id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
     console.error("[send-instagram-message] Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
 async function resolveInstagramAccessToken(
-  supabase: any,
+  supabase: unknown,
   instagramAccountId: string,
-  companyId: string
+  companyId: string,
 ): Promise<string> {
   // Get the instagram account
   const { data: igAccount, error } = await supabase
@@ -148,5 +172,7 @@ async function resolveInstagramAccessToken(
     return integration.access_token;
   }
 
-  throw new Error("No access token found for Instagram account. Reconnect Facebook in settings.");
+  throw new Error(
+    "No access token found for Instagram account. Reconnect Facebook in settings.",
+  );
 }

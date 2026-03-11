@@ -3,10 +3,17 @@ import { useReleaseNotes, ReleaseNote } from "@/hooks/useReleaseNotes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { RefreshCw, ExternalLink, Megaphone, Loader2, Sparkles, Bug, Wrench, Package } from "lucide-react";
+import {
+  RefreshCw,
+  Megaphone,
+  Loader2,
+  Sparkles,
+  Bug,
+  Wrench,
+  Package,
+} from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo, useState } from "react";
 
 const CATEGORY_CONFIG: Record<
   string,
@@ -14,7 +21,8 @@ const CATEGORY_CONFIG: Record<
 > = {
   feature: {
     label: "Nova Feature",
-    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    className:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
     icon: Sparkles,
     color: "text-emerald-600 dark:text-emerald-400",
   },
@@ -26,13 +34,15 @@ const CATEGORY_CONFIG: Record<
   },
   improvement: {
     label: "Melhoria",
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    className:
+      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     icon: Wrench,
     color: "text-blue-600 dark:text-blue-400",
   },
   other: {
     label: "Outros",
-    className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
+    className:
+      "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
     icon: Package,
     color: "text-slate-600 dark:text-slate-400",
   },
@@ -41,7 +51,9 @@ const CATEGORY_CONFIG: Record<
 function groupByMonth(notes: ReleaseNote[]): Record<string, ReleaseNote[]> {
   const groups: Record<string, ReleaseNote[]> = {};
   for (const note of notes) {
-    const key = format(new Date(note.published_at), "MMMM yyyy", { locale: ptBR });
+    const key = format(new Date(note.published_at), "MMMM yyyy", {
+      locale: ptBR,
+    });
     if (!groups[key]) groups[key] = [];
     groups[key].push(note);
   }
@@ -73,9 +85,7 @@ function KpiCard({ icon: Icon, label, value, color, bgColor }: KpiCardProps) {
 }
 
 function NoteCard({ note }: { note: ReleaseNote }) {
-  const [expanded, setExpanded] = useState(false);
   const config = CATEGORY_CONFIG[note.category] || CATEGORY_CONFIG.other;
-  const hasLongDescription = note.description && note.description.length > 200;
 
   return (
     <div className="bg-white dark:bg-card border rounded-lg p-4 hover:shadow-sm transition-shadow">
@@ -85,30 +95,10 @@ function NoteCard({ note }: { note: ReleaseNote }) {
             <Badge variant="secondary" className={config.className}>
               {config.label}
             </Badge>
-            {note.source_type === "pr" && (
-              <span className="text-xs text-muted-foreground">PR</span>
-            )}
           </div>
           <h3 className="text-sm font-medium text-foreground leading-snug">
-            {note.title}
+            {note.friendly_title || note.title}
           </h3>
-          {note.description && (
-            <div className="mt-2">
-              <p className="text-xs text-muted-foreground whitespace-pre-line">
-                {hasLongDescription && !expanded
-                  ? note.description.substring(0, 200) + "..."
-                  : note.description}
-              </p>
-              {hasLongDescription && (
-                <button
-                  onClick={() => setExpanded(!expanded)}
-                  className="text-xs text-primary hover:underline mt-1"
-                >
-                  {expanded ? "Ver menos" : "Ver mais"}
-                </button>
-              )}
-            </div>
-          )}
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span>
               {formatDistanceToNow(new Date(note.published_at), {
@@ -118,33 +108,14 @@ function NoteCard({ note }: { note: ReleaseNote }) {
             </span>
           </div>
         </div>
-        {note.source_url && (
-          <a
-            href={note.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground shrink-0"
-            title="Ver no GitHub"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        )}
       </div>
     </div>
   );
 }
 
 export default function ReleaseNotes() {
-  const { notes, loading, hasMore, loadMore, sync, syncing } =
+  const { notes, stats, loading, hasMore, loadMore, sync, syncing } =
     useReleaseNotes();
-
-  const stats = useMemo(() => {
-    const features = notes.filter((n) => n.category === "feature").length;
-    const fixes = notes.filter((n) => n.category === "fix").length;
-    const improvements = notes.filter((n) => n.category === "improvement").length;
-    const others = notes.filter((n) => n.category === "other").length;
-    return { total: notes.length, features, fixes, improvements, others };
-  }, [notes]);
 
   const grouped = groupByMonth(notes);
 
@@ -187,28 +158,28 @@ export default function ReleaseNotes() {
             <KpiCard
               icon={Sparkles}
               label="Novas Features"
-              value={stats.features}
+              value={stats.feature}
               color="text-emerald-600 dark:text-emerald-400"
               bgColor="bg-emerald-100 dark:bg-emerald-900/30"
             />
             <KpiCard
               icon={Bug}
               label="Correções"
-              value={stats.fixes}
+              value={stats.fix}
               color="text-red-600 dark:text-red-400"
               bgColor="bg-red-100 dark:bg-red-900/30"
             />
             <KpiCard
               icon={Wrench}
               label="Melhorias"
-              value={stats.improvements}
+              value={stats.improvement}
               color="text-blue-600 dark:text-blue-400"
               bgColor="bg-blue-100 dark:bg-blue-900/30"
             />
             <KpiCard
               icon={Package}
               label="Outros"
-              value={stats.others}
+              value={stats.other}
               color="text-slate-600 dark:text-slate-400"
               bgColor="bg-slate-100 dark:bg-slate-800"
             />
@@ -238,13 +209,13 @@ export default function ReleaseNotes() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
               {Object.entries(grouped).map(([month, monthNotes]) => (
-                <section key={month} className="space-y-3">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider capitalize">
+                <section key={month}>
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider capitalize mb-3">
                     {month}
                   </h2>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {monthNotes.map((note) => (
                       <NoteCard key={note.id} note={note} />
                     ))}
@@ -253,7 +224,7 @@ export default function ReleaseNotes() {
               ))}
 
               {hasMore && (
-                <div className="text-center pt-4 lg:col-span-2">
+                <div className="text-center pt-4">
                   <Button variant="outline" onClick={loadMore}>
                     Carregar mais
                   </Button>

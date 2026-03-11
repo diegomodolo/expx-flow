@@ -2,7 +2,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -411,7 +412,7 @@ RETORNE APENAS JSON:`,
 });
 
 // Função auxiliar para identificar tipo de slot baseado no nome e descrição
-function getSlotType(slot: any): string {
+function getSlotType(slot: unknown): string {
   const name = slot.name?.toLowerCase() || "";
   const description = slot.description?.toLowerCase() || "";
   const combined = `${name} ${description}`;

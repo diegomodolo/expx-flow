@@ -1,33 +1,49 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Rss, 
-  Plus, 
-  Trash2, 
-  ChevronDown, 
-  ExternalLink, 
-  RefreshCw, 
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Rss,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ExternalLink,
+  RefreshCw,
   AlertCircle,
   Loader2,
   Sparkles,
   CheckCircle2,
   ImageIcon,
-  LayoutGrid
-} from 'lucide-react';
-import { useRSSKnowledge } from '@/hooks/useRSSKnowledge';
-import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+  LayoutGrid,
+} from "lucide-react";
+import { useRSSKnowledge } from "@/hooks/useRSSKnowledge";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface RSSKnowledgeCardProps {
   configId: string;
@@ -36,17 +52,17 @@ interface RSSKnowledgeCardProps {
   isStandalone?: boolean;
 }
 
-export function RSSKnowledgeCard({ 
-  configId, 
-  open = false, 
+export function RSSKnowledgeCard({
+  configId,
+  open = false,
   onOpenChange,
-  isStandalone = false 
+  isStandalone = false,
 }: RSSKnowledgeCardProps) {
-  const [feedUrl, setFeedUrl] = useState('');
-  const [feedName, setFeedName] = useState('');
+  const [feedUrl, setFeedUrl] = useState("");
+  const [feedName, setFeedName] = useState("");
   const [expandedFeeds, setExpandedFeeds] = useState<Set<string>>(new Set());
   const [generatingItemId, setGeneratingItemId] = useState<string | null>(null);
-  
+
   const {
     feeds,
     items,
@@ -64,30 +80,33 @@ export function RSSKnowledgeCard({
     generatePost,
     isGeneratingPost,
     refreshFeeds,
-    isRefreshingFeeds
+    isRefreshingFeeds,
   } = useRSSKnowledge(configId);
 
   const handleAddFeed = async () => {
     if (!feedUrl.trim()) return;
-    
+
     try {
-      await addFeed({ feedUrl: feedUrl.trim(), feedName: feedName.trim() || undefined });
-      setFeedUrl('');
-      setFeedName('');
+      await addFeed({
+        feedUrl: feedUrl.trim(),
+        feedName: feedName.trim() || undefined,
+      });
+      setFeedUrl("");
+      setFeedName("");
     } catch (error) {
       // Error already handled by mutation
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && feedUrl.trim()) {
+    if (e.key === "Enter" && feedUrl.trim()) {
       e.preventDefault();
       handleAddFeed();
     }
   };
 
   const toggleFeedExpanded = (feedId: string) => {
-    setExpandedFeeds(prev => {
+    setExpandedFeeds((prev) => {
       const next = new Set(prev);
       if (next.has(feedId)) {
         next.delete(feedId);
@@ -99,7 +118,7 @@ export function RSSKnowledgeCard({
   };
 
   const getItemsForFeed = (feedId: string) => {
-    return items.filter(item => item.feed_id === feedId);
+    return items.filter((item) => item.feed_id === feedId);
   };
 
   const handleGeneratePost = async (itemId: string) => {
@@ -123,8 +142,8 @@ export function RSSKnowledgeCard({
             onKeyDown={handleKeyDown}
             className="flex-1"
           />
-          <Button 
-            onClick={handleAddFeed} 
+          <Button
+            onClick={handleAddFeed}
             disabled={!feedUrl.trim() || isAddingFeed}
             size="sm"
           >
@@ -146,7 +165,10 @@ export function RSSKnowledgeCard({
       {/* Actions */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {enabledFeedsCount} feed{enabledFeedsCount !== 1 ? 's' : ''} ativo{enabledFeedsCount !== 1 ? 's' : ''}, {selectedCount} item{selectedCount !== 1 ? 's' : ''} selecionado{selectedCount !== 1 ? 's' : ''}
+          {enabledFeedsCount} feed{enabledFeedsCount !== 1 ? "s" : ""} ativo
+          {enabledFeedsCount !== 1 ? "s" : ""}, {selectedCount} item
+          {selectedCount !== 1 ? "s" : ""} selecionado
+          {selectedCount !== 1 ? "s" : ""}
         </p>
         <Button
           variant="outline"
@@ -154,7 +176,9 @@ export function RSSKnowledgeCard({
           onClick={() => refreshFeeds()}
           disabled={isRefreshingFeeds || feeds.length === 0}
         >
-          <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshingFeeds && "animate-spin")} />
+          <RefreshCw
+            className={cn("h-4 w-4 mr-2", isRefreshingFeeds && "animate-spin")}
+          />
           Atualizar
         </Button>
       </div>
@@ -170,33 +194,44 @@ export function RSSKnowledgeCard({
         <div className="text-center py-8 text-muted-foreground">
           <Rss className="h-12 w-12 mx-auto mb-2 opacity-50" />
           <p>Nenhum feed RSS cadastrado</p>
-          <p className="text-sm">Adicione feeds para importar conteúdo automaticamente</p>
+          <p className="text-sm">
+            Adicione feeds para importar conteúdo automaticamente
+          </p>
         </div>
       ) : (
         <ScrollArea className="h-[500px] pr-4">
           <div className="space-y-3">
             {feeds.map((feed) => {
               const feedItems = getItemsForFeed(feed.id);
-              const selectedFeedItems = feedItems.filter(i => i.is_selected);
-              const generatedCount = feedItems.filter(i => i.post_generated).length;
+              const selectedFeedItems = feedItems.filter((i) => i.is_selected);
+              const generatedCount = feedItems.filter(
+                (i) => i.post_generated,
+              ).length;
               const isExpanded = expandedFeeds.has(feed.id);
-              
+
               return (
-                <Card key={feed.id} className={cn(!feed.is_enabled && "opacity-60")}>
+                <Card
+                  key={feed.id}
+                  className={cn(!feed.is_enabled && "opacity-60")}
+                >
                   <CardHeader className="py-3 px-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <Checkbox
                           checked={feed.is_enabled}
-                          onCheckedChange={(checked) => 
-                            toggleFeed({ feedId: feed.id, isEnabled: !!checked })
+                          onCheckedChange={(checked) =>
+                            toggleFeed({
+                              feedId: feed.id,
+                              isEnabled: !!checked,
+                            })
                           }
                           className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className="font-medium text-sm truncate">
-                              {feed.feed_name || new URL(feed.feed_url).hostname}
+                              {feed.feed_name ||
+                                new URL(feed.feed_url).hostname}
                             </h4>
                             {feed.last_error && (
                               <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
@@ -207,38 +242,51 @@ export function RSSKnowledgeCard({
                           </p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <Badge variant="secondary" className="text-xs">
-                              {selectedFeedItems.length}/{feedItems.length} selecionados
+                              {selectedFeedItems.length}/{feedItems.length}{" "}
+                              selecionados
                             </Badge>
                             {generatedCount > 0 && (
-                              <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-green-600 border-green-300"
+                              >
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                                {generatedCount} gerado{generatedCount !== 1 ? 's' : ''}
+                                {generatedCount} gerado
+                                {generatedCount !== 1 ? "s" : ""}
                               </Badge>
                             )}
                             {feed.last_checked_at && (
                               <span className="text-xs text-muted-foreground">
-                                Atualizado {formatDistanceToNow(new Date(feed.last_checked_at), { 
-                                  addSuffix: true, 
-                                  locale: ptBR 
-                                })}
+                                Atualizado{" "}
+                                {formatDistanceToNow(
+                                  new Date(feed.last_checked_at),
+                                  {
+                                    addSuffix: true,
+                                    locale: ptBR,
+                                  },
+                                )}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button aria-label="Fechar"
+                        <Button
+                          aria-label="Fechar"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => toggleFeedExpanded(feed.id)}
                         >
-                          <ChevronDown className={cn(
-                            "h-4 w-4 transition-transform",
-                            isExpanded && "rotate-180"
-                          )} />
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              isExpanded && "rotate-180",
+                            )}
+                          />
                         </Button>
-                        <Button aria-label="Excluir"
+                        <Button
+                          aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
@@ -254,16 +302,21 @@ export function RSSKnowledgeCard({
                         Erro: {feed.last_error}
                       </p>
                     )}
-                    
+
                     {/* Feed Configuration */}
                     <div className="mt-3 pt-3 border-t space-y-3">
                       <div className="flex items-center gap-4 flex-wrap">
                         <div className="flex items-center gap-2">
-                          <Label className="text-xs whitespace-nowrap">Tipo de Post:</Label>
+                          <Label className="text-xs whitespace-nowrap">
+                            Tipo de Post:
+                          </Label>
                           <Select
                             value={feed.post_type}
-                            onValueChange={(value: 'single' | 'carousel') => 
-                              updateFeedConfig({ feedId: feed.id, postType: value })
+                            onValueChange={(value: "single" | "carousel") =>
+                              updateFeedConfig({
+                                feedId: feed.id,
+                                postType: value,
+                              })
                             }
                           >
                             <SelectTrigger className="h-8 w-[130px] text-xs">
@@ -286,21 +339,28 @@ export function RSSKnowledgeCard({
                           </Select>
                         </div>
 
-                        {feed.post_type === 'carousel' && (
+                        {feed.post_type === "carousel" && (
                           <div className="flex items-center gap-2">
-                            <Label className="text-xs whitespace-nowrap">Slides:</Label>
+                            <Label className="text-xs whitespace-nowrap">
+                              Slides:
+                            </Label>
                             <Select
                               value={String(feed.carousel_images)}
-                              onValueChange={(value) => 
-                                updateFeedConfig({ feedId: feed.id, carouselImages: parseInt(value) })
+                              onValueChange={(value) =>
+                                updateFeedConfig({
+                                  feedId: feed.id,
+                                  carouselImages: parseInt(value),
+                                })
                               }
                             >
                               <SelectTrigger className="h-8 w-[70px] text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                                  <SelectItem key={n} value={String(n)}>
+                                    {n}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -313,11 +373,14 @@ export function RSSKnowledgeCard({
                           id={`auto-generate-${feed.id}`}
                           checked={feed.auto_generate}
                           onCheckedChange={(checked) =>
-                            updateFeedConfig({ feedId: feed.id, autoGenerate: checked })
+                            updateFeedConfig({
+                              feedId: feed.id,
+                              autoGenerate: checked,
+                            })
                           }
                         />
-                        <Label 
-                          htmlFor={`auto-generate-${feed.id}`} 
+                        <Label
+                          htmlFor={`auto-generate-${feed.id}`}
                           className="text-xs cursor-pointer"
                         >
                           Gerar automaticamente quando chegar notícia
@@ -325,19 +388,22 @@ export function RSSKnowledgeCard({
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   {isExpanded && feedItems.length > 0 && (
                     <CardContent className="py-2 px-4 border-t">
                       <div className="space-y-2 max-h-80 overflow-y-auto">
                         {feedItems.slice(0, 30).map((item) => (
-                          <div 
+                          <div
                             key={item.id}
                             className="flex items-start gap-3 py-2 border-b last:border-0"
                           >
                             <Checkbox
                               checked={item.is_selected}
                               onCheckedChange={(checked) =>
-                                toggleItem({ itemId: item.id, isSelected: !!checked })
+                                toggleItem({
+                                  itemId: item.id,
+                                  isSelected: !!checked,
+                                })
                               }
                               className="mt-1"
                             />
@@ -348,7 +414,10 @@ export function RSSKnowledgeCard({
                                 </h5>
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                   {item.post_generated && (
-                                    <Badge variant="outline" className="text-xs text-green-600 border-green-300 gap-1">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs text-green-600 border-green-300 gap-1"
+                                    >
                                       <CheckCircle2 className="h-3 w-3" />
                                       Gerado
                                     </Badge>
@@ -358,14 +427,19 @@ export function RSSKnowledgeCard({
                                     size="sm"
                                     className="h-7 text-xs gap-1"
                                     onClick={() => handleGeneratePost(item.id)}
-                                    disabled={isGeneratingPost || generatingItemId === item.id}
+                                    disabled={
+                                      isGeneratingPost ||
+                                      generatingItemId === item.id
+                                    }
                                   >
                                     {generatingItemId === item.id ? (
                                       <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
                                       <Sparkles className="h-3 w-3" />
                                     )}
-                                    {item.post_generated ? 'Gerar novamente' : 'Gerar'}
+                                    {item.post_generated
+                                      ? "Gerar novamente"
+                                      : "Gerar"}
                                   </Button>
                                   <a
                                     href={item.link}
@@ -385,18 +459,25 @@ export function RSSKnowledgeCard({
                               <div className="flex items-center gap-2 mt-1">
                                 {item.published_at && (
                                   <span className="text-xs text-muted-foreground">
-                                    {formatDistanceToNow(new Date(item.published_at), { 
-                                      addSuffix: true, 
-                                      locale: ptBR 
-                                    })}
+                                    {formatDistanceToNow(
+                                      new Date(item.published_at),
+                                      {
+                                        addSuffix: true,
+                                        locale: ptBR,
+                                      },
+                                    )}
                                   </span>
                                 )}
                                 {item.generated_at && (
                                   <span className="text-xs text-green-600">
-                                    · Gerado {formatDistanceToNow(new Date(item.generated_at), { 
-                                      addSuffix: true, 
-                                      locale: ptBR 
-                                    })}
+                                    · Gerado{" "}
+                                    {formatDistanceToNow(
+                                      new Date(item.generated_at),
+                                      {
+                                        addSuffix: true,
+                                        locale: ptBR,
+                                      },
+                                    )}
                                   </span>
                                 )}
                               </div>
@@ -432,12 +513,11 @@ export function RSSKnowledgeCard({
             <Badge variant="outline">{selectedCount} selecionados</Badge>
           </div>
           <CardDescription>
-            Adicione feeds RSS para gerar posts automaticamente a partir de notícias
+            Adicione feeds RSS para gerar posts automaticamente a partir de
+            notícias
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {cardContent}
-        </CardContent>
+        <CardContent className="space-y-4">{cardContent}</CardContent>
       </Card>
     );
   }
@@ -454,21 +534,22 @@ export function RSSKnowledgeCard({
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{selectedCount} selecionados</Badge>
-                <ChevronDown className={cn(
-                  "h-4 w-4 transition-transform",
-                  open && "rotate-180"
-                )} />
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform",
+                    open && "rotate-180",
+                  )}
+                />
               </div>
             </div>
             <CardDescription>
-              Adicione feeds RSS para gerar posts automaticamente a partir de notícias
+              Adicione feeds RSS para gerar posts automaticamente a partir de
+              notícias
             </CardDescription>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="space-y-4">
-            {cardContent}
-          </CardContent>
+          <CardContent className="space-y-4">{cardContent}</CardContent>
         </CollapsibleContent>
       </Card>
     </Collapsible>

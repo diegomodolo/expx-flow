@@ -1100,9 +1100,10 @@ export function TaskDialog({
           hideCloseButton
           className="p-0 gap-0 overflow-hidden"
           style={{ maxWidth: `${zoomWidth}px` }}
+          aria-describedby={undefined}
         >
           <VisuallyHidden>
-            <DialogTitle>Detalhes da Tarefa</DialogTitle>
+            <DialogTitle>{formData.title || "Detalhes da Tarefa"}</DialogTitle>
           </VisuallyHidden>
           <div className="flex max-h-[90vh]">
             {/* Left Sidebar */}

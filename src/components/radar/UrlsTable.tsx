@@ -19,18 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Link2, 
-  Search, 
-  ExternalLink, 
-  RefreshCw, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Link2,
+  Search,
+  ExternalLink,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
   Clock,
   ArrowRightLeft,
   HelpCircle,
   FileX2,
-  ShieldAlert
+  ShieldAlert,
 } from "lucide-react";
 import { RadarUrl, ValidationStatus } from "@/hooks/useRadarUrls";
 import { formatDistanceToNow } from "date-fns";
@@ -40,10 +40,18 @@ interface UrlsTableProps {
   urls: RadarUrl[];
   onValidate: (urlId: string) => void;
   isValidating: boolean;
-  onFilterChange: (filters: { status?: ValidationStatus | 'all'; search?: string }) => void;
+  onFilterChange: (filters: {
+    status?: ValidationStatus | "all";
+    search?: string;
+  }) => void;
 }
 
-export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: UrlsTableProps) {
+export function UrlsTable({
+  urls,
+  onValidate,
+  isValidating,
+  onFilterChange,
+}: UrlsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -54,94 +62,116 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
-    onFilterChange({ status: value as ValidationStatus | 'all' });
+    onFilterChange({ status: value as ValidationStatus | "all" });
   };
 
   // Priority order for severity sorting
   const getStatusPriority = (url: RadarUrl): number => {
     const status = url.validation_status;
     const loadTime = url.validation_load_time_ms;
-    
+
     switch (status) {
-      case 'error': return 1;
-      case 'suspicious': return 2;
-      case 'empty': return 3;
-      case 'timeout': return 4;
-      case 'ok':
+      case "error":
+        return 1;
+      case "suspicious":
+        return 2;
+      case "empty":
+        return 3;
+      case "timeout":
+        return 4;
+      case "ok":
         // Slow pages (>3s) get priority 5, normal OK gets priority 7
         if (loadTime && loadTime > 3000) return 5;
         return 7;
-      case 'redirect': return 6;
-      case 'pending':
-      default: return 8;
+      case "redirect":
+        return 6;
+      case "pending":
+      default:
+        return 8;
     }
   };
 
   const filteredUrls = urls
-    .filter(url => {
-      const matchesSearch = !search || 
+    .filter((url) => {
+      const matchesSearch =
+        !search ||
         url.url.toLowerCase().includes(search.toLowerCase()) ||
         url.client_name.toLowerCase().includes(search.toLowerCase()) ||
         url.label?.toLowerCase().includes(search.toLowerCase());
-      
+
       return matchesSearch;
     })
     .sort((a, b) => {
       const priorityA = getStatusPriority(a);
       const priorityB = getStatusPriority(b);
-      
+
       if (priorityA !== priorityB) {
         return priorityA - priorityB;
       }
-      
+
       // Secondary sort: slower pages first within same priority
       if (a.validation_load_time_ms && b.validation_load_time_ms) {
         return b.validation_load_time_ms - a.validation_load_time_ms;
       }
-      
+
       return 0;
     });
 
   const getStatusBadge = (status: ValidationStatus) => {
     switch (status) {
-      case 'ok':
+      case "ok":
         return (
-          <Badge variant="outline" className="text-green-600 dark:text-green-500 border-green-600 text-[10px] h-5 px-1.5">
+          <Badge
+            variant="outline"
+            className="text-green-600 dark:text-green-500 border-green-600 text-[10px] h-5 px-1.5"
+          >
             <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
             OK
           </Badge>
         );
-      case 'error':
+      case "error":
         return (
           <Badge variant="destructive" className="text-[10px] h-5 px-1.5">
             <XCircle className="h-2.5 w-2.5 mr-0.5" />
             Erro
           </Badge>
         );
-      case 'timeout':
+      case "timeout":
         return (
-          <Badge variant="outline" className="text-orange-600 dark:text-orange-500 border-orange-600 text-[10px] h-5 px-1.5">
+          <Badge
+            variant="outline"
+            className="text-orange-600 dark:text-orange-500 border-orange-600 text-[10px] h-5 px-1.5"
+          >
             <Clock className="h-2.5 w-2.5 mr-0.5" />
             Timeout
           </Badge>
         );
-      case 'redirect':
+      case "redirect":
         return (
-          <Badge variant="outline" className="text-blue-600 dark:text-blue-500 border-blue-600 text-[10px] h-5 px-1.5">
+          <Badge
+            variant="outline"
+            className="text-blue-600 dark:text-blue-500 border-blue-600 text-[10px] h-5 px-1.5"
+          >
             <ArrowRightLeft className="h-2.5 w-2.5 mr-0.5" />
             Redir
           </Badge>
         );
-      case 'empty':
+      case "empty":
         return (
-          <Badge variant="outline" className="text-purple-600 dark:text-purple-500 border-purple-600 text-[10px] h-5 px-1.5">
+          <Badge
+            variant="outline"
+            className="text-purple-600 dark:text-purple-500 border-purple-600 text-[10px] h-5 px-1.5"
+          >
             <FileX2 className="h-2.5 w-2.5 mr-0.5" />
             Vazio
           </Badge>
         );
-      case 'suspicious':
+      case "suspicious":
         return (
-          <Badge variant="outline" className="text-amber-600 dark:text-amber-500 border-amber-600 text-[10px] h-5 px-1.5">
+          <Badge
+            variant="outline"
+            className="text-amber-600 dark:text-amber-500 border-amber-600 text-[10px] h-5 px-1.5"
+          >
             <ShieldAlert className="h-2.5 w-2.5 mr-0.5" />
             Suspeito
           </Badge>
@@ -157,7 +187,7 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
   };
 
   const formatResponseTime = (ms: number | null) => {
-    if (!ms) return '-';
+    if (!ms) return "-";
     if (ms >= 1000) {
       return `${(ms / 1000).toFixed(1)}s`;
     }
@@ -209,31 +239,46 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs py-2 w-[120px]">Cliente</TableHead>
+                  <TableHead className="text-xs py-2 w-[120px]">
+                    Cliente
+                  </TableHead>
                   <TableHead className="text-xs py-2">URL</TableHead>
-                  <TableHead className="text-xs py-2 w-[70px]">Status</TableHead>
+                  <TableHead className="text-xs py-2 w-[70px]">
+                    Status
+                  </TableHead>
                   <TableHead className="text-xs py-2 w-[50px]">Cód</TableHead>
                   <TableHead className="text-xs py-2 w-[60px]">Tempo</TableHead>
                   <TableHead className="text-xs py-2 w-[50px]">Camp.</TableHead>
-                  <TableHead className="text-xs py-2 w-[90px]">Validação</TableHead>
+                  <TableHead className="text-xs py-2 w-[90px]">
+                    Validação
+                  </TableHead>
                   <TableHead className="text-xs py-2 w-[60px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUrls.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6 text-xs text-muted-foreground">
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-6 text-xs text-muted-foreground"
+                    >
                       Nenhuma URL encontrada
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredUrls.slice(0, 100).map((url) => (
                     <TableRow key={url.id}>
-                      <TableCell className="py-1.5 text-xs font-medium truncate max-w-[120px]" title={url.client_name}>
+                      <TableCell
+                        className="py-1.5 text-xs font-medium truncate max-w-[120px]"
+                        title={url.client_name}
+                      >
                         {url.client_name}
                       </TableCell>
                       <TableCell className="py-1.5">
-                        <p className="truncate text-xs max-w-[200px]" title={url.url}>
+                        <p
+                          className="truncate text-xs max-w-[200px]"
+                          title={url.url}
+                        >
                           {url.url}
                         </p>
                       </TableCell>
@@ -242,44 +287,52 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                       </TableCell>
                       <TableCell className="py-1.5">
                         <span className="text-xs font-mono">
-                          {url.validation_status_code || '-'}
+                          {url.validation_status_code || "-"}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5">
-                        <span className={`text-xs font-mono ${
-                          url.validation_load_time_ms && url.validation_load_time_ms > 3000 
-                            ? 'text-orange-600 dark:text-orange-500 font-medium' 
-                            : ''
-                        }`}>
+                        <span
+                          className={`text-xs font-mono ${
+                            url.validation_load_time_ms &&
+                            url.validation_load_time_ms > 3000
+                              ? "text-orange-600 dark:text-orange-500 font-medium"
+                              : ""
+                          }`}
+                        >
                           {formatResponseTime(url.validation_load_time_ms)}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5">
-                        <span 
+                        <span
                           className={`text-xs font-mono ${
-                            url.active_campaign_count && url.active_campaign_count > 0 
-                              ? 'text-green-600 dark:text-green-500' 
-                              : 'text-muted-foreground'
+                            url.active_campaign_count &&
+                            url.active_campaign_count > 0
+                              ? "text-green-600 dark:text-green-500"
+                              : "text-muted-foreground"
                           }`}
                           title={`${url.active_campaign_count ?? 0} campanhas ativas de ${url.total_campaign_count ?? 0} total`}
                         >
-                          {url.active_campaign_count ?? 0}/{url.total_campaign_count ?? 0}
+                          {url.active_campaign_count ?? 0}/
+                          {url.total_campaign_count ?? 0}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5">
                         <span className="text-[10px] text-muted-foreground">
-                          {url.last_validated_at 
-                            ? formatDistanceToNow(new Date(url.last_validated_at), { 
-                                addSuffix: true, 
-                                locale: ptBR 
-                              })
-                            : 'Nunca'
-                          }
+                          {url.last_validated_at
+                            ? formatDistanceToNow(
+                                new Date(url.last_validated_at),
+                                {
+                                  addSuffix: true,
+                                  locale: ptBR,
+                                },
+                              )
+                            : "Nunca"}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5">
                         <div className="flex items-center gap-0.5">
-                          <Button aria-label="Atualizar"
+                          <Button
+                            aria-label="Atualizar"
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
@@ -287,7 +340,9 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                             disabled={isValidating}
                             title="Validar"
                           >
-                            <RefreshCw className={`h-3 w-3 ${isValidating ? 'animate-spin' : ''}`} />
+                            <RefreshCw
+                              className={`h-3 w-3 ${isValidating ? "animate-spin" : ""}`}
+                            />
                           </Button>
                           <Button
                             variant="ghost"
@@ -296,7 +351,11 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                             asChild
                             title="Abrir URL"
                           >
-                            <a href={url.url} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={url.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <ExternalLink className="h-3 w-3" />
                             </a>
                           </Button>

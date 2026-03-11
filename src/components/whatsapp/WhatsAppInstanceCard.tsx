@@ -20,13 +20,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  Phone, 
-  MoreVertical, 
-  QrCode, 
-  Wifi, 
-  Users, 
-  Pencil, 
+import {
+  Phone,
+  MoreVertical,
+  QrCode,
+  Wifi,
+  Users,
+  Pencil,
   Trash2,
   Loader2,
   CheckCircle2,
@@ -35,7 +35,10 @@ import {
   Webhook,
   Tag,
 } from "lucide-react";
-import { WhatsAppInstance, INSTANCE_TYPE_OPTIONS } from "@/hooks/useWhatsAppInstances";
+import {
+  WhatsAppInstance,
+  INSTANCE_TYPE_OPTIONS,
+} from "@/hooks/useWhatsAppInstances";
 import { UazapiQRCodeModal } from "./UazapiQRCodeModal";
 
 interface WhatsAppInstanceCardProps {
@@ -45,7 +48,10 @@ interface WhatsAppInstanceCardProps {
   onEdit: (instance: WhatsAppInstance) => void;
   onManageUsers: (instance: WhatsAppInstance) => void;
   onTestConnection: (instanceId: string) => void;
-  onConfigureWebhook: (instanceId: string, receiveGroupMessages: boolean) => void;
+  onConfigureWebhook: (
+    instanceId: string,
+    receiveGroupMessages: boolean,
+  ) => void;
   onDelete: (instanceId: string) => void;
   isTesting: boolean;
   isConfiguringWebhook: boolean;
@@ -68,8 +74,10 @@ export function WhatsAppInstanceCard({
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
 
   const getInstanceTypeLabel = () => {
-    const typeOption = INSTANCE_TYPE_OPTIONS.find(opt => opt.value === instance.instance_type);
-    return typeOption?.label || 'Geral';
+    const typeOption = INSTANCE_TYPE_OPTIONS.find(
+      (opt) => opt.value === instance.instance_type,
+    );
+    return typeOption?.label || "Geral";
   };
 
   const handleConfigureWebhook = (receiveGroups: boolean) => {
@@ -78,8 +86,9 @@ export function WhatsAppInstanceCard({
   };
 
   const getStatusBadge = () => {
-    const status = instance.status || (instance.is_connected ? "connected" : "disconnected");
-    
+    const status =
+      instance.status || (instance.is_connected ? "connected" : "disconnected");
+
     switch (status) {
       case "connected":
         return (
@@ -90,14 +99,20 @@ export function WhatsAppInstanceCard({
         );
       case "connecting":
         return (
-          <Badge variant="secondary" className="bg-google-blue-100 text-google-blue-700 dark:bg-google-blue-600/20 dark:text-google-blue-400 shrink-0">
+          <Badge
+            variant="secondary"
+            className="bg-google-blue-100 text-google-blue-700 dark:bg-google-blue-600/20 dark:text-google-blue-400 shrink-0"
+          >
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
             Conectando...
           </Badge>
         );
       default:
         return (
-          <Badge variant="secondary" className="bg-google-yellow-100 text-google-yellow-700 dark:bg-google-yellow-600/20 dark:text-google-yellow-400 shrink-0">
+          <Badge
+            variant="secondary"
+            className="bg-google-yellow-100 text-google-yellow-700 dark:bg-google-yellow-600/20 dark:text-google-yellow-400 shrink-0"
+          >
             <WifiOff className="h-3 w-3 mr-1" />
             Desconectado
           </Badge>
@@ -113,7 +128,10 @@ export function WhatsAppInstanceCard({
             <div className="flex items-start gap-3 flex-1 min-w-0">
               {instance.profile_pic_url ? (
                 <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarImage src={instance.profile_pic_url} alt={instance.profile_name || instance.instance_name} />
+                  <AvatarImage
+                    src={instance.profile_pic_url}
+                    alt={instance.profile_name || instance.instance_name}
+                  />
                   <AvatarFallback>
                     <Phone className="h-5 w-5 text-muted-foreground" />
                   </AvatarFallback>
@@ -123,25 +141,28 @@ export function WhatsAppInstanceCard({
                   <Phone className="h-5 w-5 text-primary" />
                 </div>
               )}
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-medium truncate">{instance.instance_name}</h3>
+                  <h3 className="font-medium truncate">
+                    {instance.instance_name}
+                  </h3>
                   {getStatusBadge()}
-                  {instance.instance_type && instance.instance_type !== 'general' && (
-                    <Badge variant="outline" className="shrink-0 text-xs">
-                      <Tag className="h-3 w-3 mr-1" />
-                      {getInstanceTypeLabel()}
-                    </Badge>
-                  )}
+                  {instance.instance_type &&
+                    instance.instance_type !== "general" && (
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        <Tag className="h-3 w-3 mr-1" />
+                        {getInstanceTypeLabel()}
+                      </Badge>
+                    )}
                 </div>
-                
+
                 {instance.profile_name && (
                   <p className="text-sm font-medium text-primary mt-0.5">
                     {instance.profile_name}
                   </p>
                 )}
-                
+
                 {instance.connected_phone && (
                   <p className="text-sm text-muted-foreground">
                     📱 {instance.connected_phone}
@@ -153,10 +174,13 @@ export function WhatsAppInstanceCard({
                     ID: {instance.uazapi_instance_id}
                   </p>
                 )}
-                
+
                 {instance.last_connection_test && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Última verificação: {new Date(instance.last_connection_test).toLocaleString("pt-BR")}
+                    Última verificação:{" "}
+                    {new Date(instance.last_connection_test).toLocaleString(
+                      "pt-BR",
+                    )}
                   </p>
                 )}
               </div>
@@ -172,7 +196,7 @@ export function WhatsAppInstanceCard({
                 <QrCode className="h-4 w-4 mr-1" />
                 QR Code
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -217,7 +241,7 @@ export function WhatsAppInstanceCard({
                     Editar
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => setShowDeleteDialog(true)}
                     className="text-destructive"
                   >
@@ -243,8 +267,9 @@ export function WhatsAppInstanceCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir instância?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá remover a instância "{instance.instance_name}" e todas as suas atribuições de usuários.
-              A instância também será removida da UazapiGO.
+              Esta ação irá remover a instância "{instance.instance_name}" e
+              todas as suas atribuições de usuários. A instância também será
+              removida da UazapiGO.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -284,7 +309,9 @@ export function WhatsAppInstanceCard({
             >
               Não, apenas conversas privadas
             </AlertDialogAction>
-            <AlertDialogCancel className="w-full mt-2">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="w-full mt-2">
+              Cancelar
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

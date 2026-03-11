@@ -146,11 +146,17 @@ export function CarouselPreviewModal({
                 {carousel.client?.name || "Carrossel"}
               </DialogTitle>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline">{getTypeLabel(carousel.carousel_type)}</Badge>
+                <Badge variant="outline">
+                  {getTypeLabel(carousel.carousel_type)}
+                </Badge>
                 <span className="text-xs text-muted-foreground">
-                  {format(new Date(carousel.created_at), "dd MMM yyyy 'às' HH:mm", {
-                    locale: ptBR,
-                  })}
+                  {format(
+                    new Date(carousel.created_at),
+                    "dd MMM yyyy 'às' HH:mm",
+                    {
+                      locale: ptBR,
+                    },
+                  )}
                 </span>
               </div>
             </div>
@@ -185,7 +191,8 @@ export function CarouselPreviewModal({
             {/* Navigation */}
             {totalSlides > 1 && (
               <>
-                <Button aria-label="Voltar"
+                <Button
+                  aria-label="Voltar"
                   variant="secondary"
                   size="icon"
                   className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full"
@@ -193,7 +200,8 @@ export function CarouselPreviewModal({
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
-                <Button aria-label="Avançar"
+                <Button
+                  aria-label="Avançar"
                   variant="secondary"
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full"

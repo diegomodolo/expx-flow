@@ -3,7 +3,10 @@ import { Play, Pause, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { downloadAndCacheMedia, hasCachedMedia } from "@/hooks/useWhatsAppMediaCache";
+import {
+  downloadAndCacheMedia,
+  hasCachedMedia,
+} from "@/hooks/useWhatsAppMediaCache";
 import { supabase } from "@/integrations/supabase/client";
 
 interface WhatsAppAudioPlayerProps {
@@ -37,11 +40,16 @@ export function WhatsAppAudioPlayer({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Transcription state
-  const [transcription, setTranscription] = useState<string | null>(audioTranscription || null);
-  const [isTranscribing, setIsTranscribing] = useState(transcriptionStatus === "processing");
-  const [showTranscription, setShowTranscription] = useState(!!audioTranscription);
+  const [transcription, setTranscription] = useState<string | null>(
+    audioTranscription || null,
+  );
+  const [isTranscribing, setIsTranscribing] = useState(
+    transcriptionStatus === "processing",
+  );
+  const [showTranscription, setShowTranscription] =
+    useState(!!audioTranscription);
 
   // Update transcription when prop changes
   useEffect(() => {
@@ -54,7 +62,6 @@ export function WhatsAppAudioPlayer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-      console.log("[WhatsAppAudioPlayer] Using cached audio URL:", cachedMediaUrl);
       setAudioSrc(cachedMediaUrl!);
     }
   }, [cachedMediaUrl]);
@@ -71,14 +78,18 @@ export function WhatsAppAudioPlayer({
       instanceId &&
       messageId
     ) {
-      console.log("[WhatsAppAudioPlayer] Auto-triggering transcription for audio:", isOutgoing ? "outgoing" : "incoming");
       triggerTranscription();
     }
-  }, [audioTranscription, transcriptionStatus, supabaseMessageId, instanceId, messageId]);
+  }, [
+    audioTranscription,
+    transcriptionStatus,
+    supabaseMessageId,
+    instanceId,
+    messageId,
+  ]);
 
   const triggerTranscription = async () => {
     if (!supabaseMessageId || !instanceId || !messageId) {
-      console.log("[WhatsAppAudioPlayer] Missing IDs for transcription");
       return;
     }
 
@@ -86,15 +97,16 @@ export function WhatsAppAudioPlayer({
     setShowTranscription(true);
 
     try {
-      console.log("[WhatsAppAudioPlayer] Calling transcribe-audio edge function...");
-      
-      const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-        body: {
-          messageId: supabaseMessageId,
-          instanceId,
-          externalMessageId: messageId,
+      const { data, error } = await supabase.functions.invoke(
+        "transcribe-audio",
+        {
+          body: {
+            messageId: supabaseMessageId,
+            instanceId,
+            externalMessageId: messageId,
+          },
         },
-      });
+      );
 
       if (error) {
         console.error("[WhatsAppAudioPlayer] Transcription error:", error);
@@ -102,7 +114,6 @@ export function WhatsAppAudioPlayer({
         setIsTranscribing(false);
         return;
       } else if (data?.transcription) {
-        console.log("[WhatsAppAudioPlayer] Transcription received:", data.transcription.substring(0, 50));
         setTranscription(data.transcription);
         setIsTranscribing(false);
         return;
@@ -111,7 +122,7 @@ export function WhatsAppAudioPlayer({
           setTranscription(
             `Transcrição indisponível: ative a API "Cloud Speech-to-Text" no Google Cloud e tente novamente.\n${
               data?.activation_url ? `Link: ${data.activation_url}` : ""
-            }`
+            }`,
           );
         } else {
           setTranscription(data?.error || "Erro na transcrição");
@@ -175,7 +186,7 @@ export function WhatsAppAudioPlayer({
   // Fetch audio URL via edge function proxy and cache it
   const loadAudio = useCallback(async () => {
     if (audioSrc) return; // Already loaded
-    
+
     setIsLoading(true);
     setError(null);
 
@@ -184,7 +195,9 @@ export function WhatsAppAudioPlayer({
       if (!instanceId || !messageId) {
         // Try direct URL as fallback
         if (mediaUrl) {
-          const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(() => null);
+          const testResponse = await fetch(mediaUrl, { method: "HEAD" }).catch(
+            () => null,
+          );
           if (testResponse?.ok) {
             setAudioSrc(mediaUrl);
             setIsLoading(false);
@@ -195,8 +208,6 @@ export function WhatsAppAudioPlayer({
         setIsLoading(false);
         return;
       }
-
-      console.log("[WhatsAppAudioPlayer] Downloading and caching audio...");
 
       const result = await downloadAndCacheMedia({
         instanceId,
@@ -219,8 +230,6 @@ export function WhatsAppAudioPlayer({
         const objectUrl = URL.createObjectURL(blob);
         setAudioSrc(objectUrl);
       }
-
-      console.log("[WhatsAppAudioPlayer] Audio ready, cached:", !!cachedUrl);
     } catch (err: unknown) {
       console.error("[WhatsAppAudioPlayer] Error loading audio:", err);
       setError("Erro ao carregar áudio");
@@ -279,7 +288,7 @@ export function WhatsAppAudioPlayer({
   const handleSeek = (value: number[]) => {
     const audio = audioRef.current;
     if (!audio || !duration) return;
-    
+
     const newTime = (value[0] / 100) * duration;
     audio.currentTime = newTime;
     setCurrentTime(newTime);
@@ -289,7 +298,7 @@ export function WhatsAppAudioPlayer({
     const currentIndex = PLAYBACK_SPEEDS.indexOf(playbackSpeed);
     const nextIndex = (currentIndex + 1) % PLAYBACK_SPEEDS.length;
     const newSpeed = PLAYBACK_SPEEDS[nextIndex];
-    
+
     setPlaybackSpeed(newSpeed);
     if (audioRef.current) {
       audioRef.current.playbackRate = newSpeed;
@@ -308,23 +317,24 @@ export function WhatsAppAudioPlayer({
   return (
     <div className="flex flex-col gap-2 w-full min-w-[240px]">
       {/* Audio Player */}
-      <div className={cn(
-        "flex items-center gap-3 p-3 rounded-lg w-full",
-        isOutgoing ? "bg-primary-foreground/10" : "bg-background/50"
-      )}>
-        {audioSrc && (
-          <audio ref={audioRef} src={audioSrc} preload="metadata" />
+      <div
+        className={cn(
+          "flex items-center gap-3 p-3 rounded-lg w-full",
+          isOutgoing ? "bg-primary-foreground/10" : "bg-background/50",
         )}
+      >
+        {audioSrc && <audio ref={audioRef} src={audioSrc} preload="metadata" />}
 
         {/* Play/Pause button */}
-        <Button aria-label="Reproduzir"
+        <Button
+          aria-label="Reproduzir"
           size="icon"
           variant="ghost"
           className={cn(
             "h-10 w-10 rounded-full shrink-0",
-            isOutgoing 
-              ? "bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground" 
-              : "bg-primary/10 hover:bg-primary/20 text-primary"
+            isOutgoing
+              ? "bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground"
+              : "bg-primary/10 hover:bg-primary/20 text-primary",
           )}
           onClick={togglePlay}
           disabled={isLoading}
@@ -350,28 +360,32 @@ export function WhatsAppAudioPlayer({
               disabled={!audioSrc || duration === 0}
               className={cn(
                 "cursor-pointer w-full",
-                isOutgoing ? "[&_[role=slider]]:bg-primary-foreground" : ""
+                isOutgoing ? "[&_[role=slider]]:bg-primary-foreground" : "",
               )}
             />
           </div>
 
           {/* Time and speed */}
           <div className="flex items-center justify-between text-xs gap-2">
-            <span className={cn(
-              "truncate",
-              isOutgoing ? "text-primary-foreground/70" : "text-muted-foreground"
-            )}>
+            <span
+              className={cn(
+                "truncate",
+                isOutgoing
+                  ? "text-primary-foreground/70"
+                  : "text-muted-foreground",
+              )}
+            >
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
-            
+
             <Button
               variant="ghost"
               size="sm"
               className={cn(
                 "h-5 px-1.5 text-xs font-medium shrink-0",
-                isOutgoing 
-                  ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                isOutgoing
+                  ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
               )}
               onClick={cyclePlaybackSpeed}
               disabled={!audioSrc}
@@ -389,30 +403,44 @@ export function WhatsAppAudioPlayer({
 
       {/* Transcription Section - For both incoming and outgoing messages */}
       {showTranscription && (
-        <div className={cn(
-          "flex items-start gap-2 px-3 py-2 rounded-lg text-sm",
-          isOutgoing 
-            ? "bg-primary-foreground/10 border border-primary-foreground/20" 
-            : "bg-muted/50 border border-border/50"
-        )}>
-          <FileText className={cn(
-            "h-4 w-4 shrink-0 mt-0.5",
-            isOutgoing ? "text-primary-foreground/70" : "text-muted-foreground"
-          )} />
+        <div
+          className={cn(
+            "flex items-start gap-2 px-3 py-2 rounded-lg text-sm",
+            isOutgoing
+              ? "bg-primary-foreground/10 border border-primary-foreground/20"
+              : "bg-muted/50 border border-border/50",
+          )}
+        >
+          <FileText
+            className={cn(
+              "h-4 w-4 shrink-0 mt-0.5",
+              isOutgoing
+                ? "text-primary-foreground/70"
+                : "text-muted-foreground",
+            )}
+          />
           <div className="flex-1 min-w-0">
             {isTranscribing ? (
-              <div className={cn(
-                "flex items-center gap-2",
-                isOutgoing ? "text-primary-foreground/70" : "text-muted-foreground"
-              )}>
+              <div
+                className={cn(
+                  "flex items-center gap-2",
+                  isOutgoing
+                    ? "text-primary-foreground/70"
+                    : "text-muted-foreground",
+                )}
+              >
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span className="text-xs">Transcrevendo áudio...</span>
               </div>
             ) : transcription ? (
-              <p className={cn(
-                "whitespace-pre-wrap break-words text-xs leading-relaxed",
-                isOutgoing ? "text-primary-foreground/90" : "text-foreground/90"
-              )}>
+              <p
+                className={cn(
+                  "whitespace-pre-wrap break-words text-xs leading-relaxed",
+                  isOutgoing
+                    ? "text-primary-foreground/90"
+                    : "text-foreground/90",
+                )}
+              >
                 {transcription}
               </p>
             ) : null}
