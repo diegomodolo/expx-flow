@@ -22,7 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface WorkspaceShareDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  resourceType: 'folder' | 'document';
+  resourceType: "folder" | "document";
   resourceId: string;
   resourceName: string;
 }
@@ -35,45 +35,70 @@ export function WorkspaceShareDialog({
   resourceName,
 }: WorkspaceShareDialogProps) {
   const { user } = useAuth();
-  const { shares, companyUsers, createShare, updateShare, deleteShare, isLoading } = useWorkspaceShares(
-    resourceType,
-    resourceId
-  );
-  const [selectedUser, setSelectedUser] = useState<string>('');
-  const [selectedPermission, setSelectedPermission] = useState<'view' | 'edit' | 'admin'>('view');
+  const {
+    shares,
+    companyUsers,
+    createShare,
+    updateShare,
+    deleteShare,
+    isLoading,
+  } = useWorkspaceShares(resourceType, resourceId);
+  const [selectedUser, setSelectedUser] = useState<string>("");
+  const [selectedPermission, setSelectedPermission] = useState<
+    "view" | "edit" | "admin"
+  >("view");
 
   // Filter out users who already have access and the current user
   const availableUsers = companyUsers.filter(
-    u => u.user_id !== user?.id && !shares.some(s => s.shared_with_user_id === u.user_id)
+    (u) =>
+      u.user_id !== user?.id &&
+      !shares.some((s) => s.shared_with_user_id === u.user_id),
   );
 
   const handleAddShare = async () => {
     if (!selectedUser) return;
-    
-    await createShare.mutateAsync({
-      resourceType,
-      resourceId,
-      sharedWithUserId: selectedUser,
-      permission: selectedPermission,
-    });
-    
-    setSelectedUser('');
+    try {
+      await createShare.mutateAsync({
+        resourceType,
+        resourceId,
+        sharedWithUserId: selectedUser,
+        permission: selectedPermission,
+      });
+      setSelectedUser("");
+    } catch {
+      // Erro tratado no onError da mutation
+    }
   };
 
-  const handlePermissionChange = async (shareId: string, permission: 'view' | 'edit' | 'admin') => {
-    await updateShare.mutateAsync({ id: shareId, permission });
+  const handlePermissionChange = async (
+    shareId: string,
+    permission: "view" | "edit" | "admin",
+  ) => {
+    try {
+      await updateShare.mutateAsync({ id: shareId, permission });
+    } catch {
+      // Erro tratado no onError da mutation
+    }
   };
 
   const handleRemoveShare = async (shareId: string) => {
-    await deleteShare.mutateAsync(shareId);
+    try {
+      await deleteShare.mutateAsync(shareId);
+    } catch {
+      // Erro tratado no onError da mutation
+    }
   };
 
   const getPermissionLabel = (permission: string) => {
     switch (permission) {
-      case 'view': return 'Visualizar';
-      case 'edit': return 'Editar';
-      case 'admin': return 'Administrador';
-      default: return permission;
+      case "view":
+        return "Visualizar";
+      case "edit":
+        return "Editar";
+      case "admin":
+        return "Administrador";
+      default:
+        return permission;
     }
   };
 
@@ -99,7 +124,7 @@ export function WorkspaceShareDialog({
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={u.avatar_url} />
                           <AvatarFallback className="text-xs">
-                            {u.full_name?.charAt(0) || 'U'}
+                            {u.full_name?.charAt(0) || "U"}
                           </AvatarFallback>
                         </Avatar>
                         <span>{u.full_name}</span>
@@ -109,7 +134,10 @@ export function WorkspaceShareDialog({
                 </SelectContent>
               </Select>
 
-              <Select value={selectedPermission} onValueChange={(v: unknown) => setSelectedPermission(v)}>
+              <Select
+                value={selectedPermission}
+                onValueChange={(v: unknown) => setSelectedPermission(v)}
+              >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -120,8 +148,9 @@ export function WorkspaceShareDialog({
                 </SelectContent>
               </Select>
 
-              <Button aria-label="Adicionar"
-                onClick={handleAddShare} 
+              <Button
+                aria-label="Adicionar"
+                onClick={handleAddShare}
                 disabled={!selectedUser || createShare.isPending}
                 size="icon"
               >
@@ -135,7 +164,7 @@ export function WorkspaceShareDialog({
             <h4 className="text-sm font-medium text-muted-foreground">
               Pessoas com acesso
             </h4>
-            
+
             <ScrollArea className="max-h-64">
               <div className="space-y-2">
                 {shares.length === 0 ? (
@@ -150,14 +179,17 @@ export function WorkspaceShareDialog({
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={share.shared_with_user?.avatar_url} />
+                          <AvatarImage
+                            src={share.shared_with_user?.avatar_url}
+                          />
                           <AvatarFallback>
-                            {share.shared_with_user?.full_name?.charAt(0) || 'U'}
+                            {share.shared_with_user?.full_name?.charAt(0) ||
+                              "U"}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="text-sm font-medium">
-                            {share.shared_with_user?.full_name || 'Usuário'}
+                            {share.shared_with_user?.full_name || "Usuário"}
                           </p>
                         </div>
                       </div>
@@ -165,7 +197,9 @@ export function WorkspaceShareDialog({
                       <div className="flex items-center gap-2">
                         <Select
                           value={share.permission}
-                          onValueChange={(v: unknown) => handlePermissionChange(share.id, v)}
+                          onValueChange={(v: unknown) =>
+                            handlePermissionChange(share.id, v)
+                          }
                         >
                           <SelectTrigger className="w-28 h-8">
                             <SelectValue />
@@ -177,7 +211,8 @@ export function WorkspaceShareDialog({
                           </SelectContent>
                         </Select>
 
-                        <Button aria-label="Excluir"
+                        <Button
+                          aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"

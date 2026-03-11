@@ -1100,6 +1100,7 @@ export function TaskDialog({
           hideCloseButton
           className="p-0 gap-0 overflow-hidden"
           style={{ maxWidth: `${zoomWidth}px` }}
+          aria-describedby={undefined}
         >
           <VisuallyHidden>
             <DialogTitle>{formData.title || "Detalhes da Tarefa"}</DialogTitle>

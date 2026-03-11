@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface EditMessagePayload {
@@ -26,10 +28,10 @@ serve(async (req) => {
 
   try {
     const payload: EditMessagePayload = await req.json();
-    const { 
-      company_id, 
-      instance_id, 
-      message_id, 
+    const {
+      company_id,
+      instance_id,
+      message_id,
       new_text,
       supabase_message_id,
     } = payload;
@@ -41,14 +43,15 @@ serve(async (req) => {
     if (!company_id || !instance_id || !message_id || !new_text) {
       console.error("[edit-whatsapp-message] Missing required fields");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "company_id, instance_id, message_id e new_text são obrigatórios" 
+        JSON.stringify({
+          success: false,
+          error:
+            "company_id, instance_id, message_id e new_text são obrigatórios",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -63,14 +66,14 @@ serve(async (req) => {
     if (configError || !config) {
       console.error("[edit-whatsapp-message] Config not found:", configError);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Configuração do WhatsApp não encontrada" 
+        JSON.stringify({
+          success: false,
+          error: "Configuração do WhatsApp não encontrada",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -83,33 +86,39 @@ serve(async (req) => {
       .single();
 
     if (instanceError || !instance) {
-      console.error("[edit-whatsapp-message] Instance not found:", instanceError);
+      console.error(
+        "[edit-whatsapp-message] Instance not found:",
+        instanceError,
+      );
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Instância não encontrada" 
+        JSON.stringify({
+          success: false,
+          error: "Instância não encontrada",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const instanceToken = instance.uazapi_token;
-    const baseUrl = (config.uazapi_endpoint || config.uazapi_base_url)?.replace(/\/$/, "");
+    const baseUrl = (config.uazapi_endpoint || config.uazapi_base_url)?.replace(
+      /\/$/,
+      "",
+    );
 
     if (!baseUrl || !instanceToken) {
       console.error("[edit-whatsapp-message] Missing base URL or token");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Configuração incompleta da instância" 
+        JSON.stringify({
+          success: false,
+          error: "Configuração incompleta da instância",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -117,43 +126,53 @@ serve(async (req) => {
     // POST /message/edit
     // See: https://docs.uazapi.com/endpoint/post/message~edit
     const editUrl = `${baseUrl}/message/edit`;
-    
+
     const editPayload = {
       id: message_id,
       text: new_text,
     };
 
     console.log("[edit-whatsapp-message] Calling API:", editUrl);
-    console.log("[edit-whatsapp-message] Payload:", JSON.stringify(editPayload));
+    console.log(
+      "[edit-whatsapp-message] Payload:",
+      JSON.stringify(editPayload),
+    );
 
     const apiResponse = await fetch(editUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "token": instanceToken,
+        token: instanceToken,
       },
       body: JSON.stringify(editPayload),
     });
 
-    let apiData: any = null;
+    let apiData: unknown = null;
     try {
       apiData = await apiResponse.json();
     } catch {
       apiData = null;
     }
-    console.log("[edit-whatsapp-message] API Response:", apiResponse.status, JSON.stringify(apiData));
+    console.log(
+      "[edit-whatsapp-message] API Response:",
+      apiResponse.status,
+      JSON.stringify(apiData),
+    );
 
     if (!apiResponse.ok) {
       console.error("[edit-whatsapp-message] API error:", apiData);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: apiData?.message || apiData?.error || "Erro ao editar mensagem na API" 
+        JSON.stringify({
+          success: false,
+          error:
+            apiData?.message ||
+            apiData?.error ||
+            "Erro ao editar mensagem na API",
         }),
-        { 
-          status: apiResponse.status, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: apiResponse.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -161,7 +180,7 @@ serve(async (req) => {
     if (supabase_message_id) {
       const { error: updateError } = await supabase
         .from("whatsapp_messages")
-        .update({ 
+        .update({
           content: new_text,
         })
         .eq("id", supabase_message_id);
@@ -177,27 +196,26 @@ serve(async (req) => {
     console.log("[edit-whatsapp-message] Message edited successfully");
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         data: apiData,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
     console.error("[edit-whatsapp-message] Error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || "Erro interno ao editar mensagem" 
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno ao editar mensagem",
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

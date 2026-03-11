@@ -42,24 +42,24 @@ export function useCampaigns(clientId?: string) {
 
   const fetchCampaigns = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Construir query base
-      let query = supabase
-        .from("campaigns")
-        .select(`
+      let query = supabase.from("campaigns").select(`
           *,
           client:clients(name, avatar)
         `);
-      
+
       // Aplicar filtro de cliente se fornecido
       if (clientId) {
         query = query.eq("client_id", clientId);
       }
-      
-      const { data, error } = await query.order("created_at", { ascending: false });
+
+      const { data, error } = await query.order("created_at", {
+        ascending: false,
+      });
 
       if (error) throw error;
       setCampaigns(data || []);
@@ -70,16 +70,20 @@ export function useCampaigns(clientId?: string) {
     }
   };
 
-  const createCampaign = async (campaignData: Omit<Campaign, "id" | "client" | "spend" | "cpa">) => {
+  const createCampaign = async (
+    campaignData: Omit<Campaign, "id" | "client" | "spend" | "cpa">,
+  ) => {
     if (!user) return null;
 
     try {
       const { data, error } = await supabase
         .from("campaigns")
-        .insert([{
-          ...campaignData,
-          user_id: user.id,
-        }])
+        .insert([
+          {
+            ...campaignData,
+            user_id: user.id,
+          },
+        ])
         .select()
         .single();
 
@@ -102,69 +106,80 @@ export function useCampaigns(clientId?: string) {
       if (error) throw error;
       await fetchCampaigns(); // Refresh the list
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar campanha");
+      setError(
+        err instanceof Error ? err.message : "Erro ao atualizar campanha",
+      );
     }
   };
 
   const toggleCampaign = async (id: string, isActive: boolean) => {
     try {
       // First, get the campaign to find the client_id
-      const campaign = campaigns.find(c => c.id === id);
+      const campaign = campaigns.find((c) => c.id === id);
       if (!campaign) {
         throw new Error("Campanha não encontrada");
       }
 
       // Try to update via Facebook API first
       try {
-        const { data: result, error: functionError } = await supabase.functions.invoke('manage-facebook-campaign', {
-          body: {
-            campaignId: id,
-            status: isActive ? "active" : "paused",
-            clientId: campaign.client_id
-          }
-        });
+        const { data: result, error: functionError } =
+          await supabase.functions.invoke("manage-facebook-campaign", {
+            body: {
+              campaignId: id,
+              status: isActive ? "active" : "paused",
+              clientId: campaign.client_id,
+            },
+          });
 
         if (functionError) {
-          console.warn('Facebook API update failed, falling back to local update:', functionError);
+          console.warn(
+            "Facebook API update failed, falling back to local update:",
+            functionError,
+          );
           throw functionError;
         }
 
         if (result?.error) {
-          console.warn('Facebook API returned error, falling back to local update:', result.error);
+          console.warn(
+            "Facebook API returned error, falling back to local update:",
+            result.error,
+          );
           throw new Error(result.error);
         }
 
         // Facebook update successful, refresh campaigns to get latest data
         await fetchCampaigns();
         return;
-
       } catch (facebookError) {
-        console.warn('Facebook API update failed, falling back to local update:', facebookError);
-        
+        console.warn(
+          "Facebook API update failed, falling back to local update:",
+          facebookError,
+        );
+
         // Fallback to local update only
         const { error } = await supabase
           .from("campaigns")
-          .update({ 
+          .update({
             is_active: isActive,
-            status: isActive ? "active" : "paused"
+            status: isActive ? "active" : "paused",
           })
           .eq("id", id);
 
         if (error) throw error;
         await fetchCampaigns(); // Refresh the list
       }
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao alterar status da campanha");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erro ao alterar status da campanha",
+      );
     }
   };
 
   const deleteCampaign = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("campaigns")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("campaigns").delete().eq("id", id);
 
       if (error) throw error;
       await fetchCampaigns(); // Refresh the list

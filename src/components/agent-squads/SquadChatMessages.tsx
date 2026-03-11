@@ -1,5 +1,14 @@
 import React, { useEffect, useRef } from "react";
-import { Bot, User, Loader2, Users, Wrench, CheckCircle2, XCircle, ImageIcon } from "lucide-react";
+import {
+  Bot,
+  User,
+  Loader2,
+  Users,
+  Wrench,
+  CheckCircle2,
+  XCircle,
+  ImageIcon,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,14 +37,18 @@ const roleColors: Record<string, string> = {
   executor: "bg-green-500/15 text-green-600 border-green-500/30",
 };
 
-export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps) {
+export function SquadChatMessages({
+  messages,
+  loading,
+}: SquadChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const imageUrlRegex = /(https?:\/\/[^\s<>"]+?\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s<>"]*)?)/gi;
+  const imageUrlRegex =
+    /(https?:\/\/[^\s<>"]+?\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s<>"]*)?)/gi;
 
   const formatMessage = (content: string) => {
     let formatted = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
@@ -84,8 +97,13 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
                         <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
                           {message.agent_name}
                         </span>
-                        <span className="text-xs text-muted-foreground">executou</span>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30">
+                        <span className="text-xs text-muted-foreground">
+                          executou
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-4 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30"
+                        >
                           {message.skill_name}
                         </Badge>
                       </div>
@@ -99,7 +117,9 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
                         </div>
                       )}
                       <div className="text-[10px] opacity-60 mt-1">
-                        {format(new Date(message.created_at), "HH:mm", { locale: ptBR })}
+                        {format(new Date(message.created_at), "HH:mm", {
+                          locale: ptBR,
+                        })}
                       </div>
                     </div>
                   </div>
@@ -140,10 +160,12 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
                           <Badge
                             variant="outline"
                             className={`text-[10px] px-1.5 py-0 h-4 ${
-                              roleColors[message.agent_role] || "bg-muted text-muted-foreground"
+                              roleColors[message.agent_role] ||
+                              "bg-muted text-muted-foreground"
                             }`}
                           >
-                            {roleLabels[message.agent_role] || message.agent_role}
+                            {roleLabels[message.agent_role] ||
+                              message.agent_role}
                           </Badge>
                         )}
                       </div>
@@ -152,11 +174,15 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
                     <div
                       className="prose prose-sm max-w-none text-current text-sm"
                       dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(formatMessage(message.content)),
+                        __html: DOMPurify.sanitize(
+                          formatMessage(message.content),
+                        ),
                       }}
                     />
                     <div className="text-[10px] opacity-60 mt-1.5">
-                      {format(new Date(message.created_at), "HH:mm", { locale: ptBR })}
+                      {format(new Date(message.created_at), "HH:mm", {
+                        locale: ptBR,
+                      })}
                     </div>
                   </div>
 
@@ -172,34 +198,40 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
             })}
 
             {/* Thinking messages */}
-            {messages.filter(m => m.isThinking).map((thinkingMsg) => (
-              <div key={thinkingMsg.id} className="flex gap-3 justify-start">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-primary-foreground" />
+            {messages
+              .filter((m) => m.isThinking)
+              .map((thinkingMsg) => (
+                <div key={thinkingMsg.id} className="flex gap-3 justify-start">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                  </div>
+                  <div className="bg-muted rounded-lg p-3 mr-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold">
+                        {thinkingMsg.agent_name}
+                      </span>
+                      {thinkingMsg.agent_role && (
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-1.5 py-0 h-4 ${
+                            roleColors[thinkingMsg.agent_role] ||
+                            "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {roleLabels[thinkingMsg.agent_role] ||
+                            thinkingMsg.agent_role}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Processando...</span>
+                    </div>
                   </div>
                 </div>
-                <div className="bg-muted rounded-lg p-3 mr-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold">{thinkingMsg.agent_name}</span>
-                    {thinkingMsg.agent_role && (
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] px-1.5 py-0 h-4 ${
-                          roleColors[thinkingMsg.agent_role] || "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {roleLabels[thinkingMsg.agent_role] || thinkingMsg.agent_role}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Processando...</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))}
           </>
         )}
         <div ref={messagesEndRef} />

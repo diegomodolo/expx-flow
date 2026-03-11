@@ -1,5 +1,10 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,11 +12,33 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Mail, Phone, Building2, DollarSign, Trophy, XCircle, Search, CalendarIcon, X, Filter } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  Building2,
+  DollarSign,
+  Trophy,
+  XCircle,
+  Search,
+  CalendarIcon,
+  X,
+  Filter,
+} from "lucide-react";
 import { CRMDeal } from "@/hooks/useCRMDeals";
-import { format, formatDistanceToNow, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
+import {
+  format,
+  formatDistanceToNow,
+  isAfter,
+  isBefore,
+  startOfDay,
+  endOfDay,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +60,7 @@ export function CRMWonLostDealsModal({
   onDealClick,
 }: CRMWonLostDealsModalProps) {
   const isWon = type === "won";
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
@@ -41,38 +68,49 @@ export function CRMWonLostDealsModal({
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredDeals = useMemo(() => {
-    return deals.filter(deal => {
+    return deals.filter((deal) => {
       const contact = deal.contact;
       const searchLower = searchTerm.toLowerCase();
-      
+
       // Text search
       if (searchTerm) {
         const matchesName = deal.title.toLowerCase().includes(searchLower);
-        const matchesContactName = contact?.full_name?.toLowerCase().includes(searchLower) || false;
-        const matchesEmail = contact?.email?.toLowerCase().includes(searchLower) || false;
+        const matchesContactName =
+          contact?.full_name?.toLowerCase().includes(searchLower) || false;
+        const matchesEmail =
+          contact?.email?.toLowerCase().includes(searchLower) || false;
         const matchesPhone = contact?.phone?.includes(searchTerm) || false;
-        const matchesCompany = contact?.company_name?.toLowerCase().includes(searchLower) || false;
-        
-        if (!matchesName && !matchesContactName && !matchesEmail && !matchesPhone && !matchesCompany) {
+        const matchesCompany =
+          contact?.company_name?.toLowerCase().includes(searchLower) || false;
+
+        if (
+          !matchesName &&
+          !matchesContactName &&
+          !matchesEmail &&
+          !matchesPhone &&
+          !matchesCompany
+        ) {
           return false;
         }
       }
-      
+
       // Date filters based on stage_entered_at
-      const enteredAt = deal.stage_entered_at ? new Date(deal.stage_entered_at) : null;
-      
+      const enteredAt = deal.stage_entered_at
+        ? new Date(deal.stage_entered_at)
+        : null;
+
       if (dateFrom && enteredAt) {
         if (isBefore(enteredAt, startOfDay(dateFrom))) {
           return false;
         }
       }
-      
+
       if (dateTo && enteredAt) {
         if (isAfter(enteredAt, endOfDay(dateTo))) {
           return false;
         }
       }
-      
+
       return true;
     });
   }, [deals, searchTerm, dateFrom, dateTo]);
@@ -88,9 +126,9 @@ export function CRMWonLostDealsModal({
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -113,15 +151,23 @@ export function CRMWonLostDealsModal({
         <div className="flex items-center gap-6 py-3 border-b">
           <div className="text-sm">
             <span className="text-muted-foreground">Total de negócios:</span>{" "}
-            <span className="font-semibold text-foreground">{filteredDeals.length}</span>
+            <span className="font-semibold text-foreground">
+              {filteredDeals.length}
+            </span>
             {filteredDeals.length !== deals.length && (
               <span className="text-muted-foreground"> de {deals.length}</span>
             )}
           </div>
           <div className="text-sm">
             <span className="text-muted-foreground">Valor total:</span>{" "}
-            <span className={cn("font-semibold", isWon ? "text-emerald-600" : "text-red-600")}>
-              R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            <span
+              className={cn(
+                "font-semibold",
+                isWon ? "text-emerald-600" : "text-red-600",
+              )}
+            >
+              R${" "}
+              {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
@@ -138,7 +184,8 @@ export function CRMWonLostDealsModal({
                 className="pl-9"
               />
             </div>
-            <Button aria-label="Ação"
+            <Button
+              aria-label="Ação"
               variant={showFilters ? "default" : "outline"}
               size="icon"
               onClick={() => setShowFilters(!showFilters)}
@@ -147,7 +194,12 @@ export function CRMWonLostDealsModal({
               <Filter className="w-4 h-4" />
             </Button>
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="shrink-0"
+              >
                 <X className="w-4 h-4 mr-1" />
                 Limpar filtros
               </Button>
@@ -164,11 +216,13 @@ export function CRMWonLostDealsModal({
                       variant="outline"
                       className={cn(
                         "w-[180px] justify-start text-left font-normal",
-                        !dateFrom && "text-muted-foreground"
+                        !dateFrom && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                      {dateFrom
+                        ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR })
+                        : "Selecione"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -191,11 +245,13 @@ export function CRMWonLostDealsModal({
                       variant="outline"
                       className={cn(
                         "w-[180px] justify-start text-left font-normal",
-                        !dateTo && "text-muted-foreground"
+                        !dateTo && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                      {dateTo
+                        ? format(dateTo, "dd/MM/yyyy", { locale: ptBR })
+                        : "Selecione"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -219,7 +275,9 @@ export function CRMWonLostDealsModal({
             {filteredDeals.map((deal) => {
               const contact = deal.contact;
               const contactName = contact?.full_name || deal.title;
-              const enteredAt = deal.stage_entered_at ? new Date(deal.stage_entered_at) : null;
+              const enteredAt = deal.stage_entered_at
+                ? new Date(deal.stage_entered_at)
+                : null;
 
               return (
                 <Card
@@ -235,10 +293,21 @@ export function CRMWonLostDealsModal({
                       {/* Avatar */}
                       <Avatar className="w-12 h-12 shrink-0">
                         {deal.responsible?.avatar_url && (
-                          <AvatarImage src={deal.responsible.avatar_url} alt={deal.responsible.full_name} />
+                          <AvatarImage
+                            src={deal.responsible.avatar_url}
+                            alt={deal.responsible.full_name}
+                          />
                         )}
-                        <AvatarFallback className={isWon ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}>
-                          {deal.responsible ? getInitials(deal.responsible.full_name) : getInitials(contactName)}
+                        <AvatarFallback
+                          className={
+                            isWon
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-red-100 text-red-700"
+                          }
+                        >
+                          {deal.responsible
+                            ? getInitials(deal.responsible.full_name)
+                            : getInitials(contactName)}
                         </AvatarFallback>
                       </Avatar>
 
@@ -246,20 +315,29 @@ export function CRMWonLostDealsModal({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
-                            <p className="font-semibold text-base truncate">{deal.title}</p>
+                            <p className="font-semibold text-base truncate">
+                              {deal.title}
+                            </p>
                             {contact && contact.full_name !== deal.title && (
-                              <p className="text-sm text-muted-foreground truncate">{contact.full_name}</p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {contact.full_name}
+                              </p>
                             )}
                           </div>
 
                           {/* Value */}
                           {deal.value && (
-                            <div className={cn(
-                              "flex items-center gap-1 text-base font-semibold shrink-0",
-                              isWon ? "text-emerald-600" : "text-red-600"
-                            )}>
+                            <div
+                              className={cn(
+                                "flex items-center gap-1 text-base font-semibold shrink-0",
+                                isWon ? "text-emerald-600" : "text-red-600",
+                              )}
+                            >
                               <DollarSign className="w-4 h-4" />
-                              R$ {deal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              R${" "}
+                              {deal.value.toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                              })}
                             </div>
                           )}
                         </div>
@@ -288,22 +366,33 @@ export function CRMWonLostDealsModal({
 
                         {/* Date entered stage */}
                         <div className="mt-3 pt-2 border-t flex items-center gap-4">
-                          <Badge variant="outline" className={cn(
-                            "text-xs",
-                            isWon ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" 
-                                 : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
-                          )}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs",
+                              isWon
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300",
+                            )}
+                          >
                             {isWon ? "Ganho" : "Perdido"}
                           </Badge>
-                          
+
                           {enteredAt && (
                             <div className="flex items-center gap-2 text-sm">
                               <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                               <span className="font-medium">
-                                {format(enteredAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                {format(enteredAt, "dd/MM/yyyy 'às' HH:mm", {
+                                  locale: ptBR,
+                                })}
                               </span>
                               <span className="text-muted-foreground">
-                                ({formatDistanceToNow(enteredAt, { addSuffix: true, locale: ptBR })})
+                                (
+                                {formatDistanceToNow(enteredAt, {
+                                  addSuffix: true,
+                                  locale: ptBR,
+                                })}
+                                )
                               </span>
                             </div>
                           )}
@@ -321,7 +410,11 @@ export function CRMWonLostDealsModal({
                   <>
                     <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p>Nenhum negócio encontrado com os filtros aplicados</p>
-                    <Button variant="link" onClick={clearFilters} className="mt-2">
+                    <Button
+                      variant="link"
+                      onClick={clearFilters}
+                      className="mt-2"
+                    >
                       Limpar filtros
                     </Button>
                   </>
@@ -332,7 +425,9 @@ export function CRMWonLostDealsModal({
                     ) : (
                       <XCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     )}
-                    <p>Nenhum negócio {isWon ? 'ganho' : 'perdido'} nesta coluna</p>
+                    <p>
+                      Nenhum negócio {isWon ? "ganho" : "perdido"} nesta coluna
+                    </p>
                   </>
                 )}
               </div>

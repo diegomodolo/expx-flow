@@ -3,7 +3,8 @@
 const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -155,7 +156,7 @@ Garanta que o JSON seja válido e todos os campos estejam preenchidos.`;
     return new Response(JSON.stringify({ context }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-creative-context function:", error);
     return new Response(
       JSON.stringify({

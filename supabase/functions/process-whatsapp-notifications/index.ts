@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('FRONTEND_URL') ?? 'https://controledetrafego.com.br',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface TriggerSchedule {
@@ -25,7 +27,7 @@ interface NotificationTrigger {
   trigger_type: string;
   trigger_name: string;
   is_active: boolean;
-  conditions: Record<string, any>;
+  conditions: Record<string, unknown>;
   schedule?: TriggerSchedule;
 }
 
@@ -70,41 +72,60 @@ interface PresentationData {
 
 // Helper to format currency
 function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return '0,00';
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (value === null || value === undefined || isNaN(value)) return "0,00";
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // Helper to format percentage
 function formatPercentage(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return '0,00';
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (value === null || value === undefined || isNaN(value)) return "0,00";
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // Helper to format number
 function formatNumber(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return '0';
-  return Math.round(value).toLocaleString('pt-BR');
+  if (value === null || value === undefined || isNaN(value)) return "0";
+  return Math.round(value).toLocaleString("pt-BR");
 }
 
 // Helper to calculate variation percentage
 function calcVariation(current: number, previous: number): string {
-  if (previous === 0) return current > 0 ? '+100%' : '0%';
+  if (previous === 0) return current > 0 ? "+100%" : "0%";
   const variation = ((current - previous) / previous) * 100;
-  const sign = variation >= 0 ? '+' : '';
+  const sign = variation >= 0 ? "+" : "";
   return `${sign}${variation.toFixed(1)}%`;
 }
 
 // Helper to replace template variables
-function replaceVariables(template: string, data: Record<string, any>): string {
+function replaceVariables(
+  template: string,
+  data: Record<string, unknown>,
+): string {
   let result = template;
   for (const [key, value] of Object.entries(data)) {
-    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? ''));
+    result = result.replace(
+      new RegExp(`\\{${key}\\}`, "g"),
+      String(value ?? ""),
+    );
   }
   return result;
 }
 
 // Get current time in São Paulo timezone (UTC-3)
-function getSaoPauloTime(): { hour: number; day: number; date: number; month: number; year: number; now: Date } {
+function getSaoPauloTime(): {
+  hour: number;
+  day: number;
+  date: number;
+  month: number;
+  year: number;
+  now: Date;
+} {
   const now = new Date();
   // São Paulo = UTC-3
   const saoPauloOffset = -3;
@@ -113,14 +134,14 @@ function getSaoPauloTime(): { hour: number; day: number; date: number; month: nu
   const utcDate = now.getUTCDate();
   const utcMonth = now.getUTCMonth();
   const utcYear = now.getUTCFullYear();
-  
+
   // Ajustar para São Paulo
   let spHour = utcHour + saoPauloOffset;
   let spDay = utcDay;
   let spDate = utcDate;
   let spMonth = utcMonth;
   let spYear = utcYear;
-  
+
   // Se passar da meia-noite para trás
   if (spHour < 0) {
     spHour += 24;
@@ -131,19 +152,28 @@ function getSaoPauloTime(): { hour: number; day: number; date: number; month: nu
     spMonth = tempDate.getUTCMonth();
     spYear = tempDate.getUTCFullYear();
   }
-  
-  return { hour: spHour, day: spDay, date: spDate, month: spMonth, year: spYear, now };
+
+  return {
+    hour: spHour,
+    day: spDay,
+    date: spDate,
+    month: spMonth,
+    year: spYear,
+    now,
+  };
 }
 
 // Check if current hour is in quiet hours
-function isQuietHour(quietHours: { start: string; end: string } | null): boolean {
+function isQuietHour(
+  quietHours: { start: string; end: string } | null,
+): boolean {
   if (!quietHours) return false;
-  
+
   const sp = getSaoPauloTime();
   const currentHour = sp.hour;
-  const startHour = parseInt(quietHours.start.split(':')[0]);
-  const endHour = parseInt(quietHours.end.split(':')[0]);
-  
+  const startHour = parseInt(quietHours.start.split(":")[0]);
+  const endHour = parseInt(quietHours.end.split(":")[0]);
+
   if (startHour < endHour) {
     return currentHour >= startHour && currentHour < endHour;
   } else {
@@ -157,21 +187,21 @@ async function sendZAPIMessage(
   token: string,
   clientToken: string | null,
   phone: string,
-  message: string
+  message: string,
 ): Promise<boolean> {
   try {
     const response = await fetch(
       `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
       {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(clientToken ? { 'Client-Token': clientToken } : {}),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(clientToken ? { "Client-Token": clientToken } : {}),
         },
         body: JSON.stringify({ phone, message }),
-      }
+      },
     );
-    
+
     const result = await response.json();
     console.log(`Z-API response for ${phone}:`, result);
     return response.ok;
@@ -185,22 +215,22 @@ async function sendZAPIMessage(
 function calculateNextExecution(schedule: TriggerSchedule): Date {
   const now = new Date();
   const next = new Date(now);
-  
+
   switch (schedule.frequency_type) {
-    case 'realtime':
+    case "realtime":
       next.setHours(next.getHours() + 1);
       next.setMinutes(0, 0, 0);
       break;
-      
-    case 'hourly':
+
+    case "hourly":
       next.setHours(next.getHours() + 1);
       next.setMinutes(0, 0, 0);
       break;
-      
-    case 'daily':
+
+    case "daily":
       const currentHour = now.getHours();
-      const nextHour = schedule.execution_hours.find(h => h > currentHour);
-      
+      const nextHour = schedule.execution_hours.find((h) => h > currentHour);
+
       if (nextHour !== undefined) {
         next.setHours(nextHour, 0, 0, 0);
       } else {
@@ -208,13 +238,16 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
         next.setHours(schedule.execution_hours[0] || 9, 0, 0, 0);
       }
       break;
-      
-    case 'weekly':
+
+    case "weekly":
       const currentDay = now.getDay();
       const currentDayHour = now.getHours();
       const execHour = schedule.execution_hours[0] || 9;
-      
-      if (schedule.days_of_week.includes(currentDay) && currentDayHour < execHour) {
+
+      if (
+        schedule.days_of_week.includes(currentDay) &&
+        currentDayHour < execHour
+      ) {
         next.setHours(execHour, 0, 0, 0);
       } else {
         let daysToAdd = 1;
@@ -229,12 +262,15 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
         next.setHours(execHour, 0, 0, 0);
       }
       break;
-      
-    case 'monthly':
+
+    case "monthly":
       const targetDay = schedule.day_of_month || 1;
       const monthExecHour = schedule.execution_hours[0] || 9;
-      
-      if (now.getDate() < targetDay || (now.getDate() === targetDay && now.getHours() < monthExecHour)) {
+
+      if (
+        now.getDate() < targetDay ||
+        (now.getDate() === targetDay && now.getHours() < monthExecHour)
+      ) {
         next.setDate(targetDay);
         next.setHours(monthExecHour, 0, 0, 0);
       } else {
@@ -244,16 +280,20 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
       }
       break;
   }
-  
+
   return next;
 }
 
 // Fetch client metrics for reports
-async function fetchClientMetrics(supabase: any, clientId: string, periodDays: number) {
+async function fetchClientMetrics(
+  supabase: unknown,
+  clientId: string,
+  periodDays: number,
+) {
   const now = new Date();
   const periodStart = new Date(now);
   periodStart.setDate(periodStart.getDate() - periodDays);
-  
+
   const previousPeriodStart = new Date(periodStart);
   previousPeriodStart.setDate(previousPeriodStart.getDate() - periodDays);
 
@@ -273,7 +313,7 @@ async function fetchClientMetrics(supabase: any, clientId: string, periodDays: n
     conversions: 0,
     frequency: 0,
     count: 0,
-    bestCampaign: { name: '-', conversions: 0 }
+    bestCampaign: { name: "-", conversions: 0 },
   };
 
   if (currentCampaigns && currentCampaigns.length > 0) {
@@ -287,17 +327,23 @@ async function fetchClientMetrics(supabase: any, clientId: string, periodDays: n
       current.count++;
 
       if ((campaign.conversions || 0) > current.bestCampaign.conversions) {
-        current.bestCampaign = { name: campaign.name, conversions: campaign.conversions || 0 };
+        current.bestCampaign = {
+          name: campaign.name,
+          conversions: campaign.conversions || 0,
+        };
       }
     }
   }
 
   // Calculate derived metrics
-  const cpm = current.impressions > 0 ? (current.spend / current.impressions) * 1000 : 0;
+  const cpm =
+    current.impressions > 0 ? (current.spend / current.impressions) * 1000 : 0;
   const cpc = current.clicks > 0 ? current.spend / current.clicks : 0;
   const cpa = current.conversions > 0 ? current.spend / current.conversions : 0;
-  const ctr = current.impressions > 0 ? (current.clicks / current.impressions) * 100 : 0;
-  const avgFrequency = current.count > 0 ? current.frequency / current.count : 0;
+  const ctr =
+    current.impressions > 0 ? (current.clicks / current.impressions) * 100 : 0;
+  const avgFrequency =
+    current.count > 0 ? current.frequency / current.count : 0;
 
   // Mock previous period for variations (in production, would fetch actual previous period data)
   const previous = {
@@ -305,7 +351,7 @@ async function fetchClientMetrics(supabase: any, clientId: string, periodDays: n
     conversions: current.conversions * 0.92,
     reach: current.reach * 0.85,
     ctr: ctr * 1.02,
-    cpa: cpa * 1.05
+    cpa: cpa * 1.05,
   };
 
   return {
@@ -321,29 +367,34 @@ async function fetchClientMetrics(supabase: any, clientId: string, periodDays: n
       cpa,
       ctr,
       campaignCount: current.count,
-      bestCampaign: current.bestCampaign.name
+      bestCampaign: current.bestCampaign.name,
     },
     variations: {
       investimento: calcVariation(current.spend, previous.spend),
       conversoes: calcVariation(current.conversions, previous.conversions),
       alcance: calcVariation(current.reach, previous.reach),
       ctr: calcVariation(ctr, previous.ctr),
-      cpa: calcVariation(cpa, previous.cpa)
+      cpa: calcVariation(cpa, previous.cpa),
     },
     periodStart,
-    periodEnd: now
+    periodEnd: now,
   };
 }
 
 // Fetch presentation data for presentation_summary trigger
-async function fetchPresentationData(supabase: any, meetingId: string | null, clientId: string) {
+async function fetchPresentationData(
+  supabase: unknown,
+  meetingId: string | null,
+  clientId: string,
+) {
   if (!meetingId) return null;
-  
+
   try {
     // Fetch the most recent completed meeting for this client
     const { data: meeting } = await supabase
-      .from('presentation_meetings')
-      .select(`
+      .from("presentation_meetings")
+      .select(
+        `
         id,
         presentation_id,
         started_at,
@@ -351,20 +402,21 @@ async function fetchPresentationData(supabase: any, meetingId: string | null, cl
         approved_count,
         rejected_count,
         presentation:content_presentations(id, name, month, year, public_token, client_id)
-      `)
-      .eq('id', meetingId)
+      `,
+      )
+      .eq("id", meetingId)
       .single();
-    
+
     if (!meeting || !meeting.presentation) return null;
-    
+
     // Fetch participants
     const { data: participants } = await supabase
-      .from('presentation_meeting_participants')
-      .select('name, role')
-      .eq('meeting_id', meetingId);
-    
+      .from("presentation_meeting_participants")
+      .select("name, role")
+      .eq("meeting_id", meetingId);
+
     // Calculate duration
-    let duration = '-';
+    let duration = "-";
     if (meeting.started_at && meeting.ended_at) {
       const startTime = new Date(meeting.started_at);
       const endTime = new Date(meeting.ended_at);
@@ -372,47 +424,70 @@ async function fetchPresentationData(supabase: any, meetingId: string | null, cl
       const minutes = Math.floor(durationMs / 60000);
       const hours = Math.floor(minutes / 60);
       const remainingMinutes = minutes % 60;
-      duration = hours > 0 ? `${hours}h ${remainingMinutes}min` : `${minutes}min`;
+      duration =
+        hours > 0 ? `${hours}h ${remainingMinutes}min` : `${minutes}min`;
     }
-    
+
     // Count total creatives
     const { count: totalCreatives } = await supabase
-      .from('presentation_creatives')
-      .select('*', { count: 'exact', head: true })
-      .eq('presentation_id', meeting.presentation_id);
-    
-    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    
+      .from("presentation_creatives")
+      .select("*", { count: "exact", head: true })
+      .eq("presentation_id", meeting.presentation_id);
+
+    const monthNames = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+
     return {
-      nome: meeting.presentation.name || 'Apresentação',
+      nome: meeting.presentation.name || "Apresentação",
       mes: `${monthNames[meeting.presentation.month - 1]} ${meeting.presentation.year}`,
       total_criativos: String(totalCreatives || 0),
       aprovados: String(meeting.approved_count || 0),
       reprovados: String(meeting.rejected_count || 0),
-      participantes: participants?.map((p: any) => `• ${p.name}${p.role ? ` (${p.role})` : ''}`).join('\n') || '-',
-      data_reuniao: meeting.started_at 
-        ? new Date(meeting.started_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) 
-        : '-',
+      participantes:
+        participants
+          ?.map((p: unknown) => `• ${p.name}${p.role ? ` (${p.role})` : ""}`)
+          .join("\n") || "-",
+      data_reuniao: meeting.started_at
+        ? new Date(meeting.started_at).toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+          })
+        : "-",
       duracao: duration,
-      link: meeting.presentation.public_token 
+      link: meeting.presentation.public_token
         ? `https://controledetrafego.com.br/apresentacao/${meeting.presentation.public_token}`
-        : '',
+        : "",
     };
   } catch (error) {
-    console.error('Error fetching presentation data:', error);
+    console.error("Error fetching presentation data:", error);
     return null;
   }
 }
 
 // Fetch scheduled post data for post triggers
-async function fetchScheduledPostData(supabase: any, postId: string | null) {
+async function fetchScheduledPostData(
+  supabase: unknown,
+  postId: string | null,
+) {
   if (!postId) return null;
-  
+
   try {
     const { data: post } = await supabase
-      .from('scheduled_posts')
-      .select(`
+      .from("scheduled_posts")
+      .select(
+        `
         id,
         caption,
         content_type,
@@ -421,444 +496,554 @@ async function fetchScheduledPostData(supabase: any, postId: string | null) {
         published_at,
         error_message,
         creative:presentation_creatives(headline, objective)
-      `)
-      .eq('id', postId)
+      `,
+      )
+      .eq("id", postId)
       .single();
-    
+
     if (!post) return null;
-    
+
     const contentTypeLabels: Record<string, string> = {
-      'image': 'Imagem',
-      'video': 'Vídeo',
-      'carousel': 'Carrossel',
-      'reel': 'Reel',
-      'story': 'Story',
+      image: "Imagem",
+      video: "Vídeo",
+      carousel: "Carrossel",
+      reel: "Reel",
+      story: "Story",
     };
-    
+
     return {
-      legenda: post.caption?.substring(0, 200) || '-',
-      tipo: contentTypeLabels[post.content_type] || post.content_type || '-',
-      plataformas: Array.isArray(post.platforms) ? post.platforms.join(', ') : '-',
-      data_agendada: post.scheduled_for 
-        ? new Date(post.scheduled_for).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-        : '-',
-      data_publicacao: post.published_at 
-        ? new Date(post.published_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-        : new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
-      headline: post.creative?.headline || '-',
-      objetivo: post.creative?.objective || '-',
-      link: '', // TODO: Add actual post URL when available
-      erro: post.error_message || 'Erro desconhecido',
+      legenda: post.caption?.substring(0, 200) || "-",
+      tipo: contentTypeLabels[post.content_type] || post.content_type || "-",
+      plataformas: Array.isArray(post.platforms)
+        ? post.platforms.join(", ")
+        : "-",
+      data_agendada: post.scheduled_for
+        ? new Date(post.scheduled_for).toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+          })
+        : "-",
+      data_publicacao: post.published_at
+        ? new Date(post.published_at).toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+          })
+        : new Date().toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+          }),
+      headline: post.creative?.headline || "-",
+      objetivo: post.creative?.objective || "-",
+      link: "", // TODO: Add actual post URL when available
+      erro: post.error_message || "Erro desconhecido",
     };
   } catch (error) {
-    console.error('Error fetching post data:', error);
+    console.error("Error fetching post data:", error);
     return null;
   }
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting WhatsApp notifications processing...');
-    
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    console.log("Starting WhatsApp notifications processing...");
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
+
     const now = new Date();
     const sp = getSaoPauloTime();
     const currentHour = sp.hour;
     const currentDay = sp.day;
     const currentDate = sp.date;
-    
+
     console.log(`Current UTC time: ${now.toISOString()}`);
-    console.log(`Current São Paulo time: hour=${currentHour}, day=${currentDay}, date=${currentDate}`);
-    
+    console.log(
+      `Current São Paulo time: hour=${currentHour}, day=${currentDay}, date=${currentDate}`,
+    );
+
     // Get all active triggers (separate query)
     const { data: triggers, error: triggersError } = await supabase
-      .from('whatsapp_notification_triggers')
-      .select('*')
-      .eq('is_active', true);
-    
+      .from("whatsapp_notification_triggers")
+      .select("*")
+      .eq("is_active", true);
+
     if (triggersError) {
-      console.error('Error fetching triggers:', triggersError);
+      console.error("Error fetching triggers:", triggersError);
       throw triggersError;
     }
-    
+
     console.log(`Found ${triggers?.length || 0} active triggers`);
-    
+
     if (!triggers || triggers.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, message: 'No active triggers found', results: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: true,
+          message: "No active triggers found",
+          results: [],
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    
+
     // Get all schedules for active triggers (separate query)
-    const triggerIds = triggers.map(t => t.id);
+    const triggerIds = triggers.map((t) => t.id);
     const { data: schedules, error: schedulesError } = await supabase
-      .from('whatsapp_trigger_schedules')
-      .select('*')
-      .in('trigger_id', triggerIds);
-    
+      .from("whatsapp_trigger_schedules")
+      .select("*")
+      .in("trigger_id", triggerIds);
+
     if (schedulesError) {
-      console.error('Error fetching schedules:', schedulesError);
+      console.error("Error fetching schedules:", schedulesError);
       throw schedulesError;
     }
-    
+
     console.log(`Found ${schedules?.length || 0} schedules for triggers`);
-    
+
     // Create a map of schedules by trigger_id
     const scheduleMap = new Map<string, TriggerSchedule>();
     for (const schedule of schedules || []) {
       scheduleMap.set(schedule.trigger_id, schedule as TriggerSchedule);
     }
-    
-    const results: any[] = [];
-    
+
+    const results: unknown[] = [];
+
     for (const trigger of triggers) {
       const schedule = scheduleMap.get(trigger.id);
-      
-      console.log(`Processing trigger: ${trigger.trigger_name} (${trigger.id})`);
+
+      console.log(
+        `Processing trigger: ${trigger.trigger_name} (${trigger.id})`,
+      );
       console.log(`  Schedule found: ${!!schedule}`);
-      
+
       if (!schedule) {
-        console.log(`  -> No schedule for trigger ${trigger.trigger_name}, skipping`);
+        console.log(
+          `  -> No schedule for trigger ${trigger.trigger_name}, skipping`,
+        );
         continue;
       }
-      
-      console.log(`  Schedule details: type=${schedule.frequency_type}, hours=${JSON.stringify(schedule.execution_hours)}, days_of_week=${JSON.stringify(schedule.days_of_week)}, day_of_month=${schedule.day_of_month}`);
-      console.log(`  Last executed: ${schedule.last_executed_at}, Next execution: ${schedule.next_execution_at}`);
-      
+
+      console.log(
+        `  Schedule details: type=${schedule.frequency_type}, hours=${JSON.stringify(schedule.execution_hours)}, days_of_week=${JSON.stringify(schedule.days_of_week)}, day_of_month=${schedule.day_of_month}`,
+      );
+      console.log(
+        `  Last executed: ${schedule.last_executed_at}, Next execution: ${schedule.next_execution_at}`,
+      );
+
       // Check if should execute based on schedule
       let shouldExecute = false;
-      
+
       switch (schedule.frequency_type) {
-        case 'realtime':
+        case "realtime":
           shouldExecute = true;
           break;
-        case 'hourly':
+        case "hourly":
           shouldExecute = true;
           break;
-        case 'daily':
-          shouldExecute = Array.isArray(schedule.execution_hours) && schedule.execution_hours.includes(currentHour);
-          console.log(`  Daily check: currentHour=${currentHour}, execution_hours=${JSON.stringify(schedule.execution_hours)}, shouldExecute=${shouldExecute}`);
+        case "daily":
+          shouldExecute =
+            Array.isArray(schedule.execution_hours) &&
+            schedule.execution_hours.includes(currentHour);
+          console.log(
+            `  Daily check: currentHour=${currentHour}, execution_hours=${JSON.stringify(schedule.execution_hours)}, shouldExecute=${shouldExecute}`,
+          );
           break;
-        case 'weekly':
-          const dayMatch = Array.isArray(schedule.days_of_week) && schedule.days_of_week.includes(currentDay);
-          const hourMatch = Array.isArray(schedule.execution_hours) && schedule.execution_hours.includes(currentHour);
+        case "weekly":
+          const dayMatch =
+            Array.isArray(schedule.days_of_week) &&
+            schedule.days_of_week.includes(currentDay);
+          const hourMatch =
+            Array.isArray(schedule.execution_hours) &&
+            schedule.execution_hours.includes(currentHour);
           shouldExecute = dayMatch && hourMatch;
-          console.log(`  Weekly check: currentDay=${currentDay}, currentHour=${currentHour}, dayMatch=${dayMatch}, hourMatch=${hourMatch}, shouldExecute=${shouldExecute}`);
+          console.log(
+            `  Weekly check: currentDay=${currentDay}, currentHour=${currentHour}, dayMatch=${dayMatch}, hourMatch=${hourMatch}, shouldExecute=${shouldExecute}`,
+          );
           break;
-        case 'monthly':
-          shouldExecute = currentDate === schedule.day_of_month && 
-            (Array.isArray(schedule.execution_hours) && schedule.execution_hours.includes(currentHour));
-          console.log(`  Monthly check: currentDate=${currentDate}, day_of_month=${schedule.day_of_month}, shouldExecute=${shouldExecute}`);
+        case "monthly":
+          shouldExecute =
+            currentDate === schedule.day_of_month &&
+            Array.isArray(schedule.execution_hours) &&
+            schedule.execution_hours.includes(currentHour);
+          console.log(
+            `  Monthly check: currentDate=${currentDate}, day_of_month=${schedule.day_of_month}, shouldExecute=${shouldExecute}`,
+          );
           break;
       }
-      
+
       if (!shouldExecute) {
-        console.log(`  -> Trigger ${trigger.trigger_name} not scheduled for now (hour=${currentHour}), skipping`);
+        console.log(
+          `  -> Trigger ${trigger.trigger_name} not scheduled for now (hour=${currentHour}), skipping`,
+        );
         continue;
       }
-      
+
       // Check if already executed for this scheduled time slot
       if (schedule.last_executed_at) {
         const lastExec = new Date(schedule.last_executed_at);
-        const lastExecSP = new Date(lastExec.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-        const nowSP = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-        
+        const lastExecSP = new Date(
+          lastExec.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
+        );
+        const nowSP = new Date(
+          now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
+        );
+
         const isSameDay = lastExecSP.toDateString() === nowSP.toDateString();
         const lastExecHour = lastExecSP.getHours();
-        
+
         // For daily/weekly/monthly triggers, check if already executed at this specific hour today
-        if (schedule.frequency_type === 'daily' || schedule.frequency_type === 'weekly' || schedule.frequency_type === 'monthly') {
+        if (
+          schedule.frequency_type === "daily" ||
+          schedule.frequency_type === "weekly" ||
+          schedule.frequency_type === "monthly"
+        ) {
           if (isSameDay && lastExecHour === currentHour) {
-            console.log(`Trigger ${trigger.trigger_name} already executed at ${currentHour}h today, skipping`);
+            console.log(
+              `Trigger ${trigger.trigger_name} already executed at ${currentHour}h today, skipping`,
+            );
             continue;
           }
         } else {
           // For realtime/hourly, use the 1-hour check
-          const hoursSinceLastExec = (now.getTime() - lastExec.getTime()) / (1000 * 60 * 60);
+          const hoursSinceLastExec =
+            (now.getTime() - lastExec.getTime()) / (1000 * 60 * 60);
           if (hoursSinceLastExec < 1) {
-            console.log(`Trigger ${trigger.trigger_name} already executed recently, skipping`);
+            console.log(
+              `Trigger ${trigger.trigger_name} already executed recently, skipping`,
+            );
             continue;
           }
         }
       }
-      
-      console.log(`Processing trigger: ${trigger.trigger_name} (${trigger.trigger_type})`);
-      
+
+      console.log(
+        `Processing trigger: ${trigger.trigger_name} (${trigger.trigger_type})`,
+      );
+
       // Determine period days and labels based on trigger type
       let periodDays = 7; // Default to weekly
-      let periodLabel = 'Semanal';
+      let periodLabel = "Semanal";
 
       switch (trigger.trigger_type) {
-        case 'daily_report':
+        case "daily_report":
           periodDays = 1;
-          periodLabel = 'Diário';
+          periodLabel = "Diário";
           break;
-        case 'weekly_report':
+        case "weekly_report":
           periodDays = 7;
-          periodLabel = 'Semanal';
+          periodLabel = "Semanal";
           break;
-        case 'monthly_report':
+        case "monthly_report":
           periodDays = 30;
-          periodLabel = 'Mensal';
+          periodLabel = "Mensal";
           break;
         default:
           // For non-report triggers, use 7 days as default
           periodDays = 7;
-          periodLabel = 'Últimos 7 dias';
+          periodLabel = "Últimos 7 dias";
       }
 
       // Get data source from trigger conditions
-      const dataSource = trigger.conditions?.data_source || 'meta';
-      let sourceLabel = 'Meta Ads';
+      const dataSource = trigger.conditions?.data_source || "meta";
+      let sourceLabel = "Meta Ads";
 
       switch (dataSource) {
-        case 'meta':
-          sourceLabel = 'Meta Ads';
+        case "meta":
+          sourceLabel = "Meta Ads";
           break;
-        case 'google':
-          sourceLabel = 'Google Ads';
+        case "google":
+          sourceLabel = "Google Ads";
           break;
-        case 'both':
-          sourceLabel = 'Meta Ads + Google Ads';
+        case "both":
+          sourceLabel = "Meta Ads + Google Ads";
           break;
       }
 
-      console.log(`Report config: periodDays=${periodDays}, dataSource=${dataSource}`);
-      
+      console.log(
+        `Report config: periodDays=${periodDays}, dataSource=${dataSource}`,
+      );
+
       // Create execution log entry BEFORE processing
       const { data: logEntry, error: logError } = await supabase
-        .from('whatsapp_execution_log')
+        .from("whatsapp_execution_log")
         .insert({
           company_id: trigger.company_id,
           trigger_id: trigger.id,
           trigger_name: trigger.trigger_name,
-          status: 'running',
+          status: "running",
           started_at: new Date().toISOString(),
         })
-        .select('id')
+        .select("id")
         .single();
-      
+
       if (logError || !logEntry) {
-        console.error(`Failed to create execution log for trigger ${trigger.trigger_name}:`, logError);
+        console.error(
+          `Failed to create execution log for trigger ${trigger.trigger_name}:`,
+          logError,
+        );
         continue;
       }
-      
+
       console.log(`Created execution log entry: ${logEntry.id}`);
-      
+
       // Get WhatsApp config for this company
       const { data: config } = await supabase
-        .from('whatsapp_configs')
-        .select('*')
-        .eq('company_id', trigger.company_id)
-        .eq('is_active', true)
+        .from("whatsapp_configs")
+        .select("*")
+        .eq("company_id", trigger.company_id)
+        .eq("is_active", true)
         .single();
-      
+
       if (!config || !config.is_connected) {
-        console.log(`No active WhatsApp config for company ${trigger.company_id}`);
+        console.log(
+          `No active WhatsApp config for company ${trigger.company_id}`,
+        );
         continue;
       }
-      
+
       // Check quiet hours
       if (schedule.respect_quiet_hours && isQuietHour(config.quiet_hours)) {
-        console.log(`Quiet hours active for company ${trigger.company_id}, skipping`);
+        console.log(
+          `Quiet hours active for company ${trigger.company_id}, skipping`,
+        );
         continue;
       }
-      
+
       // Get templates for this trigger
       const { data: templates } = await supabase
-        .from('whatsapp_message_templates')
-        .select('*')
-        .eq('trigger_id', trigger.id)
-        .eq('is_active', true);
-      
+        .from("whatsapp_message_templates")
+        .select("*")
+        .eq("trigger_id", trigger.id)
+        .eq("is_active", true);
+
       if (!templates || templates.length === 0) {
         console.log(`No templates for trigger ${trigger.trigger_name}`);
         continue;
       }
-      
+
       // Get clients that have active notification settings WITH gestor data
       const { data: activeClientSettings } = await supabase
-        .from('whatsapp_client_notification_settings')
-        .select(`
+        .from("whatsapp_client_notification_settings")
+        .select(
+          `
           id,
           client_id,
           gestor_employee_id,
           gestor:employees!whatsapp_client_notification_settings_gestor_employee_id_fkey(id, name, phone, email),
           client:clients!whatsapp_client_notification_settings_client_id_fkey(id, name, company, dashboard_token, ad_account_id)
-        `)
-        .eq('company_id', trigger.company_id)
-        .eq('is_active', true);
-      
+        `,
+        )
+        .eq("company_id", trigger.company_id)
+        .eq("is_active", true);
+
       if (!activeClientSettings || activeClientSettings.length === 0) {
-        console.log(`No active client notification settings for company ${trigger.company_id}`);
+        console.log(
+          `No active client notification settings for company ${trigger.company_id}`,
+        );
         continue;
       }
-      
-      const activeClientIds = activeClientSettings.map(s => s.client_id);
-      console.log(`Found ${activeClientIds.length} clients with active notification settings`);
-      
+
+      const activeClientIds = activeClientSettings.map((s) => s.client_id);
+      console.log(
+        `Found ${activeClientIds.length} clients with active notification settings`,
+      );
+
       // Get subscriptions for this trigger to know the destination for each client
-      const settingsIds = activeClientSettings.map(s => s.id);
+      const settingsIds = activeClientSettings.map((s) => s.id);
       const { data: subscriptions } = await supabase
-        .from('whatsapp_client_trigger_subscriptions')
-        .select('client_settings_id, destination, is_active')
-        .eq('trigger_id', trigger.id)
-        .eq('is_active', true)
-        .in('client_settings_id', settingsIds);
-      
+        .from("whatsapp_client_trigger_subscriptions")
+        .select("client_settings_id, destination, is_active")
+        .eq("trigger_id", trigger.id)
+        .eq("is_active", true)
+        .in("client_settings_id", settingsIds);
+
       // Create a map of settings_id -> destination
       const subscriptionMap = new Map();
       if (subscriptions) {
-        subscriptions.forEach((sub: any) => {
+        subscriptions.forEach((sub: unknown) => {
           subscriptionMap.set(sub.client_settings_id, sub.destination);
         });
       }
-      
-      console.log(`Found ${subscriptionMap.size} active subscriptions for trigger ${trigger.trigger_name}`);
-      
+
+      console.log(
+        `Found ${subscriptionMap.size} active subscriptions for trigger ${trigger.trigger_name}`,
+      );
+
       // Get contacts only for clients with active settings
       const { data: contacts } = await supabase
-        .from('whatsapp_client_contacts')
-        .select('*')
-        .eq('company_id', trigger.company_id)
-        .eq('is_active', true)
-        .in('client_id', activeClientIds);
-      
+        .from("whatsapp_client_contacts")
+        .select("*")
+        .eq("company_id", trigger.company_id)
+        .eq("is_active", true)
+        .in("client_id", activeClientIds);
+
       // Build recipients by client, considering destination (gestor, cliente, ambos)
-      const recipientsByClient: Record<string, { 
-        client: any; 
-        recipients: Array<{
-          id: string;
-          contact_name: string;
-          phone: string;
-          profile_type: string;
-          receives_alerts: boolean;
-          receives_reports: boolean;
-          is_gestor: boolean;
-        }>;
-      }> = {};
-      
+      const recipientsByClient: Record<
+        string,
+        {
+          client: unknown;
+          recipients: Array<{
+            id: string;
+            contact_name: string;
+            phone: string;
+            profile_type: string;
+            receives_alerts: boolean;
+            receives_reports: boolean;
+            is_gestor: boolean;
+          }>;
+        }
+      > = {};
+
       for (const setting of activeClientSettings) {
         const clientId = setting.client_id;
         const destination = subscriptionMap.get(setting.id);
-        
+
         // Skip if no subscription for this trigger
         if (!destination) {
-          console.log(`  Client ${clientId}: no subscription for this trigger, skipping`);
+          console.log(
+            `  Client ${clientId}: no subscription for this trigger, skipping`,
+          );
           continue;
         }
-        
+
         recipientsByClient[clientId] = {
           client: setting.client,
-          recipients: []
+          recipients: [],
         };
-        
+
         // Add gestor if destination includes gestor
-        if ((destination === 'gestor' || destination === 'ambos') && setting.gestor && setting.gestor.phone) {
-          console.log(`  Client ${clientId}: adding gestor ${setting.gestor.name} (${setting.gestor.phone})`);
+        if (
+          (destination === "gestor" || destination === "ambos") &&
+          setting.gestor &&
+          setting.gestor.phone
+        ) {
+          console.log(
+            `  Client ${clientId}: adding gestor ${setting.gestor.name} (${setting.gestor.phone})`,
+          );
           recipientsByClient[clientId].recipients.push({
             id: `gestor-${setting.gestor.id}`,
             contact_name: setting.gestor.name,
             phone: setting.gestor.phone,
-            profile_type: 'gestor',
+            profile_type: "gestor",
             receives_alerts: true,
             receives_reports: true,
-            is_gestor: true
+            is_gestor: true,
           });
         }
-        
+
         // Add contacts if destination includes cliente
-        if (destination === 'cliente' || destination === 'ambos') {
-          const clientContacts = contacts?.filter((c: any) => c.client_id === clientId) || [];
-          console.log(`  Client ${clientId}: adding ${clientContacts.length} contacts`);
+        if (destination === "cliente" || destination === "ambos") {
+          const clientContacts =
+            contacts?.filter((c: unknown) => c.client_id === clientId) || [];
+          console.log(
+            `  Client ${clientId}: adding ${clientContacts.length} contacts`,
+          );
           for (const contact of clientContacts) {
             recipientsByClient[clientId].recipients.push({
               id: contact.id,
               contact_name: contact.contact_name,
               phone: contact.phone,
-              profile_type: contact.profile_type || 'cliente',
+              profile_type: contact.profile_type || "cliente",
               receives_alerts: contact.receives_alerts !== false,
               receives_reports: contact.receives_reports !== false,
-              is_gestor: false
+              is_gestor: false,
             });
           }
         }
-        
-        console.log(`  Client ${clientId}: total ${recipientsByClient[clientId].recipients.length} recipients (destination=${destination})`);
+
+        console.log(
+          `  Client ${clientId}: total ${recipientsByClient[clientId].recipients.length} recipients (destination=${destination})`,
+        );
       }
-      
+
       // Check if we have any recipients
-      const totalRecipients = Object.values(recipientsByClient).reduce((sum, c) => sum + c.recipients.length, 0);
+      const totalRecipients = Object.values(recipientsByClient).reduce(
+        (sum, c) => sum + c.recipients.length,
+        0,
+      );
       if (totalRecipients === 0) {
         console.log(`No recipients for trigger ${trigger.trigger_name}`);
         continue;
       }
-      
+
       // Process each client
       for (const clientId of Object.keys(recipientsByClient)) {
         const { client, recipients } = recipientsByClient[clientId];
-        
+
         if (!client) continue;
-        
+
         // Check if this is a report trigger
-        const isReportTrigger = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
-        
+        const isReportTrigger = [
+          "daily_report",
+          "weekly_report",
+          "monthly_report",
+        ].includes(trigger.trigger_type);
+
         // Fetch metrics for this client
         let metrics;
-        
+
         // For report triggers, try to fetch real-time data
         if (isReportTrigger) {
           try {
-            console.log(`Fetching real-time metrics for client ${clientId}, period=${periodDays}, source=${dataSource}`);
-            
+            console.log(
+              `Fetching real-time metrics for client ${clientId}, period=${periodDays}, source=${dataSource}`,
+            );
+
             // Call the fetch-realtime-metrics function
             const metricsResponse = await fetch(
               `${supabaseUrl}/functions/v1/fetch-realtime-metrics`,
               {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabaseKey}`,
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${supabaseKey}`,
                 },
                 body: JSON.stringify({
                   clientId,
                   periodDays,
-                  dataSource
+                  dataSource,
                 }),
-              }
+              },
             );
-            
+
             const metricsResult = await metricsResponse.json();
-            
+
             if (metricsResult.success && metricsResult.metrics) {
-              console.log(`Real-time metrics fetched successfully for client ${clientId}`);
+              console.log(
+                `Real-time metrics fetched successfully for client ${clientId}`,
+              );
               metrics = metricsResult.metrics;
             } else {
-              console.log(`Failed to fetch real-time metrics, falling back to DB: ${metricsResult.error}`);
-              metrics = await fetchClientMetrics(supabase, clientId, periodDays);
+              console.log(
+                `Failed to fetch real-time metrics, falling back to DB: ${metricsResult.error}`,
+              );
+              metrics = await fetchClientMetrics(
+                supabase,
+                clientId,
+                periodDays,
+              );
             }
           } catch (err) {
-            console.error(`Error fetching real-time metrics for client ${clientId}:`, err);
+            console.error(
+              `Error fetching real-time metrics for client ${clientId}:`,
+              err,
+            );
             metrics = await fetchClientMetrics(supabase, clientId, periodDays);
           }
         } else {
           // For non-report triggers, use database
           metrics = await fetchClientMetrics(supabase, clientId, periodDays);
         }
-        
+
         // Get account balance
         let accountBalance = 0;
         let dailySpend = 0;
         let daysRemaining = 0;
-        
+
         if (client.ad_account_id) {
           const { data: adAccount } = await supabase
             .from("facebook_ad_accounts")
@@ -869,22 +1054,23 @@ serve(async (req) => {
           if (adAccount) {
             accountBalance = (adAccount.balance || 0) / 100;
             dailySpend = metrics.current.spend / periodDays;
-            daysRemaining = dailySpend > 0 ? Math.floor(accountBalance / dailySpend) : 0;
+            daysRemaining =
+              dailySpend > 0 ? Math.floor(accountBalance / dailySpend) : 0;
           }
         }
-        
+
         // Build dashboard link
-        const dashboardLink = client.dashboard_token 
+        const dashboardLink = client.dashboard_token
           ? `https://controledetrafego.com.br/dashboard-publico/${client.dashboard_token}`
-          : 'https://controledetrafego.com.br';
-        
+          : "https://controledetrafego.com.br";
+
         // Build variables for this client
         const variables: Record<string, string> = {
           // Identification
-          cliente: client.name || 'Cliente',
-          empresa: client.company || '',
-          gestor: '',
-          
+          cliente: client.name || "Cliente",
+          empresa: client.company || "",
+          gestor: "",
+
           // Performance metrics
           investimento: formatCurrency(metrics.current.spend),
           impressoes: formatNumber(metrics.current.impressions),
@@ -892,47 +1078,54 @@ serve(async (req) => {
           alcance: formatNumber(metrics.current.reach),
           conversoes: formatNumber(metrics.current.conversions),
           frequencia: formatPercentage(metrics.current.frequency),
-          
+
           // Cost metrics
           cpm: formatCurrency(metrics.current.cpm),
           cpc: formatCurrency(metrics.current.cpc),
           cpa_atual: formatCurrency(metrics.current.cpa),
           ctr: formatPercentage(metrics.current.ctr),
-          
+
           // Comparisons
           variacao_investimento: metrics.variations.investimento,
           variacao_conversoes: metrics.variations.conversoes,
           variacao_ctr: metrics.variations.ctr,
           variacao_alcance: metrics.variations.alcance,
           variacao_cpa: metrics.variations.cpa,
-          
+
           // Balance
           saldo: formatCurrency(accountBalance),
           gasto_diario: formatCurrency(dailySpend),
           dias_restantes: String(daysRemaining),
-          
+
           // Period
-          data: now.toLocaleDateString('pt-BR'),
-          hora: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          periodo_inicio: metrics.periodStart ? new Date(metrics.periodStart).toLocaleDateString('pt-BR') : now.toLocaleDateString('pt-BR'),
-          periodo_fim: metrics.periodEnd ? new Date(metrics.periodEnd).toLocaleDateString('pt-BR') : now.toLocaleDateString('pt-BR'),
+          data: now.toLocaleDateString("pt-BR"),
+          hora: now.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          periodo_inicio: metrics.periodStart
+            ? new Date(metrics.periodStart).toLocaleDateString("pt-BR")
+            : now.toLocaleDateString("pt-BR"),
+          periodo_fim: metrics.periodEnd
+            ? new Date(metrics.periodEnd).toLocaleDateString("pt-BR")
+            : now.toLocaleDateString("pt-BR"),
           periodo: periodLabel,
           fonte: sourceLabel,
-          
+
           // Campaigns
           campanha: metrics.current.bestCampaign,
           campanhas_ativas: String(metrics.current.campaignCount),
           melhor_campanha: metrics.current.bestCampaign,
-          
+
           // Links
           link_dashboard: dashboardLink,
         };
-        
+
         // Add post-specific variables for post_published/post_failed triggers
-        if (['post_published', 'post_failed'].includes(trigger.trigger_type)) {
+        if (["post_published", "post_failed"].includes(trigger.trigger_type)) {
           const postId = trigger.conditions?.post_id || null;
           const postData = await fetchScheduledPostData(supabase, postId);
-          
+
           if (postData) {
             variables.post_legenda = postData.legenda;
             variables.post_tipo = postData.tipo;
@@ -945,123 +1138,148 @@ serve(async (req) => {
             variables.post_erro = postData.erro;
           } else {
             // Default empty values
-            variables.post_legenda = '-';
-            variables.post_tipo = '-';
-            variables.post_plataformas = '-';
-            variables.post_data_agendada = '-';
-            variables.post_data_publicacao = now.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-            variables.post_headline = '-';
-            variables.post_objetivo = '-';
-            variables.post_link = '';
-            variables.post_erro = 'Erro desconhecido';
+            variables.post_legenda = "-";
+            variables.post_tipo = "-";
+            variables.post_plataformas = "-";
+            variables.post_data_agendada = "-";
+            variables.post_data_publicacao = now.toLocaleString("pt-BR", {
+              dateStyle: "short",
+              timeStyle: "short",
+            });
+            variables.post_headline = "-";
+            variables.post_objetivo = "-";
+            variables.post_link = "";
+            variables.post_erro = "Erro desconhecido";
           }
         }
-        
+
         // Add presentation-specific variables for presentation_summary trigger
-        if (trigger.trigger_type === 'presentation_summary') {
+        if (trigger.trigger_type === "presentation_summary") {
           const meetingId = trigger.conditions?.meeting_id || null;
-          const presentationData = await fetchPresentationData(supabase, meetingId, clientId);
-          
+          const presentationData = await fetchPresentationData(
+            supabase,
+            meetingId,
+            clientId,
+          );
+
           if (presentationData) {
             variables.apresentacao_nome = presentationData.nome;
             variables.apresentacao_mes = presentationData.mes;
-            variables.apresentacao_total_criativos = presentationData.total_criativos;
+            variables.apresentacao_total_criativos =
+              presentationData.total_criativos;
             variables.apresentacao_aprovados = presentationData.aprovados;
             variables.apresentacao_reprovados = presentationData.reprovados;
-            variables.apresentacao_participantes = presentationData.participantes;
+            variables.apresentacao_participantes =
+              presentationData.participantes;
             variables.apresentacao_data_reuniao = presentationData.data_reuniao;
             variables.apresentacao_duracao = presentationData.duracao;
             variables.apresentacao_link = presentationData.link;
           } else {
             // Default empty values
-            variables.apresentacao_nome = '-';
-            variables.apresentacao_mes = '-';
-            variables.apresentacao_total_criativos = '0';
-            variables.apresentacao_aprovados = '0';
-            variables.apresentacao_reprovados = '0';
-            variables.apresentacao_participantes = '-';
-            variables.apresentacao_data_reuniao = '-';
-            variables.apresentacao_duracao = '-';
-            variables.apresentacao_link = '';
+            variables.apresentacao_nome = "-";
+            variables.apresentacao_mes = "-";
+            variables.apresentacao_total_criativos = "0";
+            variables.apresentacao_aprovados = "0";
+            variables.apresentacao_reprovados = "0";
+            variables.apresentacao_participantes = "-";
+            variables.apresentacao_data_reuniao = "-";
+            variables.apresentacao_duracao = "-";
+            variables.apresentacao_link = "";
           }
         }
-        
+
         // Send to each recipient (gestor and/or contacts based on destination)
         for (const recipient of recipients) {
           // Find the right template for this recipient's profile
-          const template = templates.find((t: any) => 
-            t.recipient_profile === recipient.profile_type
-          ) || templates.find((t: any) => 
-            t.recipient_profile === 'cliente'
-          );
-          
+          const template =
+            templates.find(
+              (t: unknown) => t.recipient_profile === recipient.profile_type,
+            ) ||
+            templates.find((t: unknown) => t.recipient_profile === "cliente");
+
           if (!template) {
             console.log(`No template for profile ${recipient.profile_type}`);
             continue;
           }
-          
+
           // Check if recipient should receive this type of notification
           // Use safe fallback: if field is undefined/null, treat as true (send by default)
-          const isAlertType = ['high_cpa', 'low_balance', 'disabled_account', 'post_failed'].includes(trigger.trigger_type);
-          const isReportType = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
-          
+          const isAlertType = [
+            "high_cpa",
+            "low_balance",
+            "disabled_account",
+            "post_failed",
+          ].includes(trigger.trigger_type);
+          const isReportType = [
+            "daily_report",
+            "weekly_report",
+            "monthly_report",
+          ].includes(trigger.trigger_type);
+
           const receivesAlerts = recipient.receives_alerts !== false; // true if undefined, null, or true
           const receivesReports = recipient.receives_reports !== false; // true if undefined, null, or true
-          
+
           if (isAlertType && !receivesAlerts) {
-            console.log(`  Recipient ${recipient.contact_name} has alerts disabled, skipping`);
+            console.log(
+              `  Recipient ${recipient.contact_name} has alerts disabled, skipping`,
+            );
             continue;
           }
           if (isReportType && !receivesReports) {
-            console.log(`  Recipient ${recipient.contact_name} has reports disabled, skipping`);
+            console.log(
+              `  Recipient ${recipient.contact_name} has reports disabled, skipping`,
+            );
             continue;
           }
-          
-          const recipientLabel = recipient.is_gestor ? 'GESTOR' : 'CONTATO';
-          console.log(`  Sending to ${recipientLabel}: ${recipient.contact_name} (${recipient.phone}), profile=${recipient.profile_type}, alerts=${receivesAlerts}, reports=${receivesReports}`);
-          
+
+          const recipientLabel = recipient.is_gestor ? "GESTOR" : "CONTATO";
+          console.log(
+            `  Sending to ${recipientLabel}: ${recipient.contact_name} (${recipient.phone}), profile=${recipient.profile_type}, alerts=${receivesAlerts}, reports=${receivesReports}`,
+          );
+
           // Update gestor name in variables if this is the gestor
           if (recipient.is_gestor) {
             variables.gestor = recipient.contact_name;
           }
-          
-          const message = replaceVariables(template.message_template, variables);
-          
+
+          const message = replaceVariables(
+            template.message_template,
+            variables,
+          );
+
           // Format phone
-          let formattedPhone = recipient.phone.replace(/\D/g, '');
-          if (!formattedPhone.startsWith('55')) {
-            formattedPhone = '55' + formattedPhone;
+          let formattedPhone = recipient.phone.replace(/\D/g, "");
+          if (!formattedPhone.startsWith("55")) {
+            formattedPhone = "55" + formattedPhone;
           }
-          
+
           // Send message
           const success = await sendZAPIMessage(
             config.instance_id,
             config.token,
             config.client_token,
             formattedPhone,
-            message
+            message,
           );
-          
-          const messageStatus = success ? 'sent' : 'failed';
-          
+
+          const messageStatus = success ? "sent" : "failed";
+
           // Save individual message to notification log
-          await supabase
-            .from('whatsapp_notification_log')
-            .insert({
-              company_id: trigger.company_id,
-              execution_log_id: logEntry.id,
-              client_id: clientId,
-              client_name: client.name,
-              contact_name: recipient.contact_name,
-              recipient_phone: formattedPhone,
-              notification_type: trigger.trigger_type,
-              message_content: message,
-              status: messageStatus,
-              related_entity_type: 'trigger',
-              related_entity_id: trigger.id,
-              sent_at: new Date().toISOString(),
-            });
-          
+          await supabase.from("whatsapp_notification_log").insert({
+            company_id: trigger.company_id,
+            execution_log_id: logEntry.id,
+            client_id: clientId,
+            client_name: client.name,
+            contact_name: recipient.contact_name,
+            recipient_phone: formattedPhone,
+            notification_type: trigger.trigger_type,
+            message_content: message,
+            status: messageStatus,
+            related_entity_type: "trigger",
+            related_entity_id: trigger.id,
+            sent_at: new Date().toISOString(),
+          });
+
           if (success) {
             messagesSent++;
             executionDetails.push({
@@ -1070,7 +1288,7 @@ serve(async (req) => {
               phone: formattedPhone,
               client_name: client.name,
               is_gestor: recipient.is_gestor,
-              status: 'sent',
+              status: "sent",
             });
           } else {
             messagesFailed++;
@@ -1080,53 +1298,61 @@ serve(async (req) => {
               phone: formattedPhone,
               client_name: client.name,
               is_gestor: recipient.is_gestor,
-              status: 'failed',
+              status: "failed",
             });
           }
         }
       }
-      
+
       // Update log entry
       await supabase
-        .from('whatsapp_execution_log')
+        .from("whatsapp_execution_log")
         .update({
-          status: messagesFailed === 0 ? 'completed' : (messagesSent === 0 ? 'failed' : 'completed'),
+          status:
+            messagesFailed === 0
+              ? "completed"
+              : messagesSent === 0
+                ? "failed"
+                : "completed",
           messages_sent: messagesSent,
           messages_failed: messagesFailed,
           execution_details: { contacts: executionDetails },
           completed_at: new Date().toISOString(),
         })
-        .eq('id', logEntry.id);
-      
+        .eq("id", logEntry.id);
+
       // Update schedule last/next execution
       const nextExecution = calculateNextExecution(schedule);
       await supabase
-        .from('whatsapp_trigger_schedules')
+        .from("whatsapp_trigger_schedules")
         .update({
           last_executed_at: now.toISOString(),
           next_execution_at: nextExecution.toISOString(),
         })
-        .eq('id', schedule.id);
-      
+        .eq("id", schedule.id);
+
       results.push({
         trigger: trigger.trigger_name,
         messagesSent,
         messagesFailed,
       });
-      
-      console.log(`Trigger ${trigger.trigger_name}: ${messagesSent} sent, ${messagesFailed} failed`);
+
+      console.log(
+        `Trigger ${trigger.trigger_name}: ${messagesSent} sent, ${messagesFailed} failed`,
+      );
     }
-    
-    return new Response(
-      JSON.stringify({ success: true, results }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-    
+
+    return new Response(JSON.stringify({ success: true, results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Error processing WhatsApp notifications:', error);
+    console.error("Error processing WhatsApp notifications:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

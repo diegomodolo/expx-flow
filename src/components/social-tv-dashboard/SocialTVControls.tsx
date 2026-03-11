@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  ZoomIn, 
-  RefreshCw, 
-  Maximize, 
+import React, { useState, useEffect } from "react";
+import {
+  Settings,
+  ZoomIn,
+  RefreshCw,
+  Maximize,
   Minimize,
   Moon,
   Sun,
@@ -13,14 +13,14 @@ import {
   Minus,
   Eye,
   EyeOff,
-  RotateCw
-} from 'lucide-react';
-import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
+  RotateCw,
+} from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 interface SocialTVControlsProps {
   refreshInterval: number;
@@ -53,8 +53,9 @@ export function SocialTVControls({
       setIsFullscreen(!!document.fullscreenElement);
     };
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   // Auto-hide controls in kiosk mode
@@ -75,7 +76,7 @@ export function SocialTVControls({
         await document.exitFullscreen();
       }
     } catch (err) {
-      console.error('Fullscreen error:', err);
+      console.error("Fullscreen error:", err);
     }
   };
 
@@ -97,13 +98,14 @@ export function SocialTVControls({
   return (
     <>
       {/* Floating controls button */}
-      <Button aria-label="Fechar"
+      <Button
+        aria-label="Fechar"
         variant="outline"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed bottom-4 right-4 z-50 rounded-full h-12 w-12 elevation-2",
-          isOpen && "bg-primary text-primary-foreground"
+          isOpen && "bg-primary text-primary-foreground",
         )}
       >
         <Settings className={cn("h-5 w-5", isOpen && "animate-spin")} />
@@ -113,8 +115,15 @@ export function SocialTVControls({
       {isOpen && (
         <div className="fixed bottom-20 right-4 z-50 w-80 bg-card rounded-2xl elevation-3 border border-border p-6 space-y-6 max-h-[80vh] overflow-y-auto">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg text-foreground">Controles do Dashboard</h3>
-            <Button aria-label="Fechar" variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+            <h3 className="font-semibold text-lg text-foreground">
+              Controles do Dashboard
+            </h3>
+            <Button
+              aria-label="Fechar"
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -131,7 +140,8 @@ export function SocialTVControls({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button aria-label="Fechar"
+              <Button
+                aria-label="Fechar"
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 shrink-0"
@@ -148,7 +158,8 @@ export function SocialTVControls({
                 step={5}
                 className="flex-1"
               />
-              <Button aria-label="Adicionar"
+              <Button
+                aria-label="Adicionar"
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 shrink-0"
@@ -160,9 +171,9 @@ export function SocialTVControls({
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>50%</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-6 px-2 text-xs"
                 onClick={() => onZoomChange(100)}
               >
@@ -185,7 +196,9 @@ export function SocialTVControls({
             </div>
             <Slider
               value={[intervalToMinutes(refreshInterval)]}
-              onValueChange={([val]) => onRefreshIntervalChange(minutesToInterval(val))}
+              onValueChange={([val]) =>
+                onRefreshIntervalChange(minutesToInterval(val))
+              }
               min={1}
               max={30}
               step={1}
@@ -198,15 +211,17 @@ export function SocialTVControls({
               disabled={isRefreshing}
               className="w-full"
             >
-              <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
-              {isRefreshing ? 'Atualizando...' : 'Atualizar Agora'}
+              <RefreshCw
+                className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")}
+              />
+              {isRefreshing ? "Atualizando..." : "Atualizar Agora"}
             </Button>
           </div>
 
           {/* Theme Toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {theme === 'dark' ? (
+              {theme === "dark" ? (
                 <Moon className="h-4 w-4 text-primary" />
               ) : (
                 <Sun className="h-4 w-4 text-primary" />
@@ -214,8 +229,10 @@ export function SocialTVControls({
               <Label>Tema Escuro</Label>
             </div>
             <Switch
-              checked={theme === 'dark'}
-              onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              checked={theme === "dark"}
+              onCheckedChange={(checked) =>
+                setTheme(checked ? "dark" : "light")
+              }
             />
           </div>
 
@@ -250,10 +267,7 @@ export function SocialTVControls({
               )}
               <Label>Tela Cheia</Label>
             </div>
-            <Switch
-              checked={isFullscreen}
-              onCheckedChange={toggleFullscreen}
-            />
+            <Switch checked={isFullscreen} onCheckedChange={toggleFullscreen} />
           </div>
 
           {/* Kiosk Mode Toggle */}
@@ -266,12 +280,9 @@ export function SocialTVControls({
               )}
               <Label>Modo Kiosk</Label>
             </div>
-            <Switch
-              checked={isKioskMode}
-              onCheckedChange={setIsKioskMode}
-            />
+            <Switch checked={isKioskMode} onCheckedChange={setIsKioskMode} />
           </div>
-          
+
           <p className="text-xs text-muted-foreground">
             O modo Kiosk oculta os controles automaticamente.
           </p>

@@ -3,7 +3,8 @@
 const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -194,30 +195,35 @@ Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação
     }));
 
     // Preparar dados dos concorrentes
-    const competitorsSummary = competitorData.map((competitor: Record<string, unknown>) => ({
-      name: competitor.name,
-      company: competitor.company_name,
-      industry: competitor.industry,
-      platforms: [
-        competitor.facebook_page_name,
-        competitor.instagram_handle,
-      ].filter(Boolean),
-    }));
+    const competitorsSummary = competitorData.map(
+      (competitor: Record<string, unknown>) => ({
+        name: competitor.name,
+        company: competitor.company_name,
+        industry: competitor.industry,
+        platforms: [
+          competitor.facebook_page_name,
+          competitor.instagram_handle,
+        ].filter(Boolean),
+      }),
+    );
 
     // Preparar dados dos anúncios dos concorrentes
-    const competitorAdsSummary = competitorAds.map((ad: Record<string, unknown>) => ({
-      competitor:
-        competitorData.find((c: Record<string, unknown>) => c.id === ad.competitor_id)?.name ||
-        "Unknown",
-      platform: ad.platform,
-      type: ad.ad_type,
-      title: ad.ad_title,
-      copy: ad.ad_copy,
-      cta: ad.call_to_action,
-      estimated_performance: ad.estimated_performance,
-      date_spotted: ad.date_spotted,
-      notes: ad.notes,
-    }));
+    const competitorAdsSummary = competitorAds.map(
+      (ad: Record<string, unknown>) => ({
+        competitor:
+          competitorData.find(
+            (c: Record<string, unknown>) => c.id === ad.competitor_id,
+          )?.name || "Unknown",
+        platform: ad.platform,
+        type: ad.ad_type,
+        title: ad.ad_title,
+        copy: ad.ad_copy,
+        cta: ad.call_to_action,
+        estimated_performance: ad.estimated_performance,
+        date_spotted: ad.date_spotted,
+        notes: ad.notes,
+      }),
+    );
 
     const prompt = `
 Você é um especialista sênior em análise competitiva de tráfego pago com mais de 10 anos de experiência em Meta Ads, Google Ads e inteligência de mercado.

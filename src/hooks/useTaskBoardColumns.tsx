@@ -34,22 +34,25 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
   const companyId = activeCompany?.company_id;
 
   const { data: columns = [], isLoading } = useQuery({
-    queryKey: ['task-board-columns', companyId, targetUserId],
+    queryKey: ["task-board-columns", companyId, targetUserId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user || !companyId) return [];
 
-      const userId = targetUserId || user.id;
+      const userId =
+        targetUserId && targetUserId !== "all" ? targetUserId : user.id;
 
       const { data, error } = await (supabase
-        .from('task_board_columns' as unknown)
-        .select('*')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .order('order_index', { ascending: true }) as unknown);
+        .from("task_board_columns" as unknown)
+        .select("*")
+        .eq("user_id", userId)
+        .eq("company_id", companyId)
+        .order("order_index", { ascending: true }) as unknown);
 
       if (error) {
-        console.error('Error fetching task board columns:', error);
+        console.error("Error fetching task board columns:", error);
         throw error;
       }
 
@@ -60,16 +63,19 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
 
   const createColumnMutation = useMutation({
     mutationFn: async (columnData: CreateColumnData) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !companyId) throw new Error('User or company not found');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || !companyId) throw new Error("User or company not found");
 
       // Get the max order_index for the current user
-      const maxOrderIndex = columns.length > 0 
-        ? Math.max(...columns.map(c => c.order_index)) 
-        : -1;
+      const maxOrderIndex =
+        columns.length > 0
+          ? Math.max(...columns.map((c) => c.order_index))
+          : -1;
 
       const { data, error } = await (supabase
-        .from('task_board_columns' as unknown)
+        .from("task_board_columns" as unknown)
         .insert({
           user_id: user.id,
           company_id: companyId,
@@ -85,21 +91,27 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
-      toast.success('Coluna criada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ["task-board-columns"] });
+      toast.success("Coluna criada com sucesso!");
     },
     onError: (error) => {
-      console.error('Error creating column:', error);
-      toast.error('Erro ao criar coluna');
+      console.error("Error creating column:", error);
+      toast.error("Erro ao criar coluna");
     },
   });
 
   const updateColumnMutation = useMutation({
-    mutationFn: async ({ columnId, updates }: { columnId: string; updates: UpdateColumnData }) => {
+    mutationFn: async ({
+      columnId,
+      updates,
+    }: {
+      columnId: string;
+      updates: UpdateColumnData;
+    }) => {
       const { data, error } = await (supabase
-        .from('task_board_columns' as unknown)
+        .from("task_board_columns" as unknown)
         .update(updates)
-        .eq('id', columnId)
+        .eq("id", columnId)
         .select()
         .single() as unknown);
 
@@ -107,69 +119,74 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
-      toast.success('Coluna atualizada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ["task-board-columns"] });
+      toast.success("Coluna atualizada com sucesso!");
     },
     onError: (error) => {
-      console.error('Error updating column:', error);
-      toast.error('Erro ao atualizar coluna');
+      console.error("Error updating column:", error);
+      toast.error("Erro ao atualizar coluna");
     },
   });
 
   const deleteColumnMutation = useMutation({
     mutationFn: async (columnId: string) => {
       const { error } = await (supabase
-        .from('task_board_columns' as unknown)
+        .from("task_board_columns" as unknown)
         .delete()
-        .eq('id', columnId) as unknown);
+        .eq("id", columnId) as unknown);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
-      toast.success('Coluna excluída com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ["task-board-columns"] });
+      toast.success("Coluna excluída com sucesso!");
     },
     onError: (error) => {
-      console.error('Error deleting column:', error);
-      toast.error('Erro ao excluir coluna');
+      console.error("Error deleting column:", error);
+      toast.error("Erro ao excluir coluna");
     },
   });
 
   const reorderColumnsMutation = useMutation({
     mutationFn: async (orderedColumnIds: string[]) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not found');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not found");
 
       // Update each column with its new order_index
-      const updates = orderedColumnIds.map((columnId, index) => 
-        (supabase
-          .from('task_board_columns' as unknown)
-          .update({ order_index: index })
-          .eq('id', columnId) as unknown)
+      const updates = orderedColumnIds.map(
+        (columnId, index) =>
+          supabase
+            .from("task_board_columns" as unknown)
+            .update({ order_index: index })
+            .eq("id", columnId) as unknown,
       );
 
       await Promise.all(updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
+      queryClient.invalidateQueries({ queryKey: ["task-board-columns"] });
     },
     onError: (error) => {
-      console.error('Error reordering columns:', error);
-      toast.error('Erro ao reordenar colunas');
+      console.error("Error reordering columns:", error);
+      toast.error("Erro ao reordenar colunas");
     },
   });
 
   const applyTemplateMutation = useMutation({
     mutationFn: async (template: KanbanTemplate) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !companyId) throw new Error('User or company not found');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || !companyId) throw new Error("User or company not found");
 
       // 1. Delete all existing columns for this user/company
       const { error: deleteError } = await (supabase
-        .from('task_board_columns' as unknown)
+        .from("task_board_columns" as unknown)
         .delete()
-        .eq('user_id', user.id)
-        .eq('company_id', companyId) as unknown);
+        .eq("user_id", user.id)
+        .eq("company_id", companyId) as unknown);
 
       if (deleteError) throw deleteError;
 
@@ -184,18 +201,18 @@ export function useTaskBoardColumns(targetUserId?: string | null) {
       }));
 
       const { error: insertError } = await (supabase
-        .from('task_board_columns' as unknown)
+        .from("task_board_columns" as unknown)
         .insert(columnsToInsert) as unknown);
 
       if (insertError) throw insertError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
-      toast.success('Template aplicado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ["task-board-columns"] });
+      toast.success("Template aplicado com sucesso!");
     },
     onError: (error) => {
-      console.error('Error applying template:', error);
-      toast.error('Erro ao aplicar template');
+      console.error("Error applying template:", error);
+      toast.error("Erro ao aplicar template");
     },
   });
 

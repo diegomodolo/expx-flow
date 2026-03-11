@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { 
-  Settings, 
-  RefreshCw, 
-  Maximize, 
-  Minimize, 
-  Moon, 
+import {
+  Settings,
+  RefreshCw,
+  Maximize,
+  Minimize,
+  Moon,
   Sun,
   X,
   Eye,
@@ -16,7 +16,7 @@ import {
   ZoomIn,
   Plus,
   Minus,
-  RotateCw
+  RotateCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -32,15 +32,15 @@ interface RadarTVControlsProps {
   onRotationChange?: (rotation: number) => void;
 }
 
-export function RadarTVControls({ 
-  refreshInterval, 
-  onRefreshIntervalChange, 
+export function RadarTVControls({
+  refreshInterval,
+  onRefreshIntervalChange,
   onRefreshNow,
   isRefreshing,
   zoom = 100,
   onZoomChange,
   rotation = 0,
-  onRotationChange
+  onRotationChange,
 }: RadarTVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -52,7 +52,8 @@ export function RadarTVControls({
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   useEffect(() => {
@@ -85,13 +86,14 @@ export function RadarTVControls({
 
   return (
     <>
-      <Button aria-label="Fechar"
+      <Button
+        aria-label="Fechar"
         variant="outline"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed bottom-4 right-4 z-50 rounded-full h-12 w-12 shadow-lg",
-          isOpen && "bg-primary text-primary-foreground"
+          isOpen && "bg-primary text-primary-foreground",
         )}
       >
         <Settings className={cn("h-5 w-5", isOpen && "animate-spin")} />
@@ -101,7 +103,12 @@ export function RadarTVControls({
         <div className="fixed bottom-20 right-4 z-50 w-80 bg-card rounded-2xl shadow-xl p-6 space-y-6 max-h-[80vh] overflow-y-auto border">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg">Controles Radar TV</h3>
-            <Button aria-label="Fechar" variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+            <Button
+              aria-label="Fechar"
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -118,7 +125,8 @@ export function RadarTVControls({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Button aria-label="Fechar"
+                <Button
+                  aria-label="Fechar"
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 shrink-0"
@@ -135,7 +143,8 @@ export function RadarTVControls({
                   step={5}
                   className="flex-1"
                 />
-                <Button aria-label="Adicionar"
+                <Button
+                  aria-label="Adicionar"
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 shrink-0"
@@ -185,51 +194,61 @@ export function RadarTVControls({
               step={1}
               className="w-full"
             />
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onRefreshNow}
               disabled={isRefreshing}
               className="w-full"
             >
-              <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+              <RefreshCw
+                className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")}
+              />
               Atualizar Agora
             </Button>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              {theme === "dark" ? (
+                <Moon className="h-4 w-4" />
+              ) : (
+                <Sun className="h-4 w-4" />
+              )}
               <Label>Tema Escuro</Label>
             </div>
             <Switch
               checked={theme === "dark"}
-              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              onCheckedChange={(checked) =>
+                setTheme(checked ? "dark" : "light")
+              }
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              {isFullscreen ? (
+                <Minimize className="h-4 w-4" />
+              ) : (
+                <Maximize className="h-4 w-4" />
+              )}
               <Label>Tela Cheia</Label>
             </div>
-            <Switch
-              checked={isFullscreen}
-              onCheckedChange={toggleFullscreen}
-            />
+            <Switch checked={isFullscreen} onCheckedChange={toggleFullscreen} />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {isKioskMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {isKioskMode ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
               <Label>Modo Kiosk</Label>
             </div>
-            <Switch
-              checked={isKioskMode}
-              onCheckedChange={setIsKioskMode}
-            />
+            <Switch checked={isKioskMode} onCheckedChange={setIsKioskMode} />
           </div>
-          
+
           <p className="text-xs text-muted-foreground">
             O modo Kiosk oculta os controles automaticamente.
           </p>

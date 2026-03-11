@@ -11,7 +11,8 @@ const BRASILIA_OFFSET_MS = -3 * 60 * 60 * 1000;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -181,7 +182,7 @@ async function generateSingleImage(
   clientLogo: string | null,
   clientCompanyName: string,
   scheduledDateFormatted: string,
-  config: any,
+  config: unknown,
   clientSector: string,
   clientTargetAudience: string,
   slideNumber?: number,
@@ -193,7 +194,7 @@ async function generateSingleImage(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const messageContent: any[] = [];
+      const messageContent: unknown[] = [];
 
       // FIRST: Add visual reference images (PRIMARY STYLE GUIDE)
       console.log(
@@ -559,7 +560,7 @@ Deno.serve(async (req) => {
       .not("content_text", "is", null);
 
     // Fetch knowledge base: RSS items
-    let rssItems: any[] | null = null;
+    let rssItems: unknown[] | null = null;
 
     if (rssItemId) {
       const { data: singleRssItem, error: rssItemError } = await supabase
@@ -1229,7 +1230,7 @@ Responda APENAS com a legenda pronta.`;
     console.log("Caption generated:", caption.substring(0, 50) + "...");
 
     // Save to instagram_auto_posts
-    const postData: any = {
+    const postData: unknown = {
       config_id: configId,
       client_id: config.client_id,
       company_id: config.company_id,
@@ -1328,7 +1329,7 @@ Responda APENAS com a legenda pronta.`;
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in generate-instagram-auto-post:", error);
     return new Response(
       JSON.stringify({

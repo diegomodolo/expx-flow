@@ -2,16 +2,42 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { TimelineRow } from "./TimelineRow";
 import { SquadMember, CommandCenterTask } from "@/hooks/useCommandCenter";
 import { WorkSchedule } from "@/hooks/useWorkSchedules";
-import { Clock, ZoomIn, ZoomOut, GripHorizontal, ChevronLeft, ChevronRight, CalendarDays, Settings2 } from "lucide-react";
+import {
+  Clock,
+  ZoomIn,
+  ZoomOut,
+  GripHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  Settings2,
+} from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from "date-fns";
+import {
+  format,
+  addDays,
+  subDays,
+  isToday,
+  isTomorrow,
+  isYesterday,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,15 +57,20 @@ function usePersistedTimelineSettings() {
   useEffect(() => {
     (async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { setLoaded(true); return; }
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          setLoaded(true);
+          return;
+        }
 
-        const { data } = await supabase
+        const { data } = (await supabase
           .from("user_ui_settings" as unknown)
           .select("setting_value")
           .eq("user_id", user.id)
           .eq("setting_key", SETTING_KEY)
-          .maybeSingle() as unknown;
+          .maybeSingle()) as unknown;
 
         if ((data as unknown)?.setting_value) {
           setSettings((data as unknown).setting_value as TimelineSettings);
@@ -54,15 +85,20 @@ function usePersistedTimelineSettings() {
   const save = useCallback(async (s: TimelineSettings) => {
     setSettings(s);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
-        .from("user_ui_settings" as unknown)
-        .upsert(
-          { user_id: user.id, setting_key: SETTING_KEY, setting_value: s as unknown, updated_at: new Date().toISOString() },
-          { onConflict: "user_id,setting_key" }
-        );
+      await supabase.from("user_ui_settings" as unknown).upsert(
+        {
+          user_id: user.id,
+          setting_key: SETTING_KEY,
+          setting_value: s as unknown,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,setting_key" },
+      );
     } catch (err) {
       console.error("[TimelineSettings] Failed to persist:", err);
     }
@@ -77,12 +113,21 @@ interface Props {
   startHour?: number;
   workSchedules?: WorkSchedule[];
   onRepositionTask?: (taskId: string, newStartDate: Date) => void;
-  onResizeTask?: (taskId: string, newStartDate: Date, newEstimatedMinutes: number) => void;
+  onResizeTask?: (
+    taskId: string,
+    newStartDate: Date,
+    newEstimatedMinutes: number,
+  ) => void;
   onClickTask?: (task: CommandCenterTask) => void;
   onSendToBacklog?: (taskId: string) => void;
   onReturnToBacklogCenter?: (taskId: string) => void;
   onSendToNextDay?: (taskId: string) => void;
-  onReassignTask?: (taskId: string, newUserId: string, newMemberName: string, newStartDate: Date) => void;
+  onReassignTask?: (
+    taskId: string,
+    newUserId: string,
+    newMemberName: string,
+    newStartDate: Date,
+  ) => void;
   draggingTask?: CommandCenterTask | null;
   dropSlotRef?: React.MutableRefObject<number | null>;
   timelineContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
@@ -103,8 +148,29 @@ function formatDateLabel(date: Date): string {
   return format(date, "EEE, d 'de' MMM", { locale: ptBR });
 }
 
-export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0, workSchedules = [], onRepositionTask, onResizeTask, onClickTask, onSendToBacklog, onReturnToBacklogCenter, onSendToNextDay, onReassignTask, draggingTask, dropSlotRef, timelineContainerRef, selectedDate, onDateChange }: Props) {
-  const { settings: savedSettings, save: persistSettings, loaded: settingsLoaded } = usePersistedTimelineSettings();
+export function WorkloadTimeline({
+  members,
+  tasks,
+  startHour: _startHourProp = 0,
+  workSchedules = [],
+  onRepositionTask,
+  onResizeTask,
+  onClickTask,
+  onSendToBacklog,
+  onReturnToBacklogCenter,
+  onSendToNextDay,
+  onReassignTask,
+  draggingTask,
+  dropSlotRef,
+  timelineContainerRef,
+  selectedDate,
+  onDateChange,
+}: Props) {
+  const {
+    settings: savedSettings,
+    save: persistSettings,
+    loaded: settingsLoaded,
+  } = usePersistedTimelineSettings();
   const [slotWidth, setSlotWidth] = useState(56);
   const [rowHeight, setRowHeight] = useState(68);
   const [slotDuration, setSlotDuration] = useState(DEFAULT_SLOT_DURATION);
@@ -117,7 +183,9 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [mouseSlot, setMouseSlot] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const resizeRef = useRef<{ startY: number; startHeight: number } | null>(
+    null,
+  );
 
   // Apply persisted settings once loaded from DB
   useEffect(() => {
@@ -135,33 +203,39 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
   const timelineMinutes = (timelineEndHour - timelineStartHour + 1) * 60;
   const totalSlots = Math.floor(timelineMinutes / slotDuration);
 
-  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startHeight = rowHeight;
-    resizeRef.current = { startY, startHeight };
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = rowHeight;
+      resizeRef.current = { startY, startHeight };
 
-    const onMouseMove = (ev: MouseEvent) => {
-      if (!resizeRef.current) return;
-      const delta = ev.clientY - resizeRef.current.startY;
-      const membersCount = Math.max(members.length, 1);
-      const perRowDelta = delta / membersCount;
-      const newHeight = Math.min(MAX_ROW_HEIGHT, Math.max(MIN_ROW_HEIGHT, resizeRef.current.startHeight + perRowDelta));
-      setRowHeight(Math.round(newHeight));
-    };
+      const onMouseMove = (ev: MouseEvent) => {
+        if (!resizeRef.current) return;
+        const delta = ev.clientY - resizeRef.current.startY;
+        const membersCount = Math.max(members.length, 1);
+        const perRowDelta = delta / membersCount;
+        const newHeight = Math.min(
+          MAX_ROW_HEIGHT,
+          Math.max(MIN_ROW_HEIGHT, resizeRef.current.startHeight + perRowDelta),
+        );
+        setRowHeight(Math.round(newHeight));
+      };
 
-    const onMouseUp = () => {
-      resizeRef.current = null;
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
+      const onMouseUp = () => {
+        resizeRef.current = null;
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  }, [rowHeight, members.length]);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    [rowHeight, members.length],
+  );
 
   // Filter tasks by selected date
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = tasks.filter((task) => {
     if (!task.start_date) return false;
     const taskDate = new Date(task.start_date);
     return (
@@ -205,11 +279,15 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
       {/* Header with controls */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border flex-wrap gap-y-2">
         <Clock className="w-4 h-4 text-primary" />
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Timeline — {String(timelineStartHour).padStart(2,"0")}h às {String(timelineEndHour).padStart(2,"0")}h</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Timeline — {String(timelineStartHour).padStart(2, "0")}h às{" "}
+          {String(timelineEndHour).padStart(2, "0")}h
+        </h3>
 
         {/* Date navigation */}
         <div className="flex items-center gap-1 ml-4 bg-muted/40 rounded-lg px-1 py-0.5">
-          <Button aria-label="Voltar"
+          <Button
+            aria-label="Voltar"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
@@ -225,7 +303,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 size="sm"
                 className={cn(
                   "h-6 px-2 text-xs font-medium gap-1.5 min-w-[110px]",
-                  isFuture && "text-primary"
+                  isFuture && "text-primary",
                 )}
               >
                 <CalendarDays className="w-3 h-3" />
@@ -249,7 +327,8 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
             </PopoverContent>
           </Popover>
 
-          <Button aria-label="Avançar"
+          <Button
+            aria-label="Avançar"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
@@ -285,17 +364,25 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
             <ZoomIn className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
 
-          <Button aria-label="Fechar"
+          <Button
+            aria-label="Fechar"
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => { setTempSlotDuration(slotDuration); setTempStartHour(timelineStartHour); setTempEndHour(timelineEndHour); setSettingsOpen(true); }}
+            onClick={() => {
+              setTempSlotDuration(slotDuration);
+              setTempStartHour(timelineStartHour);
+              setTempEndHour(timelineEndHour);
+              setSettingsOpen(true);
+            }}
             title="Configurar duração dos slots"
           >
             <Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
           </Button>
 
-          <span className="text-[10px] text-muted-foreground/50">{totalSlots} slots de {slotDuration}min</span>
+          <span className="text-[10px] text-muted-foreground/50">
+            {totalSlots} slots de {slotDuration}min
+          </span>
         </div>
       </div>
 
@@ -304,18 +391,28 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
         <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 border-b border-primary/10">
           <CalendarDays className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs text-primary/80">
-            Visualizando {format(selectedDate, "d 'de' MMMM", { locale: ptBR })} — tarefas agendadas para este dia aparecem na timeline.
+            Visualizando {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}{" "}
+            — tarefas agendadas para este dia aparecem na timeline.
           </span>
         </div>
       )}
 
       {/* Scrollable timeline area - single scroll for ruler + all rows */}
-      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto" data-timeline-scroll data-slot-width={slotWidth} data-slot-duration={slotDuration} data-start-hour={effectiveStartHour}>
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-auto"
+        data-timeline-scroll
+        data-slot-width={slotWidth}
+        data-slot-duration={slotDuration}
+        data-start-hour={effectiveStartHour}
+      >
         <div style={{ minWidth: `${192 + slotWidth * totalSlots}px` }}>
           {/* Time ruler - sticky top */}
           <div className="flex border-b border-border sticky top-0 z-10 bg-card">
             <div className="w-48 flex-shrink-0 px-4 py-1">
-              <span className="text-[10px] text-muted-foreground/50">Colaborador</span>
+              <span className="text-[10px] text-muted-foreground/50">
+                Colaborador
+              </span>
             </div>
             <div className="flex">
               {Array.from({ length: totalSlots }).map((_, i) => {
@@ -323,10 +420,20 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 const h = Math.floor(totalMinutes / 60);
                 const m = totalMinutes % 60;
                 const showLabel = (slotDuration * i) % 60 === 0 || i === 0;
-                const label = showLabel ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` : "";
+                const label = showLabel
+                  ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+                  : "";
                 return (
-                  <div key={i} className="border-r border-border/50 flex-shrink-0 px-0.5" style={{ width: `${slotWidth}px` }}>
-                    {label && <span className="text-[9px] text-muted-foreground/50">{label}</span>}
+                  <div
+                    key={i}
+                    className="border-r border-border/50 flex-shrink-0 px-0.5"
+                    style={{ width: `${slotWidth}px` }}
+                  >
+                    {label && (
+                      <span className="text-[9px] text-muted-foreground/50">
+                        {label}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -335,44 +442,59 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
 
           {/* Member rows */}
           {members.length > 0 ? (
-            members.map(member => {
-            const memberSchedule = workSchedules.find(ws => ws.id === member.work_schedule_id) || null;
-            
-            // Compute ghost preview for this member based on mouse position
-            let ghostPreview: { startSlot: number; slotsNeeded: number; title: string } | null = null;
-            if (draggingTask && mouseSlot !== null) {
-              const slotsNeeded = Math.max(1, Math.ceil((draggingTask.ai_estimated_minutes || 20) / slotDuration));
-              ghostPreview = { startSlot: mouseSlot, slotsNeeded, title: draggingTask.title };
-            }
+            members.map((member) => {
+              const memberSchedule =
+                workSchedules.find((ws) => ws.id === member.work_schedule_id) ||
+                null;
 
-            return (
-              <TimelineRow
-                key={member.id}
-                member={member}
-                tasks={filteredTasks}
-                startHour={effectiveStartHour}
-                slotWidth={slotWidth}
-                totalSlots={totalSlots}
-                slotDuration={slotDuration}
-                rowHeight={rowHeight}
-                selectedDate={selectedDate}
-                workSchedule={memberSchedule}
-                onRepositionTask={onRepositionTask}
-                onResizeTask={onResizeTask}
-                onClickTask={onClickTask}
-                onSendToBacklog={onSendToBacklog}
-                onReturnToBacklogCenter={onReturnToBacklogCenter}
-                onSendToNextDay={onSendToNextDay}
-                onReassignTask={onReassignTask}
-                ghostPreview={ghostPreview}
-              />
-            );
-          })
-        ) : (
-          <div className="flex items-center justify-center py-16 text-muted-foreground/50 text-sm">
-            Nenhum membro na squad selecionada
-          </div>
-        )}
+              // Compute ghost preview for this member based on mouse position
+              let ghostPreview: {
+                startSlot: number;
+                slotsNeeded: number;
+                title: string;
+              } | null = null;
+              if (draggingTask && mouseSlot !== null) {
+                const slotsNeeded = Math.max(
+                  1,
+                  Math.ceil(
+                    (draggingTask.ai_estimated_minutes || 20) / slotDuration,
+                  ),
+                );
+                ghostPreview = {
+                  startSlot: mouseSlot,
+                  slotsNeeded,
+                  title: draggingTask.title,
+                };
+              }
+
+              return (
+                <TimelineRow
+                  key={member.id}
+                  member={member}
+                  tasks={filteredTasks}
+                  startHour={effectiveStartHour}
+                  slotWidth={slotWidth}
+                  totalSlots={totalSlots}
+                  slotDuration={slotDuration}
+                  rowHeight={rowHeight}
+                  selectedDate={selectedDate}
+                  workSchedule={memberSchedule}
+                  onRepositionTask={onRepositionTask}
+                  onResizeTask={onResizeTask}
+                  onClickTask={onClickTask}
+                  onSendToBacklog={onSendToBacklog}
+                  onReturnToBacklogCenter={onReturnToBacklogCenter}
+                  onSendToNextDay={onSendToNextDay}
+                  onReassignTask={onReassignTask}
+                  ghostPreview={ghostPreview}
+                />
+              );
+            })
+          ) : (
+            <div className="flex items-center justify-center py-16 text-muted-foreground/50 text-sm">
+              Nenhum membro na squad selecionada
+            </div>
+          )}
         </div>
       </div>
 
@@ -381,7 +503,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
         onMouseDown={handleResizeMouseDown}
         className={cn(
           "flex items-center justify-center py-1 cursor-ns-resize border-t border-border",
-          "hover:bg-muted/50 transition-colors group select-none"
+          "hover:bg-muted/50 transition-colors group select-none",
         )}
         title="Arraste para redimensionar as linhas"
       >
@@ -406,7 +528,11 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                 max={60}
                 step={5}
                 value={tempSlotDuration}
-                onChange={e => setTempSlotDuration(Math.max(5, Math.min(60, Number(e.target.value))))}
+                onChange={(e) =>
+                  setTempSlotDuration(
+                    Math.max(5, Math.min(60, Number(e.target.value))),
+                  )
+                }
                 className="mt-1"
               />
             </div>
@@ -418,7 +544,7 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                   min={0}
                   max={23}
                   value={tempStartHour}
-                  onChange={e => {
+                  onChange={(e) => {
                     const v = Math.max(0, Math.min(23, Number(e.target.value)));
                     setTempStartHour(v);
                     if (v >= tempEndHour) setTempEndHour(Math.min(23, v + 1));
@@ -433,22 +559,45 @@ export function WorkloadTimeline({ members, tasks, startHour: _startHourProp = 0
                   min={0}
                   max={23}
                   value={tempEndHour}
-                  onChange={e => {
+                  onChange={(e) => {
                     const v = Math.max(0, Math.min(23, Number(e.target.value)));
                     setTempEndHour(v);
-                    if (v <= tempStartHour) setTempStartHour(Math.max(0, v - 1));
+                    if (v <= tempStartHour)
+                      setTempStartHour(Math.max(0, v - 1));
                   }}
                   className="mt-1"
                 />
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {String(tempStartHour).padStart(2,"0")}h às {String(tempEndHour).padStart(2,"0")}h = {(tempEndHour - tempStartHour + 1)}h → {Math.floor(((tempEndHour - tempStartHour + 1) * 60) / tempSlotDuration)} slots de {tempSlotDuration}min
+              {String(tempStartHour).padStart(2, "0")}h às{" "}
+              {String(tempEndHour).padStart(2, "0")}h ={" "}
+              {tempEndHour - tempStartHour + 1}h →{" "}
+              {Math.floor(
+                ((tempEndHour - tempStartHour + 1) * 60) / tempSlotDuration,
+              )}{" "}
+              slots de {tempSlotDuration}min
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
-            <Button onClick={() => { setSlotDuration(tempSlotDuration); setTimelineStartHour(tempStartHour); setTimelineEndHour(tempEndHour); persistSettings({ slotDuration: tempSlotDuration, startHour: tempStartHour, endHour: tempEndHour }); setSettingsOpen(false); }}>Aplicar</Button>
+            <Button variant="outline" onClick={() => setSettingsOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setSlotDuration(tempSlotDuration);
+                setTimelineStartHour(tempStartHour);
+                setTimelineEndHour(tempEndHour);
+                persistSettings({
+                  slotDuration: tempSlotDuration,
+                  startHour: tempStartHour,
+                  endHour: tempEndHour,
+                });
+                setSettingsOpen(false);
+              }}
+            >
+              Aplicar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

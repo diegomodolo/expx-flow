@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -45,7 +46,8 @@ serve(async (req) => {
 
   try {
     // Validate user JWT (verify_jwt=false in config)
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
+    const { data: userData, error: userError } =
+      await supabaseUser.auth.getUser();
     if (userError || !userData?.user) {
       console.error("[archive-whatsapp-chat] Unauthorized:", userError);
       return new Response(
@@ -66,14 +68,14 @@ serve(async (req) => {
     if (!company_id || !conversation_id || archive === undefined) {
       console.error("[archive-whatsapp-chat] Missing required fields");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "company_id, conversation_id e archive são obrigatórios" 
+        JSON.stringify({
+          success: false,
+          error: "company_id, conversation_id e archive são obrigatórios",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -86,10 +88,16 @@ serve(async (req) => {
       .single();
 
     if (conversationError || !conversation) {
-      console.error("[archive-whatsapp-chat] Conversation not found/forbidden:", conversationError);
+      console.error(
+        "[archive-whatsapp-chat] Conversation not found/forbidden:",
+        conversationError,
+      );
       return new Response(
         JSON.stringify({ success: false, error: "Conversa não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -99,8 +107,14 @@ serve(async (req) => {
     if (!instance_id) {
       console.error("[archive-whatsapp-chat] Conversation without instance_id");
       return new Response(
-        JSON.stringify({ success: false, error: "Instância não vinculada à conversa" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          success: false,
+          error: "Instância não vinculada à conversa",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -115,14 +129,14 @@ serve(async (req) => {
     if (configError || !config) {
       console.error("[archive-whatsapp-chat] Config not found:", configError);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Configuração do WhatsApp não encontrada" 
+        JSON.stringify({
+          success: false,
+          error: "Configuração do WhatsApp não encontrada",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -134,36 +148,45 @@ serve(async (req) => {
       .single();
 
     if (instanceError || !instance) {
-      console.error("[archive-whatsapp-chat] Instance not found:", instanceError);
+      console.error(
+        "[archive-whatsapp-chat] Instance not found:",
+        instanceError,
+      );
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Instância não encontrada" 
+        JSON.stringify({
+          success: false,
+          error: "Instância não encontrada",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Build the API URL for UazapiGO
     // NOTE: This project stores UazapiGO endpoint/token in these columns.
     // Keep fallbacks for backward compatibility with older schemas.
-    const baseUrl = (config.uazapi_endpoint || config.uazapi_base_url || config.uazapi_url)?.replace(/\/$/, "");
-    const instanceToken = (instance.uazapi_token || instance.instance_token) as string | undefined;
+    const baseUrl = (
+      config.uazapi_endpoint ||
+      config.uazapi_base_url ||
+      config.uazapi_url
+    )?.replace(/\/$/, "");
+    const instanceToken = (instance.uazapi_token || instance.instance_token) as
+      | string
+      | undefined;
 
     if (!baseUrl || !instanceToken) {
       console.error("[archive-whatsapp-chat] Missing API configuration");
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Configuração da API incompleta" 
+        JSON.stringify({
+          success: false,
+          error: "Configuração da API incompleta",
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -176,7 +199,7 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
         // UazapiGO v2 expects the instance token in the `token` header (same pattern used in other functions).
-        "token": instanceToken,
+        token: instanceToken,
       },
       body: JSON.stringify({
         number: String(phone).replace(/\D/g, ""),
@@ -185,20 +208,23 @@ serve(async (req) => {
     });
 
     const responseText = await response.text();
-    console.log("[archive-whatsapp-chat] API response status:", response.status);
+    console.log(
+      "[archive-whatsapp-chat] API response status:",
+      response.status,
+    );
     console.log("[archive-whatsapp-chat] API response:", responseText);
 
     if (!response.ok) {
       console.error("[archive-whatsapp-chat] API error:", responseText);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Erro ao ${archive ? "arquivar" : "desarquivar"} chat: ${responseText}` 
+        JSON.stringify({
+          success: false,
+          error: `Erro ao ${archive ? "arquivar" : "desarquivar"} chat: ${responseText}`,
         }),
-        { 
-          status: response.status, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -216,28 +242,29 @@ serve(async (req) => {
     console.log("[archive-whatsapp-chat] Success!");
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         archived: archive,
-        message: archive ? "Chat arquivado com sucesso" : "Chat desarquivado com sucesso"
+        message: archive
+          ? "Chat arquivado com sucesso"
+          : "Chat desarquivado com sucesso",
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
     console.error("[archive-whatsapp-chat] Error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || "Erro interno do servidor" 
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno do servidor",
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

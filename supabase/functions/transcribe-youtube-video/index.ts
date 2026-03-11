@@ -7,7 +7,8 @@ const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -54,12 +55,14 @@ async function fetchTranscript(videoId: string): Promise<string | null> {
     }
 
     // Prefer Portuguese, then English, then any available
-    let selectedTrack = captionTracks.find((t: { languageCode?: string; baseUrl?: string }) =>
-      t.languageCode?.startsWith("pt"),
+    let selectedTrack = captionTracks.find(
+      (t: { languageCode?: string; baseUrl?: string }) =>
+        t.languageCode?.startsWith("pt"),
     );
     if (!selectedTrack) {
-      selectedTrack = captionTracks.find((t: { languageCode?: string; baseUrl?: string }) =>
-        t.languageCode?.startsWith("en"),
+      selectedTrack = captionTracks.find(
+        (t: { languageCode?: string; baseUrl?: string }) =>
+          t.languageCode?.startsWith("en"),
       );
     }
     if (!selectedTrack) {

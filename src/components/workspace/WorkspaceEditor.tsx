@@ -19,17 +19,31 @@ interface WorkspaceEditorProps {
   document: WorkspaceDocument | null;
 }
 
-const EMOJI_OPTIONS = ['📄', '📝', '📋', '📌', '💡', '🎯', '🚀', '✨', '📊', '📈', '🔖', '📂'];
+const EMOJI_OPTIONS = [
+  "📄",
+  "📝",
+  "📋",
+  "📌",
+  "💡",
+  "🎯",
+  "🚀",
+  "✨",
+  "📊",
+  "📈",
+  "🔖",
+  "📂",
+];
 
 export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
   const { updateDocument, toggleFavorite } = useWorkspaceDocuments();
-  const [title, setTitle] = useState(document?.title || '');
+  const [title, setTitle] = useState(document?.title || "");
   const [shareOpen, setShareOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Create editor with initial content
   const editor = useCreateBlockNote({
-    initialContent: document?.content?.length > 0 ? document.content : undefined,
+    initialContent:
+      document?.content?.length > 0 ? document.content : undefined,
   });
 
   // Update editor content when document changes
@@ -48,26 +62,44 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
   const saveContent = useCallback(async () => {
     if (!document) return;
     const content = editor.document;
-    await updateDocument.mutateAsync({ id: document.id, content });
+    try {
+      await updateDocument.mutateAsync({ id: document.id, content });
+    } catch {
+      // Erro tratado no onError da mutation
+    }
   }, [document, editor, updateDocument]);
 
   // Save title on blur
   const handleTitleBlur = async () => {
     if (!document || title === document.title) return;
-    await updateDocument.mutateAsync({ id: document.id, title: title || 'Sem título' });
+    try {
+      await updateDocument.mutateAsync({
+        id: document.id,
+        title: title || "Sem título",
+      });
+    } catch {
+      // Erro tratado no onError da mutation
+    }
   };
 
   // Handle icon change
   const handleIconChange = async (icon: string) => {
     if (!document) return;
-    await updateDocument.mutateAsync({ id: document.id, icon });
-    setShowEmojiPicker(false);
+    try {
+      await updateDocument.mutateAsync({ id: document.id, icon });
+      setShowEmojiPicker(false);
+    } catch {
+      // Erro tratado no onError da mutation
+    }
   };
 
   // Handle favorite toggle
   const handleToggleFavorite = () => {
     if (!document) return;
-    toggleFavorite.mutate({ id: document.id, isFavorite: !document.is_favorite });
+    toggleFavorite.mutate({
+      id: document.id,
+      isFavorite: !document.is_favorite,
+    });
   };
 
   if (!document) {
@@ -96,7 +128,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
             </button>
             {showEmojiPicker && (
               <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg p-2 z-50 grid grid-cols-6 gap-1">
-                {EMOJI_OPTIONS.map(emoji => (
+                {EMOJI_OPTIONS.map((emoji) => (
                   <button
                     key={emoji}
                     onClick={() => handleIconChange(emoji)}
@@ -128,7 +160,8 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          <Button aria-label="Fechar"
+          <Button
+            aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={handleToggleFavorite}
@@ -140,8 +173,9 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
               <StarOff className="h-4 w-4" />
             )}
           </Button>
-          
-          <Button aria-label="Ação"
+
+          <Button
+            aria-label="Ação"
             variant="ghost"
             size="icon"
             onClick={() => setShareOpen(true)}
@@ -152,7 +186,12 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button aria-label="Ação" variant="ghost" size="icon" className="h-8 w-8">
+              <Button
+                aria-label="Ação"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -169,11 +208,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
       {/* Editor */}
       <div className="flex-1 overflow-auto">
         <div className="w-full h-full py-4 px-6">
-          <BlockNoteView 
-            editor={editor} 
-            onChange={saveContent}
-            theme="light"
-          />
+          <BlockNoteView editor={editor} onChange={saveContent} theme="light" />
         </div>
       </div>
 

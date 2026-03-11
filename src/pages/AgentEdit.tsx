@@ -10,7 +10,9 @@ export default function AgentEdit() {
   const { agentId } = useParams();
   const navigate = useNavigate();
   const { createAgent } = useIAAgents();
-  const [localAgentId, setLocalAgentId] = useState<string | null>(agentId || null);
+  const [localAgentId, setLocalAgentId] = useState<string | null>(
+    agentId || null,
+  );
 
   // Se estiver criando, cria um agente draft automaticamente
   useEffect(() => {
@@ -18,11 +20,12 @@ export default function AgentEdit() {
       if (!agentId && !localAgentId) {
         const result = await createAgent({
           agent_name: "Novo Agente (Rascunho)",
-          prompt_base: "Você é um assistente prestativo. Aguardando configuração completa.",
+          prompt_base:
+            "Você é um assistente prestativo. Aguardando configuração completa.",
           description: "",
-          additional_instructions: ""
+          additional_instructions: "",
         });
-        
+
         if (result) {
           setLocalAgentId(result.id);
         }
@@ -48,12 +51,21 @@ export default function AgentEdit() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
+          <Button
+            aria-label="Voltar"
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/ia/agents")}
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Editar Agente</h1>
-            <p className="text-muted-foreground">Configure o comportamento e capacidades do agente</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              Editar Agente
+            </h1>
+            <p className="text-muted-foreground">
+              Configure o comportamento e capacidades do agente
+            </p>
           </div>
         </div>
 

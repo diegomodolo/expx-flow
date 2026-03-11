@@ -63,7 +63,9 @@ export function useAgentSquads() {
       const squadsData = (data || []) as unknown[];
       const squadsWithCounts = await Promise.all(
         squadsData.map(async (squad: unknown) => {
-          const typedSquad = squad as AgentSquad & { clients?: AgentSquad["client"] };
+          const typedSquad = squad as AgentSquad & {
+            clients?: AgentSquad["client"];
+          };
           const { count } = await supabase
             .from("ia_agent_squad_members" as unknown)
             .select("*", { count: "exact", head: true })
@@ -73,7 +75,7 @@ export function useAgentSquads() {
             client: typedSquad.clients,
             members_count: count || 0,
           } as AgentSquad;
-        })
+        }),
       );
 
       return squadsWithCounts;
@@ -82,8 +84,13 @@ export function useAgentSquads() {
   });
 
   const createSquadMutation = useMutation({
-    mutationFn: async (data: { name: string; description?: string; client_id: string }) => {
-      if (!activeCompany?.company_id || !user?.id) throw new Error("Missing company or user");
+    mutationFn: async (data: {
+      name: string;
+      description?: string;
+      client_id: string;
+    }) => {
+      if (!activeCompany?.company_id || !user?.id)
+        throw new Error("Missing company or user");
       const { data: squad, error } = await supabase
         .from("ia_agent_squads" as unknown)
         .insert({
@@ -104,12 +111,22 @@ export function useAgentSquads() {
       queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erro ao criar squad", description: err.message, variant: "destructive" });
+      toast({
+        title: "Erro ao criar squad",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
   const updateSquadMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name?: string; description?: string; client_id?: string } }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { name?: string; description?: string; client_id?: string };
+    }) => {
       const { error } = await supabase
         .from("ia_agent_squads" as unknown)
         .update(data as unknown)
@@ -121,13 +138,20 @@ export function useAgentSquads() {
       queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erro ao atualizar squad", description: err.message, variant: "destructive" });
+      toast({
+        title: "Erro ao atualizar squad",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
   const deleteSquadMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("ia_agent_squads" as unknown).delete().eq("id", id);
+      const { error } = await supabase
+        .from("ia_agent_squads" as unknown)
+        .delete()
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -135,7 +159,11 @@ export function useAgentSquads() {
       queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erro ao excluir squad", description: err.message, variant: "destructive" });
+      toast({
+        title: "Erro ao excluir squad",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -143,16 +171,34 @@ export function useAgentSquads() {
     mutationFn: async ({
       squadId,
       members,
-      flows
+      flows,
     }: {
       squadId: string;
-      members: Array<{ id?: string; agent_id: string; role: string; squad_instructions?: string; position_x: number; position_y: number }>;
-      flows: Array<{ source_member_id: string; target_member_id: string; label?: string; condition?: string }>;
+      members: Array<{
+        id?: string;
+        agent_id: string;
+        role: string;
+        squad_instructions?: string;
+        position_x: number;
+        position_y: number;
+      }>;
+      flows: Array<{
+        source_member_id: string;
+        target_member_id: string;
+        label?: string;
+        condition?: string;
+      }>;
     }) => {
-      const { error: delFlowsErr } = await supabase.from("ia_agent_squad_flows" as unknown).delete().eq("squad_id", squadId);
+      const { error: delFlowsErr } = await supabase
+        .from("ia_agent_squad_flows" as unknown)
+        .delete()
+        .eq("squad_id", squadId);
       if (delFlowsErr) throw delFlowsErr;
-      
-      const { error: delMembersErr } = await supabase.from("ia_agent_squad_members" as unknown).delete().eq("squad_id", squadId);
+
+      const { error: delMembersErr } = await supabase
+        .from("ia_agent_squad_members" as unknown)
+        .delete()
+        .eq("squad_id", squadId);
       if (delMembersErr) throw delMembersErr;
 
       if (members.length > 0) {
@@ -166,14 +212,14 @@ export function useAgentSquads() {
               squad_instructions: m.squad_instructions || null,
               position_x: m.position_x,
               position_y: m.position_y,
-            })) as unknown
+            })) as unknown,
           )
           .select();
 
         if (membersError) throw membersError;
 
         const membersList = insertedMembers as unknown[];
-        
+
         if (flows.length > 0 && membersList.length > 0) {
           const memberMap = new Map<string, string>();
           members.forEach((m, i) => {
@@ -186,8 +232,10 @@ export function useAgentSquads() {
           const flowInserts = flows
             .map((f) => ({
               squad_id: squadId,
-              source_member_id: memberMap.get(f.source_member_id) || f.source_member_id,
-              target_member_id: memberMap.get(f.target_member_id) || f.target_member_id,
+              source_member_id:
+                memberMap.get(f.source_member_id) || f.source_member_id,
+              target_member_id:
+                memberMap.get(f.target_member_id) || f.target_member_id,
               label: f.label || null,
               condition: f.condition || null,
             }))
@@ -207,7 +255,11 @@ export function useAgentSquads() {
       queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erro ao salvar squad", description: err.message, variant: "destructive" });
+      toast({
+        title: "Erro ao salvar squad",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -218,7 +270,9 @@ export function useAgentSquads() {
       .eq("id", id)
       .single();
     if (error) throw error;
-    const typedData = data as unknown as AgentSquad & { clients?: AgentSquad["client"] };
+    const typedData = data as unknown as AgentSquad & {
+      clients?: AgentSquad["client"];
+    };
     return { ...typedData, client: typedData.clients };
   };
 
@@ -247,10 +301,17 @@ export function useAgentSquads() {
     squads: fetchSquadsQuery.data || [],
     loading: fetchSquadsQuery.isLoading,
     fetchSquads: fetchSquadsQuery.refetch,
-    createSquad: async (data: { name: string; description?: string; client_id: string }) => {
+    createSquad: async (data: {
+      name: string;
+      description?: string;
+      client_id: string;
+    }) => {
       return createSquadMutation.mutateAsync(data).catch(() => null);
     },
-    updateSquad: async (id: string, data: { name?: string; description?: string; client_id?: string }) => {
+    updateSquad: async (
+      id: string,
+      data: { name?: string; description?: string; client_id?: string },
+    ) => {
       return updateSquadMutation.mutateAsync({ id, data }).catch(() => {});
     },
     deleteSquad: async (id: string) => {
@@ -261,8 +322,20 @@ export function useAgentSquads() {
     fetchSquadFlows,
     saveSquadLayout: async (
       squadId: string,
-      members: Array<{ id?: string; agent_id: string; role: string; squad_instructions?: string; position_x: number; position_y: number }>,
-      flows: Array<{ source_member_id: string; target_member_id: string; label?: string; condition?: string }>
+      members: Array<{
+        id?: string;
+        agent_id: string;
+        role: string;
+        squad_instructions?: string;
+        position_x: number;
+        position_y: number;
+      }>,
+      flows: Array<{
+        source_member_id: string;
+        target_member_id: string;
+        label?: string;
+        condition?: string;
+      }>,
     ) => {
       return saveSquadLayoutMutation.mutateAsync({ squadId, members, flows });
     },

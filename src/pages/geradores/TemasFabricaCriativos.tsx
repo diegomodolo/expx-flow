@@ -46,14 +46,19 @@ export default function TemasFabricaCriativos() {
     enabled: !!companyId,
   });
 
-  const { data: insights, isLoading, refetch } = useQuery({
+  const {
+    data: insights,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["all-market-insights", companyId, clientFilter],
     queryFn: async () => {
       if (!companyId) return [];
-      
+
       let query = supabase
         .from("market_research_insights")
-        .select(`
+        .select(
+          `
           id,
           client_id,
           topic,
@@ -63,7 +68,8 @@ export default function TemasFabricaCriativos() {
           relevance_score,
           source_url,
           clients (name, company)
-        `)
+        `,
+        )
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
@@ -79,29 +85,42 @@ export default function TemasFabricaCriativos() {
 
   const getSentimentColor = (sentiment: string | null) => {
     switch (sentiment) {
-      case "positive": return "bg-green-500/10 text-green-500";
-      case "negative": return "bg-red-500/10 text-red-500";
-      default: return "bg-gray-500/10 text-gray-500";
+      case "positive":
+        return "bg-green-500/10 text-green-500";
+      case "negative":
+        return "bg-red-500/10 text-red-500";
+      default:
+        return "bg-gray-500/10 text-gray-500";
     }
   };
 
   const getSentimentLabel = (sentiment: string | null) => {
     switch (sentiment) {
-      case "positive": return "Positivo";
-      case "negative": return "Negativo";
-      default: return "Neutro";
+      case "positive":
+        return "Positivo";
+      case "negative":
+        return "Negativo";
+      default:
+        return "Neutro";
     }
   };
 
   const getSourceTypeLabel = (sourceType: string) => {
     switch (sourceType) {
-      case "reddit": return "Reddit";
-      case "twitter": return "Twitter";
-      case "forum": return "Fórum";
-      case "review": return "Review";
-      case "ai_generated": return "Gerado por IA";
-      case "manual": return "Manual";
-      default: return sourceType;
+      case "reddit":
+        return "Reddit";
+      case "twitter":
+        return "Twitter";
+      case "forum":
+        return "Fórum";
+      case "review":
+        return "Review";
+      case "ai_generated":
+        return "Gerado por IA";
+      case "manual":
+        return "Manual";
+      default:
+        return sourceType;
     }
   };
 
@@ -109,8 +128,12 @@ export default function TemasFabricaCriativos() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Temas de Pesquisa</h1>
-          <p className="text-muted-foreground">Temas para geração de criativos</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Temas de Pesquisa
+          </h1>
+          <p className="text-muted-foreground">
+            Temas para geração de criativos
+          </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[...Array(6)].map((_, i) => (
@@ -131,8 +154,12 @@ export default function TemasFabricaCriativos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Temas de Pesquisa</h1>
-          <p className="text-muted-foreground">Temas para geração de criativos</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Temas de Pesquisa
+          </h1>
+          <p className="text-muted-foreground">
+            Temas para geração de criativos
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <ClientSearchCombobox
@@ -143,7 +170,12 @@ export default function TemasFabricaCriativos() {
             allOptionLabel="Todos os clientes"
             className="w-56"
           />
-          <Button aria-label="Atualizar" variant="outline" size="icon" onClick={() => refetch()}>
+          <Button
+            aria-label="Atualizar"
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -153,7 +185,9 @@ export default function TemasFabricaCriativos() {
         <Card>
           <CardContent className="p-8 text-center">
             <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-2">Nenhum tema de pesquisa encontrado</p>
+            <p className="text-muted-foreground mb-2">
+              Nenhum tema de pesquisa encontrado
+            </p>
             <p className="text-sm text-muted-foreground">
               Acesse a configuração de um cliente para adicionar temas
             </p>
@@ -162,20 +196,30 @@ export default function TemasFabricaCriativos() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {insights?.map((insight) => (
-            <Card key={insight.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={insight.id}
+              className="hover:shadow-md transition-shadow"
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base line-clamp-1">{insight.topic}</CardTitle>
+                    <CardTitle className="text-base line-clamp-1">
+                      {insight.topic}
+                    </CardTitle>
                     <p className="text-xs text-muted-foreground mt-1">
                       {insight.clients?.name} • {insight.clients?.company}
                     </p>
                   </div>
-                  <Button aria-label="Fechar"
+                  <Button
+                    aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="shrink-0"
-                    onClick={() => navigate(`/clientes/${insight.client_id}/fabrica-criativos`)}
+                    onClick={() =>
+                      navigate(
+                        `/clientes/${insight.client_id}/fabrica-criativos`,
+                      )
+                    }
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -188,7 +232,10 @@ export default function TemasFabricaCriativos() {
                   </p>
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={getSentimentColor(insight.sentiment)}>
+                  <Badge
+                    variant="outline"
+                    className={getSentimentColor(insight.sentiment)}
+                  >
                     {getSentimentLabel(insight.sentiment)}
                   </Badge>
                   <Badge variant="secondary">
