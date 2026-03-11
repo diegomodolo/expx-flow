@@ -183,7 +183,11 @@ export function useBacklogCommandCenter() {
   // Build backlog clients with stats (only parent tasks, matching filteredTasks logic)
   const backlogClients = useMemo((): BacklogClient[] => {
     const clientMap = new Map<string, { minutes: number; count: number }>();
-    const parentTasks = backlogTasks.filter((t) => !t.parent_task_id);
+    let parentTasks = backlogTasks.filter((t) => !t.parent_task_id);
+    // Apply same squad filter as filteredTasks so sidebar counts match right panel
+    if (selectedSquadId) {
+      parentTasks = parentTasks.filter((t) => t.team_id === selectedSquadId);
+    }
 
     parentTasks.forEach((task) => {
       const clientIds = taskToClients.get(task.id) || [];
@@ -254,7 +258,7 @@ export function useBacklogCommandCenter() {
     }
 
     return result.sort((a, b) => b.totalMinutes - a.totalMinutes);
-  }, [backlogTasks, filteredClients, taskToClients, recentActivity]);
+  }, [backlogTasks, filteredClients, taskToClients, recentActivity, selectedSquadId]);
 
   // Filter tasks by selected client — exclude subtasks from top level
   const filteredTasks = useMemo(() => {
@@ -389,11 +393,14 @@ export function useBacklogCommandCenter() {
 
   // Total backlog stats (only parent tasks, consistent with sidebar)
   const totalStats = useMemo(() => {
-    const parents = backlogTasks.filter((t) => !t.parent_task_id);
+    let parents = backlogTasks.filter((t) => !t.parent_task_id);
+    if (selectedSquadId) {
+      parents = parents.filter((t) => t.team_id === selectedSquadId);
+    }
     const totalMinutes = parents.reduce((sum, t) => sum + (t.ai_estimated_minutes || 18), 0);
     const totalHours = Math.round(totalMinutes / 60);
     return { totalTasks: parents.length, totalMinutes, totalHours };
-  }, [backlogTasks]);
+  }, [backlogTasks, selectedSquadId]);
 
   return {
     backlogClients,

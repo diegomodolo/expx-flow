@@ -210,8 +210,6 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
         progress: 0,
         related_client_id: parsed.clientId || null,
       };
-      console.log("Insert payload:", JSON.stringify(insertPayload));
-
       const { data: task, error } = await supabase
         .from("tasks")
         .insert(insertPayload)
