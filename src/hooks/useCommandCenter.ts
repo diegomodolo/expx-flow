@@ -43,6 +43,7 @@ export interface SquadMember {
 
 export function useCommandCenter() {
   const { activeCompany } = useCompany();
+  const companyId = activeCompany?.company_id;
   const { teams, loading: teamsLoading } = useTeams();
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [backlogTasks, setBacklogTasks] = useState<CommandCenterTask[]>([]);
@@ -61,7 +62,7 @@ export function useCommandCenter() {
   const [viewDate, setViewDate] = useState<Date>(new Date());
 
   const fetchTasks = useCallback(async () => {
-    if (!selectedTeamId || !activeCompany) return;
+    if (!selectedTeamId || !companyId) return;
     setLoading(true);
     try {
       const targetDate = viewDate;
@@ -73,7 +74,7 @@ export function useCommandCenter() {
         .from("tasks")
         .select("*")
         .eq("team_id", selectedTeamId)
-        .eq("company_id", activeCompany.company_id)
+        .eq("company_id", companyId)
         .eq("status", "todo")
         .is("start_date", null)
         .neq("task_state", "backlog")
@@ -84,7 +85,7 @@ export function useCommandCenter() {
         .from("tasks")
         .select("*")
         .eq("team_id", selectedTeamId)
-        .eq("company_id", activeCompany.company_id)
+        .eq("company_id", companyId)
         .gte("start_date", dayStart)
         .lte("start_date", dayEnd)
         .neq("status", "cancelled")
@@ -150,10 +151,16 @@ export function useCommandCenter() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTeamId, activeCompany, viewDate]);
+  }, [selectedTeamId, companyId, viewDate]);
 
   useEffect(() => {
     fetchTasks();
+  }, [fetchTasks]);
+
+  // Keep a stable ref to fetchTasks so the realtime subscription doesn't re-subscribe on every callback change
+  const fetchTasksRef = useRef(fetchTasks);
+  useEffect(() => {
+    fetchTasksRef.current = fetchTasks;
   }, [fetchTasks]);
 
   // Realtime subscription (debounced to avoid jarring resets during drag-drop)
@@ -164,7 +171,7 @@ export function useCommandCenter() {
       .channel(`command-center-${selectedTeamId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `team_id=eq.${selectedTeamId}` }, () => {
         if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
-        realtimeTimerRef.current = setTimeout(() => fetchTasks(), 2000);
+        realtimeTimerRef.current = setTimeout(() => fetchTasksRef.current(), 2000);
       })
       .subscribe();
 
@@ -172,7 +179,7 @@ export function useCommandCenter() {
       if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
       supabase.removeChannel(channel);
     };
-  }, [selectedTeamId, fetchTasks]);
+  }, [selectedTeamId]);
 
   const assignTask = async (taskId: string, userId: string, memberName: string, startDate: Date) => {
     const task = backlogTasks.find(t => t.id === taskId);
@@ -186,7 +193,7 @@ export function useCommandCenter() {
         .from('task_board_columns' as unknown)
         .select('id, status, order_index')
         .eq('user_id', userId)
-        .eq('company_id', activeCompany?.company_id || '')
+        .eq('company_id', companyId || '')
         .order('order_index', { ascending: true }) as unknown);
 
       if (columns && columns.length > 0) {
