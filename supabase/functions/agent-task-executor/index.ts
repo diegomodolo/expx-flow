@@ -183,7 +183,7 @@ ${client.ai_briefing ? `\n**BRIEFING DETALHADO:**\n${client.ai_briefing}` : ''}
               ? JSON.parse(typeof task.checklist === 'string' ? task.checklist : JSON.stringify(task.checklist))
               : [];
             if (Array.isArray(parsed)) {
-              checklistText = parsed.map((item: any) => `- ${item.checked || item.completed || item.done ? '✅' : '⬜'} ${item.text}`).join('\n');
+              checklistText = parsed.map((item: Record<string, unknown>) => `- ${item.checked || item.completed || item.done ? '✅' : '⬜'} ${item.text}`).join('\n');
             }
           } catch { /* ignore checklist parse errors */ }
 
