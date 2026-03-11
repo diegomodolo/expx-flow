@@ -120,7 +120,7 @@ export function WorkspaceShareDialog({
                 </SelectContent>
               </Select>
 
-              <Button 
+              <Button aria-label="Adicionar"
                 onClick={handleAddShare} 
                 disabled={!selectedUser || createShare.isPending}
                 size="icon"
@@ -177,7 +177,7 @@ export function WorkspaceShareDialog({
                           </SelectContent>
                         </Select>
 
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"

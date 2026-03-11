@@ -429,7 +429,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
             <span className="text-xs text-muted-foreground/60 truncate flex-1 max-w-[300px]">
               — {replyingTo.content}
             </span>
-            <Button
+            <Button aria-label="Fechar"
               size="icon"
               variant="ghost"
               className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
@@ -448,7 +448,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
             <span className="text-xs text-muted-foreground shrink-0">
               {(pendingFile.size / 1024).toFixed(0)}KB
             </span>
-            <Button
+            <Button aria-label="Fechar"
               size="icon"
               variant="ghost"
               className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
@@ -462,7 +462,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
         <div className="flex items-end gap-2 p-4">
           <Popover open={plusOpen} onOpenChange={setPlusOpen}>
             <PopoverTrigger asChild>
-              <Button
+              <Button aria-label="Adicionar"
                 size="icon"
                 variant="ghost"
                 className="rounded-xl shrink-0 h-10 w-10 text-muted-foreground hover:text-foreground"
@@ -523,7 +523,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
               onEmojiSelect={(emoji) => setInputValue(prev => prev + emoji)}
               onGifSelect={() => {}}
             />
-            <Button
+            <Button aria-label="Enviar"
               size="icon"
               onClick={handleSend}
               disabled={(!inputValue.trim() && !pendingFile) || sendingMessage || uploadingFile}

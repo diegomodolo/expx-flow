@@ -94,7 +94,7 @@ export function AgentConversationsSidebar({
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    <Button
+                    <Button aria-label="Editar"
                       variant="ghost"
                       size="icon"
                       className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
@@ -104,7 +104,7 @@ export function AgentConversationsSidebar({
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"

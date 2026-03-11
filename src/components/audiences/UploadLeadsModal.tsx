@@ -526,7 +526,7 @@ maria@email.com,11988887777"
                         />
                       </div>
                       {manualData.length > 1 && (
-                        <Button
+                        <Button aria-label="Fechar"
                           type="button"
                           variant="ghost"
                           size="icon"

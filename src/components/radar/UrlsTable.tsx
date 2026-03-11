@@ -279,7 +279,7 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                       </TableCell>
                       <TableCell className="py-1.5">
                         <div className="flex items-center gap-0.5">
-                          <Button
+                          <Button aria-label="Atualizar"
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"

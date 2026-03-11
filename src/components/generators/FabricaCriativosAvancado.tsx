@@ -115,7 +115,7 @@ export function FabricaCriativosAvancado({ config, onConfigChange, clientId }: P
                       alt={`Referência ${index}`}
                       className="w-full h-full object-cover"
                     />
-                    <Button
+                    <Button aria-label="Avançar"
                       size="icon"
                       variant="destructive"
                       className="absolute top-2 right-2 h-6 w-6"

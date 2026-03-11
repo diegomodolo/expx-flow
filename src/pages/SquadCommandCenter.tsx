@@ -18,6 +18,7 @@ import { BacklogBucket } from "@/components/backlog-center/BacklogBucket";
 import { BacklogFooterBar } from "@/components/backlog-center/BacklogFooterBar";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Radar, Loader2, Inbox } from "lucide-react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -490,6 +491,7 @@ export default function SquadCommandCenter() {
                   clients={backlogCenter.clients}
                   taskToClients={backlogCenter.taskToClients}
                   companyId={activeCompany?.company_id}
+                  selectedSquadId={backlogCenter.selectedSquadId}
                   subtasksByParent={backlogCenter.subtasksByParent}
                   selectionBar={
                     <BacklogFooterBar
@@ -506,6 +508,7 @@ export default function SquadCommandCenter() {
             </ResizablePanelGroup>
           </>
         ) : (
+          <ErrorBoundary fallbackMessage="Erro no Command Center. Tente novamente.">
           <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             {/* Header metrics */}
             <div className="my-4 flex-shrink-0">
@@ -548,6 +551,7 @@ export default function SquadCommandCenter() {
               </ResizablePanel>
             </ResizablePanelGroup>
           </DragDropContext>
+          </ErrorBoundary>
         )}
 
         {/* Overflow dialog */}
@@ -574,21 +578,26 @@ export default function SquadCommandCenter() {
       <TaskDialog
         open={taskDialogOpen}
         onOpenChange={(open) => {
-          setTaskDialogOpen(open);
-          if (!open) setEditingTask(null);
+          if (!open) {
+            setTaskDialogOpen(false);
+            // Delay clearing task to avoid rendering dialog content with null task
+            setTimeout(() => setEditingTask(null), 100);
+          }
         }}
         task={editingTask}
         onSave={async (taskData) => {
           if (!editingTask) return;
+          const taskId = editingTask.id;
+          // Close dialog first, then update data
+          setTaskDialogOpen(false);
+          setTimeout(() => setEditingTask(null), 100);
           try {
-            await supabase.from("tasks").update(taskData).eq("id", editingTask.id);
-            fetchTasks();
+            await supabase.from("tasks").update(taskData).eq("id", taskId);
+            await fetchTasks();
             toast({ title: "Tarefa atualizada" });
           } catch {
             toast({ title: "Erro ao atualizar", variant: "destructive" });
           }
-          setTaskDialogOpen(false);
-          setEditingTask(null);
         }}
       />
     </DashboardLayout>

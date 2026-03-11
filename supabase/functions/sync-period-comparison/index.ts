@@ -125,15 +125,15 @@ Deno.serve(async (req) => {
     const accountId = adAccount.account_id
 
     // Helper function to count conversions (adapted from sync-facebook-campaigns)
-    const countConversionsFromActions = (actions: any[] | undefined, campaignObjective?: string, campaignName?: string) => {
+    const countConversionsFromActions = (actions: { action_type?: string; value?: string | number; '7d_click'?: string | number; '1d_view'?: string | number }[] | undefined, campaignObjective?: string, campaignName?: string) => {
       if (!actions || !Array.isArray(actions)) {
         console.log(`No actions array found for campaign: ${campaignName}`)
         return 0;
       }
 
-      const norm = (s: any) => (s ?? '').toString().trim().toLowerCase()
-      const getVal = (a: any) => {
-        const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v))
+      const norm = (s: unknown) => (s ?? '').toString().trim().toLowerCase()
+      const getVal = (a: { action_type?: string; value?: string | number; '7d_click'?: string | number; '1d_view'?: string | number }) => {
+        const toNum = (v: unknown) => (typeof v === 'string' ? parseFloat(v) : Number(v))
         const click = toNum(a?.['7d_click'])
         const view = toNum(a?.['1d_view'])
         const val = toNum(a?.value)

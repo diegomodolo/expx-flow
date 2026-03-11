@@ -307,7 +307,7 @@ export function YouTubeScriptBuilder({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button aria-label="Fechar" variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -540,7 +540,7 @@ export function YouTubeScriptBuilder({
                                 >
                                   <span className="line-clamp-2 text-sm">{t}</span>
                                 </Button>
-                                <Button
+                                <Button aria-label="Atualizar"
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 shrink-0"
@@ -672,7 +672,7 @@ export function YouTubeScriptBuilder({
                           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                           disabled={sending}
                         />
-                        <Button size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
+                        <Button aria-label="Enviar" size="icon" onClick={handleSendMessage} disabled={sending || !chatInput.trim()}>
                           <Send className="h-4 w-4" />
                         </Button>
                       </div>

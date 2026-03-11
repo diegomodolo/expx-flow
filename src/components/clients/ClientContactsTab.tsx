@@ -178,14 +178,14 @@ export function ClientContactsTab({ clientId, readOnly = false }: ClientContacts
               </div>
               {!readOnly && (
                 <div className="flex items-center gap-1">
-                  <Button
+                  <Button aria-label="Editar"
                     variant="ghost"
                     size="icon"
                     onClick={() => handleOpenModal(contact)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button
+                  <Button aria-label="Excluir"
                     variant="ghost"
                     size="icon"
                     onClick={() => setDeleteContactId(contact.id)}

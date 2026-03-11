@@ -126,7 +126,7 @@ export function WhatsAppConnectionCard({
               onChange={(e) => setToken(e.target.value)}
               className="pr-10"
             />
-            <Button
+            <Button aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
@@ -149,7 +149,7 @@ export function WhatsAppConnectionCard({
               onChange={(e) => setClientToken(e.target.value)}
               className="pr-10"
             />
-            <Button
+            <Button aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"

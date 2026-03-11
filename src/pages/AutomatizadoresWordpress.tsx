@@ -149,7 +149,7 @@ export default function AutomatizadoresWordpress() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/automatizadores')}>
+            <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/automatizadores')}>
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <div>

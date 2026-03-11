@@ -210,7 +210,7 @@ export function UazapiQRCodeModal({
                     <code className="bg-muted px-3 py-1.5 rounded text-lg font-mono">
                       {pairCode}
                     </code>
-                    <Button variant="ghost" size="icon" onClick={copyPairCode}>
+                    <Button aria-label="Copiar" variant="ghost" size="icon" onClick={copyPairCode}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>

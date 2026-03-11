@@ -290,7 +290,7 @@ Responda APENAS em JSON válido:
         },
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[analyze-carousel-slides] Error:", error);
     return new Response(
       JSON.stringify({

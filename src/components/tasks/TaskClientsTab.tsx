@@ -64,7 +64,7 @@ function ClientContactsSection({ taskClient, companyId }: { taskClient: TaskClie
                       )}
                     </div>
                   </div>
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 text-destructive hover:text-destructive"
@@ -180,7 +180,7 @@ export function TaskClientsTab({ taskId, companyId, currentClientId, currentClie
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{tc.client_name}</p>
                   </div>
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive"

@@ -20,6 +20,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
+import { TaskApprovalIndicator } from "@/components/tasks/TaskApprovalIndicator";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
@@ -35,6 +39,27 @@ export function DashboardHeader() {
   const [mounted, setMounted] = useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const { hasInstances: hasWhatsAppInstances } = useUserWhatsAppInstances();
+  const queryClient = useQueryClient();
+  const [approvalTaskOpen, setApprovalTaskOpen] = useState(false);
+  const [approvalTask, setApprovalTask] = useState<unknown>(null);
+
+  const handleOpenApprovalTask = async (taskId: string) => {
+    const { data } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("id", taskId)
+      .single();
+    if (data) {
+      setApprovalTask(data);
+      setApprovalTaskOpen(true);
+    }
+  };
+
+  const handleSaveApprovalTask = async (taskData: unknown) => {
+    setApprovalTaskOpen(false);
+    setApprovalTask(null);
+    queryClient.invalidateQueries({ queryKey: ["tasks-awaiting-approval"] });
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -46,12 +71,12 @@ export function DashboardHeader() {
       toast({
         variant: "destructive",
         title: "Erro ao sair",
-        description: error.message
+        description: error.message,
       });
     } else {
       toast({
         title: "Logout realizado",
-        description: "Você foi desconectado com sucesso"
+        description: "Você foi desconectado com sucesso",
       });
     }
   };
@@ -59,9 +84,9 @@ export function DashboardHeader() {
   const getUserInitials = (name: string) => {
     if (!name) return "U";
     return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -73,7 +98,7 @@ export function DashboardHeader() {
     setTheme(newTheme);
     toast({
       title: `Tema ${newTheme === "dark" ? "escuro" : "claro"} ativado`,
-      description: "O tema foi alterado com sucesso"
+      description: "O tema foi alterado com sucesso",
     });
   };
 
@@ -84,17 +109,20 @@ export function DashboardHeader() {
         <div className="flex items-center">
           <UniversalCommandBar />
         </div>
-        
+
         {/* Right side - Actions */}
         <div className="flex items-center gap-2">
+          {/* Task Approval Indicator */}
+          <TaskApprovalIndicator onOpenTask={handleOpenApprovalTask} />
+
           {/* Unified Notification Center */}
           <NotificationCenter />
 
           {/* Workspace Quick Access */}
-          <Button
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/workspace')}
+            onClick={() => navigate("/workspace")}
             className="w-10 h-10 rounded-full hover:bg-muted/60"
             title="Workspace"
           >
@@ -103,7 +131,7 @@ export function DashboardHeader() {
 
           {/* WhatsApp Chat - Only show if user has instances assigned */}
           {hasWhatsAppInstances && (
-            <Button
+            <Button aria-label="Fechar"
               variant="ghost"
               size="icon"
               onClick={() => setIsWhatsAppOpen(true)}
@@ -113,7 +141,7 @@ export function DashboardHeader() {
               <FaWhatsapp className="h-5 w-5 text-[hsl(142,70%,45%)]" />
             </Button>
           )}
-          
+
           {/* Theme Toggle */}
           {mounted && (
             <Button
@@ -121,7 +149,11 @@ export function DashboardHeader() {
               size="icon"
               onClick={toggleTheme}
               className="w-10 h-10 rounded-full hover:bg-muted/60"
-              title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+              title={
+                theme === "dark"
+                  ? "Mudar para tema claro"
+                  : "Mudar para tema escuro"
+              }
             >
               {theme === "dark" ? (
                 <Sun className="h-5 w-5 text-muted-foreground" />
@@ -130,21 +162,29 @@ export function DashboardHeader() {
               )}
             </Button>
           )}
-          
+
           <CompanySelector />
-          
+
           {/* User Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="flex items-center gap-3 h-10 px-3 rounded-full hover:bg-muted/60"
               >
                 <Avatar className="w-8 h-8 ring-2 ring-transparent hover:ring-primary/20 transition-all">
-                  <AvatarImage src={profile?.avatar_url || undefined} alt="User" />
+                  <AvatarImage
+                    src={profile?.avatar_url || undefined}
+                    alt="User"
+                  />
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                    {profile?.full_name ? getUserInitials(profile.full_name) : 
-                     user?.email ? getUserInitials(user.email) : <User className="h-4 w-4" />}
+                    {profile?.full_name ? (
+                      getUserInitials(profile.full_name)
+                    ) : user?.email ? (
+                      getUserInitials(user.email)
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden md:flex flex-col items-start">
@@ -172,7 +212,10 @@ export function DashboardHeader() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
                 <LogOut className="mr-3 h-4 w-4" />
                 <span>Sair</span>
               </DropdownMenuItem>
@@ -186,6 +229,24 @@ export function DashboardHeader() {
         isOpen={isWhatsAppOpen}
         onClose={() => setIsWhatsAppOpen(false)}
       />
+
+      {/* Task Approval Dialog - rendered conditionally to avoid mounting useEmployees on every page */}
+      {approvalTaskOpen && (
+        <TaskDialog
+          open={approvalTaskOpen}
+          onOpenChange={(open) => {
+            setApprovalTaskOpen(open);
+            if (!open) {
+              setApprovalTask(null);
+              queryClient.invalidateQueries({
+                queryKey: ["tasks-awaiting-approval"],
+              });
+            }
+          }}
+          task={approvalTask}
+          onSave={handleSaveApprovalTask}
+        />
+      )}
     </header>
   );
 }

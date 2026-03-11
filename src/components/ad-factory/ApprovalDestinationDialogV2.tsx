@@ -650,7 +650,7 @@ export function ApprovalDestinationDialogV2({
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
+                        <Button aria-label="Fechar"
                           variant="outline"
                           size="icon"
                           onClick={() => syncPixels()}

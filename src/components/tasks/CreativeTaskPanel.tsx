@@ -394,7 +394,7 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
                     )}
                   </div>
                   <span className="flex-1 truncate text-foreground">{file.name}</span>
-                  <Button
+                  <Button aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 shrink-0"

@@ -41,6 +41,17 @@ Quando o lider atribui uma tarefa no Command Center, ela aparece automaticamente
 | `src/components/tasks/TaskSubtasksTab.tsx` | Gestao de subtarefas (parent_task_id) |
 | `src/components/tasks/RecurringTasksManager.tsx` | Gestao de tarefas recorrentes |
 
+### Sistema de Aprovacao/Review
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `src/components/tasks/TaskReviewPanel.tsx` | (~209 linhas) Painel de aprovacao/rejeicao dentro do TaskDialog. Renderiza condicionalmente quando `isAuthorizer && isInReview`. Botoes de aprovar/rejeitar com selector de motivo e impacto no quality score |
+| `src/components/tasks/TaskApprovalIndicator.tsx` | Icone de maozinha (Hand) no DashboardHeader com badge ambar. Popover dropdown listando tarefas aguardando aprovacao do usuario. Clique abre TaskDialog |
+| `src/components/tasks/TaskTeamTab.tsx` | Gestao de membros da tarefa. Drag-drop para atribuir roles incluindo "Autorizador" (ShieldCheck icon, emerald) |
+| `src/hooks/useTaskReview.ts` | (~142 linhas) Hook para uma tarefa especifica: verifica se usuario e autorizador, busca historico de review, chama edge function process-task-review |
+| `src/hooks/useTasksAwaitingApproval.ts` | Hook para TODAS as tarefas em review onde o usuario e autorizador. Enriquece com nome do cliente e responsavel. Refetch 30s. Usado pelo TaskApprovalIndicator |
+| `supabase/functions/process-task-review/index.ts` | (~304 linhas) Edge function que processa aprovacao/rejeicao. Verifica autorizador, atualiza status/quality, cria audit trail, notifica via Discord e user_notifications |
+
 ### Hooks Principais
 
 | Arquivo | Responsabilidade |
@@ -52,6 +63,8 @@ Quando o lider atribui uma tarefa no Command Center, ela aparece automaticamente
 | `src/hooks/useSubtasks.ts` | Subtarefas (parent_task_id) |
 | `src/hooks/useTaskHistory.ts` | Historico/auditoria de mudancas |
 | `src/hooks/useTaskStats.tsx` | Estatisticas (total, por status, por prioridade, taxa de conclusao) |
+| `src/hooks/useTaskReview.ts` | Verifica autorizador, historico de review, chama process-task-review |
+| `src/hooks/useTasksAwaitingApproval.ts` | Todas tarefas em review onde usuario e autorizador (para badge no header) |
 
 ### Dados
 
@@ -281,3 +294,88 @@ O `useTasks` tem logica de retry ao atualizar tarefas — se um trigger de banco
 `Tarefa` | `Criativo` | `Historia` | `Negocio` | `Reuniao` | `Ticket` | `Backlog`
 
 Cada tipo tem icone proprio no card do Kanban. Historias sao filtradas fora do Kanban (item 1 acima).
+
+---
+
+## Sistema de Aprovacao/Review de Tarefas
+
+### Visao Geral
+
+Tarefas podem ter um "Autorizador" — membro da equipe responsavel por aprovar ou rejeitar o trabalho. Quando o responsavel conclui a tarefa, ela vai para status `review` em vez de `done`. O autorizador entao aprova (→ done) ou rejeita (→ todo com penalidade de qualidade).
+
+### Fluxo Completo
+
+```
+Responsavel conclui tarefa
+  → status muda para "review"
+  → Notificacao Discord enviada (useTasks.tsx linha 318)
+  → Tarefa aparece no TaskApprovalIndicator do autorizador (maozinha no header)
+  → Autorizador abre tarefa via dropdown ou Kanban
+  → TaskReviewPanel renderiza (condicional: isAuthorizer && status=review)
+  → Aprovacao: status→done, progress→100%
+  → Rejeicao: status→todo, quality_score reduzido, last_rejected_at setado
+     → Penalidades: very_bad=-20%, bad=-10%, adjustments=-5%
+```
+
+### Tabelas do Banco
+
+| Tabela | Campos-chave | Funcao |
+|---|---|---|
+| `task_members` | task_id, employee_id, role ('responsible' / 'authorizer' / 'contributor' / 'observer') | Associa membros a tarefas com roles |
+| `task_review_history` | task_id, reviewer_employee_id, action ('approved'/'rejected'), rejection_reason, quality_before, quality_after, comment | Audit trail de aprovacoes/rejeicoes |
+| `tasks` (campos relevantes) | status, task_quality_score (NUMERIC 0-100, default 100), last_rejected_at | Estado atual da tarefa |
+
+**IMPORTANTE**: `task_members` NAO esta nos tipos auto-gerados do Supabase. Sempre usar cast `"task_members" as unknown` nas queries.
+
+### Indicador no Header (TaskApprovalIndicator)
+
+- Icone `Hand` do Lucide com badge ambar no `DashboardHeader`
+- Posicionado ANTES do sino de notificacoes
+- So renderiza se `count > 0` (retorna null se nao ha tarefas)
+- Badge cap: "99+" para contagens acima de 99
+- Dropdown Popover similar ao NotificationCenter
+- Cada item mostra: titulo, cliente (Building2 icon), responsavel (User icon), tempo relativo (PT-BR)
+- Clique no item → fetch tarefa completa do Supabase → abre TaskDialog
+- Ao fechar dialog → invalida query `tasks-awaiting-approval` para refresh
+
+### Hook useTasksAwaitingApproval
+
+Query em 4 etapas:
+1. Busca `task_members` onde employee_id=usuario E role='authorizer' → lista de task_ids
+2. Busca `tasks` com status='review' E id IN task_ids → tarefas pendentes
+3. Busca `clients` para enriquecer com company_name
+4. Busca `task_members` role='responsible' + `employees` para nome de quem enviou
+
+Retorna `{ tasks: TaskAwaitingApproval[], count: number, isLoading: boolean }`. Refetch a cada 30s.
+
+### Hook useTaskReview (por tarefa individual)
+
+- Verifica se usuario e autorizador para aquela tarefa especifica
+- Busca historico de review com nomes dos revisores
+- Mutation `processReview` chama edge function `process-task-review`
+- Invalida queries: `tasks`, `board-tasks`, `task-stats`, `task-review-history`
+
+### Edge Function process-task-review
+
+1. Verifica que o usuario chamador e autorizador via task_members
+2. Na aprovacao: status→done, progress→100%
+3. Na rejeicao: status→todo, quality_score reduzido, move para coluna todo
+4. Insere registro em task_review_history (audit trail)
+5. Cria user_notification para o responsavel (prioridade "high" para rejeicoes)
+6. Envia notificacao Discord (se configurado)
+
+### Integracao no DashboardHeader
+
+O `DashboardHeader.tsx` integra o sistema de aprovacao com:
+- Import de `TaskApprovalIndicator` e `TaskDialog`
+- Estado `approvalTaskOpen` + `approvalTask` para controlar o dialog
+- `handleOpenApprovalTask`: busca tarefa completa do Supabase, abre dialog
+- `handleSaveApprovalTask`: fecha dialog, invalida queries de aprovacao
+- TaskDialog renderizado no final do header (apos WhatsAppInboxDrawer)
+
+### Armadilhas do Sistema de Aprovacao
+
+1. **task_members nao esta nos tipos**: Sempre usar `"task_members" as unknown` e `"task_review_history" as unknown` nas queries Supabase
+2. **Aprovacao so via edge function**: Nunca atualizar status de review→done diretamente no frontend. Sempre passar pela edge function `process-task-review` que faz validacao, audit trail e notificacoes
+3. **Quality score degrada permanentemente**: O `task_quality_score` so diminui (nas rejeicoes). Nao ha mecanismo de recuperacao. Score inicia em 100
+4. **Invalidacao ampla apos review**: Alem de `tasks-awaiting-approval`, invalidar tambem `tasks`, `board-tasks`, `task-stats` para atualizar Kanban e estatisticas

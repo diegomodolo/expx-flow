@@ -65,7 +65,7 @@ export default function AgentChat() {
         {/* Header */}
         <div className="border-b border-border p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
+            <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>

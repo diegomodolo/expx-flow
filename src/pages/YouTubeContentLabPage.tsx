@@ -153,7 +153,7 @@ export default function YouTubeContentLabPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button
+        <Button aria-label="Voltar"
           variant="ghost"
           size="icon"
           onClick={() => navigate('/youtube-content-lab')}

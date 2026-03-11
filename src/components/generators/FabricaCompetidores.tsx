@@ -92,7 +92,7 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button 
+                      <Button aria-label="Excluir"
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"

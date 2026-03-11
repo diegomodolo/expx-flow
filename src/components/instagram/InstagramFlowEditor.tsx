@@ -150,7 +150,7 @@ export function InstagramFlowEditor({ companyId, onClose }: Props) {
             </SelectContent>
           </Select>
           {selectedFlowId !== "new" && (
-            <Button variant="outline" size="icon" onClick={() => deleteFlow.mutate(selectedFlowId)}>
+            <Button aria-label="Excluir" variant="outline" size="icon" onClick={() => deleteFlow.mutate(selectedFlowId)}>
               <Trash2 className="w-4 h-4 text-destructive" />
             </Button>
           )}
@@ -187,7 +187,7 @@ export function InstagramFlowEditor({ companyId, onClose }: Props) {
                     </span>
                   )}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeStep(idx)}>
+                <Button aria-label="Excluir" variant="ghost" size="icon" onClick={() => removeStep(idx)}>
                   <Trash2 className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </div>

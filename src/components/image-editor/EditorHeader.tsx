@@ -20,7 +20,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   return (
     <div className="h-14 bg-card border-b border-border flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onClose}>
+        <Button aria-label="Fechar" variant="ghost" size="icon" onClick={onClose}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h2 className="text-lg font-semibold text-foreground">Editor de Criativos</h2>

@@ -320,7 +320,7 @@ export const EditorAIChat: React.FC<EditorAIChatProps> = ({
       {/* Input Area */}
       <div className="p-4 border-t border-border">
         <div className="flex gap-2">
-          <Button
+          <Button aria-label="Adicionar"
             variant="outline"
             size="icon"
             onClick={() => fileInputRef.current?.click()}

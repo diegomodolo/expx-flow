@@ -132,7 +132,7 @@ export function CreatePollDialog({ open, onOpenChange, channelId }: CreatePollDi
                     className="flex-1"
                   />
                   {options.length > 2 && (
-                    <Button
+                    <Button aria-label="Fechar"
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"

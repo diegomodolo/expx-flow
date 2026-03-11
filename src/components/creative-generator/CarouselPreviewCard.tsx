@@ -128,7 +128,7 @@ export function CarouselPreviewCard({
               />
 
               {/* Navigation arrows */}
-              <Button
+              <Button aria-label="Voltar"
                 variant="secondary"
                 size="icon"
                 className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full opacity-80 hover:opacity-100"
@@ -136,7 +136,7 @@ export function CarouselPreviewCard({
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button
+              <Button aria-label="Avançar"
                 variant="secondary"
                 size="icon"
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full opacity-80 hover:opacity-100"

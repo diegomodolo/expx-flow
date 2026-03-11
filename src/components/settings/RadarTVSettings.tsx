@@ -108,7 +108,7 @@ export function RadarTVSettings() {
                     readOnly 
                     className="font-mono text-sm"
                   />
-                  <Button 
+                  <Button aria-label="Atualizar"
                     variant="outline" 
                     size="icon"
                     onClick={() => regenerateToken()}

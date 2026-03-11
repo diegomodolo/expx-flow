@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
     });
 
     // Sort by engagement rate
-    processedVideos.sort((a: any, b: any) => b.engagement_rate - a.engagement_rate);
+    processedVideos.sort((a: { engagement_rate: number }, b: { engagement_rate: number }) => b.engagement_rate - a.engagement_rate);
 
     // Save/update channel in database
     const channelData = {

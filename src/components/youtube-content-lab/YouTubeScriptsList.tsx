@@ -211,7 +211,7 @@ export function YouTubeScriptsList({
                       <TooltipProvider delayDuration={200}>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
+                            <Button aria-label="Confirmar"
                               size="icon"
                               variant="ghost"
                               className={`h-8 w-8 opacity-0 group-hover:opacity-100 ${
@@ -238,7 +238,7 @@ export function YouTubeScriptsList({
                     )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
+                        <Button aria-label="Excluir"
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 text-destructive"
