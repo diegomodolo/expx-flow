@@ -1,0 +1,69 @@
+name: Jules Dispatcher
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  dispatch:
+    if: github.event.label.name == 'jules-analyze'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Check user allowlist
+        run: |
+          ALLOWED='["bittencourtthulio"]'
+          USER="${{ github.event.issue.user.login }}"
+          if ! echo "$ALLOWED" | jq -e "index(\"$USER\")" > /dev/null; then
+            echo "::error::Usuario $USER nao autorizado para trigger Jules"
+            exit 1
+          fi
+
+      - name: Dispatch Jules Performance
+        if: contains(github.event.issue.labels.*.name, 'performance')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'jules-performance.yml',
+              ref: 'main'
+            });
+
+      - name: Dispatch Jules Security
+        if: contains(github.event.issue.labels.*.name, 'security')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'jules-security.yml',
+              ref: 'main'
+            });
+
+      - name: Dispatch Jules Refactor
+        if: contains(github.event.issue.labels.*.name, 'refactor')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'jules-refactor.yml',
+              ref: 'main'
+            });
+
+      - name: Dispatch Jules Tests
+        if: contains(github.event.issue.labels.*.name, 'tests')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'jules-tests.yml',
+              ref: 'main'
+            });
