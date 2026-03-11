@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -153,11 +154,6 @@ serve(async (req) => {
           .eq("client_id", carousel.client_id)
           .maybeSingle();
 
-        const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-        if (!OPENROUTER_API_KEY) {
-          throw new Error("OPENROUTER_API_KEY not configured");
-        }
-
         const styleContext = buildImageStylePrompt(schedule, client);
         const referenceImages = getReferenceImages(schedule);
 
@@ -203,8 +199,9 @@ ${
 
             const dataUrl = await generateImageWithNanoBanana(
               imagePrompt,
-              OPENROUTER_API_KEY,
+              "",
               referenceImages,
+              carousel.company_id,
             );
             if (!dataUrl) throw new Error("No image returned");
 
@@ -398,12 +395,13 @@ function parseDataUrl(
 
 async function generateImageWithNanoBanana(
   prompt: string,
-  apiKey: string,
+  _apiKey: string,
   referenceImages: string[] = [],
+  companyId?: string,
 ): Promise<string | null> {
   try {
     console.log(
-      "[regenerate-carousel-images] Calling Nano Banana for image generation...",
+      "[regenerate-carousel-images] Calling AI Gateway for image generation...",
     );
 
     const messageContent: Array<{
@@ -439,47 +437,18 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
       text: enhancedPrompt,
     });
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [{ role: "user", content: messageContent }],
-          modalities: ["image", "text"],
-        }),
-      },
-    );
+    const result = await callAI({
+      functionName: "regenerate-carousel-images",
+      companyId,
+      systemPrompt: "",
+      userPrompt: enhancedPrompt,
+      messages: [{ role: "user", content: messageContent }],
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        "[regenerate-carousel-images] Image generation API error:",
-        response.status,
-        errorText,
-      );
-
-      if (response.status === 429)
-        throw new Error("Rate limit (429). Tente novamente em alguns minutos.");
-      if (response.status === 402)
-        throw new Error("Créditos de IA esgotados (402). Adicione créditos.");
-      throw new Error(`Erro na geração de imagem (${response.status})`);
-    }
-
-    const data = await response.json();
-    const images = data.choices?.[0]?.message?.images;
-
-    const imageUrl = images?.[0]?.image_url?.url as string | undefined;
-    if (imageUrl) return imageUrl;
-
-    return null;
+    return result.content || null;
   } catch (error: unknown) {
     console.error(
-      "[regenerate-carousel-images] Error calling image generation API:",
+      "[regenerate-carousel-images] Error calling AI Gateway:",
       error,
     );
     throw error;

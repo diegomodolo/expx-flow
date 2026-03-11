@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -27,11 +28,6 @@ Deno.serve(async (req) => {
       body.target_audience || body.targetAudience || "";
     const directReferenceImages: string[] =
       body.reference_image_urls || body.referenceImageUrls || [];
-
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY not configured");
-    }
 
     // Fetch client data from DB (enriches with stored info)
     let clientContext = "";
@@ -217,78 +213,28 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
       `Generating image with ${imagesLoaded}/${referenceImageUrls.length} reference images loaded. Prompt: ${textInstruction.substring(0, 200)}`,
     );
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [
-            {
-              role: "user",
-              content: messageContent,
-            },
-          ],
-          modalities: ["image", "text"],
-        }),
-      },
-    );
+    const aiResult = await callAI({
+      functionName: "generate-image-ai",
+      companyId,
+      systemPrompt: "",
+      userPrompt: textInstruction,
+      messages: [{ role: "user", content: messageContent }],
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
+    const base64ImageUrl = aiResult.content;
 
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "Rate limit exceeded. Try again later.",
-            success: false,
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "Payment required. Add credits to your workspace.",
-            success: false,
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const message = data.choices?.[0]?.message;
-    const images = message?.images || [];
-    const textContent = message?.content || "";
-
-    if (images.length === 0) {
+    if (!base64ImageUrl) {
       return new Response(
         JSON.stringify({
           success: false,
           error: "No image was generated. The model returned only text.",
-          text: textContent,
+          text: "",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
-
-    const base64ImageUrl = images[0]?.image_url?.url || "";
     console.log(
       "Image generated successfully, base64 length:",
       base64ImageUrl.length,

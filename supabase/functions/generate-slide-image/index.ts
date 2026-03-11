@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -38,11 +39,6 @@ serve(async (req) => {
     console.log(
       `[generate-slide-image] Using thumbnail reference: ${thumbnailUrl ? "yes" : "no"}`,
     );
-
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -142,89 +138,28 @@ The slide should look like it belongs to the same visual family as the thumbnail
       );
 
       try {
-        const response = await fetch(
-          "https://openrouter.ai/api/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-pro-image-preview",
-              messages,
-              modalities: ["image", "text"],
-            }),
-          },
-        );
+        const aiResult = await callAI({
+          functionName: "generate-slide-image",
+          companyId: companyId || scriptInfo.company_id,
+          systemPrompt: "",
+          userPrompt: imagePrompt,
+          messages,
+        });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(
-            `[generate-slide-image] AI error (attempt ${attempt}):`,
-            response.status,
-            errorText,
+        imageUrl = aiResult.content;
+
+        if (imageUrl) {
+          console.log(
+            `[generate-slide-image] Image generated successfully on attempt ${attempt}`,
           );
-
-          if (response.status === 429) {
-            await supabase
-              .from("youtube_script_slides")
-              .update({ status: "error" })
-              .eq("id", slideId);
-
-            return new Response(
-              JSON.stringify({
-                error: "Rate limit exceeded. Please try again later.",
-              }),
-              {
-                status: 429,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              },
-            );
-          }
-          if (response.status === 402) {
-            await supabase
-              .from("youtube_script_slides")
-              .update({ status: "error" })
-              .eq("id", slideId);
-
-            return new Response(
-              JSON.stringify({
-                error: "Payment required. Please add credits to continue.",
-              }),
-              {
-                status: 402,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              },
-            );
-          }
-
-          lastError = new Error(`API returned ${response.status}`);
-          // Wait before retry with exponential backoff
+          break;
+        } else {
+          console.warn(
+            `[generate-slide-image] No image in response on attempt ${attempt}`,
+          );
+          lastError = new Error("No image in API response");
           if (attempt < MAX_RETRIES) {
             await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-            continue;
-          }
-        } else {
-          const data = await response.json();
-          imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-          if (imageUrl) {
-            console.log(
-              `[generate-slide-image] Image generated successfully on attempt ${attempt}`,
-            );
-            break;
-          } else {
-            console.warn(
-              `[generate-slide-image] No image in response on attempt ${attempt}`,
-            );
-            lastError = new Error("No image in API response");
-            // Wait before retry
-            if (attempt < MAX_RETRIES) {
-              await new Promise((resolve) =>
-                setTimeout(resolve, 1000 * attempt),
-              );
-            }
           }
         }
       } catch (fetchError: unknown) {

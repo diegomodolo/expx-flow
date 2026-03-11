@@ -1,9 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY")!;
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -92,8 +91,6 @@ Deno.serve(async (req) => {
     // Validar dados obrigatórios
     if (!creativeType) throw new Error("Creative type is required");
     if (!companyId) throw new Error("Company ID is required");
-    if (!openRouterApiKey)
-      throw new Error("OPENROUTER_API_KEY is not configured");
 
     // clientId é opcional para o Editor de Imagens standalone
     let clientData: unknown = null;
@@ -489,65 +486,18 @@ Generate the image now.`;
       });
 
       console.log(
-        `Calling Gemini for ${slideNumber !== undefined ? `slide ${slideNumber}` : "single image"}...`,
+        `Calling AI Gateway for ${slideNumber !== undefined ? `slide ${slideNumber}` : "single image"}...`,
       );
 
-      const geminiResponse = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openRouterApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: slideMessageContent,
-              },
-            ],
-            modalities: ["image", "text"],
-          }),
-        },
-      );
+      const geminiResult = await callAI({
+        functionName: "generate-visual-creative",
+        companyId,
+        systemPrompt: "",
+        userPrompt: fullPrompt,
+        messages: [{ role: "user", content: slideMessageContent }],
+      });
 
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text();
-        console.error("Gemini API error:", geminiResponse.status, errorText);
-
-        if (geminiResponse.status === 429) {
-          throw new Error("Rate limit exceeded. Please try again later.");
-        }
-        if (geminiResponse.status === 402) {
-          throw new Error(
-            "Payment required. Please add credits to your OpenRouter AI workspace.",
-          );
-        }
-        throw new Error(`Gemini API error: ${geminiResponse.status}`);
-      }
-
-      // Safely parse JSON response
-      let geminiData: unknown;
-      try {
-        const responseText = await geminiResponse.text();
-        if (!responseText || responseText.trim() === "") {
-          console.error("Empty response from Gemini API");
-          throw new Error("Empty response from Gemini API");
-        }
-        geminiData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("Failed to parse Gemini response:", parseError);
-        throw new Error(
-          "Failed to parse Gemini response - the model may have returned an invalid response",
-        );
-      }
-      const getBase64Url = (d: unknown) =>
-        d?.choices?.[0]?.message?.images?.[0]?.image_url?.url as
-          | string
-          | undefined;
-      let base64Url = getBase64Url(geminiData);
+      let base64Url = geminiResult.content;
 
       // Retry if no image returned
       if (!base64Url) {
@@ -564,44 +514,15 @@ ${textToUse ? `Include this text prominently: "${textToUse}"` : ""}
 Create a clean, professional, marketing-ready visual.
 Generate the image now.`;
 
-        const retryResponse = await fetch(
-          "https://openrouter.ai/api/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${openRouterApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-pro-image-preview",
-              messages: [{ role: "user", content: retryPrompt }],
-              modalities: ["image", "text"],
-            }),
-          },
-        );
+        const retryResult = await callAI({
+          functionName: "generate-visual-creative",
+          companyId,
+          systemPrompt: "",
+          userPrompt: retryPrompt,
+          messages: [{ role: "user", content: retryPrompt }],
+        });
 
-        if (!retryResponse.ok) {
-          throw new Error(`Gemini retry failed: ${retryResponse.status}`);
-        }
-
-        // Safely parse retry JSON response
-        let retryData: unknown;
-        try {
-          const retryText = await retryResponse.text();
-          if (!retryText || retryText.trim() === "") {
-            throw new Error("Empty retry response from Gemini API");
-          }
-          retryData = JSON.parse(retryText);
-        } catch (retryParseError) {
-          console.error(
-            "Failed to parse Gemini retry response:",
-            retryParseError,
-          );
-          throw new Error(
-            "Failed to generate image - the model returned an invalid response",
-          );
-        }
-        base64Url = getBase64Url(retryData);
+        base64Url = retryResult.content;
 
         if (!base64Url) {
           throw new Error("Failed to generate image with Gemini");
@@ -708,25 +629,16 @@ Generate the image now.`;
     // Gerar caption
     const generateCaption = async (): Promise<string> => {
       console.log("Generating caption...");
-      const captionResponse = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openAIApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-4.1-mini-2025-04-14",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Você é um especialista em marketing digital e copywriting. Crie legendas envolventes e persuasivas para redes sociais em português brasileiro.",
-              },
-              {
-                role: "user",
-                content: `Crie uma legenda para redes sociais:
+
+      const defaultCaption = `🚀 ${clientData?.name || "Brand"} apresenta: ${title || theme}! #${(clientData?.sector || "Marketing").replace(/\s+/g, "")} #Marketing`;
+
+      try {
+        const captionResult = await callAI({
+          functionName: "generate-visual-creative",
+          companyId,
+          systemPrompt:
+            "Você é um especialista em marketing digital e copywriting. Crie legendas envolventes e persuasivas para redes sociais em português brasileiro.",
+          userPrompt: `Crie uma legenda para redes sociais:
 
 CLIENTE: ${clientData?.name || "Brand"} (${clientData?.sector || "General"})
 PÚBLICO: ${audienceContext}
@@ -744,24 +656,14 @@ REQUISITOS:
 - Tom profissional e acessível
 
 Responda APENAS com a legenda.`,
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 200,
-          }),
-        },
-      );
+          temperature: 0.7,
+          maxTokens: 200,
+        });
 
-      let suggestedCaption = `🚀 ${clientData?.name || "Brand"} apresenta: ${title || theme}! #${(clientData?.sector || "Marketing").replace(/\s+/g, "")} #Marketing`;
-
-      if (captionResponse.ok) {
-        const captionData = await captionResponse.json();
-        if (captionData.choices?.[0]?.message?.content) {
-          suggestedCaption = captionData.choices[0].message.content.trim();
-        }
+        return captionResult.content.trim() || defaultCaption;
+      } catch {
+        return defaultCaption;
       }
-
-      return suggestedCaption;
     };
 
     // LÓGICA PRINCIPAL: Carrossel ou Imagem única

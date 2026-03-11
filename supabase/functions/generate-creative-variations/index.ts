@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -28,79 +29,26 @@ interface VariationRequest {
   companyId?: string;
 }
 
-// Generate image using Gemini API
+// Generate image using AI Gateway
 async function generateImage(
-  apiKey: string,
-  prompt: string,
+  _apiKey: string,
+  _prompt: string,
   contentArray: unknown[],
-  model: string,
+  _model: string,
+  companyId?: string,
 ): Promise<string | null> {
-  console.log(`Calling Gemini API with model: ${model}`);
+  console.log(`Calling AI Gateway for image generation`);
 
   try {
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: "user",
-              content: contentArray,
-            },
-          ],
-          modalities: ["image", "text"],
-        }),
-      },
-    );
+    const result = await callAI({
+      functionName: "generate-creative-variations",
+      companyId,
+      systemPrompt: "",
+      userPrompt: "",
+      messages: [{ role: "user", content: contentArray }],
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Gemini API error: ${response.status}`, errorText);
-
-      if (response.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again later.");
-      }
-      if (response.status === 402) {
-        throw new Error(
-          "Payment required. Please add credits to your account.",
-        );
-      }
-
-      return null;
-    }
-
-    let data: unknown;
-    try {
-      const responseText = await response.text();
-      if (!responseText || responseText.trim() === "") {
-        console.error("Empty response from Gemini API");
-        return null;
-      }
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("Failed to parse Gemini response:", parseError);
-      return null;
-    }
-
-    const base64Url = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    const finishReason = data?.choices?.[0]?.finish_reason;
-    if (
-      finishReason === "IMAGE_OTHER" ||
-      finishReason === "content_filter" ||
-      finishReason === "safety"
-    ) {
-      console.log(`Model refused: ${finishReason}`);
-      return null;
-    }
-
-    return base64Url || null;
+    return result.content || null;
   } catch (error) {
     console.error("Error in generateImage:", error);
     throw error;
@@ -109,11 +57,12 @@ async function generateImage(
 
 // Generate with retry logic and exponential backoff
 async function generateWithRetry(
-  apiKey: string,
+  _apiKey: string,
   prompts: string[],
   contentArrays: unknown[][],
-  model: string,
+  _model: string,
   maxRetries: number = 2,
+  companyId?: string,
 ): Promise<string | null> {
   for (let promptIndex = 0; promptIndex < prompts.length; promptIndex++) {
     const prompt = prompts[promptIndex];
@@ -125,7 +74,13 @@ async function generateWithRetry(
       );
 
       try {
-        const result = await generateImage(apiKey, prompt, contentArray, model);
+        const result = await generateImage(
+          "",
+          prompt,
+          contentArray,
+          "",
+          companyId,
+        );
         if (result) {
           console.log(
             `Success on prompt ${promptIndex + 1}, attempt ${attempt}`,
@@ -159,11 +114,6 @@ serve(async (req) => {
   }
 
   try {
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY not configured");
-    }
-
     const body: VariationRequest = await req.json();
     const {
       baseImage,
@@ -369,11 +319,12 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
     ];
 
     const base64Url = await generateWithRetry(
-      OPENROUTER_API_KEY,
+      "",
       [mainPrompt, fallbackPrompt, minimalPrompt],
       [baseContent, fallbackContent, minimalContent],
       model,
       2,
+      companyId,
     );
 
     if (!base64Url) {

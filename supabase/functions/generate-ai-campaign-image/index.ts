@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
+import { callAI } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":
@@ -122,13 +123,8 @@ serve(async (req) => {
   }
 
   try {
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY is not configured");
-    }
 
     const body: RequestBody = await req.json();
     const { clientId, prompt, productName, sector, placement = "feed" } = body;
@@ -269,76 +265,20 @@ Generate a NEW image that follows the same visual identity while maintaining the
       }
     }
 
-    // Use Gemini 3 Pro Image Preview to generate the image
-    const aiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [
-            {
-              role: "user",
-              content: messageContent,
-            },
-          ],
-          modalities: ["image", "text"],
-        }),
-      },
-    );
+    // Use AI Gateway to generate the image
+    const aiResult = await callAI({
+      functionName: "generate-ai-campaign-image",
+      companyId: clientId,
+      systemPrompt: "",
+      userPrompt: imagePrompt,
+      messages: [{ role: "user", content: messageContent }],
+    });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error(
-        "Image generation API error:",
-        aiResponse.status,
-        errorText,
-      );
+    console.log("AI response received");
 
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error:
-              "Limite de requisições excedido. Tente novamente em alguns minutos.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Créditos insuficientes para geração de imagem.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      throw new Error(`Image generation failed: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    console.log("AI response structure:", JSON.stringify(Object.keys(aiData)));
-
-    // Extract the image from the response
-    const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const imageData = aiResult.content;
 
     if (!imageData) {
-      console.error(
-        "No image in AI response:",
-        JSON.stringify(aiData).substring(0, 500),
-      );
       throw new Error("Nenhuma imagem gerada pela IA");
     }
 
