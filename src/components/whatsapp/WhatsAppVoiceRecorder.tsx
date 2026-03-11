@@ -200,7 +200,7 @@ export function WhatsAppVoiceRecorder({
         <div className="flex flex-col items-center gap-4">
           {/* Playback controls */}
           <div className="flex items-center gap-4">
-            <Button
+            <Button aria-label="Fazer upload"
               type="button"
               variant="outline"
               size="icon"

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 interface Props {
   clients: unknown[];
   companyId: string | undefined;
+  selectedSquadId?: string | null;
 }
 
 type TokenType = "@" | "#" | "/" | "!" | null;
@@ -94,7 +95,7 @@ function parseQuickEntry(input: string, clients: unknown[]) {
   };
 }
 
-export function BacklogQuickEntry({ clients, companyId }: Props) {
+export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props) {
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
@@ -204,14 +205,12 @@ export function BacklogQuickEntry({ clients, companyId }: Props) {
         ai_estimated_minutes: parsed.minutes,
         responsible_name: user.user_metadata?.full_name || "Admin",
         user_id: user.id,
-        team_id: defaultTeam?.id || null,
+        team_id: selectedSquadId || defaultTeam?.id || null,
         company_id: companyId,
         deadline: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
         progress: 0,
         related_client_id: parsed.clientId || null,
       };
-      console.log("Insert payload:", JSON.stringify(insertPayload));
-
       const { data: task, error } = await supabase
         .from("tasks")
         .insert(insertPayload)

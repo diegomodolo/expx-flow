@@ -182,7 +182,7 @@ function EditLabelDialog({ url, onUpdate }: { url: ClientUrl; onUpdate: (id: str
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7">
+        <Button aria-label="Editar" variant="ghost" size="icon" className="h-7 w-7">
           <Pencil className="w-3.5 h-3.5" />
         </Button>
       </DialogTrigger>
@@ -349,7 +349,7 @@ function UrlCard({
         </div>
         
         <div className="flex items-center gap-1">
-          <Button 
+          <Button aria-label="Copiar"
             variant="ghost" 
             size="icon" 
             className="h-7 w-7"
@@ -360,7 +360,7 @@ function UrlCard({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
+                <Button aria-label="Atualizar"
                   variant="ghost" 
                   size="icon" 
                   className="h-7 w-7"
@@ -377,7 +377,7 @@ function UrlCard({
               <TooltipContent>Validar URL</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button 
+          <Button aria-label="Fechar"
             variant="ghost" 
             size="icon" 
             className="h-7 w-7"
@@ -388,7 +388,7 @@ function UrlCard({
             </a>
           </Button>
           <EditLabelDialog url={url} onUpdate={onUpdate} />
-          <Button 
+          <Button aria-label="Fechar"
             variant="ghost" 
             size="icon" 
             className="h-7 w-7"
@@ -403,7 +403,7 @@ function UrlCard({
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+              <Button aria-label="Excluir" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </AlertDialogTrigger>

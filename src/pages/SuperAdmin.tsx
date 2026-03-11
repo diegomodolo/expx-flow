@@ -146,7 +146,7 @@ export default function SuperAdmin() {
                     className="pl-9 w-[300px]"
                   />
                 </div>
-                <Button variant="outline" size="icon" onClick={loadUsers} disabled={isLoadingUsers}>
+                <Button aria-label="Atualizar" variant="outline" size="icon" onClick={loadUsers} disabled={isLoadingUsers}>
                   <RefreshCw className={`h-4 w-4 ${isLoadingUsers ? "animate-spin" : ""}`} />
                 </Button>
               </div>
@@ -224,7 +224,7 @@ export default function SuperAdmin() {
                             <div className="flex items-center justify-end gap-1">
                               <Dialog>
                                 <DialogTrigger asChild>
-                                  <Button 
+                                  <Button aria-label="Visualizar"
                                     variant="ghost" 
                                     size="icon"
                                     onClick={() => setSelectedUser(user)}

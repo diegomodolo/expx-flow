@@ -102,7 +102,7 @@ export function YouTubeCategorySidebar({
           <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
             Categorias
           </span>
-          <Button
+          <Button aria-label="Adicionar"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
@@ -151,7 +151,7 @@ export function YouTubeCategorySidebar({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
+                  <Button aria-label="Ação"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0"

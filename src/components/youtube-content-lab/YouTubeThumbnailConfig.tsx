@@ -125,7 +125,7 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
                     alt={`Modelo ${index + 1}`}
                     className="w-full h-full object-cover rounded-lg border"
                   />
-                  <Button
+                  <Button aria-label="Avançar"
                     variant="destructive"
                     size="icon"
                     className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -188,7 +188,7 @@ export function YouTubeThumbnailConfig({ clientId, companyId }: YouTubeThumbnail
                     alt={`Referência ${index + 1}`}
                     className="w-full h-full object-cover rounded-lg border"
                   />
-                  <Button
+                  <Button aria-label="Avançar"
                     variant="destructive"
                     size="icon"
                     className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"

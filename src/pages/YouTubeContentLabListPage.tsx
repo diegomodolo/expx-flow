@@ -153,7 +153,7 @@ export default function YouTubeContentLabListPage() {
                   </TableCell>
                   <TableCell>
                     {!lab.client_id && (
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"

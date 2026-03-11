@@ -13,7 +13,7 @@ export function FocusModeToggle({ active, onToggle }: FocusModeToggleProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
+          <Button aria-label="Visualizar"
             variant={active ? 'default' : 'ghost'}
             size="icon"
             className={cn('h-8 w-8', active && 'bg-primary/80')}

@@ -229,7 +229,7 @@ export function CSTVDailyRankingOverlay({
                   Fecha em {countdown}s
                 </span>
               </div>
-              <Button 
+              <Button aria-label="Fechar"
                 variant="ghost" 
                 size="icon"
                 onClick={onClose}

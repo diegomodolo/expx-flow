@@ -334,12 +334,12 @@ IMPORTANTE: Seja rigoroso! Qualquer conteúdo que não faça sentido para o neg�
         const newStatus =
           analysis.score < 50
             ? "suspicious"
-            : (urlData as any).validation_status === "suspicious"
+            : (urlData as Record<string, unknown>).validation_status === "suspicious"
               ? "ok"
               : undefined;
 
         // Update the URL with analysis results
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           content_match_score: analysis.score,
           content_analysis_summary:
             analysis.summary +

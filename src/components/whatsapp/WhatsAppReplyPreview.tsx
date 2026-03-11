@@ -114,7 +114,7 @@ export function WhatsAppReplyPreview({
         </div>
       )}
       
-      <Button
+      <Button aria-label="Fechar"
         variant="ghost"
         size="icon"
         className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"

@@ -155,7 +155,7 @@ export function SlideStructureEditor({
                 <div className="flex items-start gap-3">
                   {/* Order controls */}
                   <div className="flex flex-col items-center gap-1">
-                    <Button
+                    <Button aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
@@ -167,7 +167,7 @@ export function SlideStructureEditor({
                     <span className="text-xs font-medium text-muted-foreground">
                       {slide.slide_order}
                     </span>
-                    <Button
+                    <Button aria-label="Fechar"
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
@@ -196,7 +196,7 @@ export function SlideStructureEditor({
 
                   {/* Actions */}
                   <div className="flex gap-1">
-                    <Button
+                    <Button aria-label="Editar"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
@@ -204,7 +204,7 @@ export function SlideStructureEditor({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
+                    <Button aria-label="Excluir"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"

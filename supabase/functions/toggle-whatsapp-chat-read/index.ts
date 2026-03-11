@@ -107,7 +107,7 @@ serve(async (req) => {
       }),
     });
 
-    let apiData: any = null;
+    let apiData: unknown = null;
     try {
       apiData = await apiResponse.json();
     } catch {

@@ -839,7 +839,7 @@ export default function ApresentacaoPublica() {
 
       {/* Navigation */}
       <div className="flex items-center justify-center gap-4 p-4 bg-black">
-        <Button
+        <Button aria-label="Voltar"
           variant="ghost"
           size="icon"
           onClick={prevSlide}
@@ -867,7 +867,7 @@ export default function ApresentacaoPublica() {
           ))}
         </div>
 
-        <Button
+        <Button aria-label="Avançar"
           variant="ghost"
           size="icon"
           onClick={nextSlide}

@@ -54,11 +54,11 @@ async function fetchTranscript(videoId: string): Promise<string | null> {
     }
 
     // Prefer Portuguese, then English, then any available
-    let selectedTrack = captionTracks.find((t: any) =>
+    let selectedTrack = captionTracks.find((t: { languageCode?: string; baseUrl?: string }) =>
       t.languageCode?.startsWith("pt"),
     );
     if (!selectedTrack) {
-      selectedTrack = captionTracks.find((t: any) =>
+      selectedTrack = captionTracks.find((t: { languageCode?: string; baseUrl?: string }) =>
         t.languageCode?.startsWith("en"),
       );
     }
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch transcript
-    let transcript = await fetchTranscript(videoId);
+    const transcript = await fetchTranscript(videoId);
 
     if (!transcript) {
       console.log("No transcript available, returning empty");
@@ -235,12 +235,12 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in transcribe-youtube-video:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,

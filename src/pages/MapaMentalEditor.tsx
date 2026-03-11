@@ -466,7 +466,7 @@ function MindMapEditorInner() {
       {/* Header */}
       <div className="h-14 border-b border-border flex items-center justify-between px-4 bg-card shrink-0 z-10">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/mapas-mentais')}>
+          <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/mapas-mentais')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <Input

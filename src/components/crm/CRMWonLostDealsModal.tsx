@@ -138,7 +138,7 @@ export function CRMWonLostDealsModal({
                 className="pl-9"
               />
             </div>
-            <Button
+            <Button aria-label="Ação"
               variant={showFilters ? "default" : "outline"}
               size="icon"
               onClick={() => setShowFilters(!showFilters)}

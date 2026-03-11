@@ -107,7 +107,7 @@ export function WhatsAppBlockedContactsModal({
             <ShieldOff className="h-5 w-5 text-destructive" />
             <DialogTitle>Contatos Bloqueados</DialogTitle>
           </div>
-          <Button 
+          <Button aria-label="Atualizar"
             variant="ghost" 
             size="icon" 
             onClick={fetchBlockedContacts}

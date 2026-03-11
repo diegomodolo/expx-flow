@@ -103,7 +103,7 @@ export function BacklogTaskCard({ task, selected, onToggle, onEdit, readiness, a
 
         {/* Edit button */}
         {onEdit && (
-          <Button
+          <Button aria-label="Editar"
             variant="ghost"
             size="icon"
             className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"

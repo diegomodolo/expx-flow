@@ -190,7 +190,7 @@ export const LeadFieldMapper = ({ columns, fieldMapping, onMappingChange, sample
               </Select>
               
               {fieldMapping[column] && (
-                <Button
+                <Button aria-label="Fechar"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 flex-shrink-0"

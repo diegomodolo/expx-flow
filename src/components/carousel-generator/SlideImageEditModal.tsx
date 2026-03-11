@@ -233,7 +233,7 @@ export function SlideImageEditModal({
                   alt="Imagem adicional"
                   className="w-full h-full object-cover"
                 />
-                <Button
+                <Button aria-label="Excluir"
                   variant="destructive"
                   size="icon"
                   className="absolute top-1 right-1 h-5 w-5"

@@ -173,7 +173,7 @@ export function CampaignBuilderModal({
                   {clientName}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8">
+              <Button aria-label="Fechar" variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8">
                 <X className="h-4 w-4" />
               </Button>
             </div>

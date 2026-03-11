@@ -289,7 +289,7 @@ export function WhatsAppInstanceUsersModal({
                               <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
                             </div>
                           </div>
-                          <Button
+                          <Button aria-label="Excluir"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"

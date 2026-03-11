@@ -69,7 +69,7 @@ export function PendingAdsNotification() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button aria-label="Fechar" variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {pendingCount > 0 && (
             <Badge 

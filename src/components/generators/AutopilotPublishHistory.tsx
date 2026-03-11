@@ -284,7 +284,7 @@ export function AutopilotPublishHistory() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button
+                        <Button aria-label="Visualizar"
                           variant="ghost"
                           size="icon"
                           onClick={() => setSelectedAd(ad)}
@@ -340,7 +340,7 @@ export function AutopilotPublishHistory() {
                           <p className="text-xs text-muted-foreground">Patrocinado</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button aria-label="Ação" variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </div>

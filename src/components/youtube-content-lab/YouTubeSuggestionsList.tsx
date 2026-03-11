@@ -150,7 +150,7 @@ export function YouTubeSuggestionsList({
                         )}
                       </div>
                     </div>
-                    <Button
+                    <Button aria-label="Fechar"
                       size="icon"
                       variant="ghost"
                       className="h-6 w-6 opacity-0 group-hover:opacity-100"

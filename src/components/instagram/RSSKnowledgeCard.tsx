@@ -227,7 +227,7 @@ export function RSSKnowledgeCard({
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button
+                        <Button aria-label="Fechar"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
@@ -238,7 +238,7 @@ export function RSSKnowledgeCard({
                             isExpanded && "rotate-180"
                           )} />
                         </Button>
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"

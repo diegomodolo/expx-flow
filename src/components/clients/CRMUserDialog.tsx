@@ -155,7 +155,7 @@ export function CRMUserDialog({
                   readOnly
                   className="font-mono"
                 />
-                <Button
+                <Button aria-label="Visualizar"
                   type="button"
                   variant="outline"
                   size="icon"
@@ -163,7 +163,7 @@ export function CRMUserDialog({
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
-                <Button
+                <Button aria-label="Copiar"
                   type="button"
                   variant="outline"
                   size="icon"
@@ -200,7 +200,7 @@ export function CRMUserDialog({
                       readOnly
                       className="font-mono"
                     />
-                    <Button
+                    <Button aria-label="Visualizar"
                       type="button"
                       variant="outline"
                       size="icon"
@@ -208,7 +208,7 @@ export function CRMUserDialog({
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
-                    <Button
+                    <Button aria-label="Copiar"
                       type="button"
                       variant="outline"
                       size="icon"

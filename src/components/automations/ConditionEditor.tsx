@@ -226,7 +226,7 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
                   </div>
                  </div>
 
-                <Button
+                <Button aria-label="Excluir"
                   type="button"
                   size="icon"
                   variant="ghost"

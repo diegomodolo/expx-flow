@@ -137,7 +137,7 @@ export default function WorkSchedulesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/colaboradores")}>
+            <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate("/colaboradores")}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -164,10 +164,10 @@ export default function WorkSchedulesPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-semibold">{ws.name}</CardTitle>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(ws)}>
+                      <Button aria-label="Editar" variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(ws)}>
                         <Edit className="w-3.5 h-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(ws)}>
+                      <Button aria-label="Excluir" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(ws)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>

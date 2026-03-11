@@ -394,7 +394,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
             <div className="flex-shrink-0 p-4 border-b bg-muted/30">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="icon" onClick={onBack}>
+                  <Button aria-label="Voltar" variant="ghost" size="icon" onClick={onBack}>
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <div>

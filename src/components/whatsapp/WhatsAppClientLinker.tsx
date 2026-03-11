@@ -237,7 +237,7 @@ export function WhatsAppClientLinker({
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button
+            <Button aria-label="Fechar"
               variant={selectedClient ? "secondary" : "ghost"}
               size="icon"
               disabled={isUpdating}

@@ -156,7 +156,7 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
               Temas de Pesquisa
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => refetch()}>
+              <Button aria-label="Atualizar" variant="outline" size="icon" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
               <Button size="sm" onClick={() => setIsAdding(true)} disabled={isAdding}>
@@ -247,7 +247,7 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
                           )}
                         </div>
                       </div>
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="shrink-0 text-destructive hover:text-destructive"

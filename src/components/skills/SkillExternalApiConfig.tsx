@@ -229,7 +229,7 @@ export function SkillExternalApiConfig({ config, onChange }: Props) {
                   onChange={(e) => updateHeader(key, key, e.target.value)}
                   className="flex-1"
                 />
-                <Button size="icon" variant="ghost" onClick={() => removeHeader(key)}>
+                <Button aria-label="Excluir" size="icon" variant="ghost" onClick={() => removeHeader(key)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>

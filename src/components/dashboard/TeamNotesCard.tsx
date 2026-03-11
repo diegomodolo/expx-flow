@@ -57,7 +57,7 @@ export const TeamNotesCard = () => {
             onChange={(e) => setNewNote(e.target.value)}
             className="flex-1"
           />
-          <Button 
+          <Button aria-label="Enviar"
             type="submit" 
             size="icon" 
             disabled={!newNote.trim() || addNote.isPending}
@@ -116,7 +116,7 @@ export const TeamNotesCard = () => {
 
                     {note.user_id === currentUserId && (
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button
+                        <Button aria-label="Fechar"
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
@@ -127,7 +127,7 @@ export const TeamNotesCard = () => {
                         >
                           <Pin className={`h-3 w-3 ${note.is_pinned ? 'text-primary' : ''}`} />
                         </Button>
-                        <Button
+                        <Button aria-label="Excluir"
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive"

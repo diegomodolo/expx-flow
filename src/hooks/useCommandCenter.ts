@@ -61,9 +61,21 @@ export function useCommandCenter() {
 
   const [viewDate, setViewDate] = useState<Date>(new Date());
 
+  const initialLoadDone = useRef(false);
+  const prevTeamId = useRef(selectedTeamId);
+  const prevViewDate = useRef(viewDate);
+
+  // Reset initial load flag when squad or date changes (to show spinner)
+  if (prevTeamId.current !== selectedTeamId || prevViewDate.current?.toDateString() !== viewDate?.toDateString()) {
+    initialLoadDone.current = false;
+    prevTeamId.current = selectedTeamId;
+    prevViewDate.current = viewDate;
+  }
+
   const fetchTasks = useCallback(async () => {
     if (!selectedTeamId || !companyId) return;
-    setLoading(true);
+    // Only show loading spinner on initial load, not on refetches
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const targetDate = viewDate;
       const dayStart = startOfDay(targetDate).toISOString();
@@ -150,6 +162,7 @@ export function useCommandCenter() {
       console.error("Error fetching command center tasks:", err);
     } finally {
       setLoading(false);
+      initialLoadDone.current = true;
     }
   }, [selectedTeamId, companyId, viewDate]);
 
@@ -171,7 +184,7 @@ export function useCommandCenter() {
       .channel(`command-center-${selectedTeamId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `team_id=eq.${selectedTeamId}` }, () => {
         if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
-        realtimeTimerRef.current = setTimeout(() => fetchTasksRef.current(), 2000);
+        realtimeTimerRef.current = setTimeout(() => fetchTasksRef.current(), 5000);
       })
       .subscribe();
 
@@ -287,7 +300,7 @@ export function useCommandCenter() {
       }
       throw error;
     }
-    fetchTasks();
+    // Realtime subscription handles sync — no manual refetch needed
   };
 
   const returnToBacklogCenter = async (taskId: string) => {
@@ -330,8 +343,7 @@ export function useCommandCenter() {
       .from("tasks")
       .update(resetFields)
       .eq("parent_task_id", taskId);
-
-    fetchTasks();
+    // Realtime subscription handles sync — no manual refetch needed
   };
 
   const getAgingHours = (createdAt: string) => {

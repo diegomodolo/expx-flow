@@ -122,21 +122,21 @@ export function SlideCarousel({
                       {/* Overlay controls */}
                       {hasImage && (
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Button
+                          <Button aria-label="Fechar"
                             variant="secondary"
                             size="icon"
                             onClick={() => handleOpenFullscreen(index)}
                           >
                             <Expand className="h-4 w-4" />
                           </Button>
-                          <Button
+                          <Button aria-label="Editar"
                             variant="secondary"
                             size="icon"
                             onClick={() => onEditSlide(slide)}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
+                          <Button aria-label="Atualizar"
                             variant="secondary"
                             size="icon"
                             onClick={() => onRegenerateImage(slide.id)}

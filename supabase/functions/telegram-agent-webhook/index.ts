@@ -214,7 +214,7 @@ async function handleBuiltinQuery(
             "ai_reference_image_2",
             "ai_reference_image_3",
           ]) {
-            const url = (clientData as any)[key];
+            const url = (clientData as Record<string, unknown>)[key];
             if (url && typeof url === "string" && url.startsWith("http")) {
               referenceImages.push(url);
             }
@@ -313,7 +313,7 @@ async function handleBuiltinQuery(
         return { rules: data, total: data?.length };
       }
       case "data_automation_logs": {
-        let q = supabase
+        const q = supabase
           .from("campaign_automation_logs")
           .select(
             "id, rule_id, action_type, action_result, entity_type, old_status, new_status, executed_at, error_message",
@@ -386,7 +386,7 @@ async function chatWithToolCalling(
 ): Promise<{ text: string; images: string[] }> {
   const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   const maxIterations = 5;
-  let currentMessages = [...messages];
+  const currentMessages = [...messages];
   const mutableContext = { ...agentContext };
   const collectedImages: string[] = [];
   let lastGeneratedImageUrl: string | null = null;
@@ -506,7 +506,7 @@ async function chatWithToolCalling(
         role: "tool",
         tool_call_id: toolCall.id,
         content: JSON.stringify(result),
-      } as any);
+      } as { role: string; tool_call_id: string; content: string });
     }
   }
 
@@ -726,7 +726,7 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ""}`;
       conversationMessages =
         (existingConv.messages as Array<{ role: string; content: string }>) ||
         [];
-      resolvedClientId = (existingConv as any).resolved_client_id || null;
+      resolvedClientId = (existingConv as Record<string, unknown>).resolved_client_id as string | null || null;
     }
     conversationMessages.push({ role: "user", content: userText });
     if (conversationMessages.length > 20) {
@@ -735,7 +735,7 @@ ${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ""}`;
 
     // Build enabled skills
     const enabledSkills: SkillRecord[] = (enabledSkillsResult.data || [])
-      .map((row: any) => row.ia_agent_skills)
+      .map((row: { ia_agent_skills: SkillRecord }) => row.ia_agent_skills)
       .filter(Boolean);
 
     const hasFixedClient = !!agent.client_id;
