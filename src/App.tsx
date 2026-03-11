@@ -163,6 +163,7 @@ import Reunioes from "./pages/Reunioes";
 import YouTubeContentLabListPage from "./pages/YouTubeContentLabListPage";
 import YouTubeContentLabPage from "./pages/YouTubeContentLabPage";
 import Reportes from "./pages/Reportes";
+import ReleaseNotes from "./pages/ReleaseNotes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -767,6 +768,12 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
+                <Route path="/release-notes" element={
+                  <ProtectedRoute>
+                    <ReleaseNotes />
+                  </ProtectedRoute>
+                } />
+
                 {/* Customer Success Module */}
                 <Route path="/cs" element={
                   <ProtectedRoute>
