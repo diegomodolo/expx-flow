@@ -13,6 +13,7 @@ const statusBadgeConfig: Record<string, { label: string; className: string }> = 
   aberto: { label: "Aberto", className: "bg-blue-500 text-white" },
   em_analise: { label: "Em Análise", className: "bg-yellow-500 text-black" },
   implementado: { label: "Implementado", className: "bg-green-500 text-black" },
+  fechado: { label: "Fechado", className: "bg-gray-500 text-white" },
   recusado: { label: "Recusado", className: "bg-red-500 text-white" },
 };
 

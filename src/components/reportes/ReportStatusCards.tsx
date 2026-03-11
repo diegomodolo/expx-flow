@@ -8,12 +8,13 @@ const statusConfig = [
   { key: "aberto", label: "Abertos", color: "text-blue-400", bg: "bg-blue-500/10" },
   { key: "em_analise", label: "Em Análise", color: "text-yellow-400", bg: "bg-yellow-500/10" },
   { key: "implementado", label: "Implementados", color: "text-green-400", bg: "bg-green-500/10" },
+  { key: "fechado", label: "Fechados", color: "text-gray-400", bg: "bg-gray-500/10" },
   { key: "recusado", label: "Recusados", color: "text-red-400", bg: "bg-red-500/10" },
 ] as const;
 
 export function ReportStatusCards({ reports }: ReportStatusCardsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
       {statusConfig.map(({ key, label, color, bg }) => {
         const count = reports.filter((r) => r.status === key).length;
         return (

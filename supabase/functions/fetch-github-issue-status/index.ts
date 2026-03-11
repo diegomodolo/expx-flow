@@ -14,7 +14,8 @@ interface FetchStatusRequest {
 function determineStatus(
   issueState: string,
   labels: string[],
-  hasClaudeComment: boolean
+  hasClaudeComment: boolean,
+  hasMergedPR: boolean
 ): string {
   if (issueState === "open") {
     return hasClaudeComment ? "em_analise" : "aberto";
@@ -22,7 +23,10 @@ function determineStatus(
   if (labels.includes("wontfix")) {
     return "recusado";
   }
-  return "implementado";
+  if (hasMergedPR) {
+    return "implementado";
+  }
+  return "fechado";
 }
 
 interface GitHubComment {
@@ -115,7 +119,27 @@ const handler = async (req: Request): Promise<Response> => {
         c.user?.type === "Bot"
     );
 
-    const newStatus = determineStatus(issueData.state, labels, hasClaudeComment);
+    // Check if issue has a merged PR (via timeline events)
+    let hasMergedPR = false;
+    if (issueData.state === "closed") {
+      const eventsRes = await fetch(
+        `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${github_issue_number}/timeline`,
+        {
+          headers: {
+            Authorization: `Bearer ${githubPat}`,
+            Accept: "application/vnd.github+json",
+          },
+        }
+      );
+      if (eventsRes.ok) {
+        const events = await eventsRes.json();
+        hasMergedPR = (events as Array<{ event?: string; source?: { issue?: { pull_request?: { merged_at?: string } } } }>).some(
+          (e) => e.event === "cross-referenced" && e.source?.issue?.pull_request?.merged_at
+        );
+      }
+    }
+
+    const newStatus = determineStatus(issueData.state, labels, hasClaudeComment, hasMergedPR);
     const claudeResponse = extractClaudeResponse(comments as GitHubComment[]);
 
     const { data: updated, error: updateError } = await supabase

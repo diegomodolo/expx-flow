@@ -12,7 +12,7 @@ export interface UserReport {
   user_name: string;
   github_issue_number: number | null;
   github_issue_url: string | null;
-  status: "aberto" | "em_analise" | "implementado" | "recusado";
+  status: "aberto" | "em_analise" | "implementado" | "recusado" | "fechado";
   claude_response: string | null;
   created_at: string;
   updated_at: string;
