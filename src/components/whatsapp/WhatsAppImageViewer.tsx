@@ -92,7 +92,7 @@ export function WhatsAppImageViewer({
 
       setImageLoaded(true);
       console.log("[WhatsAppImageViewer] Image ready, cached:", !!cachedUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppImageViewer] Error:", err);
       setError(err.message || "Erro ao carregar imagem");
     } finally {

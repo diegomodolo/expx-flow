@@ -144,7 +144,7 @@ export function useFunnels(clientId?: string) {
           client_id: data.client_id,
           name: data.name,
           description: data.description,
-          flow_data: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } } as any,
+          flow_data: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } } as unknown,
         })
         .select()
         .single();
@@ -185,7 +185,7 @@ export function useFunnels(clientId?: string) {
         .update({
           name: data.name,
           description: data.description,
-          flow_data: data.flow_data as any,
+          flow_data: data.flow_data as unknown,
         })
         .eq("id", data.id)
         .select()

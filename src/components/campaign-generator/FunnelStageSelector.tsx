@@ -5,7 +5,7 @@ import type { CampaignData, FunnelStage } from "@/pages/GeradorCampanhas";
 
 interface FunnelStageSelectorProps {
   campaignData: CampaignData;
-  updateCampaignData: (field: keyof CampaignData, value: any) => void;
+  updateCampaignData: (field: keyof CampaignData, value: unknown) => void;
 }
 
 const funnelStages = [

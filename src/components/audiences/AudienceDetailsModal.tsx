@@ -50,7 +50,7 @@ export function AudienceDetailsModal({
     return count.toString();
   };
 
-  const getOperationStatusIcon = (status?: any) => {
+  const getOperationStatusIcon = (status?: unknown) => {
     if (!status) return null;
 
     const statusCode = status.code || status;
@@ -66,7 +66,7 @@ export function AudienceDetailsModal({
     }
   };
 
-  const getOperationStatusLabel = (status?: any) => {
+  const getOperationStatusLabel = (status?: unknown) => {
     if (!status) return "Desconhecido";
 
     const statusCode = status.code || status;

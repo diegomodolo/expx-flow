@@ -161,7 +161,7 @@ export function useReelsVideoGeneration() {
       startPolling(postId);
 
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState({
         status: "error",
         progress: { totalScenes: 0, currentScene: 0, scenes: [], error: err.message },
@@ -211,7 +211,7 @@ export function useReelsVideoGeneration() {
       startPolling(postId);
 
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState(prev => ({
         ...prev,
         status: "error",

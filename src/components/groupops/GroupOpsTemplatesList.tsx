@@ -165,7 +165,7 @@ export default function GroupOpsTemplatesList() {
                       {template.category === 'POLL' ? (
                         <div>
                           <p className="font-medium text-xs mb-1">📊 {template.body.slice(0, 60)}{template.body.length > 60 ? '...' : ''}</p>
-                          {(template.constraints_json as any)?.poll_options?.slice(0, 3).map((opt: string, i: number) => (
+                          {(template.constraints_json as unknown)?.poll_options?.slice(0, 3).map((opt: string, i: number) => (
                             <div key={i} className="bg-white/40 rounded px-2 py-0.5 text-xs mt-0.5">{opt}</div>
                           ))}
                         </div>
@@ -305,13 +305,13 @@ function TemplateFormModal({ open, onClose, template, defaultPoll, onSave }: For
   const [category, setCategory] = useState(template?.category ?? (defaultPoll ? 'POLL' : 'DAILY_PROMPT'));
   const [tone, setTone] = useState(template?.tone ?? 'casual');
   const [body, setBody] = useState(template?.body ?? '');
-  const [variantB, setVariantB] = useState<string>((template?.variants as any)?.b ?? '');
-  const [showVariantB, setShowVariantB] = useState(!!((template?.variants as any)?.b));
+  const [variantB, setVariantB] = useState<string>((template?.variants as unknown)?.b ?? '');
+  const [showVariantB, setShowVariantB] = useState(!!((template?.variants as unknown)?.b));
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Poll-specific state
-  const constraints = template?.constraints_json as any;
+  const constraints = template?.constraints_json as unknown;
   const [pollOptions, setPollOptions] = useState<string[]>(constraints?.poll_options ?? ['', '']);
   const [multipleChoice, setMultipleChoice] = useState<boolean>((constraints?.selectable_count ?? 1) > 1);
   const [pollOptionsB, setPollOptionsB] = useState<string[]>(constraints?.poll_options_b ?? ['', '']);
@@ -324,10 +324,10 @@ function TemplateFormModal({ open, onClose, template, defaultPoll, onSave }: For
       setCategory(template.category);
       setTone(template.tone ?? 'casual');
       setBody(template.body);
-      const vb = (template.variants as any)?.b ?? '';
+      const vb = (template.variants as unknown)?.b ?? '';
       setVariantB(vb);
       setShowVariantB(!!vb);
-      const c = template.constraints_json as any;
+      const c = template.constraints_json as unknown;
       setPollOptions(c?.poll_options ?? ['', '']);
       setMultipleChoice((c?.selectable_count ?? 1) > 1);
       setPollOptionsB(c?.poll_options_b ?? ['', '']);
@@ -378,7 +378,7 @@ function TemplateFormModal({ open, onClose, template, defaultPoll, onSave }: For
         setBody(result.body);
       }
       toast.success('Template gerado com IA!');
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       toast.error('Erro ao gerar com IA');
     } finally {
@@ -414,7 +414,7 @@ function TemplateFormModal({ open, onClose, template, defaultPoll, onSave }: For
       variants: variantB ? { b: variantB } : null,
     };
     if (isPoll) {
-      const pollConstraints: any = {
+      const pollConstraints: unknown = {
         poll_options: validPollOptions,
         selectable_count: multipleChoice ? validPollOptions.length : 1,
       };
@@ -646,7 +646,7 @@ function WhatsAppPreviewModal({ open, onClose, template }: { open: boolean; onCl
     return filled;
   };
 
-  const variantB = (template.variants as any)?.b;
+  const variantB = (template.variants as unknown)?.b;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -673,8 +673,8 @@ function WhatsAppPreviewModal({ open, onClose, template }: { open: boolean; onCl
                 {template.category === 'POLL' ? (
                   <PollPreviewBubbleDark
                     question={fillPlaceholders(template.body)}
-                    options={(template.constraints_json as any)?.poll_options ?? []}
-                    multipleChoice={((template.constraints_json as any)?.selectable_count ?? 1) > 1}
+                    options={(template.constraints_json as unknown)?.poll_options ?? []}
+                    multipleChoice={((template.constraints_json as unknown)?.selectable_count ?? 1) > 1}
                   />
                 ) : (
                   <div className="bg-[#005c4b] rounded-lg p-2.5 text-sm text-[#e9edef] shadow-sm max-w-[90%] ml-auto whitespace-pre-wrap">
@@ -690,8 +690,8 @@ function WhatsAppPreviewModal({ open, onClose, template }: { open: boolean; onCl
                   {template.category === 'POLL' ? (
                     <PollPreviewBubbleDark
                       question={fillPlaceholders(variantB)}
-                      options={(template.constraints_json as any)?.poll_options_b ?? (template.constraints_json as any)?.poll_options ?? []}
-                      multipleChoice={((template.constraints_json as any)?.selectable_count ?? 1) > 1}
+                      options={(template.constraints_json as unknown)?.poll_options_b ?? (template.constraints_json as unknown)?.poll_options ?? []}
+                      multipleChoice={((template.constraints_json as unknown)?.selectable_count ?? 1) > 1}
                     />
                   ) : (
                     <div className="bg-[#005c4b] rounded-lg p-2.5 text-sm text-[#e9edef] shadow-sm max-w-[90%] ml-auto whitespace-pre-wrap">

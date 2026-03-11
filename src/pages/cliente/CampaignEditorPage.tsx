@@ -29,7 +29,7 @@ export default function CampaignEditorPage() {
   const { treeData, isLoading, targets, campaign, platform } = useCampaignTree({
     campaignId,
     clientId: client?.id,
-    companyId: (client as any)?.company_id,
+    companyId: (client as unknown)?.company_id,
   });
 
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
@@ -84,7 +84,7 @@ export default function CampaignEditorPage() {
     }
 
     // Get the facebook_id from the campaign
-    const campaignFacebookId = (campaign as any)?.facebook_id;
+    const campaignFacebookId = (campaign as unknown)?.facebook_id;
     if (!campaignFacebookId) {
       toast({
         title: "Erro",
@@ -196,7 +196,7 @@ export default function CampaignEditorPage() {
       } else {
         setIsSyncing(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sync error:', error);
       toast({
         title: "Erro na sincronização",
@@ -205,7 +205,7 @@ export default function CampaignEditorPage() {
       });
       setIsSyncing(false);
     }
-  }, [client?.id, platform, syncPeriod, customDateRange, (campaign as any)?.facebook_id, syncCampaigns, invalidateQueries, toast]);
+  }, [client?.id, platform, syncPeriod, customDateRange, (campaign as unknown)?.facebook_id, syncCampaigns, invalidateQueries, toast]);
 
   // Get period display text
   const getPeriodDisplayText = () => {
@@ -336,7 +336,7 @@ export default function CampaignEditorPage() {
         campaignTree={treeData}
         initialSelectedNode={selectedNode}
         clientId={client?.id || ''}
-        companyId={(client as any)?.company_id}
+        companyId={(client as unknown)?.company_id}
         onSuccess={invalidateQueries}
       />
     </div>

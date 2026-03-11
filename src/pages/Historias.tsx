@@ -10,10 +10,10 @@ import { BookOpen, Loader2 } from "lucide-react";
 
 export default function Historias() {
   const { historias, loading, teams, clients, filters, setFilters, refetch } = useHistorias();
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<unknown>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleEdit = (historia: any) => {
+  const handleEdit = (historia: unknown) => {
     setSelectedTask(historia);
     setDialogOpen(true);
   };

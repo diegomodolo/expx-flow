@@ -53,7 +53,7 @@ export function SkillAIGenerator({ onGenerate }: Props) {
       toast.success("Skill gerada com sucesso!");
       setOpen(false);
       setPrompt("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Erro: " + err.message);
     } finally {
       setLoading(false);

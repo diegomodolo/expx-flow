@@ -206,7 +206,7 @@ const RelatorioSaldoPrePagos = () => {
   const clientesFiltrados = useMemo(() => {
     if (!clientesPrePagos) return [];
 
-    let filtered = clientesPrePagos.filter(client => {
+    const filtered = clientesPrePagos.filter(client => {
       const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.company.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
@@ -218,11 +218,12 @@ const RelatorioSaldoPrePagos = () => {
     filtered.sort((a, b) => {
       let comparison = 0;
       switch (sortBy) {
-        case 'rechargeDay':
+        case 'rechargeDay': {
           const dayA = a.rechargeDay ?? 999;
           const dayB = b.rechargeDay ?? 999;
           comparison = dayA - dayB;
           break;
+        }
         case 'daysRemaining':
           comparison = a.daysRemaining - b.daysRemaining;
           break;
@@ -235,15 +236,17 @@ const RelatorioSaldoPrePagos = () => {
         case 'name':
           comparison = a.name.localeCompare(b.name);
           break;
-        case 'nextRechargeDate':
+        case 'nextRechargeDate': {
           const dateA = a.nextRechargeDate?.getTime() ?? 999999999999;
           const dateB = b.nextRechargeDate?.getTime() ?? 999999999999;
           comparison = dateA - dateB;
           break;
-        case 'status':
+        }
+        case 'status': {
           const statusOrder = { insuficiente: 0, apertado: 1, suficiente: 2 };
           comparison = statusOrder[a.status] - statusOrder[b.status];
           break;
+        }
         default:
           comparison = 0;
       }

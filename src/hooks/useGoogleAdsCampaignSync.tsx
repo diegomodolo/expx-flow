@@ -141,7 +141,7 @@ export function useGoogleAdsCampaignSync() {
       if (error) {
         let errorMessage = error.message || 'Unknown error';
         // Try to get detailed error from context body
-        const contextBody = (error as any).context?.body;
+        const contextBody = (error as unknown).context?.body;
         if (typeof contextBody === 'string' && contextBody.startsWith('{')) {
           try {
             const parsed = JSON.parse(contextBody);
@@ -171,7 +171,7 @@ export function useGoogleAdsCampaignSync() {
         success: true,
         synced: data.synced,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error syncing Google Ads campaigns:", error);
       
       const classification = classifyGoogleAdsError(error.message || '');
@@ -203,7 +203,7 @@ export function useGoogleAdsCampaignSync() {
       } else {
         console.log('[validateCompanyUrls] URL validation completed:', data?.summary || data?.message);
       }
-    } catch (urlError: any) {
+    } catch (urlError: unknown) {
       console.error('[validateCompanyUrls] URL validation error:', urlError.message);
     }
   };
@@ -343,7 +343,7 @@ export function useGoogleAdsCampaignSync() {
       toast.success(
         `Sincronização concluída! ${successCount} clientes sincronizados${errorCount > 0 ? `, ${errorCount} com erro` : ''}`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error syncing all clients:", error);
       
       // Registrar falha no histórico

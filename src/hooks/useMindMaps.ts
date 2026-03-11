@@ -33,7 +33,7 @@ export function useMindMaps() {
         .eq('company_id', companyId)
         .order('updated_at', { ascending: false });
       if (error) throw error;
-      return (data as any[]).map(d => ({
+      return (data as unknown[]).map(d => ({
         ...d,
         nodes: (d.nodes || []) as Node[],
         edges: (d.edges || []) as Edge[],
@@ -58,8 +58,8 @@ export function useMindMaps() {
           created_by: user.id,
           title: input.title || 'Novo Mapa Mental',
           description: input.description || null,
-          nodes: [defaultNode] as any,
-          edges: [] as any,
+          nodes: [defaultNode] as unknown,
+          edges: [] as unknown,
         })
         .select()
         .single();
@@ -75,11 +75,11 @@ export function useMindMaps() {
 
   const updateMindMap = useMutation({
     mutationFn: async ({ id, ...input }: { id: string; title?: string; description?: string; nodes?: Node[]; edges?: Edge[] }) => {
-      const updateData: any = {};
+      const updateData: unknown = {};
       if (input.title !== undefined) updateData.title = input.title;
       if (input.description !== undefined) updateData.description = input.description;
-      if (input.nodes !== undefined) updateData.nodes = input.nodes as any;
-      if (input.edges !== undefined) updateData.edges = input.edges as any;
+      if (input.nodes !== undefined) updateData.nodes = input.nodes as unknown;
+      if (input.edges !== undefined) updateData.edges = input.edges as unknown;
 
       const { data, error } = await supabase
         .from('mind_maps')

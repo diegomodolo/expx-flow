@@ -246,7 +246,7 @@ export function YouTubePostingBehavior({
 
       if (error) throw error;
       setAiReport(data?.report || "Não foi possível gerar o relatório.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error generating AI report:", err);
       setAiReport("Erro ao gerar relatório. Tente novamente.");
     } finally {
@@ -444,7 +444,7 @@ export function YouTubePostingBehavior({
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
-              {channelSummary.map((ch: any, i: number) => (
+              {channelSummary.map((ch: unknown, i: number) => (
                 <div
                   key={i}
                   className="flex items-center gap-3 p-3 rounded-lg border"

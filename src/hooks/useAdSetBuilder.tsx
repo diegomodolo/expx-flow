@@ -92,7 +92,7 @@ export function useAdSetBuilder(clientId: string, companyId: string) {
       toast.success('Conjunto de anúncios criado com sucesso!');
       reset();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating ad set:', error);
       toast.error(error.message || 'Erro ao criar conjunto de anúncios');
       return null;

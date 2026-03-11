@@ -214,7 +214,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
       const hourlyMap = new Map<number, number>();
       for (let h = 0; h <= currentHour; h++) hourlyMap.set(h, 0);
 
-      (completedTodayRes.data || []).forEach((t: any) => {
+      (completedTodayRes.data || []).forEach((t: unknown) => {
         if (t.updated_at) {
           const h = new Date(t.updated_at).getHours();
           if (hourlyMap.has(h)) hourlyMap.set(h, (hourlyMap.get(h) || 0) + 1);
@@ -256,23 +256,23 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
           : Promise.resolve({ data: [] }),
       ]);
 
-      const profileMap = new Map((profilesRes.data || []).map((p: any) => [p.user_id, p]));
-      const taskMap = new Map((sessionTasksRes.data || []).map((t: any) => [t.id, t]));
+      const profileMap = new Map((profilesRes.data || []).map((p: unknown) => [p.user_id, p]));
+      const taskMap = new Map((sessionTasksRes.data || []).map((t: unknown) => [t.id, t]));
 
       // Fetch client info for tasks in active sessions (column is related_client_id)
       const sessionClientIds = [...new Set(
-        (sessionTasksRes.data || []).map((t: any) => t.related_client_id).filter(Boolean)
+        (sessionTasksRes.data || []).map((t: unknown) => t.related_client_id).filter(Boolean)
       )] as string[];
 
       const clientsRes = sessionClientIds.length > 0
         ? await supabase.from('clients').select('id, name, avatar').in('id', sessionClientIds)
         : { data: [] };
-      const clientMap = new Map((clientsRes.data || []).map((c: any) => [c.id, c]));
+      const clientMap = new Map((clientsRes.data || []).map((c: unknown) => [c.id, c]));
 
       const activeSessions: ActiveSession[] = rawSessions.map(s => {
-        const profile = profileMap.get(s.user_id) as any;
-        const task = taskMap.get(s.task_id) as any;
-        const client = task?.related_client_id ? clientMap.get(task.related_client_id) as any : null;
+        const profile = profileMap.get(s.user_id) as unknown;
+        const task = taskMap.get(s.task_id) as unknown;
+        const client = task?.related_client_id ? clientMap.get(task.related_client_id) as unknown : null;
         return {
           session_id: s.id,
           task_id: s.task_id,
@@ -301,7 +301,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
           .select('user_id, full_name, avatar_url')
           .in('user_id', allUserIds);
 
-        const rankProfileMap = new Map((rankProfiles || []).map((p: any) => [p.user_id, p]));
+        const rankProfileMap = new Map((rankProfiles || []).map((p: unknown) => [p.user_id, p]));
 
         rankings = allUserIds.map(uid => {
           const userTasks = weekTasks.filter(t => (t.assigned_user_id || t.user_id) === uid);
@@ -317,7 +317,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
           const efficiency = total > 0 ? Math.round(((completed + inProgress * 0.5) / total) * 100) : 0;
           const score = Math.round((regularity * 0.4 + quality * 0.4 + efficiency * 0.2));
 
-          const profile = rankProfileMap.get(uid) as any;
+          const profile = rankProfileMap.get(uid) as unknown;
           return {
             user_id: uid,
             user_name: profile?.full_name || 'Colaborador',
@@ -335,7 +335,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
       }
 
       // --- Squad Rankings ---
-      const teamColorMap = new Map(teamsData.map((t: any) => [t.id, { name: t.name, color: t.color }]));
+      const teamColorMap = new Map(teamsData.map((t: unknown) => [t.id, { name: t.name, color: t.color }]));
       const squadMap = new Map<string, {
         name: string; color: string | null;
         totalTasks: number; completedTasks: number; overdueTasks: number; activeSessions: number;
@@ -343,7 +343,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
 
       tasks.forEach(t => {
         if (!t.team_id) return;
-        const team = teamColorMap.get(t.team_id) as any;
+        const team = teamColorMap.get(t.team_id) as unknown;
         if (!team) return;
         if (!squadMap.has(t.team_id)) {
           squadMap.set(t.team_id, { name: team.name, color: team.color, totalTasks: 0, completedTasks: 0, overdueTasks: 0, activeSessions: 0 });
@@ -404,14 +404,14 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         assigned_user_id: t.assigned_user_id, user_id: t.user_id,
       }));
 
-      const completedTodayList: TaskItem[] = (completedTodayRes.data || []).map((t: any) => ({
+      const completedTodayList: TaskItem[] = (completedTodayRes.data || []).map((t: unknown) => ({
         id: t.id, title: t.title || '', status: t.status || 'done', priority: t.priority || 'medium',
         deadline: t.deadline || null, due_date: t.due_date || null,
         responsible_name: t.responsible_name || null, responsible_avatar: t.responsible_avatar || null,
         assigned_user_id: t.assigned_user_id || null, user_id: t.user_id || null,
       }));
 
-      const reviewTasksList: TaskItem[] = reviewTasksData.map((t: any) => ({
+      const reviewTasksList: TaskItem[] = reviewTasksData.map((t: unknown) => ({
         id: t.id, title: t.title || '', status: 'review', priority: t.priority || 'medium',
         deadline: t.deadline || null, due_date: t.due_date || null,
         responsible_name: t.responsible_name || null, responsible_avatar: t.responsible_avatar || null,

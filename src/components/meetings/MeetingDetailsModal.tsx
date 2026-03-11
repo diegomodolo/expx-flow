@@ -57,13 +57,13 @@ export function MeetingDetailsModal({
               {meeting.clients && (
                 <div>
                   <span className="text-muted-foreground">Cliente:</span>
-                  <span className="ml-2 font-medium">{(meeting.clients as any)?.name}</span>
+                  <span className="ml-2 font-medium">{(meeting.clients as unknown)?.name}</span>
                 </div>
               )}
               {meeting.teams && (
                 <div>
                   <span className="text-muted-foreground">Squad:</span>
-                  <span className="ml-2 font-medium">{(meeting.teams as any)?.name}</span>
+                  <span className="ml-2 font-medium">{(meeting.teams as unknown)?.name}</span>
                 </div>
               )}
               {meeting.scheduled_at && (
@@ -230,7 +230,7 @@ export function MeetingDetailsModal({
                     <h3 className="font-semibold">Itens de Ação</h3>
                   </div>
                   <div className="space-y-3">
-                    {meeting.ai_action_items.map((item: any, index: number) => (
+                    {meeting.ai_action_items.map((item: unknown, index: number) => (
                       <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
                         <div className="flex-1">
                           <p className="text-sm font-medium">{item.title}</p>

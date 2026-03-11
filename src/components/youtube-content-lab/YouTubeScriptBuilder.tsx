@@ -45,8 +45,8 @@ interface YouTubeScriptBuilderProps {
   script: YouTubeScript;
   onClose: () => void;
   onUpdate: (updates: Partial<YouTubeScript>) => Promise<void>;
-  onSendMessage: (message: string) => Promise<any>;
-  onGenerateTitles: (style: string) => Promise<any>;
+  onSendMessage: (message: string) => Promise<unknown>;
+  onGenerateTitles: (style: string) => Promise<unknown>;
   fetchMessages: () => Promise<ScriptMessage[]>;
   onGenerateThumbnail: (
     scriptId: string,
@@ -122,7 +122,7 @@ export function YouTubeScriptBuilder({
         title,
         script_content: content,
         video_description: videoDescription,
-      } as any);
+      } as unknown);
     } finally {
       setSaving(false);
     }
@@ -146,7 +146,7 @@ export function YouTubeScriptBuilder({
         title: 'Descrição gerada!',
         description: 'Descrição SEO criada com sucesso.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating description:', error);
       toast({
         title: 'Erro ao gerar descrição',
@@ -251,7 +251,7 @@ export function YouTubeScriptBuilder({
       } else {
         setThumbnailError("Não foi possível gerar a thumbnail");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Thumbnail generation error:', error);
       setThumbnailError(error.message || "Erro desconhecido");
     }
@@ -271,7 +271,7 @@ export function YouTubeScriptBuilder({
         return imageUrl;
       }
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Thumbnail generation error:', error);
       return null;
     }

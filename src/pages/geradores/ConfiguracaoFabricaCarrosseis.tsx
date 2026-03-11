@@ -70,7 +70,7 @@ export default function ConfiguracaoFabricaCarrosseis() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['carousel-schedules'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao atualizar: ' + error.message);
     },
   });
@@ -95,7 +95,7 @@ export default function ConfiguracaoFabricaCarrosseis() {
       setDialogOpen(false);
       setSelectedClientId(null);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao criar: ' + error.message);
     },
   });

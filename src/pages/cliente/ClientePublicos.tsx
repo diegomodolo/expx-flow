@@ -68,7 +68,7 @@ export function ClientePublicos() {
 
     if (clientRes.data) {
       if (clientRes.data.facebook_pages) {
-        const page = clientRes.data.facebook_pages as any;
+        const page = clientRes.data.facebook_pages as unknown;
         setPages([{ id: page.id, page_id: page.page_id, name: page.page_name }]);
       }
       if (clientRes.data.instagram_accounts) {

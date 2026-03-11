@@ -10,7 +10,7 @@ interface ReferenceImagesSectionProps {
   referenceImage1: string | null;
   referenceImage2: string | null;
   referenceImage3: string | null;
-  onImagesChange: (updates: any) => void;
+  onImagesChange: (updates: unknown) => void;
   disabled: boolean;
 }
 

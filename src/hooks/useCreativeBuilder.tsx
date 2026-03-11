@@ -95,7 +95,7 @@ export function useCreativeBuilder(clientId: string, companyId: string) {
       toast.success('Criativo criado com sucesso!');
       reset();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating creative:', error);
       toast.error(error.message || 'Erro ao criar criativo');
       return null;

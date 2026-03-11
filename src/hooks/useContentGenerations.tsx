@@ -51,7 +51,7 @@ export function useContentGenerations() {
       if (error) throw error;
 
       setGenerations((data as unknown as ContentGeneration[]) || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
       toast({
         title: "Erro ao carregar conteúdos",
@@ -77,7 +77,7 @@ export function useContentGenerations() {
         title: "Conteúdo deletado",
         description: "O conteúdo foi removido com sucesso."
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erro ao deletar",
         description: "Não foi possível deletar o conteúdo.",
@@ -103,7 +103,7 @@ export function useContentGenerations() {
         title: "Conteúdo atualizado",
         description: "O conteúdo foi atualizado com sucesso."
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erro ao atualizar",
         description: "Não foi possível atualizar o conteúdo.",

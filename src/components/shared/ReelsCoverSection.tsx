@@ -74,7 +74,7 @@ export function ReelsCoverSection({
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating reels cover:', error);
       toast.error('Erro ao gerar capa: ' + (error.message || 'Erro desconhecido'));
     } finally {

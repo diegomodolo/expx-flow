@@ -30,7 +30,7 @@ export function useUserNotifications() {
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from("user_notifications" as any)
+        .from("user_notifications" as unknown)
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
@@ -83,7 +83,7 @@ export function useUserNotifications() {
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("user_notifications" as any)
+        .from("user_notifications" as unknown)
         .update({ is_read: true })
         .eq("id", id)
         .eq("user_id", user?.id);
@@ -98,7 +98,7 @@ export function useUserNotifications() {
     mutationFn: async () => {
       if (!user?.id) return;
       const { error } = await supabase
-        .from("user_notifications" as any)
+        .from("user_notifications" as unknown)
         .update({ is_read: true })
         .eq("user_id", user.id)
         .eq("is_read", false);
@@ -110,12 +110,12 @@ export function useUserNotifications() {
   });
 
   // Also aggregate internal_notifications (chat) for the unified bell
-  const { data: chatNotifications = [] } = useQuery<any[]>({
+  const { data: chatNotifications = [] } = useQuery<unknown[]>({
     queryKey: ["internal-notifications-unified", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from("internal_notifications" as any)
+        .from("internal_notifications" as unknown)
         .select("id, type, title, body, priority, is_read, channel_id, task_id, created_at")
         .eq("user_id", user.id)
         .eq("is_read", false)

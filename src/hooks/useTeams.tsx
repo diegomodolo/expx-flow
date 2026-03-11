@@ -78,7 +78,7 @@ export function useTeams() {
             email: emp.email,
             role: emp.role,
             avatar: emp.avatar,
-            work_schedule_id: (emp as any).work_schedule_id || null,
+            work_schedule_id: (emp as unknown).work_schedule_id || null,
           }));
 
         const leader = teamMembers.find((m) => m.id === team.leader_id) || null;

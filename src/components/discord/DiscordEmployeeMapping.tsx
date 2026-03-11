@@ -30,7 +30,7 @@ export const DiscordEmployeeMapping = () => {
   const { data: employees, isLoading } = useQuery({
     queryKey: ["employees-discord", companyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from("employees")
         .select("id, name, email, discord_user_id, discord_username")
         .eq("company_id", companyId!)
@@ -44,8 +44,8 @@ export const DiscordEmployeeMapping = () => {
 
   useEffect(() => {
     if (employees) {
-      const initial: Record<string, any> = {};
-      employees.forEach((e: any) => {
+      const initial: Record<string, unknown> = {};
+      employees.forEach((e: unknown) => {
         initial[e.id] = {
           discord_user_id: e.discord_user_id || "",
           discord_username: e.discord_username || "",
@@ -67,7 +67,7 @@ export const DiscordEmployeeMapping = () => {
     try {
       const m = await listGuildMembers(config.guild_id);
       setMembers(m.sort((a: DiscordMember, b: DiscordMember) => a.display_name.localeCompare(b.display_name)));
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Erro ao carregar membros: " + err.message);
     } finally {
       setLoadingMembers(false);
@@ -91,7 +91,7 @@ export const DiscordEmployeeMapping = () => {
       for (const emp of employees || []) {
         const mapping = mappings[emp.id];
         if (mapping) {
-          await (supabase as any)
+          await (supabase as unknown)
             .from("employees")
             .update({
               discord_user_id: mapping.discord_user_id || null,
@@ -102,7 +102,7 @@ export const DiscordEmployeeMapping = () => {
       }
       queryClient.invalidateQueries({ queryKey: ["employees-discord"] });
       toast.success("Mapeamento de colaboradores atualizado!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message);
     } finally {
       setSaving(false);
@@ -153,7 +153,7 @@ export const DiscordEmployeeMapping = () => {
               </p>
             )}
             <div className="grid gap-3">
-              {employees?.map((emp: any) => {
+              {employees?.map((emp: unknown) => {
                 const selectedMember = members.find((m) => m.id === mappings[emp.id]?.discord_user_id);
                 return (
                   <div key={emp.id} className="flex items-center gap-3 p-2 rounded-lg border">

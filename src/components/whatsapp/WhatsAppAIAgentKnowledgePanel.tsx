@@ -22,7 +22,7 @@ interface KnowledgePanelProps {
     force_realtime_analysis?: boolean;
     ignore_group_analysis?: boolean;
   };
-  onChange: (field: string, value: any) => void;
+  onChange: (field: string, value: unknown) => void;
 }
 
 export function WhatsAppAIAgentKnowledgePanel({ config, onChange }: KnowledgePanelProps) {

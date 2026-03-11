@@ -65,7 +65,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   useEffect(() => {
     if (availableInstances.length > 0 && !selectedInstanceId) {
       // Try to find user's default instance
-      const defaultInstance = availableInstances.find((i: any) => i.is_default);
+      const defaultInstance = availableInstances.find((i: unknown) => i.is_default);
       if (defaultInstance) {
         setSelectedInstanceId(defaultInstance.id);
       } else {

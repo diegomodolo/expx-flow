@@ -437,7 +437,7 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
         title: 'Teste enviado!',
         description: 'O relatório de teste foi enviado com sucesso.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending test:', error);
       toast({
         title: 'Erro ao enviar teste',

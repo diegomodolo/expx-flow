@@ -60,7 +60,7 @@ export function useWordpressSites(companyId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-sites', companyId] });
       toast.success('Site WordPress adicionado com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error adding WordPress site:', error);
       toast.error('Erro ao adicionar site WordPress');
     },
@@ -82,7 +82,7 @@ export function useWordpressSites(companyId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-sites', companyId] });
       toast.success('Site WordPress atualizado!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error updating WordPress site:', error);
       toast.error('Erro ao atualizar site WordPress');
     },
@@ -101,7 +101,7 @@ export function useWordpressSites(companyId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-sites', companyId] });
       toast.success('Site WordPress removido!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error deleting WordPress site:', error);
       toast.error('Erro ao remover site WordPress');
     },
@@ -124,7 +124,7 @@ export function useWordpressSites(companyId: string) {
     onSuccess: (data) => {
       toast.success(data.message || 'Conexão estabelecida!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(error.message || 'Falha na conexão');
     },
   });

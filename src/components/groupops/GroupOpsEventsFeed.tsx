@@ -100,7 +100,7 @@ export default function GroupOpsEventsFeed() {
                     </div>
                     {event.payload_json && (
                       <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                        {typeof event.payload_json === 'string' ? event.payload_json : (event.payload_json as any)?.description ?? (event.payload_json as any)?.text ?? JSON.stringify(event.payload_json).slice(0, 100)}
+                        {typeof event.payload_json === 'string' ? event.payload_json : (event.payload_json as unknown)?.description ?? (event.payload_json as unknown)?.text ?? JSON.stringify(event.payload_json).slice(0, 100)}
                       </p>
                     )}
                   </div>

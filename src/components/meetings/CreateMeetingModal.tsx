@@ -25,7 +25,7 @@ interface CreateMeetingModalProps {
     scheduledAt?: string;
     participants?: Participant[];
     timezoneOffset?: number;
-  }) => Promise<any>;
+  }) => Promise<unknown>;
   creating: boolean;
 }
 
@@ -69,12 +69,12 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
 
     const fetchContacts = async () => {
       const { data } = await supabase
-        .from('client_contacts' as any)
+        .from('client_contacts' as unknown)
         .select('id, contact_name, email')
         .eq('client_id', clientId)
         .not('email', 'is', null)
         .order('contact_name');
-      setClientContacts(((data as any[]) || []).filter((c: any) => c.email));
+      setClientContacts(((data as unknown[]) || []).filter((c: unknown) => c.email));
     };
     fetchContacts();
   }, [clientId, activeCompany?.company_id]);

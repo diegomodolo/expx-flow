@@ -29,8 +29,8 @@ interface OrganizationPlan {
 }
 
 interface OrganizeTasksParams {
-  tasks: any[];
-  timeSlots: any[];
+  tasks: unknown[];
+  timeSlots: unknown[];
   startDate: string;
   daysToOrganize?: number;
   scope?: {
@@ -39,7 +39,7 @@ interface OrganizeTasksParams {
     includePeriod: number;
     includeUnassigned: boolean;
   };
-  employees?: any[];
+  employees?: unknown[];
 }
 
 export const useTaskOrganizer = () => {

@@ -40,7 +40,7 @@ export function PollCard({ messageId }: PollCardProps) {
       if (error) return null;
       return {
         ...data,
-        options: (data.options as any) as string[],
+        options: (data.options as unknown) as string[],
       } as PollData;
     },
   });

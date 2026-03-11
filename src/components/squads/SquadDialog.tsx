@@ -27,7 +27,7 @@ import {
 interface SquadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (squadData: Omit<Team, "id" | "progress" | "active_tasks" | "members">) => Promise<any>;
+  onSubmit: (squadData: Omit<Team, "id" | "progress" | "active_tasks" | "members">) => Promise<unknown>;
   squad?: Team;
   title: string;
   readOnly?: boolean;

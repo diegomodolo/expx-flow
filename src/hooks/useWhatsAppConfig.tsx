@@ -123,7 +123,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
       toast({ title: "Configuração salva com sucesso" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao salvar configuração", 
         description: error.message,
@@ -154,7 +154,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
       toast({ title: "Configuração UazapiGO salva com sucesso" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao salvar configuração", 
         description: error.message,
@@ -230,7 +230,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
       toast({ title: "Configuração Meta Cloud API salva com sucesso" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao salvar configuração", 
         description: error.message,
@@ -292,7 +292,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         description: `Conectado: ${data.display_phone_number || data.verified_name}` 
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao testar conexão", 
         description: error.message,
@@ -329,7 +329,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao testar conexão", 
         description: error.message,
@@ -366,7 +366,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao testar conexão", 
         description: error.message,
@@ -393,7 +393,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-preferences", companyId] });
       toast({ title: "Preferências salvas" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao salvar preferências", 
         description: error.message,
@@ -420,7 +420,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-recipients", companyId] });
       toast({ title: "Destinatário adicionado" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao adicionar destinatário", 
         description: error.message,
@@ -443,7 +443,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-recipients", companyId] });
       toast({ title: "Destinatário atualizado" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao atualizar destinatário", 
         description: error.message,
@@ -466,7 +466,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-recipients", companyId] });
       toast({ title: "Destinatário removido" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao remover destinatário", 
         description: error.message,
@@ -493,7 +493,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
     onSuccess: () => {
       toast({ title: "Mensagem de teste enviada!" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ 
         title: "Erro ao enviar mensagem", 
         description: error.message,

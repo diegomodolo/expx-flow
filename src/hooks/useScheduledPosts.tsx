@@ -25,7 +25,7 @@ export interface ScheduledPost {
   retry_count: number;
   visual_creative_id: string | null;
   collaborators: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -60,7 +60,7 @@ export interface CreateScheduledPostInput {
   status?: 'draft' | 'scheduled';
   visual_creative_id?: string | null;
   collaborators?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export const useScheduledPosts = () => {
@@ -101,7 +101,7 @@ export const useScheduledPosts = () => {
 
       if (error) throw error;
       setPosts((data || []) as ScheduledPost[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching scheduled posts:', error);
       toast({
         title: 'Erro ao carregar posts',
@@ -153,7 +153,7 @@ export const useScheduledPosts = () => {
 
       await fetchPosts();
       return data as ScheduledPost;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating scheduled post:', error);
       toast({
         title: 'Erro ao agendar post',
@@ -183,7 +183,7 @@ export const useScheduledPosts = () => {
 
       await fetchPosts();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating scheduled post:', error);
       toast({
         title: 'Erro ao atualizar post',
@@ -216,7 +216,7 @@ export const useScheduledPosts = () => {
 
       // If there was a linked creative, update it back to approved status
       const creativeId = postData?.visual_creative_id || 
-                         (postData?.metadata as Record<string, any>)?.from_presentation_creative;
+                         (postData?.metadata as Record<string, unknown>)?.from_presentation_creative;
       
       if (creativeId) {
         await supabase
@@ -235,7 +235,7 @@ export const useScheduledPosts = () => {
 
       await fetchPosts();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting scheduled post:', error);
       toast({
         title: 'Erro ao excluir post',
@@ -249,7 +249,7 @@ export const useScheduledPosts = () => {
   };
 
   const cancelPost = async (id: string): Promise<boolean> => {
-    return updatePost(id, { status: 'cancelled' } as any);
+    return updatePost(id, { status: 'cancelled' } as unknown);
   };
 
   const reschedulePost = async (id: string, newScheduledAt: string): Promise<boolean> => {
@@ -273,7 +273,7 @@ export const useScheduledPosts = () => {
 
       await fetchPosts();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error rescheduling post:', error);
       toast({
         title: 'Erro ao reagendar',
@@ -310,7 +310,7 @@ export const useScheduledPosts = () => {
 
       await fetchPosts();
       return data.success;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error publishing post:', error);
       toast({
         title: 'Erro ao publicar',

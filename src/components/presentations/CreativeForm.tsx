@@ -218,7 +218,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
       });
       
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message,
@@ -250,7 +250,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           <Label>Tipo de Criativo</Label>
           <Select 
             value={formData.creative_type} 
-            onValueChange={(v) => setFormData(prev => ({ ...prev, creative_type: v as any }))}
+            onValueChange={(v) => setFormData(prev => ({ ...prev, creative_type: v as unknown }))}
           >
             <SelectTrigger>
               <SelectValue />

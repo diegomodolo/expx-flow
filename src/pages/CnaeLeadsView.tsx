@@ -96,7 +96,7 @@ export default function CnaeLeadsView() {
   // Build filter query helper
   const buildFilteredQuery = () => {
     let query = supabase
-      .from('cnae_lead_pool' as any)
+      .from('cnae_lead_pool' as unknown)
       .select('*')
       .eq('company_id', companyId)
       .eq('cnae_code', decodedCnaeCode);
@@ -150,7 +150,7 @@ export default function CnaeLeadsView() {
     queryFn: async () => {
       if (!companyId || !decodedCnaeCode) return null;
       const { data, error } = await supabase
-        .from('cnae_lead_pool' as any)
+        .from('cnae_lead_pool' as unknown)
         .select('cnae_description')
         .eq('company_id', companyId)
         .eq('cnae_code', decodedCnaeCode)
@@ -170,7 +170,7 @@ export default function CnaeLeadsView() {
       if (!companyId || !decodedCnaeCode) return { leads: [], count: 0 };
       
       let query = supabase
-        .from('cnae_lead_pool' as any)
+        .from('cnae_lead_pool' as unknown)
         .select('*', { count: 'exact' })
         .eq('company_id', companyId)
         .eq('cnae_code', decodedCnaeCode);

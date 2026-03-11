@@ -51,7 +51,7 @@ export function useWorkspaceFolders() {
       queryClient.invalidateQueries({ queryKey: ['workspace-folders'] });
       toast({ title: 'Pasta criada com sucesso!' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao criar pasta', description: error.message, variant: 'destructive' });
     },
   });
@@ -77,7 +77,7 @@ export function useWorkspaceFolders() {
       queryClient.invalidateQueries({ queryKey: ['workspace-folders'] });
       toast({ title: 'Pasta atualizada!' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao atualizar pasta', description: error.message, variant: 'destructive' });
     },
   });
@@ -96,7 +96,7 @@ export function useWorkspaceFolders() {
       queryClient.invalidateQueries({ queryKey: ['workspace-documents'] });
       toast({ title: 'Pasta excluída!' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao excluir pasta', description: error.message, variant: 'destructive' });
     },
   });

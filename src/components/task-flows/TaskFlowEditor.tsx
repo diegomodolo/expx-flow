@@ -89,10 +89,10 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
     queryFn: async () => {
       if (!companyId) return [];
       const { data } = await (supabase
-        .from('task_classificacoes' as any)
+        .from('task_classificacoes' as unknown)
         .select('id, nome')
         .eq('company_id', companyId)
-        .order('nome') as any);
+        .order('nome') as unknown);
       return (data || []) as { id: string; nome: string }[];
     },
     enabled: !!companyId,
@@ -318,7 +318,7 @@ function TaskFlowEditorContent({ flowId }: TaskFlowEditorProps) {
               <Background />
               <Controls />
               <MiniMap
-                nodeColor={(node) => (node.data as any).color || "#3B82F6"}
+                nodeColor={(node) => (node.data as unknown).color || "#3B82F6"}
                 pannable
                 zoomable
               />

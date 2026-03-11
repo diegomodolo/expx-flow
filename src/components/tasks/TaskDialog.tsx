@@ -47,8 +47,8 @@ export type TaskDialogMode = 'kanban' | 'roteiro';
 interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  task?: any;
-  onSave: (taskData: any) => void;
+  task?: unknown;
+  onSave: (taskData: unknown) => void;
   defaultClientId?: string;
   defaultBoardUserId?: string | null;
   mode?: TaskDialogMode;
@@ -74,27 +74,27 @@ const TASK_TYPES = [
 
 async function getStoredZoom(userId: string): Promise<number> {
   try {
-    const { data } = await (supabase as any)
+    const { data } = await (supabase as unknown)
       .from('user_ui_settings')
       .select('setting_value')
       .eq('user_id', userId)
       .eq('setting_key', 'task-dialog-zoom')
       .maybeSingle();
     if (data?.setting_value?.zoomWidth) return data.setting_value.zoomWidth;
-  } catch {}
+  } catch { /* intentionally empty */ }
   return 1024;
 }
 
 async function saveZoom(userId: string, zoom: number) {
   try {
-    await (supabase as any)
+    await (supabase as unknown)
       .from('user_ui_settings')
       .upsert({
         user_id: userId,
         setting_key: 'task-dialog-zoom',
         setting_value: { zoomWidth: zoom },
       }, { onConflict: 'user_id,setting_key' });
-  } catch {}
+  } catch { /* intentionally empty */ }
 }
 
 export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, defaultBoardUserId, mode = 'kanban', loading, onDelete }: TaskDialogProps) {
@@ -229,7 +229,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     enabled: !!parentTaskId,
   });
 
-  const [viewingParentTask, setViewingParentTask] = useState<any>(null);
+  const [viewingParentTask, setViewingParentTask] = useState<unknown>(null);
 
   const handleOpenParentTask = async () => {
     if (!parentTaskInfo) return;
@@ -245,10 +245,10 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     queryFn: async () => {
       if (!companyId) return [];
       const { data } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .select('*')
         .eq('company_id', companyId)
-        .order('order_index', { ascending: true }) as any);
+        .order('order_index', { ascending: true }) as unknown);
 
       return (data || []) as Array<{ id: string; user_id: string; name: string; color: string; order_index: number }>;
     },
@@ -400,7 +400,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           hasSpecificTime: false,
           progress: 0,
           checklist: Array.isArray(task.checklist)
-            ? task.checklist.map((c: any, i: number) => ({
+            ? task.checklist.map((c: unknown, i: number) => ({
                 id: String(i),
                 text: typeof c === 'string' ? c : c.text || '',
                 completed: typeof c === 'object' ? !!c.checked : false,
@@ -468,7 +468,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
           quadro_column_id: quadroColId,
         });
         // Load creative data
-        const cd = task.creative_data as any;
+        const cd = task.creative_data as unknown;
         setCreativeData({
           post_type: cd?.post_type || 'feed',
           caption: cd?.caption || '',
@@ -666,7 +666,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
     }
 
     const selectedCol = allColumns.find(c => c.id === formData.quadro_column_id);
-    const taskData: any = {
+    const taskData: unknown = {
       title: formData.title,
       description: formData.description,
       status: formData.status,
@@ -786,7 +786,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId, 
 
   const { logAutomatic } = useTaskHistory(task?.id || null);
 
-  const sidebarItems: { id: SidebarTab; label: string; icon: any }[] = [
+  const sidebarItems: { id: SidebarTab; label: string; icon: unknown }[] = [
     { id: 'principal', label: 'Principal', icon: Home },
     { id: 'clientes', label: 'Clientes', icon: Users },
     { id: 'equipe', label: 'Equipe', icon: UsersRound },

@@ -15,7 +15,7 @@ interface HistoryEntry {
   execution_type: string;
   status: string;
   error_message: string | null;
-  execution_details: any;
+  execution_details: unknown;
 }
 
 interface Props {

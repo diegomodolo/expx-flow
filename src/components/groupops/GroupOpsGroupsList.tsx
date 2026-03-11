@@ -57,7 +57,7 @@ function ImportGroupsModal({ onClose, onImported }: { onClose: () => void; onImp
 
       setWhatsappGroups(data.groups || []);
       setStep('groups');
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || 'Erro ao buscar grupos da instância');
     } finally {
       setLoading(false);
@@ -377,7 +377,7 @@ function SyncHistoryDialog({ group, instances, onClose }: {
   const [sinceDate, setSinceDate] = useState('');
   const [selectedInstance, setSelectedInstance] = useState(instances.find(i => i.is_connected)?.id ?? '');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
 
   const handleSync = async () => {
     if (!selectedInstance) {
@@ -399,7 +399,7 @@ function SyncHistoryDialog({ group, instances, onClose }: {
       if (!data?.success) throw new Error(data?.error || 'Erro desconhecido');
       setResult(data);
       toast.success(`Sincronização concluída: ${data.messages_imported} mensagens, ${data.members_processed} membros`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(`Erro na sincronização: ${err.message}`, { duration: 10000 });
     } finally {
       setIsSyncing(false);

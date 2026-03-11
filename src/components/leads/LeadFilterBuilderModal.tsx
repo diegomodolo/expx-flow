@@ -157,7 +157,7 @@ interface SavedFilter {
     conditions: Array<{
       field: string;
       operator: string;
-      value: any;
+      value: unknown;
     }>;
     logic: 'AND' | 'OR';
   };

@@ -10,7 +10,7 @@ export interface GroupOpsModerationRule {
   name: string;
   type: string;
   action_type: string;
-  config_json: any;
+  config_json: unknown;
   is_active: boolean | null;
   created_at: string;
 }
@@ -82,7 +82,7 @@ export function useGroupOpsModeration(groupId?: string) {
     mutationFn: async (rule: Partial<GroupOpsModerationRule>) => {
       const { id, created_at, company_id, ...rest } = rule;
       const { data, error } = await supabase.from('groupops_moderation_rules')
-        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Nova Regra' } as any)
+        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Nova Regra' } as unknown)
         .select().single();
       if (error) throw error;
       return data;
@@ -93,7 +93,7 @@ export function useGroupOpsModeration(groupId?: string) {
 
   const updateRule = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<GroupOpsModerationRule> & { id: string }) => {
-      const { data, error } = await supabase.from('groupops_moderation_rules').update(updates as any).eq('id', id).select().single();
+      const { data, error } = await supabase.from('groupops_moderation_rules').update(updates as unknown).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
@@ -113,7 +113,7 @@ export function useGroupOpsModeration(groupId?: string) {
   const resolveAction = useMutation({
     mutationFn: async (id: string) => {
       const { data, error } = await supabase.from('groupops_moderation_actions')
-        .update({ resolved: true, resolved_at: new Date().toISOString() } as any)
+        .update({ resolved: true, resolved_at: new Date().toISOString() } as unknown)
         .eq('id', id).select().single();
       if (error) throw error;
       return data;

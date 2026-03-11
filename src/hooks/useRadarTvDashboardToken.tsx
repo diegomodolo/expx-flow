@@ -27,7 +27,7 @@ export function useRadarTvDashboardToken() {
         .single();
 
       if (error) throw error;
-      setToken((data as any)?.radar_tv_dashboard_token || null);
+      setToken((data as unknown)?.radar_tv_dashboard_token || null);
     } catch (error) {
       console.error('Error fetching Radar TV dashboard token:', error);
     } finally {
@@ -42,7 +42,7 @@ export function useRadarTvDashboardToken() {
   try {
       // Generate token using database function
       const { data: tokenData, error: tokenError } = await (supabase
-        .rpc as any)('generate_radar_tv_dashboard_token');
+        .rpc as unknown)('generate_radar_tv_dashboard_token');
 
       if (tokenError) {
         console.error('Error generating token via RPC:', tokenError);
@@ -53,7 +53,7 @@ export function useRadarTvDashboardToken() {
 
       // Use secure RPC to set the token
       const { error: setError } = await (supabase
-        .rpc as any)('set_radar_tv_dashboard_token', {
+        .rpc as unknown)('set_radar_tv_dashboard_token', {
           p_company_id: activeCompany.company_id,
           p_token: newToken
         });

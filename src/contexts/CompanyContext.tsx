@@ -8,8 +8,8 @@ interface CompanyContextType {
   companies: CompanyMember[];
   loading: boolean;
   error: string | null;
-  createCompany: (companyData: { name: string; slug?: string; logo?: string }) => Promise<any>;
-  updateCompany: (id: string, updates: any) => Promise<any>;
+  createCompany: (companyData: { name: string; slug?: string; logo?: string }) => Promise<unknown>;
+  updateCompany: (id: string, updates: unknown) => Promise<unknown>;
   refreshCompanies: () => Promise<void>;
 }
 

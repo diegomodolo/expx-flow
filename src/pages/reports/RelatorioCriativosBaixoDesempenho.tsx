@@ -42,7 +42,7 @@ export default function RelatorioCriativosBaixoDesempenho() {
   const [lowPerformingCreatives, setLowPerformingCreatives] = useState<LowPerformingCreative[]>([]);
   const [filteredData, setFilteredData] = useState<LowPerformingCreative[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [selectedAd, setSelectedAd] = useState<any>(null);
+  const [selectedAd, setSelectedAd] = useState<unknown>(null);
   const [adCreativeMetricsModalOpen, setAdCreativeMetricsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function RelatorioCriativosBaixoDesempenho() {
     // Filtro por tipo de criativo
     if (newFilters['tipo-criativo'] && newFilters['tipo-criativo'] !== 'todos') {
       // Como não temos tipo no modelo, vamos simular baseado em dados disponíveis
-      filtered = filtered; // Manter todos por enquanto
+      // Manter todos por enquanto - filtro de tipo de criativo não implementado
     }
 
     // Filtro por performance mínima (score)

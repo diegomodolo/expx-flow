@@ -58,7 +58,7 @@ export function useVisualCreatives() {
         status: item.status as 'generating' | 'completed' | 'failed' | 'error',
         media_type: (item.media_type as 'image' | 'video') || 'image'
       })));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching visual creatives:', err);
       setError(err.message);
       toast({
@@ -101,7 +101,7 @@ export function useVisualCreatives() {
       });
 
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating creative:', err);
       toast({
         title: "Erro ao salvar criativo",
@@ -119,7 +119,7 @@ export function useVisualCreatives() {
         title: "Criativo atualizado",
         description: "O criativo foi atualizado com sucesso.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating creative:', err);
       toast({
         title: "Erro ao atualizar criativo",
@@ -137,7 +137,7 @@ export function useVisualCreatives() {
         title: "Criativo removido",
         description: "O criativo foi removido do histórico.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting creative:', err);
       toast({
         title: "Erro ao remover criativo",

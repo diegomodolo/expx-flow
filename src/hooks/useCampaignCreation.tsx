@@ -22,7 +22,7 @@ export interface CreateCampaignParams {
 
 export interface CreateCampaignResult {
   success: boolean;
-  campaign?: any;
+  campaign?: unknown;
   facebook_id?: string;
   error?: string;
   warning?: string;
@@ -72,7 +72,7 @@ export function useCampaignCreation() {
         warning: data.warning
       };
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Unexpected error creating campaign:', err);
       toast.error('Erro inesperado', {
         description: err.message || 'Não foi possível criar a campanha'

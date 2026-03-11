@@ -201,10 +201,11 @@ export function ClienteKeywordPlanner() {
         case "avgMonthlySearches":
           comparison = a.avgMonthlySearches - b.avgMonthlySearches;
           break;
-        case "competition":
+        case "competition": {
           const order = { LOW: 1, MEDIUM: 2, HIGH: 3, UNSPECIFIED: 0 };
           comparison = (order[a.competition] || 0) - (order[b.competition] || 0);
           break;
+        }
         case "cpcLow":
           comparison = a.lowTopOfPageBidMicros - b.lowTopOfPageBidMicros;
           break;

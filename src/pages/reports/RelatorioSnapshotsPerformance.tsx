@@ -75,20 +75,20 @@ export default function RelatorioSnapshotsPerformance() {
     clientId: selectedClient !== "all" ? selectedClient : undefined,
     startDate: currentDates.startDate,
     endDate: currentDates.endDate,
-    entityType: entityType !== "all" ? entityType as any : undefined,
+    entityType: entityType !== "all" ? entityType as unknown : undefined,
   });
 
   const { data: previousSnapshots, isLoading: previousLoading } = usePerformanceSnapshots({
     clientId: selectedClient !== "all" ? selectedClient : undefined,
     startDate: previousDates.startDate,
     endDate: previousDates.endDate,
-    entityType: entityType !== "all" ? entityType as any : undefined,
+    entityType: entityType !== "all" ? entityType as unknown : undefined,
   });
 
   const isLoading = currentLoading || (compareEnabled && previousLoading);
 
   // Agrupar dados por data para gráficos - período atual
-  const currentChartData = currentSnapshots?.reduce((acc: any[], snapshot) => {
+  const currentChartData = currentSnapshots?.reduce((acc: unknown[], snapshot) => {
     const date = snapshot.snapshot_date;
     const existing = acc.find(item => item.date === date);
     
@@ -112,7 +112,7 @@ export default function RelatorioSnapshotsPerformance() {
   }, []).sort((a, b) => a.date.localeCompare(b.date)) || [];
 
   // Agrupar dados por data para gráficos - período anterior
-  const previousChartData = previousSnapshots?.reduce((acc: any[], snapshot) => {
+  const previousChartData = previousSnapshots?.reduce((acc: unknown[], snapshot) => {
     const date = snapshot.snapshot_date;
     const existing = acc.find(item => item.date === date);
     

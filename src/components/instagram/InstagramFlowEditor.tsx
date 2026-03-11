@@ -99,7 +99,7 @@ export function InstagramFlowEditor({ companyId, onClose }: Props) {
       toast({ title: selectedFlowId === "new" ? "Fluxo criado!" : "Fluxo salvo!" });
       onClose();
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: unknown) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const deleteFlow = useMutation({

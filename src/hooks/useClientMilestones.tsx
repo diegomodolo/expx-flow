@@ -15,7 +15,7 @@ export interface ClientMilestone {
   celebratedAt: string | null;
   celebrationSent: boolean;
   celebrationMethod: 'whatsapp' | 'email' | 'both' | null;
-  metricsSnapshot: Record<string, any> | null;
+  metricsSnapshot: Record<string, unknown> | null;
   milestoneOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -33,7 +33,7 @@ interface RawMilestone {
   celebrated_at: string | null;
   celebration_sent: boolean;
   celebration_method: string | null;
-  metrics_snapshot: Record<string, any> | null;
+  metrics_snapshot: Record<string, unknown> | null;
   milestone_order: number;
   created_at: string;
   updated_at: string;
@@ -87,7 +87,7 @@ export function useClientMilestones(clientId?: string) {
   });
 
   const completeMilestone = useMutation({
-    mutationFn: async ({ milestoneId, metricsSnapshot }: { milestoneId: string; metricsSnapshot?: Record<string, any> }) => {
+    mutationFn: async ({ milestoneId, metricsSnapshot }: { milestoneId: string; metricsSnapshot?: Record<string, unknown> }) => {
       const { error } = await supabase
         .from('client_milestones')
         .update({

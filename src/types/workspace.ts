@@ -14,7 +14,7 @@ export interface WorkspaceDocument {
   company_id: string;
   folder_id: string | null;
   title: string;
-  content: any; // BlockNote content
+  content: unknown; // BlockNote content
   icon: string;
   cover_image: string | null;
   created_by: string;

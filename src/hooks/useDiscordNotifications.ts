@@ -98,7 +98,7 @@ export async function sendDiscordTaskNotification(
 ) {
   try {
     // 1. Check if Discord is configured and this notification type is enabled
-    const { data: config } = await (supabase as any)
+    const { data: config } = await (supabase as unknown)
       .from("discord_config")
       .select("*")
       .eq("company_id", companyId)
@@ -113,7 +113,7 @@ export async function sendDiscordTaskNotification(
     let channelId: string | null = null;
 
     if (payload.team_id) {
-      const { data: team } = await (supabase as any)
+      const { data: team } = await (supabase as unknown)
         .from("teams")
         .select("discord_channel_id, name")
         .eq("id", payload.team_id)

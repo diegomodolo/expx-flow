@@ -28,7 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface PlannerTimelineProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
-  filteredTasks?: any[];
+  filteredTasks?: unknown[];
 }
 
 export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({ 
@@ -52,9 +52,9 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
-  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editingTask, setEditingTask] = useState<unknown>(null);
   const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<any>(null);
+  const [selectedSlot, setSelectedSlot] = useState<unknown>(null);
 
   // Hook para organização com IA
   const {
@@ -69,10 +69,10 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   } = useTaskOrganizer();
 
   // Função para filtrar tarefas por slot específico e data selecionada
-  const getFilteredTasksBySlot = (timeSlot: any) => {
+  const getFilteredTasksBySlot = (timeSlot: unknown) => {
     if (!tasks) return [];
     
-    return tasks.filter((task: any) => {
+    return tasks.filter((task: unknown) => {
       if (!task.start_date) return false;
       
       const taskDate = new Date(task.start_date);
@@ -84,7 +84,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       const isInTimeRange = taskTime >= slotStart && taskTime < slotEnd;
       
       return isSameDay && isInTimeRange;
-    }).sort((a: any, b: any) => {
+    }).sort((a: unknown, b: unknown) => {
       // Priorizar tarefas com start_date definido
       if (a.start_date && !b.start_date) return -1;
       if (!a.start_date && b.start_date) return 1;
@@ -150,7 +150,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     }
   };
 
-  const handleCreateTask = async (taskData: any) => {
+  const handleCreateTask = async (taskData: unknown) => {
     try {
       if (editingTask) {
         await updateTask(editingTask.id, taskData);
@@ -231,7 +231,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     }
   };
 
-  const handleNewTaskCreated = async (taskData: any) => {
+  const handleNewTaskCreated = async (taskData: unknown) => {
     try {
       if (!selectedSlot || !selectedSlotId) return;
 
@@ -279,7 +279,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     }
   };
 
-  const handleEditTask = (task: any) => {
+  const handleEditTask = (task: unknown) => {
     setEditingTask(task);
     setTaskDialogOpen(true);
   };
@@ -392,12 +392,12 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   };
 
   // Confirmar escopo e iniciar organização
-  const handleConfirmScope = async (scope: any) => {
+  const handleConfirmScope = async (scope: unknown) => {
     let tasksToOrganize = [];
 
     if (scope.type === 'specific' && scope.employeeId) {
       // Filtrar tarefas do colaborador específico das tarefas não agendadas
-      tasksToOrganize = unscheduledTasks.filter((task: any) => 
+      tasksToOrganize = unscheduledTasks.filter((task: unknown) => 
         task.user_id === scope.employeeId
       );
     } else {
@@ -408,7 +408,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     // Se incluir tarefas sem responsável, elas já estão em unscheduledTasks
     // Apenas garantir que não há duplicatas
     if (scope.includeUnassigned) {
-      const unassignedTasks = unscheduledTasks.filter((task: any) => 
+      const unassignedTasks = unscheduledTasks.filter((task: unknown) => 
         !task.user_id
       );
       // Evitar duplicatas
@@ -543,7 +543,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {getTasksWithoutTime().map((task: any) => (
+              {getTasksWithoutTime().map((task: unknown) => (
                 <div
                   key={task.id}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

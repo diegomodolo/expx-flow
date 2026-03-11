@@ -292,7 +292,7 @@ function SlideCard({
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating slide image:', error);
       toast.error('Erro ao gerar imagem: ' + (error.message || 'Erro desconhecido'));
     } finally {
@@ -545,7 +545,7 @@ function SlideCard({
                     
                     setAdditionalImageToMerge(publicUrl);
                     toast.success('Imagem carregada!');
-                  } catch (error: any) {
+                  } catch (error: unknown) {
                     console.error('Error uploading image:', error);
                     toast.error('Erro ao carregar imagem');
                   } finally {
@@ -761,7 +761,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       await onUpdate({ [field]: content });
       
       toast.success(`${field} gerado com sucesso!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao gerar conteúdo: " + error.message);
     } finally {
       setGeneratingField(null);
@@ -846,7 +846,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       onRefetch();
       
       toast.success(`${field === "headline" ? "Título" : "Conteúdo"} do slide gerado com sucesso!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao gerar conteúdo: " + error.message);
     } finally {
       setGeneratingSlideField(null);
@@ -926,7 +926,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating creative:', error);
       toast.error('Erro ao gerar criativo: ' + (error.message || 'Erro desconhecido'));
     } finally {
@@ -1033,7 +1033,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       onRefetch();
       toast.success(`${slidesWithoutImages.length} imagens geradas com sucesso!`);
       setAllSlidesExtraPrompt("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating all slide images:', error);
       toast.error('Erro ao gerar imagens: ' + (error.message || 'Erro desconhecido'));
     } finally {
@@ -1721,7 +1721,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
                     
                     setAdditionalImageToMerge(publicUrl);
                     toast.success('Imagem carregada!');
-                  } catch (error: any) {
+                  } catch (error: unknown) {
                     console.error('Error uploading image:', error);
                     toast.error('Erro ao carregar imagem');
                   } finally {

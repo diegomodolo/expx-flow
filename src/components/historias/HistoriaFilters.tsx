@@ -11,7 +11,7 @@ interface HistoriaFiltersProps {
     statusFilter: "open" | "in_progress" | "done" | "all";
     titleSearch: string;
   };
-  onFilterChange: (filters: any) => void;
+  onFilterChange: (filters: unknown) => void;
 }
 
 export function HistoriaFilters({ teams, clients, filters, onFilterChange }: HistoriaFiltersProps) {
@@ -60,7 +60,7 @@ export function HistoriaFilters({ teams, clients, filters, onFilterChange }: His
 
       <Select
         value={filters.statusFilter}
-        onValueChange={(value) => onFilterChange({ ...filters, statusFilter: value as any })}
+        onValueChange={(value) => onFilterChange({ ...filters, statusFilter: value as unknown })}
       >
         <SelectTrigger className="w-[160px] h-9">
           <SelectValue placeholder="Status" />

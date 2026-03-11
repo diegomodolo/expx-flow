@@ -24,7 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface GenerateElementModalProps {
   companyId: string;
   onClose: () => void;
-  onElementGenerated: (element: any) => void;
+  onElementGenerated: (element: unknown) => void;
 }
 
 const CATEGORIES = [
@@ -45,7 +45,7 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
   const [category, setCategory] = useState('custom');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
-  const [generatedElement, setGeneratedElement] = useState<any>(null);
+  const [generatedElement, setGeneratedElement] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {

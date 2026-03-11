@@ -58,7 +58,7 @@ export function PublishCreativeModal({ creative, open, onOpenChange, onSuccess }
       if (data?.instagram_account_id) platforms.push('instagram');
       if (data?.facebook_page_id) platforms.push('facebook');
       setSelectedPlatforms(platforms);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching client accounts:', error);
       toast.error('Erro ao carregar contas do cliente');
     } finally {
@@ -154,7 +154,7 @@ export function PublishCreativeModal({ creative, open, onOpenChange, onSuccess }
 
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error publishing:', error);
       toast.error('Erro ao publicar: ' + error.message);
     } finally {
@@ -229,7 +229,7 @@ export function PublishCreativeModal({ creative, open, onOpenChange, onSuccess }
                     <div>
                       <p className="font-medium">Instagram</p>
                       <p className="text-sm text-muted-foreground">
-                        @{(clientAccounts?.instagram_account as any)?.username || 'conta'}
+                        @{(clientAccounts?.instagram_account as unknown)?.username || 'conta'}
                       </p>
                     </div>
                   </div>
@@ -257,7 +257,7 @@ export function PublishCreativeModal({ creative, open, onOpenChange, onSuccess }
                     <div>
                       <p className="font-medium">Facebook</p>
                       <p className="text-sm text-muted-foreground">
-                        {(clientAccounts?.facebook_page as any)?.page_name || 'Página'}
+                        {(clientAccounts?.facebook_page as unknown)?.page_name || 'Página'}
                       </p>
                     </div>
                   </div>

@@ -120,7 +120,7 @@ export const useEmployees = () => {
       }
 
       // Mapear os dados combinando employees com profiles
-      const mappedData = employeesData.map((employee: any) => {
+      const mappedData = employeesData.map((employee: unknown) => {
         const profile = allProfiles.find(p => p.user_id === employee.user_id);
         const result = {
           ...employee,
@@ -135,7 +135,7 @@ export const useEmployees = () => {
       });
 
       setEmployees(mappedData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching employees:", error);
       setError(error.message);
     } finally {
@@ -318,7 +318,7 @@ export const useEmployees = () => {
 
       return newEmployee;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating employee:", error);
       setError(error.message);
       throw error;
@@ -374,7 +374,7 @@ export const useEmployees = () => {
       await fetchEmployees();
 
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating employee:", error);
       setError(error.message);
       throw error;
@@ -415,7 +415,7 @@ export const useEmployees = () => {
 
       // Atualizar lista de colaboradores
       await fetchEmployees();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting employee:", error);
       setError(error.message);
       throw error;

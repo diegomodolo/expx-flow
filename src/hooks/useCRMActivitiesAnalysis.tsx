@@ -120,7 +120,7 @@ export function useCRMActivitiesAnalysis(
             leadName: lead.full_name || "Sem nome",
             email: lead.email || "",
             daysSinceLastActivity,
-            stage: (lead.crm_stages as any)?.name || "N/A",
+            stage: (lead.crm_stages as unknown)?.name || "N/A",
           };
         })
         .filter((lead) => lead.daysSinceLastActivity >= 7)
@@ -134,9 +134,9 @@ export function useCRMActivitiesAnalysis(
         new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime()
       );
 
-      const activitiesByLeadId: Record<string, any[]> = {};
+      const activitiesByLeadId: Record<string, unknown[]> = {};
       leadActivitiesSorted.forEach(activity => {
-        const leadId = (activity.crm_leads as any).id;
+        const leadId = (activity.crm_leads as unknown).id;
         if (!activitiesByLeadId[leadId]) activitiesByLeadId[leadId] = [];
         activitiesByLeadId[leadId].push(activity);
       });
@@ -157,7 +157,7 @@ export function useCRMActivitiesAnalysis(
       // Leads mais ativos
       const leadActivityCount: Record<string, { name: string; count: number }> = {};
       activities?.forEach((activity) => {
-        const lead = activity.crm_leads as any;
+        const lead = activity.crm_leads as unknown;
         const leadName = lead.full_name || lead.email || "Sem nome";
         if (!leadActivityCount[lead.id]) {
           leadActivityCount[lead.id] = { name: leadName, count: 0 };

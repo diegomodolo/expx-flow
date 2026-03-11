@@ -71,7 +71,7 @@ export function GoogleAdsSyncSettings() {
     await toggleSchedule(checked);
   };
 
-  const updateSyncOption = (key: keyof GoogleSyncOptions, value: any) => {
+  const updateSyncOption = (key: keyof GoogleSyncOptions, value: unknown) => {
     setSyncOptions(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -109,14 +109,14 @@ export function GoogleAdsSyncSettings() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: any = {
+    const variants: unknown = {
       completed: 'default',
       failed: 'destructive',
       partial: 'secondary',
       running: 'outline',
     };
 
-    const labels: any = {
+    const labels: unknown = {
       completed: 'Concluído',
       failed: 'Falhou',
       partial: 'Parcial',

@@ -31,7 +31,7 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
     try {
       // Fetch segments
       const { data: segmentsData, error: segmentsError } = await (supabase
-        .from('lead_segments') as any)
+        .from('lead_segments') as unknown)
         .select('id, name, description')
         .eq('company_id', activeCompany.company_id)
         .eq('is_active', true);
@@ -40,9 +40,9 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
 
       // Get counts separately
       const formattedSegments: LeadSegment[] = await Promise.all(
-        (segmentsData || []).map(async (seg: any) => {
+        (segmentsData || []).map(async (seg: unknown) => {
           const { count } = await (supabase
-            .from('lead_segment_assignments') as any)
+            .from('lead_segment_assignments') as unknown)
             .select('*', { count: 'exact', head: true })
             .eq('segment_id', seg.id);
           
@@ -56,7 +56,7 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
       );
 
       setSegments(formattedSegments);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching lead segments:', err);
       setError(err.message);
     } finally {
@@ -95,7 +95,7 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
     try {
       // 1. Fetch leads from the segment
       const { data: assignments, error: assignmentsError } = await (supabase
-        .from('lead_segment_assignments') as any)
+        .from('lead_segment_assignments') as unknown)
         .select('lead_id')
         .eq('segment_id', segmentId);
 
@@ -110,11 +110,11 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
         return null;
       }
 
-      const leadIds = assignments.map((a: any) => a.lead_id);
+      const leadIds = assignments.map((a: unknown) => a.lead_id);
 
       // 2. Fetch lead details from cnae_lead_pool (email/phone)
       const { data: leads, error: leadsError } = await (supabase
-        .from('cnae_lead_pool') as any)
+        .from('cnae_lead_pool') as unknown)
         .select('id, email, phone, razao_social')
         .in('id', leadIds);
 
@@ -141,8 +141,8 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
 
       // 4. Add users to the audience
       const users = (leads || [])
-        .filter((l: any) => l.email || l.phone)
-        .map((l: any) => ({
+        .filter((l: unknown) => l.email || l.phone)
+        .map((l: unknown) => ({
           email: l.email || undefined,
           phone: l.phone || undefined,
           firstName: l.name?.split(' ')[0] || undefined,
@@ -176,7 +176,7 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
         id: audienceId,
         name: audienceName,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating audience from segment:', err);
       toast({
         title: 'Erro ao criar público',

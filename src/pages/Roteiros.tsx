@@ -50,7 +50,7 @@ export default function Roteiros() {
     });
   }, [roteiros, search, selectedCategoria]);
 
-  const handleCreate = (data: any) => {
+  const handleCreate = (data: unknown) => {
     createRoteiro.mutate(data, {
       onSuccess: () => setDialogOpen(false),
     });
@@ -163,7 +163,7 @@ export default function Roteiros() {
               {/* Mobile: Card layout */}
               <div className="md:hidden space-y-2">
                 {filtered.map(roteiro => {
-                  const Icon = (LucideIcons as any)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
+                  const Icon = (LucideIcons as unknown)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
                   return (
                     <div
                       key={roteiro.id}
@@ -209,7 +209,7 @@ export default function Roteiros() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map(roteiro => {
-                      const Icon = (LucideIcons as any)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
+                      const Icon = (LucideIcons as unknown)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
                       return (
                         <TableRow
                           key={roteiro.id}

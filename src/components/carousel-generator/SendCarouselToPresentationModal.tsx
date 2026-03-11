@@ -177,7 +177,7 @@ export function SendCarouselToPresentationModal({
       toast.success(createNew ? 'Apresentação criada e carrossel adicionado!' : 'Carrossel enviado para a apresentação!');
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending to presentation:', error);
       toast.error('Erro ao enviar: ' + error.message);
     } finally {

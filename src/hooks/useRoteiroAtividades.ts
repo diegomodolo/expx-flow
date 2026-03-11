@@ -13,10 +13,10 @@ export interface RoteiroAtividade {
   quadro_column_id: string | null;
   etapa: string | null;
   fluxo: string | null;
-  tags: any;
+  tags: unknown;
   descricao: string | null;
   autorizador_id: string | null;
-  checklist: any;
+  checklist: unknown;
   ordem: number;
   created_at: string;
   updated_at: string;
@@ -31,10 +31,10 @@ export interface AtividadeInput {
   quadro_column_id?: string | null;
   etapa?: string | null;
   fluxo?: string | null;
-  tags?: any;
+  tags?: unknown;
   descricao?: string | null;
   autorizador_id?: string | null;
-  checklist?: any;
+  checklist?: unknown;
   ordem?: number;
 }
 

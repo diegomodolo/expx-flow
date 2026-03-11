@@ -12,13 +12,13 @@ export interface OfflineConversion {
   value: number | null;
   currency: string;
   status: 'pending' | 'sent' | 'error';
-  meta_response: any;
-  webhook_payload?: any;
+  meta_response: unknown;
+  webhook_payload?: unknown;
   error_message: string | null;
   created_at: string;
   sent_at: string | null;
   source?: 'webhook' | 'manual';
-  custom_data?: any;
+  custom_data?: unknown;
 }
 
 export interface SendConversionParams {
@@ -49,7 +49,7 @@ export interface SendConversionParams {
     crm_source?: string;
     disqualification_reason?: string;
     segment?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -116,7 +116,7 @@ export const useOfflineConversions = (clientId: string) => {
       // Refetch conversions list
       queryClient.invalidateQueries({ queryKey: ['offline-conversions', clientId] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error sending offline conversion:', error);
       
       toast({

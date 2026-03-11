@@ -13,8 +13,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 interface EditAutomationValuesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  rule: any;
-  onSave: (ruleId: string, updatedConditions: any, timeWindowDays?: number) => Promise<void>;
+  rule: unknown;
+  onSave: (ruleId: string, updatedConditions: unknown, timeWindowDays?: number) => Promise<void>;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -46,7 +46,7 @@ export function EditAutomationValuesDialog({
   onSave,
 }: EditAutomationValuesDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [editedConditions, setEditedConditions] = useState<any[]>([]);
+  const [editedConditions, setEditedConditions] = useState<unknown[]>([]);
   const [timeWindowDays, setTimeWindowDays] = useState<number>(7);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function EditAutomationValuesDialog({
     }
   }, [rule]);
 
-  const handleConditionChange = (index: number, field: string, value: any) => {
+  const handleConditionChange = (index: number, field: string, value: unknown) => {
     const newConditions = [...editedConditions];
     newConditions[index] = {
       ...newConditions[index],

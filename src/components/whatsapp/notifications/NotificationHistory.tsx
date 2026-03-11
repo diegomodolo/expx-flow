@@ -57,7 +57,7 @@ export function NotificationHistory({ logs, triggers }: NotificationHistoryProps
 
     // Search filter
     if (searchTerm) {
-      const triggerName = (log.trigger as any)?.trigger_name?.toLowerCase() || '';
+      const triggerName = (log.trigger as unknown)?.trigger_name?.toLowerCase() || '';
       return triggerName.includes(searchTerm.toLowerCase());
     }
 
@@ -156,7 +156,7 @@ export function NotificationHistory({ logs, triggers }: NotificationHistoryProps
                   {filteredLogs.map((log) => {
                     const status = STATUS_CONFIG[log.status];
                     const StatusIcon = status.icon;
-                    const triggerInfo = log.trigger as any;
+                    const triggerInfo = log.trigger as unknown;
                     const triggerType = TRIGGER_TYPES.find(t => t.value === triggerInfo?.trigger_type);
                     
                     // Calculate duration
@@ -244,7 +244,7 @@ export function NotificationHistory({ logs, triggers }: NotificationHistoryProps
         open={detailsModalOpen}
         onOpenChange={setDetailsModalOpen}
         executionLogId={selectedLog?.id || null}
-        triggerName={(selectedLog?.trigger as any)?.trigger_name || 'Execução'}
+        triggerName={(selectedLog?.trigger as unknown)?.trigger_name || 'Execução'}
       />
     </>
   );

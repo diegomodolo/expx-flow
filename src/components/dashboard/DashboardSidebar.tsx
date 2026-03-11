@@ -41,6 +41,7 @@ import {
   Radar,
   Inbox,
   Video,
+  MessageSquareWarning,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -199,6 +200,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: "Alertas", url: "/alertas", icon: Bell, permission: "alertas" as MenuItemType },
       { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
+      { title: "Reportes", url: "/reportes", icon: MessageSquareWarning, permission: "reportes" as MenuItemType },
     ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
   },
 ];

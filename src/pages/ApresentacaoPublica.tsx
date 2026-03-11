@@ -32,7 +32,7 @@ interface Creative {
   subheadline: string | null;
   caption: string | null;
   hashtags: string | null;
-  script: any;
+  script: unknown;
   creative_media: CreativeMedia[];
 }
 
@@ -205,10 +205,10 @@ export default function ApresentacaoPublica() {
 
         if (creativesError) throw creativesError;
 
-        const client = presentationData.clients as any;
-        const instagramAccount = client?.instagram_accounts as any;
+        const client = presentationData.clients as unknown;
+        const instagramAccount = client?.instagram_accounts as unknown;
 
-        const creatives = (creativesData || []).map((c: any) => ({
+        const creatives = (creativesData || []).map((c: unknown) => ({
           ...c,
           creative_media: c.creative_media?.sort((a: CreativeMedia, b: CreativeMedia) => a.order_index - b.order_index) || [],
         }));
@@ -292,10 +292,10 @@ export default function ApresentacaoPublica() {
         // Increment view count
         await supabase
           .from("content_presentations")
-          .update({ view_count: (presentationData as any).view_count + 1 })
+          .update({ view_count: (presentationData as unknown).view_count + 1 })
           .eq("id", presentationData.id);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err.message);
       } finally {
         setLoading(false);
@@ -445,7 +445,7 @@ export default function ApresentacaoPublica() {
       setCurrentSlide(2);
 
       toast.success("Reunião iniciada!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error starting meeting:", err);
       toast.error("Erro ao iniciar reunião");
     } finally {
@@ -477,7 +477,7 @@ export default function ApresentacaoPublica() {
       ));
 
       toast.success("Criativo aprovado!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error approving:", err);
       toast.error("Erro ao aprovar criativo");
     } finally {
@@ -516,7 +516,7 @@ export default function ApresentacaoPublica() {
       setRejectionModalOpen(false);
       setCurrentRejectionCreativeId(null);
       toast.success("Criativo reprovado");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error rejecting:", err);
       toast.error("Erro ao reprovar criativo");
     } finally {
@@ -582,7 +582,7 @@ export default function ApresentacaoPublica() {
       }
 
       setMeetingCompleted(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error finalizing meeting:", err);
       toast.error("Erro ao finalizar reunião");
     } finally {

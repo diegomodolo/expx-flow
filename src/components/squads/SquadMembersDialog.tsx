@@ -181,7 +181,7 @@ export function SquadMembersDialog({
       toast.success("Squad atualizado com sucesso!");
       onUpdate?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving squad members:", error);
       toast.error(error.message || "Erro ao salvar membros do squad");
     } finally {

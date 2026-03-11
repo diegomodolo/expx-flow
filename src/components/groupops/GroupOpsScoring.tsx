@@ -208,7 +208,7 @@ function BadgesTab() {
                 {badge.description && <p className="text-xs text-muted-foreground">{badge.description}</p>}
                 {badge.rule_json && (
                   <p className="text-xs text-muted-foreground italic">
-                    {(badge.rule_json as any)?.condition ?? 'Regra personalizada'}
+                    {(badge.rule_json as unknown)?.condition ?? 'Regra personalizada'}
                   </p>
                 )}
                 <div className="flex gap-1 justify-center pt-2">
@@ -247,10 +247,10 @@ function BadgeFormModal({ open, onClose, badge, onSave }: { open: boolean; onClo
   const [name, setName] = useState(badge?.name ?? '');
   const [description, setDescription] = useState(badge?.description ?? '');
   const [icon, setIcon] = useState(badge?.icon ?? '🏆');
-  const [ruleCondition, setRuleCondition] = useState((badge?.rule_json as any)?.condition ?? '');
+  const [ruleCondition, setRuleCondition] = useState((badge?.rule_json as unknown)?.condition ?? '');
 
   React.useEffect(() => {
-    if (badge) { setName(badge.name); setDescription(badge.description ?? ''); setIcon(badge.icon ?? '🏆'); setRuleCondition((badge.rule_json as any)?.condition ?? ''); }
+    if (badge) { setName(badge.name); setDescription(badge.description ?? ''); setIcon(badge.icon ?? '🏆'); setRuleCondition((badge.rule_json as unknown)?.condition ?? ''); }
     else { setName(''); setDescription(''); setIcon('🏆'); setRuleCondition(''); }
   }, [badge, open]);
 

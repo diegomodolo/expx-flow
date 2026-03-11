@@ -112,7 +112,7 @@ export default function ConfiguracaoFabrica() {
       .slice(0, 2);
   };
 
-  const updateScheduleField = async (scheduleId: string, field: string, value: any) => {
+  const updateScheduleField = async (scheduleId: string, field: string, value: unknown) => {
     // Clear existing timer for this field
     const timerKey = `${scheduleId}-${field}`;
     if (debounceTimers.current[timerKey]) {

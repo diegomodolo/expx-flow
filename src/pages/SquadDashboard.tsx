@@ -65,7 +65,7 @@ function KPICard({
   title: string;
   value: string | number;
   subtitle?: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
   trend?: "up" | "down" | "neutral";
   trendLabel?: string;
   color?: string;

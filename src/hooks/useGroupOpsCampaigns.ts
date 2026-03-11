@@ -21,8 +21,8 @@ export interface GroupOpsCampaign {
   next_execution_at: string | null;
   last_execution_at: string | null;
   instance_id: string | null;
-  targeting_rule_json: any;
-  cooldown_rule_json: any;
+  targeting_rule_json: unknown;
+  cooldown_rule_json: unknown;
   delivery_mode: string | null;
   approval_required: boolean | null;
   created_at: string;
@@ -168,7 +168,7 @@ export function useGroupOpsCampaigns(groupId?: string) {
         : null;
       const { data, error } = await supabase
         .from('groupops_campaigns')
-        .insert({ ...rest, company_id: companyId!, type: rest.type ?? 'CUSTOM', next_execution_at: nextExec } as any)
+        .insert({ ...rest, company_id: companyId!, type: rest.type ?? 'CUSTOM', next_execution_at: nextExec } as unknown)
         .select()
         .single();
       if (error) throw error;
@@ -194,11 +194,11 @@ export function useGroupOpsCampaigns(groupId?: string) {
               updates.schedule_day_of_month || null
             )
           : null;
-        (updates as any).next_execution_at = nextExec;
+        (updates as unknown).next_execution_at = nextExec;
       }
       const { data, error } = await supabase
         .from('groupops_campaigns')
-        .update(updates as any)
+        .update(updates as unknown)
         .eq('id', id)
         .select()
         .single();

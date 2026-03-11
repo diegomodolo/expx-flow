@@ -76,7 +76,7 @@ export default function Tarefas() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<unknown>(null);
   const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -162,12 +162,13 @@ export default function Tarefas() {
           valueA = a.title.toLowerCase();
           valueB = b.title.toLowerCase();
           break;
-        case 'priority':
+        case 'priority': {
           const priorityOrder = { high: 3, medium: 2, low: 1 };
           valueA = priorityOrder[a.priority as keyof typeof priorityOrder];
           valueB = priorityOrder[b.priority as keyof typeof priorityOrder];
           break;
-        case 'status':
+        }
+        case 'status': {
           const statusOrder = {
             todo: 1,
             progress: 2,
@@ -181,6 +182,7 @@ export default function Tarefas() {
           valueA = statusOrder[a.status as keyof typeof statusOrder];
           valueB = statusOrder[b.status as keyof typeof statusOrder];
           break;
+        }
         case 'responsible_name':
           valueA = (a.responsible_name || '').toLowerCase();
           valueB = (b.responsible_name || '').toLowerCase();
@@ -223,12 +225,12 @@ export default function Tarefas() {
     { value: 'due_date', label: 'Prazo' },
   ];
 
-  const handleCreateTask = async (taskData: any) => {
+  const handleCreateTask = async (taskData: unknown) => {
     await createTask(taskData);
     setTaskDialogOpen(false);
   };
 
-  const handleUpdateTask = async (taskData: any) => {
+  const handleUpdateTask = async (taskData: unknown) => {
     if (selectedTask) {
       await updateTask(selectedTask.id, taskData);
       setSelectedTask(null);
@@ -236,7 +238,7 @@ export default function Tarefas() {
     }
   };
 
-  const handleEditTask = (task: any) => {
+  const handleEditTask = (task: unknown) => {
     setSelectedTask(task);
     setTaskDialogOpen(true);
   };
@@ -258,19 +260,19 @@ export default function Tarefas() {
               .select('id, status')
               .eq('parent_task_id', taskId)
               .neq('origin', 'ghost');
-            const pendingSubtasks = (subtasks || []).filter((s: any) => s.status !== 'done');
+            const pendingSubtasks = (subtasks || []).filter((s: unknown) => s.status !== 'done');
             if (pendingSubtasks.length > 0) {
               pendingItems.push({ type: 'subtasks', count: pendingSubtasks.length });
             }
           }
 
           if (blockChecklist && existingTask) {
-            let checklist = (existingTask as any).checklist || [];
+            let checklist = (existingTask as unknown).checklist || [];
             if (typeof checklist === 'string') {
               try { checklist = JSON.parse(checklist); } catch { checklist = []; }
             }
             if (!Array.isArray(checklist)) checklist = [];
-            const pendingChecklist = checklist.filter((item: any) => !item.done && !item.completed);
+            const pendingChecklist = checklist.filter((item: unknown) => !item.done && !item.completed);
             if (pendingChecklist.length > 0) {
               pendingItems.push({ type: 'checklist', count: pendingChecklist.length });
             }
@@ -284,7 +286,7 @@ export default function Tarefas() {
         }
       }
 
-      const updates: any = { status: status as any };
+      const updates: unknown = { status: status as unknown };
       if (columnId !== undefined) updates.quadro_column_id = columnId || null;
       if (columnName !== undefined) updates.etapa = columnName || null;
 
@@ -340,7 +342,7 @@ export default function Tarefas() {
     }
   };
 
-  const handleConvertAlertToTask = (alert: any) => {
+  const handleConvertAlertToTask = (alert: unknown) => {
     // Adicionar alerta à lista de convertidos imediatamente para remover da UI
     setConvertedAlerts(prev => new Set([...prev, alert.id]));
     
@@ -348,7 +350,7 @@ export default function Tarefas() {
     convertAlertToTask(alert);
   };
 
-  const handleDiscardAlert = (alert: any) => {
+  const handleDiscardAlert = (alert: unknown) => {
     // Adicionar alerta à lista de convertidos para remover da UI
     setConvertedAlerts(prev => new Set([...prev, alert.id]));
     

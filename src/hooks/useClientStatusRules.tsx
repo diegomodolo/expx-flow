@@ -53,7 +53,7 @@ export const useClientStatusRules = () => {
       if (fetchError) throw fetchError;
       
       setRules((data || []) as unknown as ClientStatusRule[]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching rules:", err);
       setError(err.message);
     } finally {
@@ -74,7 +74,7 @@ export const useClientStatusRules = () => {
         .insert({
           ...ruleData,
           company_id: activeCompany.company_id,
-          conditions: ruleData.conditions as any,
+          conditions: ruleData.conditions as unknown,
         })
         .select()
         .single();
@@ -88,7 +88,7 @@ export const useClientStatusRules = () => {
 
       await fetchRules();
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating rule:", err);
       toast({
         title: "Erro ao criar regra",
@@ -103,7 +103,7 @@ export const useClientStatusRules = () => {
     try {
       const updateData = {
         ...updates,
-        conditions: updates.conditions ? (updates.conditions as any) : undefined,
+        conditions: updates.conditions ? (updates.conditions as unknown) : undefined,
       };
       
       const { error: updateError } = await supabase
@@ -119,7 +119,7 @@ export const useClientStatusRules = () => {
       });
 
       await fetchRules();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating rule:", err);
       toast({
         title: "Erro ao atualizar regra",
@@ -144,7 +144,7 @@ export const useClientStatusRules = () => {
       });
 
       await fetchRules();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error deleting rule:", err);
       toast({
         title: "Erro ao excluir regra",
@@ -182,7 +182,7 @@ export const useClientStatusRules = () => {
       });
 
       await fetchRules();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error reordering rules:", err);
       toast({
         title: "Erro ao reordenar regras",
@@ -365,7 +365,7 @@ export const useClientStatusRules = () => {
 
       const { error: insertError } = await supabase
         .from("client_status_rules")
-        .insert(defaultRules.map(r => ({ ...r, conditions: r.conditions as any })));
+        .insert(defaultRules.map(r => ({ ...r, conditions: r.conditions as unknown })));
 
       if (insertError) throw insertError;
 
@@ -375,7 +375,7 @@ export const useClientStatusRules = () => {
       });
 
       await fetchRules();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error restoring defaults:", err);
       toast({
         title: "Erro ao restaurar padrões",

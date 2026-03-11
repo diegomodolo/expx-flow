@@ -58,7 +58,7 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
       const { data } = await (supabase
         .from('tasks')
         .select('id, title, status')
-        .eq('company_id', companyId) as any)
+        .eq('company_id', companyId) as unknown)
         .in('status', ['todo', 'progress', 'review'])
         .order('updated_at', { ascending: false })
         .limit(15);
@@ -76,7 +76,7 @@ export function CommandBar({ channels, onSelectChannel, onStatusRequest }: Comma
       const { data } = await (supabase
         .from('employees')
         .select('id, name, role')
-        .eq('company_id', companyId) as any)
+        .eq('company_id', companyId) as unknown)
         .eq('is_active', true)
         .limit(10);
       return (data || []) as Array<{ id: string; name: string; role: string }>;

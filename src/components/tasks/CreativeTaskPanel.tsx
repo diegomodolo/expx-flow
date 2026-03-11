@@ -442,7 +442,7 @@ export function CreativeTaskPanel({ data, onChange, companyId, taskId, clientNam
                   } else {
                     toast({ title: 'Erro', description: fnData?.correctedText || 'Não foi possível validar.', variant: 'destructive' });
                   }
-                } catch (err: any) {
+                } catch (err: unknown) {
                   console.error('Grammar check error:', err);
                   toast({ title: 'Erro', description: 'Falha ao verificar ortografia.', variant: 'destructive' });
                 } finally {

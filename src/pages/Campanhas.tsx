@@ -80,7 +80,7 @@ const evaluateCampaignPerformance = (campaign: Campaign) => {
   const spendWithoutLeads = 150; // R$ 150 sem conversões é crítico
   
   let score = 0;
-  let issues = [];
+  const issues = [];
 
   // Avaliação de CTR (peso 30%)
   if (campaign.ctr >= ctrTarget * 1.5) score += 30; // Excelente CTR
@@ -253,55 +253,60 @@ const Campanhas = () => {
       let result = 0;
       
       switch (sortColumn) {
-        case 'performance':
+        case 'performance': {
           const scoreA = getPerformanceScore(a);
           const scoreB = getPerformanceScore(b);
           result = scoreA - scoreB; // Menor score primeiro (pior performance primeiro quando asc)
           break;
-          
+        }
+
         case 'name':
           result = a.name.localeCompare(b.name);
           break;
-          
-        case 'client':
+
+        case 'client': {
           const clientA = a.client?.name || '';
           const clientB = b.client?.name || '';
           result = clientA.localeCompare(clientB);
           break;
-          
+        }
+
         case 'ctr':
           result = (a.ctr || 0) - (b.ctr || 0);
           break;
-          
+
         case 'cpc':
           result = (a.cpc || 0) - (b.cpc || 0);
           break;
-          
+
         case 'conversions':
           result = (a.conversions || 0) - (b.conversions || 0);
           break;
-          
+
         case 'spend':
           result = (a.spend || 0) - (b.spend || 0);
           break;
-          
-        case 'cpl':
+
+        case 'cpl': {
           const cplA = a.conversions > 0 ? (a.spend || 0) / a.conversions : 0;
           const cplB = b.conversions > 0 ? (b.spend || 0) / b.conversions : 0;
           result = cplA - cplB;
           break;
-          
-        case 'objective':
+        }
+
+        case 'objective': {
           const objectiveA = a.objective || '';
           const objectiveB = b.objective || '';
           result = objectiveA.localeCompare(objectiveB);
           break;
-          
-        default:
+        }
+
+        default: {
           // Fallback para ordenação por performance (pior primeiro)
           const fallbackScoreA = getPerformanceScore(a);
           const fallbackScoreB = getPerformanceScore(b);
           result = fallbackScoreA - fallbackScoreB;
+        }
       }
       
       // Aplicar direção da ordenação

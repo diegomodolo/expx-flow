@@ -36,7 +36,7 @@ import { InstagramConnectionTestModal } from "./InstagramConnectionTestModal";
 interface ClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => Promise<any>;
+  onSubmit: (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => Promise<unknown>;
   client?: Client;
   title: string;
   readOnly?: boolean;
@@ -91,18 +91,18 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         google_account_id: client.google_account_id || "",
         facebook_page_id: client.facebook_page_id || "",
         instagram_account_id: client.instagram_account_id || "",
-        youtube_channel_url: (client as any).youtube_channel_url || "",
+        youtube_channel_url: (client as unknown).youtube_channel_url || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
         payment_type: (client.payment_type || "prepaid") as 'prepaid' | 'postpaid',
-        presentation_logo: (client as any).presentation_logo || "",
-        presentation_bg_image: (client as any).presentation_bg_image || "",
-        presentation_overlay_color: (client as any).presentation_overlay_color || "#1a73e8",
-        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7,
-        ai_reference_image_1: (client as any).ai_reference_image_1 || "",
-        ai_reference_image_2: (client as any).ai_reference_image_2 || "",
-        ai_reference_image_3: (client as any).ai_reference_image_3 || "",
+        presentation_logo: (client as unknown).presentation_logo || "",
+        presentation_bg_image: (client as unknown).presentation_bg_image || "",
+        presentation_overlay_color: (client as unknown).presentation_overlay_color || "#1a73e8",
+        presentation_overlay_opacity: (client as unknown).presentation_overlay_opacity ?? 0.7,
+        ai_reference_image_1: (client as unknown).ai_reference_image_1 || "",
+        ai_reference_image_2: (client as unknown).ai_reference_image_2 || "",
+        ai_reference_image_3: (client as unknown).ai_reference_image_3 || "",
         // Platform-specific financial fields
         meta_monthly_budget: client.meta_monthly_budget || 0,
         meta_payment_type: client.meta_payment_type || "prepaid",
@@ -120,8 +120,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
         is_canceled: client.is_canceled || false,
-        is_paused: (client as any).is_paused || false,
-        pause_reason: (client as any).pause_reason || "",
+        is_paused: (client as unknown).is_paused || false,
+        pause_reason: (client as unknown).pause_reason || "",
         gestor_id: client.gestor_id || "none",
       };
     }
@@ -237,7 +237,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         title: "Foto atualizada",
         description: "Foto do perfil do Instagram salva com sucesso!",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching Instagram avatar:', error);
       toast({
         title: "Erro",
@@ -281,18 +281,18 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         google_account_id: client.google_account_id || "",
         facebook_page_id: client.facebook_page_id || "",
         instagram_account_id: client.instagram_account_id || "",
-        youtube_channel_url: (client as any).youtube_channel_url || "",
+        youtube_channel_url: (client as unknown).youtube_channel_url || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
         payment_type: client.payment_type || "prepaid",
-        presentation_logo: (client as any).presentation_logo || "",
-        presentation_bg_image: (client as any).presentation_bg_image || "",
-        presentation_overlay_color: (client as any).presentation_overlay_color || "#1a73e8",
-        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7,
-        ai_reference_image_1: (client as any).ai_reference_image_1 || "",
-        ai_reference_image_2: (client as any).ai_reference_image_2 || "",
-        ai_reference_image_3: (client as any).ai_reference_image_3 || "",
+        presentation_logo: (client as unknown).presentation_logo || "",
+        presentation_bg_image: (client as unknown).presentation_bg_image || "",
+        presentation_overlay_color: (client as unknown).presentation_overlay_color || "#1a73e8",
+        presentation_overlay_opacity: (client as unknown).presentation_overlay_opacity ?? 0.7,
+        ai_reference_image_1: (client as unknown).ai_reference_image_1 || "",
+        ai_reference_image_2: (client as unknown).ai_reference_image_2 || "",
+        ai_reference_image_3: (client as unknown).ai_reference_image_3 || "",
         // Platform-specific financial fields
         meta_monthly_budget: client.meta_monthly_budget || 0,
         meta_payment_type: client.meta_payment_type || "prepaid",
@@ -310,8 +310,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
         is_canceled: client.is_canceled || false,
-        is_paused: (client as any).is_paused || false,
-        pause_reason: (client as any).pause_reason || "",
+        is_paused: (client as unknown).is_paused || false,
+        pause_reason: (client as unknown).pause_reason || "",
         gestor_id: client.gestor_id || "none",
       });
       setLocalClient(client);
@@ -415,7 +415,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       const isCanceled = formData.is_canceled;
       
       // Handle is_paused logic: set paused_at when marking as paused
-      const wasPaused = (client as any)?.is_paused || false;
+      const wasPaused = (client as unknown)?.is_paused || false;
       const isPaused = formData.is_paused;
       
       const submitData = {
@@ -434,7 +434,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         paused_at: isPaused && !wasPaused 
           ? new Date().toISOString() 
           : isPaused 
-            ? (client as any)?.paused_at 
+            ? (client as unknown)?.paused_at 
             : null,
         pause_reason: isPaused ? formData.pause_reason : null,
       };
@@ -468,7 +468,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         title: "Sucesso",
         description: client ? "Cliente atualizado com sucesso!" : "Cliente criado com sucesso!",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message || "Erro ao salvar cliente",
@@ -1049,7 +1049,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
           </div>
         );
 
-      case 'financeiro':
+      case 'financeiro': {
         const platformFinancialConfig = [
           { 
             key: 'meta', 
@@ -1191,6 +1191,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
             )}
           </div>
         );
+      }
 
       case 'integracoes':
         return (

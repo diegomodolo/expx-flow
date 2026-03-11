@@ -186,7 +186,7 @@ function CriticalAlertBanner({ task, onDismiss }: { task: TaskItem; onDismiss: (
 // ---- Task list modal ----
 type ModalKind = 'open' | 'overdue' | 'completed' | 'review' | null;
 
-const modalConfig: Record<Exclude<ModalKind, null>, { title: string; icon: any; color: string }> = {
+const modalConfig: Record<Exclude<ModalKind, null>, { title: string; icon: unknown; color: string }> = {
   open:      { title: 'Tarefas em Aberto',      icon: Clock,           color: 'text-gray-300' },
   overdue:   { title: 'Tarefas em Atraso',      icon: AlertTriangle,   color: 'text-red-400'  },
   completed: { title: 'Concluídas Hoje',        icon: CheckCircle2,    color: 'text-emerald-400' },
@@ -301,7 +301,7 @@ function TaskListModal({
 function KpiCard({
   label, value, icon: Icon, color, sublabel, onClick
 }: {
-  label: string; value: number | string; icon: any; color: string; sublabel?: string; onClick?: () => void;
+  label: string; value: number | string; icon: unknown; color: string; sublabel?: string; onClick?: () => void;
 }) {
   return (
     <div
@@ -388,7 +388,7 @@ function CompletionTrendChart({ data }: { data: CompletionTrendDay[] }) {
               contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: '#9ca3af' }}
               itemStyle={{ color: '#10b981' }}
-              formatter={(v: any) => [`${v} tarefas`, 'Concluídas']}
+              formatter={(v: unknown) => [`${v} tarefas`, 'Concluídas']}
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={32}>
               {data.map((entry, idx) => (
@@ -456,7 +456,7 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
               contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: '#9ca3af' }}
               itemStyle={{ color: '#d4d4d4' }}
-              formatter={(v: any) => [`${v} tarefas`, 'Concluídas']}
+              formatter={(v: unknown) => [`${v} tarefas`, 'Concluídas']}
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={28}>
               {data.map((entry, idx) => (
@@ -971,15 +971,15 @@ export default function TaskTvDashboard() {
                 task={editingTask ? {
                   id: editingTask.id,
                   title: editingTask.title,
-                  status: editingTask.status as any,
-                  priority: editingTask.priority as any,
+                  status: editingTask.status as unknown,
+                  priority: editingTask.priority as unknown,
                   deadline: editingTask.deadline,
                   due_date: editingTask.due_date,
                   responsible_name: editingTask.responsible_name,
                   responsible_avatar: editingTask.responsible_avatar,
                   assigned_user_id: editingTask.assigned_user_id,
                   user_id: editingTask.user_id,
-                } as any : undefined}
+                } as unknown : undefined}
                 onSave={() => { setEditingTaskId(null); refetch(); }}
                 onDelete={() => { setEditingTaskId(null); refetch(); }}
               />

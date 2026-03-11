@@ -255,7 +255,7 @@ export function TreeGridTable({
                   checked={allSelected}
                   ref={(ref) => {
                     if (ref) {
-                      (ref as any).indeterminate = someSelected;
+                      (ref as unknown).indeterminate = someSelected;
                     }
                   }}
                   onCheckedChange={(checked) => {

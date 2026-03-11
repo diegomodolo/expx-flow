@@ -12,7 +12,7 @@ import { toast } from "sonner";
 export const DiscordSquadChannels = () => {
   const { config, listChannels, companyId } = useDiscordConfig();
   const queryClient = useQueryClient();
-  const [channels, setChannels] = useState<any[]>([]);
+  const [channels, setChannels] = useState<unknown[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(false);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -20,7 +20,7 @@ export const DiscordSquadChannels = () => {
   const { data: squads, isLoading: loadingSquads } = useQuery({
     queryKey: ["squads-discord", companyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from("teams")
         .select("id, name, color, discord_channel_id, discord_channel_name")
         .eq("company_id", companyId!)
@@ -34,7 +34,7 @@ export const DiscordSquadChannels = () => {
   useEffect(() => {
     if (squads) {
       const initial: Record<string, string> = {};
-      squads.forEach((s: any) => {
+      squads.forEach((s: unknown) => {
         if (s.discord_channel_id) initial[s.id] = s.discord_channel_id;
       });
       setAssignments(initial);
@@ -53,7 +53,7 @@ export const DiscordSquadChannels = () => {
     try {
       const ch = await listChannels(config.guild_id);
       setChannels(ch);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Erro ao carregar canais: " + err.message);
     } finally {
       setLoadingChannels(false);
@@ -66,7 +66,7 @@ export const DiscordSquadChannels = () => {
       for (const squad of squads || []) {
         const channelId = assignments[squad.id] || null;
         const channel = channels.find((c) => c.id === channelId);
-        await (supabase as any)
+        await (supabase as unknown)
           .from("teams")
           .update({
             discord_channel_id: channelId,
@@ -76,7 +76,7 @@ export const DiscordSquadChannels = () => {
       }
       queryClient.invalidateQueries({ queryKey: ["squads-discord"] });
       toast.success("Canais dos squads atualizados!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message);
     } finally {
       setSaving(false);
@@ -111,7 +111,7 @@ export const DiscordSquadChannels = () => {
           </div>
         ) : (
           <>
-            {squads?.map((squad: any) => (
+            {squads?.map((squad: unknown) => (
               <div key={squad.id} className="flex items-center gap-3">
                 <div className="flex items-center gap-2 min-w-[140px]">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: squad.color || "#6366f1" }} />

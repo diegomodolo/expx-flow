@@ -73,7 +73,7 @@ export function CRMTagManager({ workspaceId, leadId }: CRMTagManagerProps) {
         {leadTags.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma tag adicionada</p>
         ) : (
-          leadTags.map((leadTag: any) => (
+          leadTags.map((leadTag: unknown) => (
             <Badge
               key={leadTag.id}
               style={{ backgroundColor: leadTag.tag.color, color: '#fff' }}

@@ -207,7 +207,7 @@ export function CreativeVariationGenerator() {
             } else {
               throw new Error(data?.error || "Nenhuma imagem gerada");
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error(`Error generating variation ${placeholder.id}:`, err);
             setVariations((prev) =>
               prev.map((v) =>
@@ -221,7 +221,7 @@ export function CreativeVariationGenerator() {
       );
 
       toast.success("Variações geradas com sucesso!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating variations:", error);
       toast.error("Erro ao gerar variações: " + error.message);
     } finally {
@@ -274,7 +274,7 @@ export function CreativeVariationGenerator() {
         );
         toast.success("Variação regenerada!");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(`Error regenerating variation ${id}:`, err);
       setVariations((prev) =>
         prev.map((v) =>

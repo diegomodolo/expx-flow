@@ -121,7 +121,7 @@ export function useGoogleAdsIntegration() {
       processingCodeRef.current = null;
       
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error in handleCallback:", error);
       toast.error(`Erro ao conectar Google Ads: ${error.message}`);
       // Limpar o código processado após erro
@@ -158,7 +158,7 @@ export function useGoogleAdsIntegration() {
       } else {
         setAdAccounts([]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading integration:", error);
       toast.error(`Erro ao carregar integração: ${error.message}`);
     } finally {
@@ -180,7 +180,7 @@ export function useGoogleAdsIntegration() {
       setIntegration(null);
       setAdAccounts([]);
       toast.success("Google Ads desconectado com sucesso!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error disconnecting:", error);
       toast.error(`Erro ao desconectar: ${error.message}`);
     }
@@ -212,7 +212,7 @@ export function useGoogleAdsIntegration() {
       
       // Reload integration data
       await loadIntegration(activeCompany.company_id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error refreshing accounts:', error);
       toast.error(`Erro ao recarregar contas: ${error.message}`);
     } finally {
@@ -245,7 +245,7 @@ export function useGoogleAdsIntegration() {
       
       // Reload integration data
       await loadIntegration(activeCompany.company_id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error refreshing token:', error);
       toast.error(`Erro ao renovar token: ${error.message}`);
     } finally {
@@ -282,7 +282,7 @@ export function useGoogleAdsIntegration() {
 
       toast.success("Conta adicionada com sucesso!");
       await loadIntegration(activeCompany.company_id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding customer ID:", error);
       toast.error(`Erro ao adicionar conta: ${error.message}`);
     }

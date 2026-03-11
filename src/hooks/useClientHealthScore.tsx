@@ -210,7 +210,7 @@ export function useClientHealthScore() {
       if (error) throw error;
 
       // Calculate health scores for each client
-      const healthData = (clients || []).map((client: any) => 
+      const healthData = (clients || []).map((client: unknown) => 
         calculateHealthScore({
           ...client,
           ad_account: client.ad_account?.[0] || client.ad_account || null,

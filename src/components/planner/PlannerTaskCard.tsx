@@ -11,7 +11,7 @@ import { useTasks } from "@/hooks/useTasks";
 
 interface PlannerTaskCardProps {
   task: Task;
-  onEdit?: (task: any) => void;
+  onEdit?: (task: unknown) => void;
   onDelete?: (taskId: string) => void;
 }
 

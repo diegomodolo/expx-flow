@@ -149,11 +149,11 @@ export const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
             )}
 
             {/* Collaborators */}
-            {(post as any).collaborators?.length > 0 && (
+            {(post as unknown).collaborators?.length > 0 && (
               <div>
                 <p className="text-sm font-medium mb-2">Colaboradores (Collab)</p>
                 <div className="flex flex-wrap gap-2">
-                  {(post as any).collaborators.map((collab: string, index: number) => (
+                  {(post as unknown).collaborators.map((collab: string, index: number) => (
                     <Badge key={index} variant="secondary">
                       @{collab}
                     </Badge>

@@ -42,7 +42,7 @@ export default function SuperAdmin() {
     try {
       await removeFromCompany(userId, companyId);
       toast.success(`Usuário removido de "${companyName}"`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || "Erro ao remover usuário");
     }
   };
@@ -52,7 +52,7 @@ export default function SuperAdmin() {
       await deleteUser(userId);
       toast.success(`Usuário "${userName}" deletado do sistema`);
       setSelectedUser(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.message || "Erro ao deletar usuário");
     }
   };

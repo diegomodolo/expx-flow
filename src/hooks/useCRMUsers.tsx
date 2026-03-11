@@ -109,7 +109,7 @@ export const useCRMUsers = (workspaceId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: ['crm-users', workspaceId] });
       toast.success("Usuário criado com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error creating user:", error);
       if (error.code === '23505') {
         toast.error("Este email já está cadastrado neste workspace");
@@ -136,7 +136,7 @@ export const useCRMUsers = (workspaceId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: ['crm-users', workspaceId] });
       toast.success("Usuário atualizado com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error updating user:", error);
       toast.error("Erro ao atualizar usuário");
     },
@@ -159,7 +159,7 @@ export const useCRMUsers = (workspaceId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: ['crm-users', workspaceId] });
       toast.success(variables.isActive ? "Usuário ativado" : "Usuário bloqueado");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error toggling user status:", error);
       toast.error("Erro ao alterar status do usuário");
     },
@@ -179,7 +179,7 @@ export const useCRMUsers = (workspaceId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: ['crm-users', workspaceId] });
       toast.success("Usuário removido com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error deleting user:", error);
       toast.error("Erro ao remover usuário");
     },
@@ -205,7 +205,7 @@ export const useCRMUsers = (workspaceId: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: ['crm-users', workspaceId] });
       toast.success("Senha redefinida com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error resetting password:", error);
       toast.error("Erro ao redefinir senha");
     },

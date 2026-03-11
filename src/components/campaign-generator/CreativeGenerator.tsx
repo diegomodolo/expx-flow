@@ -9,7 +9,7 @@ import type { CampaignData } from "@/pages/GeradorCampanhas";
 
 interface CreativeGeneratorProps {
   campaignData: CampaignData;
-  updateCampaignData: (field: keyof CampaignData, value: any) => void;
+  updateCampaignData: (field: keyof CampaignData, value: unknown) => void;
 }
 
 interface Creative {
@@ -32,14 +32,6 @@ export function CreativeGenerator({ campaignData, updateCampaignData }: Creative
   const [loading, setLoading] = useState(false);
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const { toast } = useToast();
-
-  if (!campaignData.client || !campaignData.funnelStage || !campaignData.campaignType || !campaignData.configuration) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Complete as etapas anteriores para continuar.
-      </div>
-    );
-  }
 
   const generateCreatives = async () => {
     setLoading(true);
@@ -76,6 +68,14 @@ export function CreativeGenerator({ campaignData, updateCampaignData }: Creative
       generateCreatives();
     }
   }, [campaignData.configuration]);
+
+  if (!campaignData.client || !campaignData.funnelStage || !campaignData.campaignType || !campaignData.configuration) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Complete as etapas anteriores para continuar.
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -10,7 +10,7 @@ interface RoteiroCardProps {
 }
 
 export function RoteiroCard({ roteiro, onClick }: RoteiroCardProps) {
-  const Icon = (LucideIcons as any)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
+  const Icon = (LucideIcons as unknown)[roteiro.icone || 'BookOpen'] || LucideIcons.BookOpen;
 
   return (
     <Card

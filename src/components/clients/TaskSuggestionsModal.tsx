@@ -199,7 +199,7 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
                       <div className="space-y-2">
                         <CardTitle className="text-lg">{suggestion.title}</CardTitle>
                         <div className="flex gap-2">
-                          <Badge variant={getPriorityColor(suggestion.priority) as any}>
+                          <Badge variant={getPriorityColor(suggestion.priority) as unknown}>
                             Prioridade {suggestion.priority === 'high' ? 'Alta' : suggestion.priority === 'medium' ? 'Média' : 'Baixa'}
                           </Badge>
                           {suggestion.campaignReference && (

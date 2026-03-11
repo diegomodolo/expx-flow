@@ -72,7 +72,7 @@ export function WhatsAppRecipientsList({
       ...formData,
       role: formData.role || null,
       client_id: null,
-    } as any);
+    } as unknown);
     setFormData({ name: "", phone: "", role: "", receive_alerts: true, receive_reports: true });
     setIsDialogOpen(false);
   };

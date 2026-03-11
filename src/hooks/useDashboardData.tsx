@@ -197,7 +197,7 @@ export const useDashboardData = () => {
   };
 
   // Função para calcular métricas de um conjunto de campanhas
-  const calculateMetrics = (campaigns: any[]) => {
+  const calculateMetrics = (campaigns: unknown[]) => {
     const totalInvestment = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
     const totalLeads = campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
     const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
@@ -226,17 +226,17 @@ export const useDashboardData = () => {
   };
 
   // Função para processar performance dos clientes (Meta + Google combinados)
-  const processClientsPerformance = (clients: any[]): ClientPerformance[] => {
+  const processClientsPerformance = (clients: unknown[]): ClientPerformance[] => {
     return clients.map(client => {
       // Meta campaigns
-      const metaInvestment = client.campaigns?.reduce((sum: number, c: any) => sum + (c.spend || 0), 0) || 0;
-      const metaLeads = client.campaigns?.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0) || 0;
-      const metaActiveCampaigns = client.campaigns?.filter((c: any) => c.status === 'active').length || 0;
+      const metaInvestment = client.campaigns?.reduce((sum: number, c: unknown) => sum + (c.spend || 0), 0) || 0;
+      const metaLeads = client.campaigns?.reduce((sum: number, c: unknown) => sum + (c.conversions || 0), 0) || 0;
+      const metaActiveCampaigns = client.campaigns?.filter((c: unknown) => c.status === 'active').length || 0;
       
       // Google campaigns
-      const googleInvestment = client.google_campaigns?.reduce((sum: number, c: any) => sum + (c.spend || 0), 0) || 0;
-      const googleLeads = client.google_campaigns?.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0) || 0;
-      const googleActiveCampaigns = client.google_campaigns?.filter((c: any) => c.status === 'ENABLED').length || 0;
+      const googleInvestment = client.google_campaigns?.reduce((sum: number, c: unknown) => sum + (c.spend || 0), 0) || 0;
+      const googleLeads = client.google_campaigns?.reduce((sum: number, c: unknown) => sum + (c.conversions || 0), 0) || 0;
+      const googleActiveCampaigns = client.google_campaigns?.filter((c: unknown) => c.status === 'ENABLED').length || 0;
       
       // Totais combinados
       const totalInvestment = metaInvestment + googleInvestment;
@@ -260,7 +260,7 @@ export const useDashboardData = () => {
   };
 
   // Função para processar ranking de campanhas
-  const processCampaignRankings = (campaigns: any[]): CampaignRanking[] => {
+  const processCampaignRankings = (campaigns: unknown[]): CampaignRanking[] => {
     return campaigns
       .filter(c => c.conversions > 0) // Só campanhas com conversões
       .map(campaign => ({
@@ -276,7 +276,7 @@ export const useDashboardData = () => {
   };
 
   // Função para calcular métricas do funil
-  const calculateFunnelMetrics = (campaigns: any[]): FunnelMetrics => {
+  const calculateFunnelMetrics = (campaigns: unknown[]): FunnelMetrics => {
     const totalReach = campaigns.reduce((sum, c) => sum + (c.reach || 0), 0);
     const totalLeads = campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
     const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
@@ -292,7 +292,7 @@ export const useDashboardData = () => {
   };
 
   // Função para gerar recomendação com ChatGPT
-  const generateRecommendation = async (campaignData: any, issueType: string) => {
+  const generateRecommendation = async (campaignData: unknown, issueType: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-campaign-recommendation', {
         body: {
@@ -333,7 +333,7 @@ export const useDashboardData = () => {
 
 
   // Função para processar dados de tendência
-  const processTrendsData = (data: any[]): TrendData[] => {
+  const processTrendsData = (data: unknown[]): TrendData[] => {
     const groupedByDate = data.reduce((acc, item) => {
       const date = new Date(item.created_at).toISOString().split('T')[0];
       if (!acc[date]) {
@@ -345,7 +345,7 @@ export const useDashboardData = () => {
       return acc;
     }, {});
 
-    return Object.entries(groupedByDate).map(([date, values]: [string, any]) => ({
+    return Object.entries(groupedByDate).map(([date, values]: [string, unknown]) => ({
       date,
       cpl: values.conversions > 0 ? values.spend / values.conversions : 0,
       leads: values.conversions,

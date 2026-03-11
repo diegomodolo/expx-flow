@@ -12,7 +12,7 @@ export interface CampaignSendLog {
   cycle_number: number;
   message_preview: string | null;
   delivery_status: string | null;
-  metadata: any;
+  metadata: unknown;
 }
 
 export function useGroupOpsCampaignSendLog(campaignId?: string) {
@@ -24,7 +24,7 @@ export function useGroupOpsCampaignSendLog(campaignId?: string) {
     queryFn: async () => {
       if (!companyId || !campaignId) return [];
       const { data, error } = await supabase
-        .from('groupops_campaign_send_log' as any)
+        .from('groupops_campaign_send_log' as unknown)
         .select('*')
         .eq('company_id', companyId)
         .eq('campaign_id', campaignId)

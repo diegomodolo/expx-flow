@@ -66,7 +66,7 @@ export function useWhatsAppConversations(
       if (error) throw error;
       
       // Transform data to flatten client name, avatar and temperature
-      let transformed = (data || []).map((conv: any) => ({
+      let transformed = (data || []).map((conv: unknown) => ({
         ...conv,
         client_name: conv.clients?.name || null,
         client_logo_url: conv.clients?.avatar || null,
@@ -80,7 +80,7 @@ export function useWhatsAppConversations(
       // Only show conversations that have a client linked AND that client belongs to the squad
       if (squadFilterId) {
         transformed = transformed.filter(
-          (conv: any) => conv.client_id && conv.client_team_id === squadFilterId
+          (conv: unknown) => conv.client_id && conv.client_team_id === squadFilterId
         );
       }
       

@@ -94,7 +94,7 @@ export function CSTVCriticalAlertOverlay({ alerts, onDismiss, onDismissAll, rota
   const playSiren = async () => {
     try {
       // Create audio context for siren sound
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as unknown).webkitAudioContext)();
       
       // Create oscillator for siren effect
       const oscillator = audioContext.createOscillator();

@@ -38,7 +38,7 @@ export function SquadChatMessages({ messages, loading }: SquadChatMessagesProps)
 
   const formatMessage = (content: string) => {
     let formatted = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    formatted = formatted.replace(/^[•\-\*]\s+(.+)$/gm, "• $1");
+    formatted = formatted.replace(/^[•\-*]\s+(.+)$/gm, "• $1");
     formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, "• $1");
     // Replace image URLs with img tags before converting newlines
     formatted = formatted.replace(imageUrlRegex, (url) => {

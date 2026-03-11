@@ -148,7 +148,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
       toast({ title: "Instância criada com sucesso na UazapiGO" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao criar instância",
         description: error.message,
@@ -171,7 +171,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
       toast({ title: "Instância atualizada" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao atualizar instância",
         description: error.message,
@@ -194,7 +194,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
       toast({ title: "Instância removida" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao remover instância",
         description: error.message,
@@ -247,7 +247,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao testar conexão",
         description: error.message,
@@ -277,7 +277,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
         description: `URL: ${data.webhook_url}` 
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao configurar webhook",
         description: error.message,
@@ -326,7 +326,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-user-instances"] });
       toast({ title: "Usuário atribuído" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao atribuir usuário",
         description: error.message,
@@ -351,7 +351,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-user-instances"] });
       toast({ title: "Usuário removido da instância" });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Erro ao remover usuário",
         description: error.message,

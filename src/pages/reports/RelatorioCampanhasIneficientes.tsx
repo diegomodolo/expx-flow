@@ -34,7 +34,7 @@ export default function RelatorioCampanhasIneficientes() {
   const [inefficientCampaigns, setInefficientCampaigns] = useState<InefficientCampaign[]>([]);
   const [filteredData, setFilteredData] = useState<InefficientCampaign[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<unknown>(null);
   const [campaignMetricsModalOpen, setCampaignMetricsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function RelatorioCampanhasIneficientes() {
     if (newFilters.plataforma && newFilters.plataforma !== 'todas') {
       // Como não temos plataforma no modelo, vamos simular baseado em dados disponíveis
       // Em um cenário real, seria filtrado por campaign.platform
-      filtered = filtered; // Manter todos por enquanto
+      // Manter todos por enquanto - filtro de plataforma não implementado
     }
 
     // Filtro por CPA mínimo

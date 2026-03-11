@@ -59,7 +59,7 @@ export function ClienteCriativos() {
   const { activeCompany } = useCompany();
   
   const [platformFilter, setPlatformFilter] = useState<Platform>('all');
-  const [selectedAd, setSelectedAd] = useState<any>(null);
+  const [selectedAd, setSelectedAd] = useState<unknown>(null);
   const [showModal, setShowModal] = useState(false);
   const [showCreativeModal, setShowCreativeModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -122,8 +122,8 @@ export function ClienteCriativos() {
       }
       
       // Then by selected metric
-      const aVal = (a as any)[sortBy] || 0;
-      const bVal = (b as any)[sortBy] || 0;
+      const aVal = (a as unknown)[sortBy] || 0;
+      const bVal = (b as unknown)[sortBy] || 0;
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
     });
     
@@ -140,7 +140,7 @@ export function ClienteCriativos() {
     return adGroups.filter(ag => ag.campaign_id === selectedCampaignId);
   }, [adGroups, selectedCampaignId]);
 
-  const handleViewDetails = (ad: any) => {
+  const handleViewDetails = (ad: unknown) => {
     setSelectedAd(ad);
     setShowModal(true);
   };
@@ -195,7 +195,7 @@ export function ClienteCriativos() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {/* View Toggle */}
-              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as any)}>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as unknown)}>
                 <ToggleGroupItem value="grid" aria-label="Visualizar em grade">
                   <Grid3x3 className="w-4 h-4" />
                 </ToggleGroupItem>

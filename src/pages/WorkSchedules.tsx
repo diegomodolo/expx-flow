@@ -60,7 +60,7 @@ export default function WorkSchedulesPage() {
     if (!bulkScheduleId) return;
     setBulkAssigning(true);
     try {
-      const activeEmployees = employees.filter((e: any) => e.status === "active");
+      const activeEmployees = employees.filter((e: unknown) => e.status === "active");
       for (const emp of activeEmployees) {
         await assignScheduleToEmployee(emp.id, bulkScheduleId === "none" ? null : bulkScheduleId);
       }
@@ -157,7 +157,7 @@ export default function WorkSchedulesPage() {
         {/* Schedule cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {schedules.map(ws => {
-            const assignedEmployees = employees.filter((e: any) => e.work_schedule_id === ws.id);
+            const assignedEmployees = employees.filter((e: unknown) => e.work_schedule_id === ws.id);
             return (
               <Card key={ws.id} className="group hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
@@ -245,7 +245,7 @@ export default function WorkSchedulesPage() {
             </CardHeader>
             <CardContent>
               <div className="divide-y divide-border">
-                {employees.filter(e => e.status === "active").map((emp: any) => (
+                {employees.filter(e => e.status === "active").map((emp: unknown) => (
                   <div key={emp.id} className="flex items-center justify-between py-3 gap-4">
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar className="h-8 w-8">

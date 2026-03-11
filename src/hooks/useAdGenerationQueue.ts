@@ -23,10 +23,10 @@ export interface GeneratedAd {
     ad_type?: string;
     image_prompt?: string;
     image_url?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   concept_description: string | null;
-  research_sources: any | null;
+  research_sources: unknown | null;
   quality_score: number | null;
   status: AdGenerationStatus;
   scheduled_for: string | null;
@@ -145,7 +145,7 @@ export function useAdGenerationQueue(clientId?: string) {
       toast.success(`${data.generated} anúncios gerados com sucesso!`);
       fetchAds();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating ads:', error);
       toast.error('Erro ao gerar anúncios: ' + error.message);
       throw error;
@@ -158,7 +158,7 @@ export function useAdGenerationQueue(clientId?: string) {
     if (!user?.id) return;
 
     try {
-      const updates: any = {
+      const updates: unknown = {
         status,
         reviewed_at: new Date().toISOString(),
         reviewed_by: user.id,
@@ -180,7 +180,7 @@ export function useAdGenerationQueue(clientId?: string) {
       ));
 
       toast.success(`Anúncio ${status === 'approved' ? 'aprovado' : status === 'rejected' ? 'rejeitado' : 'publicado'}!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating ad status:', error);
       toast.error('Erro ao atualizar status: ' + error.message);
     }
@@ -190,7 +190,7 @@ export function useAdGenerationQueue(clientId?: string) {
     if (!user?.id) return;
 
     try {
-      const updates: any = {
+      const updates: unknown = {
         status,
         reviewed_at: new Date().toISOString(),
         reviewed_by: user.id,
@@ -212,7 +212,7 @@ export function useAdGenerationQueue(clientId?: string) {
       ));
 
       toast.success(`${adIds.length} anúncios atualizados!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error bulk updating ads:', error);
       toast.error('Erro ao atualizar anúncios: ' + error.message);
     }
@@ -249,7 +249,7 @@ export function useAdGenerationQueue(clientId?: string) {
 
       fetchSchedule();
       toast.success('Configuração salva!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating schedule:', error);
       toast.error('Erro ao salvar configuração: ' + error.message);
     }
@@ -266,7 +266,7 @@ export function useAdGenerationQueue(clientId?: string) {
 
       setAds(prev => prev.filter(ad => ad.id !== adId));
       toast.success('Anúncio removido!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting ad:', error);
       toast.error('Erro ao remover anúncio: ' + error.message);
     }
@@ -299,7 +299,7 @@ export function useAdGenerationQueue(clientId?: string) {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error publishing ads:', error);
       toast.error('Erro ao publicar: ' + error.message);
       throw error;

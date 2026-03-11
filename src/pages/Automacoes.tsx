@@ -25,9 +25,9 @@ import { format } from "date-fns";
 
 const Automacoes = () => {
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editingTemplate, setEditingTemplate] = useState<unknown>(null);
   const [templateGroupEditorOpen, setTemplateGroupEditorOpen] = useState(false);
-  const [editingTemplateGroup, setEditingTemplateGroup] = useState<any>(null);
+  const [editingTemplateGroup, setEditingTemplateGroup] = useState<unknown>(null);
   const [prefixInput, setPrefixInput] = useState("");
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
@@ -61,12 +61,12 @@ const Automacoes = () => {
     entityTypeFilter === 'all' || t.entity_type === entityTypeFilter || (!t.entity_type && entityTypeFilter === 'campaign')
   );
 
-  const handleEditTemplate = (template: any) => {
+  const handleEditTemplate = (template: unknown) => {
     setEditingTemplate(template);
     setEditorOpen(true);
   };
 
-  const handleSaveTemplate = async (data: any) => {
+  const handleSaveTemplate = async (data: unknown) => {
     if (editingTemplate) {
       await updateRule(editingTemplate.id, data);
     } else {
@@ -86,7 +86,7 @@ const Automacoes = () => {
     await updateSettings({ campaign_name_prefix: trimmedPrefix });
   };
 
-  const handleSaveTemplateGroup = async (data: any) => {
+  const handleSaveTemplateGroup = async (data: unknown) => {
     if (editingTemplateGroup) {
       await updateTemplateGroup(editingTemplateGroup.id, data);
     } else {
@@ -370,7 +370,7 @@ const Automacoes = () => {
                                 Regras incluídas:
                               </div>
                               <div className="space-y-2">
-                                {template.rules.map((templateRule: any, index: number) => (
+                                {template.rules.map((templateRule: unknown, index: number) => (
                                   <div 
                                     key={templateRule.id}
                                     className="flex items-center gap-3 p-3 bg-accent/30 rounded-lg text-sm"
@@ -423,7 +423,7 @@ const Automacoes = () => {
                   </Alert>
                 ) : (
                   <div className="space-y-4">
-                    {recommendations.map((rec: any) => (
+                    {recommendations.map((rec: unknown) => (
                       <Card key={rec.id} className="border-l-4 border-l-yellow-500">
                         <CardHeader>
                           <div className="flex items-start justify-between">
@@ -510,7 +510,7 @@ const Automacoes = () => {
                               title: "Recovery triggers processados!",
                               description: "As reativações pendentes foram processadas com sucesso.",
                             });
-                          } catch (error: any) {
+                          } catch (error: unknown) {
                             toast({
                               title: "Erro ao processar recovery triggers",
                               description: error.message,

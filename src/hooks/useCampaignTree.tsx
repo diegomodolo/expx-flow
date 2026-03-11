@@ -185,7 +185,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
 
     const platform: "meta" | "google" = metaCampaign ? "meta" : "google";
 
-    const getStatus = (item: any): "active" | "paused" | "finished" | "deleted" => {
+    const getStatus = (item: unknown): "active" | "paused" | "finished" | "deleted" => {
       if (item.status === "deleted" || item.status === "DELETED") {
         return "deleted";
       }
@@ -199,7 +199,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
     };
 
     // Safely access properties that might not exist on all campaign types
-    const campaignAny = campaign as any;
+    const campaignAny = campaign as unknown;
     
     // Calculate campaign CPM: (spend / impressions) * 1000
     const campaignImpressions = Number(campaign.impressions) || 0;
@@ -252,8 +252,8 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
           facebookId: adset.facebook_id,
           parentId: campaign.id,
           targeting: adset.targeting ? JSON.parse(adset.targeting) : undefined,
-          pixelId: (adset as any).pixel_id || undefined,
-          conversionEvent: (adset as any).conversion_event || undefined,
+          pixelId: (adset as unknown).pixel_id || undefined,
+          conversionEvent: (adset as unknown).conversion_event || undefined,
           metrics: {
             spend: Number(adset.spend) || 0,
             impressions: Number(adset.impressions) || 0,
@@ -262,7 +262,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
             ctr: Number(adset.ctr) || 0,
             cpc: Number(adset.cpc) || 0,
             cpa: Number(adset.cpa) || 0,
-            cpm: Number((adset as any).cpm) || 0,
+            cpm: Number((adset as unknown).cpm) || 0,
             reach: adset.reach ? Number(adset.reach) : undefined,
             frequency: adset.frequency ? Number(adset.frequency) : undefined,
           },
@@ -301,7 +301,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
               }
             })(),
             linkUrl: ad.link_url,
-            pixelId: (ad as any).pixel_id || undefined,
+            pixelId: (ad as unknown).pixel_id || undefined,
             metrics: {
               spend: Number(ad.spend) || 0,
               impressions: Number(ad.impressions) || 0,
@@ -310,7 +310,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
               ctr: Number(ad.ctr) || 0,
               cpc: Number(ad.cpc) || 0,
               cpa: Number(ad.cpa) || 0,
-              cpm: Number((ad as any).cpm) || 0,
+              cpm: Number((ad as unknown).cpm) || 0,
               reach: ad.reach ? Number(ad.reach) : undefined,
               frequency: ad.frequency ? Number(ad.frequency) : undefined,
             },
@@ -323,7 +323,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
       // Google
       campaignNode.children = googleAdGroups.map((adGroup) => {
         const groupAds = googleAds.filter((ad) => ad.ad_group_id === adGroup.id);
-        const adGroupAny = adGroup as any;
+        const adGroupAny = adGroup as unknown;
 
         const adGroupNode: TreeNode = {
           id: adGroup.id,
@@ -343,10 +343,10 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
             ctr: Number(adGroup.ctr) || 0,
             cpc: Number(adGroup.cpc) || 0,
             cpa: Number(adGroup.cpa) || 0,
-            cpm: Number((adGroup as any).cpm) || 0,
+            cpm: Number((adGroup as unknown).cpm) || 0,
           },
           children: groupAds.map((ad) => {
-            const adAny = ad as any;
+            const adAny = ad as unknown;
             const headlines = ad.headlines as string[] | null;
             const descriptions = ad.descriptions as string[] | null;
             return {
@@ -370,7 +370,7 @@ export function useCampaignTree(options: UseCampaignTreeOptions) {
                 ctr: Number(ad.ctr) || 0,
                 cpc: Number(ad.cpc) || 0,
                 cpa: Number(ad.cpa) || 0,
-                cpm: Number((ad as any).cpm) || 0,
+                cpm: Number((ad as unknown).cpm) || 0,
               },
             };
           }),

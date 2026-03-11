@@ -62,7 +62,7 @@ export default function GoogleAdsCallback() {
         setTimeout(() => {
           navigate('/configuracoes/integracao-google');
         }, 2000);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Callback processing error:', error);
         setStatus('error');
         setError(error.message || 'Erro ao processar callback');

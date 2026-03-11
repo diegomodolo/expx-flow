@@ -51,7 +51,7 @@ export function NotificationBell() {
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from('internal_notifications' as any)
+        .from('internal_notifications' as unknown)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -70,7 +70,7 @@ export function NotificationBell() {
     mutationFn: async () => {
       if (!user?.id) return;
       const { error } = await supabase
-        .from('internal_notifications' as any)
+        .from('internal_notifications' as unknown)
         .update({ is_read: true })
         .eq('user_id', user.id)
         .eq('is_read', false);
@@ -84,7 +84,7 @@ export function NotificationBell() {
   const markOneRead = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('internal_notifications' as any)
+        .from('internal_notifications' as unknown)
         .update({ is_read: true })
         .eq('id', id);
       if (error) throw error;

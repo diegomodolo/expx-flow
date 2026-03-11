@@ -29,12 +29,12 @@ export function useTaskHistory(taskId: string | null) {
     if (!taskId || !companyId) return;
     setLoading(true);
     const { data } = await supabase
-      .from("task_history" as any)
+      .from("task_history" as unknown)
       .select("*")
       .eq("task_id", taskId)
       .eq("company_id", companyId)
       .order("created_at", { ascending: false });
-    setEntries((data as any as TaskHistoryEntry[]) || []);
+    setEntries((data as unknown as TaskHistoryEntry[]) || []);
     setLoading(false);
   }, [taskId, companyId]);
 
@@ -50,7 +50,7 @@ export function useTaskHistory(taskId: string | null) {
       .eq("user_id", user.id)
       .single();
 
-    await (supabase.from("task_history" as any) as any).insert({
+    await (supabase.from("task_history" as unknown) as unknown).insert({
       task_id: taskId,
       company_id: companyId,
       user_id: user.id,
@@ -63,14 +63,14 @@ export function useTaskHistory(taskId: string | null) {
   };
 
   const updateEntry = async (entryId: string, description: string) => {
-    await (supabase.from("task_history" as any) as any)
+    await (supabase.from("task_history" as unknown) as unknown)
       .update({ description, updated_at: new Date().toISOString() })
       .eq("id", entryId);
     await fetchHistory();
   };
 
   const deleteEntry = async (entryId: string) => {
-    await (supabase.from("task_history" as any) as any)
+    await (supabase.from("task_history" as unknown) as unknown)
       .delete()
       .eq("id", entryId);
     await fetchHistory();
@@ -90,7 +90,7 @@ export function useTaskHistory(taskId: string | null) {
       .eq("user_id", user.id)
       .single();
 
-    await (supabase.from("task_history" as any) as any).insert({
+    await (supabase.from("task_history" as unknown) as unknown).insert({
       task_id: taskId,
       company_id: companyId,
       user_id: user.id,

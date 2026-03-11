@@ -92,7 +92,7 @@ export function useKeywordPlanner({ companyId, customerId }: UseKeywordPlannerOp
       const result = response.data?.data || [];
       setKeywords(result);
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage = err.message || "Error generating keyword ideas";
       setError(errorMessage);
       toast({
@@ -166,7 +166,7 @@ export function useKeywordPlanner({ companyId, customerId }: UseKeywordPlannerOp
       const result = response.data?.data || [];
       setKeywords(result);
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage = err.message || "Error getting historical metrics";
       setError(errorMessage);
       toast({

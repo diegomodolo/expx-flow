@@ -30,7 +30,7 @@ export const FacebookIntegrationSettings = () => {
   const { pages, instagramAccounts, refreshPages } = useFacebookPages();
 
   const [showScopesModal, setShowScopesModal] = useState(false);
-  const [scopesData, setScopesData] = useState<any>(null);
+  const [scopesData, setScopesData] = useState<unknown>(null);
   const [checkingScopes, setCheckingScopes] = useState(false);
   const [refreshingPages, setRefreshingPages] = useState(false);
   const [adAccountsOpen, setAdAccountsOpen] = useState(false);

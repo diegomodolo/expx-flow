@@ -12,7 +12,7 @@ interface PlannerTimeSlotProps {
   slot: TimeSlot;
   tasks: Task[];
   onAddTask: () => void;
-  onEditTask?: (task: any) => void;
+  onEditTask?: (task: unknown) => void;
   onDeleteTask?: (taskId: string) => void;
 }
 

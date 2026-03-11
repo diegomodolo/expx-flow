@@ -63,7 +63,7 @@ export function useClientBenchmarks(clientId?: string, companyId?: string) {
 
       if (error) throw error;
       setBenchmarks((data || []) as ClientBenchmark[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching benchmarks:', error);
     } finally {
       setLoading(false);
@@ -151,7 +151,7 @@ export function useClientBenchmarks(clientId?: string, companyId?: string) {
 
       await fetchBenchmarks();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving benchmark:', error);
       toast({
         title: "Erro ao salvar métricas",
@@ -183,7 +183,7 @@ export function useClientBenchmarks(clientId?: string, companyId?: string) {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving benchmarks:', error);
       return false;
     }

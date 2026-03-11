@@ -239,7 +239,7 @@ export const useCompetitors = (clientId?: string) => {
     toast.success('Anúncio removido com sucesso!');
   };
 
-  const generateCompetitiveAnalysis = async (clientData: any, clientAds: any[]) => {
+  const generateCompetitiveAnalysis = async (clientData: unknown, clientAds: unknown[]) => {
     try {
       const { data, error } = await supabase.functions.invoke('analyze-competitor-insights', {
         body: {

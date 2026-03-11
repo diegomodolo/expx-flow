@@ -62,7 +62,7 @@ export default function ClienteAutomacoes() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [ruleToEdit, setRuleToEdit] = useState<any>(null);
+  const [ruleToEdit, setRuleToEdit] = useState<unknown>(null);
   const [logEntityFilter, setLogEntityFilter] = useState<'all' | 'campaign' | 'adset' | 'ad'>('all');
   const [clearLogsDialogOpen, setClearLogsDialogOpen] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
@@ -116,7 +116,7 @@ export default function ClienteAutomacoes() {
         title: !currentStatus ? "Automação ativada" : "Automação desativada",
         description: "O status foi atualizado com sucesso."
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message,
@@ -134,7 +134,7 @@ export default function ClienteAutomacoes() {
       });
       setDeleteDialogOpen(false);
       setRuleToDelete(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message,
@@ -168,7 +168,7 @@ export default function ClienteAutomacoes() {
         title: "Execução iniciada",
         description: "Acompanhe o progresso no modal."
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error starting automations:', error);
       setProgressModalOpen(false);
       toast({
@@ -245,14 +245,14 @@ export default function ClienteAutomacoes() {
   };
   const handleSaveConditions = async (
     ruleId: string,
-    updatedConditions: any,
+    updatedConditions: unknown,
     timeWindowDays?: number
   ) => {
     try {
       await updateRuleConditions(ruleId, updatedConditions, timeWindowDays);
       setEditDialogOpen(false);
       setRuleToEdit(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message,
@@ -396,7 +396,7 @@ export default function ClienteAutomacoes() {
                                   Condições configuradas:
                                 </div>
                                 <div className="space-y-1">
-                                  {rule.conditions.conditions.map((condition: any, idx: number) => <div key={idx} className="flex items-center gap-2 text-xs">
+                                  {rule.conditions.conditions.map((condition: unknown, idx: number) => <div key={idx} className="flex items-center gap-2 text-xs">
                                       <Badge variant="secondary" className="font-mono">
                                         {getFieldLabel(condition.field)}
                                       </Badge>

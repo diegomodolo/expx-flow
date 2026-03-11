@@ -150,7 +150,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useWhatsAppMessages] Exceção ao buscar mensagens:", err);
       toast({
         title: "Erro ao buscar mensagens",
@@ -232,9 +232,9 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
       // Update conversation preview optimistically
       queryClient.setQueryData(
         ["whatsapp-conversations", companyId],
-        (old: any) => {
+        (old: unknown) => {
           if (!old) return old;
-          return old.map((conv: any) =>
+          return old.map((conv: unknown) =>
             conv.id === conversationId
               ? { ...conv, last_message_at: now, last_message_preview: message.substring(0, 100) }
               : conv
@@ -305,7 +305,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // If we have a saved message ID, mark it as failed
       if (savedMessageId) {
         await supabase
@@ -436,9 +436,9 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
       const preview = caption || `📎 ${media.type === "image" ? "Imagem" : media.type === "video" ? "Vídeo" : (media.type === "audio" || media.type === "ptt") ? "Mensagem de voz" : "Documento"}`;
       queryClient.setQueryData(
         ["whatsapp-conversations", companyId],
-        (old: any) => {
+        (old: unknown) => {
           if (!old) return old;
-          return old.map((conv: any) =>
+          return old.map((conv: unknown) =>
             conv.id === conversationId
               ? { ...conv, last_message_at: now, last_message_preview: preview.substring(0, 100) }
               : conv
@@ -497,7 +497,7 @@ export function useWhatsAppMessages(conversationId: string | null, companyId: st
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (savedMessageId) {
         await supabase
           .from("whatsapp_messages")

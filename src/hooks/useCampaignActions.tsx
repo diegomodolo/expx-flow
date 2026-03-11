@@ -18,7 +18,7 @@ export function useCampaignActions(onSuccess?: () => void) {
     campaignId: string,
     clientId: string,
     action: string,
-    payload: Record<string, any>
+    payload: Record<string, unknown>
   ): Promise<CampaignActionResult> => {
     try {
       const { data, error } = await supabase.functions.invoke('manage-facebook-campaign', {

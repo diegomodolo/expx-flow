@@ -50,23 +50,25 @@ export default function RepositorioCriativos() {
       let error = null;
       
       switch (selectedCreative.source) {
-        case 'fabrica_criativos':
+        case 'fabrica_criativos': {
           const { error: fcError } = await supabase
             .from('creative_generation_queue')
             .update({ image_url: newImageUrl })
             .eq('id', selectedCreative.id);
           error = fcError;
           break;
-          
-        case 'gerador_criativos':
+        }
+
+        case 'gerador_criativos': {
           const { error: gcError } = await supabase
             .from('visual_creatives')
             .update({ image_url: newImageUrl })
             .eq('id', selectedCreative.id);
           error = gcError;
           break;
-          
-        case 'fabrica_anuncios':
+        }
+
+        case 'fabrica_anuncios': {
           // Need to update generated_content JSON
           const { data: adData } = await supabase
             .from('ad_generation_queue')
@@ -75,7 +77,7 @@ export default function RepositorioCriativos() {
             .single();
           
           if (adData) {
-            const content = adData.generated_content as any || {};
+            const content = adData.generated_content as unknown || {};
             content.image_url = newImageUrl;
             content.creative_image_url = newImageUrl;
             
@@ -86,23 +88,24 @@ export default function RepositorioCriativos() {
             error = faError;
           }
           break;
-          
-        case 'fabrica_carrosseis':
+        }
+
+        case 'fabrica_carrosseis': {
           // For carousels, update the current slide's image
           const { data: carouselData } = await supabase
             .from('carousel_generation_queue')
             .select('slides')
             .eq('id', selectedCreative.id)
             .single();
-          
+
           if (carouselData && carouselData.slides) {
-            const slides = carouselData.slides as any[];
+            const slides = carouselData.slides as unknown[];
             if (slides[currentSlideIndex]) {
               slides[currentSlideIndex].image_url = newImageUrl;
-              
+
               const { error: ccError } = await supabase
                 .from('carousel_generation_queue')
-                .update({ 
+                .update({
                   slides: slides,
                   cover_image_url: currentSlideIndex === 0 ? newImageUrl : undefined
                 })
@@ -111,6 +114,7 @@ export default function RepositorioCriativos() {
             }
           }
           break;
+        }
       }
       
       if (error) {

@@ -59,7 +59,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       
       // Collect all video titles from suggestions AND source_video_id column
       const allVideoTitles: string[] = [];
-      (data || []).forEach((s: any) => {
+      (data || []).forEach((s: unknown) => {
         const suggestion = s.youtube_content_suggestions;
         if (suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos)) {
           allVideoTitles.push(...suggestion.based_on_videos);
@@ -74,7 +74,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       const combinedTitles = allVideoTitles;
 
       // Fetch video data for all referenced titles
-      let videoMap = new Map<string, SourceVideoInfo>();
+      const videoMap = new Map<string, SourceVideoInfo>();
       if (combinedTitles.length > 0) {
         const uniqueTitles = [...new Set(combinedTitles)];
         const { data: videosData } = await supabase
@@ -108,7 +108,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       }
 
       // Parse JSON fields with proper typing
-      const parsedScripts: YouTubeScript[] = (data || []).map((s: any) => {
+      const parsedScripts: YouTubeScript[] = (data || []).map((s: unknown) => {
         const suggestion = s.youtube_content_suggestions;
         const basedOnVideos: string[] = suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos) 
           ? suggestion.based_on_videos 
@@ -187,7 +187,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
 
       await fetchScripts();
       return data.script;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating script:', error);
       toast({
         title: 'Erro ao gerar roteiro',
@@ -276,7 +276,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       if (!data?.success) throw new Error(data?.error || 'Failed to send message');
 
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending message:', error);
       toast({
         title: 'Erro ao enviar mensagem',
@@ -299,7 +299,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
 
       await fetchScripts();
       return data.titles;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating titles:', error);
       toast({
         title: 'Erro ao gerar títulos',

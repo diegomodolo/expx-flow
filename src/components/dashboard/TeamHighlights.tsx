@@ -47,7 +47,7 @@ export function TeamHighlights() {
 
       if (topPerformer && topPerformer.length > 0) {
         const counts: Record<string, number> = {};
-        topPerformer.forEach((task: any) => {
+        topPerformer.forEach((task: unknown) => {
           if (task.assigned_user_id) {
             counts[task.assigned_user_id] = (counts[task.assigned_user_id] || 0) + 1;
           }
@@ -97,7 +97,7 @@ export function TeamHighlights() {
         .limit(1);
 
       if (campaigns && campaigns.length > 0) {
-        const campaign = campaigns[0] as any;
+        const campaign = campaigns[0] as unknown;
         results.push({
           type: "best_campaign",
           title: "Melhor Campanha",

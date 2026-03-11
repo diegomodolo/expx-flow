@@ -8,7 +8,7 @@ export interface TaskFlow {
   company_id: string;
   name: string;
   description: string | null;
-  flow_data: any;
+  flow_data: unknown;
   is_active: boolean;
   created_by: string | null;
   created_at: string;
@@ -25,10 +25,10 @@ export function useTaskFlows() {
     queryFn: async () => {
       if (!companyId) return [];
       const { data, error } = await (supabase
-        .from('task_flows' as any)
+        .from('task_flows' as unknown)
         .select('*')
         .eq('company_id', companyId)
-        .order('created_at', { ascending: false }) as any);
+        .order('created_at', { ascending: false }) as unknown);
       if (error) throw error;
       return (data || []) as TaskFlow[];
     },
@@ -40,10 +40,10 @@ export function useTaskFlows() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !companyId) throw new Error('Missing user or company');
       const { data, error } = await (supabase
-        .from('task_flows' as any)
+        .from('task_flows' as unknown)
         .insert({ company_id: companyId, name, created_by: user.id })
         .select()
-        .single() as any);
+        .single() as unknown);
       if (error) throw error;
       return data as TaskFlow;
     },
@@ -57,11 +57,11 @@ export function useTaskFlows() {
   const updateFlow = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<TaskFlow> & { id: string }) => {
       const { data, error } = await (supabase
-        .from('task_flows' as any)
+        .from('task_flows' as unknown)
         .update(updates)
         .eq('id', id)
         .select()
-        .single() as any);
+        .single() as unknown);
       if (error) throw error;
       return data as TaskFlow;
     },
@@ -73,9 +73,9 @@ export function useTaskFlows() {
   const deleteFlow = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase
-        .from('task_flows' as any)
+        .from('task_flows' as unknown)
         .delete()
-        .eq('id', id) as any);
+        .eq('id', id) as unknown);
       if (error) throw error;
     },
     onSuccess: () => {

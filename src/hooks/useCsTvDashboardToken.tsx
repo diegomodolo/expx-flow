@@ -27,7 +27,7 @@ export function useCsTvDashboardToken() {
         .single();
 
       if (error) throw error;
-      setToken((data as any)?.cs_tv_dashboard_token || null);
+      setToken((data as unknown)?.cs_tv_dashboard_token || null);
     } catch (error) {
       console.error('Error fetching CS TV dashboard token:', error);
     } finally {
@@ -42,7 +42,7 @@ export function useCsTvDashboardToken() {
     try {
       // Generate token using database function
       const { data: tokenData, error: tokenError } = await (supabase
-        .rpc as any)('generate_cs_tv_dashboard_token');
+        .rpc as unknown)('generate_cs_tv_dashboard_token');
 
       if (tokenError) {
         console.error('Error generating token via RPC:', tokenError);
@@ -53,7 +53,7 @@ export function useCsTvDashboardToken() {
 
       // Use secure RPC to set the token
       const { error: setError } = await (supabase
-        .rpc as any)('set_cs_tv_dashboard_token', {
+        .rpc as unknown)('set_cs_tv_dashboard_token', {
           p_company_id: activeCompany.company_id,
           p_token: newToken
         });

@@ -9,7 +9,7 @@ import type { CampaignData } from "@/pages/GeradorCampanhas";
 
 interface ClientSelectorProps {
   campaignData: CampaignData;
-  updateCampaignData: (field: keyof CampaignData, value: any) => void;
+  updateCampaignData: (field: keyof CampaignData, value: unknown) => void;
 }
 
 export function ClientSelector({ campaignData, updateCampaignData }: ClientSelectorProps) {

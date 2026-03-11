@@ -391,7 +391,7 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: insertedBatch, error } = await supabase
           .from('lead_master_pool')
-          .insert(batch as any)
+          .insert(batch as unknown)
           .select('id');
         
         if (error) {
@@ -401,7 +401,7 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: single, error: singleError } = await supabase
               .from('lead_master_pool')
-              .insert(lead as any)
+              .insert(lead as unknown)
               .select('id')
               .single();
             

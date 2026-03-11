@@ -195,7 +195,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
       toast.success('Configurações salvas!');
       onSave?.();
       loadConfig();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving config:', error);
       toast.error('Erro ao salvar: ' + error.message);
     } finally {
@@ -216,7 +216,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
       toast.success('Fábrica removida!');
       onDelete?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting config:', error);
       toast.error('Erro ao remover: ' + error.message);
     }
@@ -238,7 +238,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
       if (error) throw error;
 
       toast.success('Reset realizado!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error resetting:', error);
       toast.error('Erro ao resetar: ' + error.message);
     } finally {
@@ -265,7 +265,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
       const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
       setConfig(prev => ({ ...prev, [fieldName]: publicUrl }));
       toast.success('Imagem enviada!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading image:', error);
       toast.error('Erro ao enviar imagem');
     } finally {
@@ -290,7 +290,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
     for (let i = 1; i <= 6 && urlIndex < urls.length; i++) {
       const fieldName = `reference_image_${i}` as keyof ScheduleConfig;
       if (!currentImages[i - 1]) {
-        (newConfig as any)[fieldName] = urls[urlIndex];
+        (newConfig as unknown)[fieldName] = urls[urlIndex];
         urlIndex++;
       }
     }

@@ -60,7 +60,7 @@ export function ReplyToTaskDialog({ open, onOpenChange, message }: ReplyToTaskDi
     try {
       // Insert comment linking message to task
       const { error } = await supabase
-        .from('task_chat_comments' as any)
+        .from('task_chat_comments' as unknown)
         .insert({
           task_id: taskId,
           message_id: message.id,

@@ -19,7 +19,7 @@ export function ClienteAlertas() {
   const { toast } = useToast();
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
   const [generatingSuggestions, setGeneratingSuggestions] = useState(false);
-  const [clientSuggestions, setClientSuggestions] = useState<any>(null);
+  const [clientSuggestions, setClientSuggestions] = useState<unknown>(null);
 
   // Buscar alertas ao montar
   useEffect(() => {
@@ -35,7 +35,7 @@ export function ClienteAlertas() {
   const criticalCount = clientAlerts.filter(a => a.type === 'danger').length;
   const opportunityCount = clientAlerts.filter(a => a.type === 'opportunity').length;
 
-  const handleCreateTask = (alert: any) => {
+  const handleCreateTask = (alert: unknown) => {
     convertAlertToTask(alert);
   };
 
@@ -75,12 +75,12 @@ export function ClienteAlertas() {
       const modalData = {
         id: client.id,
         name: client.name,
-        issues: data.suggestions.map((s: any) => s.description).slice(0, 5),
+        issues: data.suggestions.map((s: unknown) => s.description).slice(0, 5),
         problematic_campaigns: clientCampaigns
           .filter(c => c.status === 'active' && (c.cpa > 50 || c.ctr < 1))
           .map(c => c.name)
           .slice(0, 3),
-        ai_recommendations: data.suggestions.map((s: any) => s.action).slice(0, 5),
+        ai_recommendations: data.suggestions.map((s: unknown) => s.action).slice(0, 5),
       };
 
       setClientSuggestions(modalData);

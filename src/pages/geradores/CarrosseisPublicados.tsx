@@ -14,7 +14,7 @@ interface Slide {
   type: string;
   headline?: string;
   image_url?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const typeIcons: Record<string, typeof BookOpen> = {

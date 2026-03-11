@@ -13,7 +13,7 @@ interface GenerateCarouselParams {
 interface GenerateCarouselResult {
   success: boolean;
   generated: number;
-  carousels?: any[];
+  carousels?: unknown[];
   errors?: string[];
 }
 
@@ -49,7 +49,7 @@ export function useCarouselGeneration() {
         carousels: data.carousels,
         errors: data.errors,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[useCarouselGeneration] Error:', error);
       
       let errorMessage = 'Erro ao gerar carrosséis';

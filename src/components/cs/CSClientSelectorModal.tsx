@@ -68,7 +68,7 @@ export function CSClientSelectorModal({
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data || []).map((c: any) => ({
+      return (data || []).map((c: unknown) => ({
         id: c.id,
         name: c.name,
         avatar: c.avatar,

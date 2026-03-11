@@ -95,7 +95,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
       queryClient.invalidateQueries({ queryKey: ['workspace-documents'] });
       queryClient.invalidateQueries({ queryKey: ['workspace-documents-all'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao criar documento', description: error.message, variant: 'destructive' });
     },
   });
@@ -104,13 +104,13 @@ export function useWorkspaceDocuments(folderId?: string | null) {
     mutationFn: async ({ id, title, content, icon, folderId, isFavorite, coverImage }: { 
       id: string; 
       title?: string; 
-      content?: any; 
+      content?: unknown; 
       icon?: string;
       folderId?: string | null;
       isFavorite?: boolean;
       coverImage?: string | null;
     }) => {
-      const updates: any = {};
+      const updates: unknown = {};
       if (title !== undefined) updates.title = title;
       if (content !== undefined) updates.content = content;
       if (icon !== undefined) updates.icon = icon;
@@ -133,7 +133,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
       queryClient.invalidateQueries({ queryKey: ['workspace-documents-all'] });
       queryClient.invalidateQueries({ queryKey: ['workspace-documents-favorites'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao atualizar documento', description: error.message, variant: 'destructive' });
     },
   });
@@ -153,7 +153,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
       queryClient.invalidateQueries({ queryKey: ['workspace-documents-favorites'] });
       toast({ title: 'Documento excluído!' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao excluir documento', description: error.message, variant: 'destructive' });
     },
   });
@@ -176,7 +176,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
       queryClient.invalidateQueries({ queryKey: ['workspace-documents-favorites'] });
       toast({ title: data.is_favorite ? 'Adicionado aos favoritos!' : 'Removido dos favoritos' });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({ title: 'Erro ao atualizar favorito', description: error.message, variant: 'destructive' });
     },
   });

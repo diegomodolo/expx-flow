@@ -51,7 +51,7 @@ export function usePermissionGroups() {
       }));
 
       setGroups(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching permission groups:', err);
       toast({ title: "Erro", description: "Erro ao carregar grupos de permissão", variant: "destructive" });
     } finally {
@@ -72,7 +72,7 @@ export function usePermissionGroups() {
       toast({ title: "Grupo criado", description: `Grupo "${name}" criado com sucesso.` });
       await fetchGroups();
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
@@ -87,7 +87,7 @@ export function usePermissionGroups() {
       if (error) throw error;
       toast({ title: "Grupo atualizado" });
       await fetchGroups();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
@@ -102,7 +102,7 @@ export function usePermissionGroups() {
       if (error) throw error;
       toast({ title: "Grupo excluído" });
       await fetchGroups();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
@@ -117,12 +117,12 @@ export function usePermissionGroups() {
           .from('permission_group_items')
           .delete()
           .eq('group_id', groupId)
-          .eq('menu_item', menuItem as any);
+          .eq('menu_item', menuItem as unknown);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('permission_group_items')
-          .insert({ group_id: groupId, menu_item: menuItem as any });
+          .insert({ group_id: groupId, menu_item: menuItem as unknown });
         if (error) throw error;
       }
 
@@ -134,7 +134,7 @@ export function usePermissionGroups() {
           : [...g.items, menuItem];
         return { ...g, items };
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
@@ -148,7 +148,7 @@ export function usePermissionGroups() {
         if (newItems.length > 0) {
           const { error } = await supabase
             .from('permission_group_items')
-            .insert(newItems.map(item => ({ group_id: groupId, menu_item: item as any })));
+            .insert(newItems.map(item => ({ group_id: groupId, menu_item: item as unknown })));
           if (error) throw error;
         }
       } else {
@@ -166,7 +166,7 @@ export function usePermissionGroups() {
       }));
 
       toast({ title: enable ? "Todas permissões ativadas" : "Todas permissões desativadas" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
@@ -186,7 +186,7 @@ export function usePermissionGroups() {
       }
       toast({ title: "Membro adicionado" });
       await fetchGroups();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
@@ -202,7 +202,7 @@ export function usePermissionGroups() {
       if (error) throw error;
       toast({ title: "Membro removido" });
       await fetchGroups();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };

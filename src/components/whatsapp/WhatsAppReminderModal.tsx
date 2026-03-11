@@ -46,7 +46,7 @@ export function WhatsAppReminderModal({
 
     try {
       // Combine date and time
-      let reminderDate = new Date(date);
+      const reminderDate = new Date(date);
       if (time) {
         const [hours, minutes] = time.split(":").map(Number);
         reminderDate.setHours(hours, minutes, 0, 0);

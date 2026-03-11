@@ -60,7 +60,7 @@ export const useFacebookCampaignSync = () => {
       }
 
       return jobId;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error syncing campaigns:', error);
       toast({
         title: "Erro ao iniciar sincronização",
@@ -83,7 +83,7 @@ export const useFacebookCampaignSync = () => {
       } else {
         console.log('[validateCompanyUrls] URL validation completed:', data?.summary || data?.message);
       }
-    } catch (urlError: any) {
+    } catch (urlError: unknown) {
       console.error('[validateCompanyUrls] URL validation error:', urlError.message);
     }
   };
@@ -147,7 +147,7 @@ export const useFacebookCampaignSync = () => {
         description: `${successCount} de ${clients?.length || 0} clientes sincronizados (${syncType}, ${periodLabel}).`,
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error syncing all clients:', error);
       toast({
         title: "Erro na sincronização",

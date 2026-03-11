@@ -11,7 +11,7 @@ import { useTeams } from "@/hooks/useTeams";
 interface EmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (employeeData: CreateEmployeeData) => Promise<any>;
+  onSubmit: (employeeData: CreateEmployeeData) => Promise<unknown>;
   employee?: Employee;
   title: string;
   readOnly?: boolean;

@@ -250,9 +250,9 @@ export function useCRMDashboardData(workspaceId: string, filterStartDate?: Date,
       const formattedActivities: Activity[] = activities.map((activity) => ({
         id: activity.id,
         type: activity.activity_type,
-        description: `${activity.activity_type} - ${(activity as any).crm_leads?.full_name || "Lead"}`,
+        description: `${activity.activity_type} - ${(activity as unknown).crm_leads?.full_name || "Lead"}`,
         created_at: activity.created_at || "",
-        lead_name: (activity as any).crm_leads?.full_name || "Lead",
+        lead_name: (activity as unknown).crm_leads?.full_name || "Lead",
       }));
 
       // Leads recentes (do período filtrado)

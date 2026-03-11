@@ -88,7 +88,7 @@ export function InstagramMediaSelector({
           return;
         }
 
-        const igAccount = clientData.instagram_accounts as any;
+        const igAccount = clientData.instagram_accounts as unknown;
         setInstagramAccount({ id: igAccount.instagram_id, username: igAccount.username });
         igAccountId = igAccount.instagram_id;
       }
@@ -115,7 +115,7 @@ export function InstagramMediaSelector({
       
       setNextCursor(data.nextCursor || null);
       setHasMore(data.hasMore || false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching Instagram media:', err);
       toast({
         title: 'Erro ao carregar mídia',

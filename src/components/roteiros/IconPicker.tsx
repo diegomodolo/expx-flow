@@ -33,7 +33,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
     return icons;
   }, [search]);
 
-  const SelectedIcon = (LucideIcons as any)[value] || LucideIcons.BookOpen;
+  const SelectedIcon = (LucideIcons as unknown)[value] || LucideIcons.BookOpen;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -53,7 +53,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
         <ScrollArea className="h-48">
           <div className="grid grid-cols-6 gap-1">
             {filteredIcons.map(name => {
-              const Icon = (LucideIcons as any)[name];
+              const Icon = (LucideIcons as unknown)[name];
               if (!Icon) return null;
               return (
                 <button

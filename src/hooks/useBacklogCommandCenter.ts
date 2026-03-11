@@ -26,7 +26,7 @@ export interface BacklogTask {
   task_state: TaskState;
   progress: number;
   recurring_template_id: string | null;
-  checklist: any;
+  checklist: unknown;
   related_client_id: string | null;
   parent_task_id: string | null;
 }
@@ -72,7 +72,7 @@ export function useBacklogCommandCenter() {
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
       // First fetch all backlog tasks
-      const { data: parentTasks, error: e1 } = await (supabase as any)
+      const { data: parentTasks, error: e1 } = await (supabase as unknown)
         .from("tasks")
         .select("*")
         .eq("company_id", activeCompany.company_id)
@@ -83,7 +83,7 @@ export function useBacklogCommandCenter() {
       const parentIds = parents.map((t) => t.id);
       if (parentIds.length === 0) return parents;
       // Fetch subtasks whose parent is in backlog, only those still in backlog
-      const { data: subtasks, error: e2 } = await (supabase as any)
+      const { data: subtasks, error: e2 } = await (supabase as unknown)
         .from("tasks")
         .select("*")
         .eq("company_id", activeCompany.company_id)
@@ -109,7 +109,7 @@ export function useBacklogCommandCenter() {
     queryKey: ["backlog-center-task-clients", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from("task_clients")
         .select("task_id, client_id")
         .eq("company_id", activeCompany.company_id);
@@ -124,7 +124,7 @@ export function useBacklogCommandCenter() {
     queryKey: ["backlog-center-clients", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown)
         .from("clients")
         .select("id, name, avatar, team_id")
         .eq("company_id", activeCompany.company_id)
@@ -156,13 +156,13 @@ export function useBacklogCommandCenter() {
   // Filter clients by selected squad
   const filteredClients = useMemo(() => {
     if (!selectedSquadId) return clients;
-    return clients.filter((c: any) => c.team_id === selectedSquadId);
+    return clients.filter((c: unknown) => c.team_id === selectedSquadId);
   }, [clients, selectedSquadId]);
 
   // Build task->client mapping
   const taskToClients = useMemo(() => {
     const map = new Map<string, string[]>();
-    taskClients.forEach((tc: any) => {
+    taskClients.forEach((tc: unknown) => {
       const existing = map.get(tc.task_id) || [];
       existing.push(tc.client_id);
       map.set(tc.task_id, existing);
@@ -204,20 +204,20 @@ export function useBacklogCommandCenter() {
 
     const result: BacklogClient[] = [];
 
-    filteredClients.forEach((client: any) => {
+    filteredClients.forEach((client: unknown) => {
       const stats = clientMap.get(client.id);
       if (!stats) return;
 
       // Temperature calc - based on distribution flow
       const twoDaysAgo = subDays(new Date(), 2);
       const clientRecentDistributed = recentActivity.filter(
-        (t: any) => t.related_client_id === client.id && t.start_date && t.status !== 'todo'
+        (t: unknown) => t.related_client_id === client.id && t.start_date && t.status !== 'todo'
       );
       const clientRecentCreated = recentActivity.filter(
-        (t: any) => t.related_client_id === client.id
+        (t: unknown) => t.related_client_id === client.id
       );
       const lastDistributed = clientRecentDistributed.sort(
-        (a: any, b: any) => new Date(b.start_date!).getTime() - new Date(a.start_date!).getTime()
+        (a: unknown, b: unknown) => new Date(b.start_date!).getTime() - new Date(a.start_date!).getTime()
       )[0];
 
       let temperature: "blue" | "orange" | "red" = "blue";
@@ -340,7 +340,7 @@ export function useBacklogCommandCenter() {
   // Bulk release mutation
   const releaseToLeadersMutation = useMutation({
     mutationFn: async (taskIds: string[]) => {
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as unknown)
         .from("tasks")
         .update({ 
           task_state: "planejamento",
@@ -363,7 +363,7 @@ export function useBacklogCommandCenter() {
   // Bulk assign mutation
   const bulkAssignMutation = useMutation({
     mutationFn: async ({ taskIds, userId, userName }: { taskIds: string[]; userId: string; userName: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as unknown)
         .from("tasks")
         .update({
           assigned_user_id: userId,

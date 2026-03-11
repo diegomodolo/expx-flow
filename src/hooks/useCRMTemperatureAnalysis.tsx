@@ -164,7 +164,7 @@ export function useCRMTemperatureAnalysis(
           leadId: lead.id,
           leadName: lead.full_name || lead.email || "Sem nome",
           value: lead.value || 0,
-          stage: (lead.crm_stages as any)?.name || "N/A",
+          stage: (lead.crm_stages as unknown)?.name || "N/A",
           email: lead.email || "",
         }))
         .sort((a, b) => b.value - a.value)

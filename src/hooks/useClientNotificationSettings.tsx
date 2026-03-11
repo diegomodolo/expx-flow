@@ -134,7 +134,7 @@ export function useClientNotificationSettings(companyId: string | undefined) {
   // Update client notification settings
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: { id: string; gestorEmployeeId?: string | null; isActive?: boolean }) => {
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (data.gestorEmployeeId !== undefined) updateData.gestor_employee_id = data.gestorEmployeeId;
       if (data.isActive !== undefined) updateData.is_active = data.isActive;
 
@@ -253,7 +253,7 @@ export function useClientNotificationSettings(companyId: string | undefined) {
   // Update contact
   const updateContactMutation = useMutation({
     mutationFn: async (contact: { id: string; contactName?: string; phone?: string; email?: string; isActive?: boolean }) => {
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (contact.contactName !== undefined) updateData.contact_name = contact.contactName;
       if (contact.phone !== undefined) updateData.phone = contact.phone;
       if (contact.email !== undefined) updateData.email = contact.email;

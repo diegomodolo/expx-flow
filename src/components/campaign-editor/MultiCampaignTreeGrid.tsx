@@ -57,7 +57,7 @@ export function MultiCampaignTreeGrid({
 
   // Filter and sort campaigns
   const filteredCampaigns = useMemo(() => {
-    let result = statusFilter === "all" ? [...campaigns] : campaigns.filter((campaign) => campaign.status === statusFilter);
+    const result = statusFilter === "all" ? [...campaigns] : campaigns.filter((campaign) => campaign.status === statusFilter);
     
     if (sortColumn) {
       result.sort((a, b) => {
@@ -352,7 +352,7 @@ export function MultiCampaignTreeGrid({
                   checked={allSelected}
                   ref={(ref) => {
                     if (ref) {
-                      (ref as any).indeterminate = someSelected;
+                      (ref as unknown).indeterminate = someSelected;
                     }
                   }}
                   onCheckedChange={(checked) => {

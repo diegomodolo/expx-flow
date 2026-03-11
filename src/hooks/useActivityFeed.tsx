@@ -19,7 +19,7 @@ export interface ActivityItem {
     campaign_name?: string;
     old_value?: string | number;
     new_value?: string | number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   created_at: string;
   user_name?: string;
@@ -66,7 +66,7 @@ export function useActivityFeed(limit = 20) {
             .eq("id", creative.client_id)
             .single();
 
-          const content = creative.generated_content as any;
+          const content = creative.generated_content as unknown;
           recentActivities.push({
             id: `creative-${creative.id}`,
             company_id: activeCompany.company_id,
@@ -103,7 +103,7 @@ export function useActivityFeed(limit = 20) {
             .eq("id", carousel.client_id)
             .single();
 
-          const slides = carousel.slides as any[];
+          const slides = carousel.slides as unknown[];
           const firstSlide = slides?.[0];
           recentActivities.push({
             id: `carousel-${carousel.id}`,
@@ -205,7 +205,7 @@ export function useActivityFeed(limit = 20) {
       entity_id?: string;
       title: string;
       description?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }) => {
       if (!activeCompany?.company_id) throw new Error("No company selected");
 

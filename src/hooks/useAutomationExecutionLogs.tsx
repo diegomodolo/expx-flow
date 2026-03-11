@@ -16,7 +16,7 @@ export interface AutomationExecutionLog {
   completed_at: string | null;
   duration_ms: number | null;
   error_message: string | null;
-  execution_details: any;
+  execution_details: unknown;
   created_at: string;
 }
 
@@ -79,18 +79,21 @@ export const useAutomationExecutionLogs = (
         const now = new Date();
         
         switch (periodFilter) {
-          case 'hour':
+          case 'hour': {
             const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
             dateFilter = oneHourAgo.toISOString();
             break;
-          case 'day':
+          }
+          case 'day': {
             const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             dateFilter = oneDayAgo.toISOString();
             break;
-          case 'week':
+          }
+          case 'week': {
             const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             dateFilter = oneWeekAgo.toISOString();
             break;
+          }
           case 'all':
           default:
             dateFilter = null;
@@ -100,7 +103,7 @@ export const useAutomationExecutionLogs = (
         console.log('📅 Date filter:', dateFilter);
         
         const query = supabase
-          .from('automation_execution_logs' as any)
+          .from('automation_execution_logs' as unknown)
           .select('*')
           .eq('company_id', activeCompany.company_id)
           .order('started_at', { ascending: false })

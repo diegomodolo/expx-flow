@@ -30,8 +30,8 @@ interface YouTubeChannelManagerProps {
   channels: YouTubeChannel[];
   loading: boolean;
   analyzing: boolean;
-  onAddChannel: (url: string, periodDays?: number) => Promise<any>;
-  onRefreshChannel: (channelId: string, periodDays?: number) => Promise<any>;
+  onAddChannel: (url: string, periodDays?: number) => Promise<unknown>;
+  onRefreshChannel: (channelId: string, periodDays?: number) => Promise<unknown>;
   onRemoveChannel: (channelId: string) => Promise<void>;
   categories?: YouTubeCategory[];
   onLinkChannel?: (categoryId: string, channelId: string) => Promise<void>;

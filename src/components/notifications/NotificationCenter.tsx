@@ -87,7 +87,7 @@ function NotificationItem({ notification, onRead }: NotificationItemProps) {
 }
 
 interface ChatNotificationItemProps {
-  notification: any;
+  notification: unknown;
   onRead: (id: string) => void;
 }
 
@@ -131,7 +131,7 @@ export function NotificationCenter() {
   const markChatRead = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("internal_notifications" as any)
+        .from("internal_notifications" as unknown)
         .update({ is_read: true })
         .eq("id", id);
       if (error) throw error;
@@ -145,7 +145,7 @@ export function NotificationCenter() {
     mutationFn: async () => {
       if (!user?.id) return;
       const { error } = await supabase
-        .from("internal_notifications" as any)
+        .from("internal_notifications" as unknown)
         .update({ is_read: true })
         .eq("user_id", user.id)
         .eq("is_read", false);

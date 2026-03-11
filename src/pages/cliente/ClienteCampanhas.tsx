@@ -227,7 +227,7 @@ function ClienteCampanhasContent() {
       } else {
         setIsSyncing(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sync error:', error);
       toast({
         title: "Erro na sincronização",
@@ -278,7 +278,7 @@ function ClienteCampanhasContent() {
       });
       refetchCampaigns();
       refetchClient?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google sync error:', error);
       toast({
         title: "Erro na sincronização",

@@ -201,7 +201,7 @@ export function ApprovalDestinationDialog({
     try {
       await onApprove(destinationsWithAdSets);
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error publishing:', error);
       toast.error('Erro ao publicar: ' + error.message);
     } finally {

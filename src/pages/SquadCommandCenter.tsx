@@ -136,7 +136,7 @@ export default function SquadCommandCenter() {
     return new Date(latestEnd);
   }, [timelineTasks]);
 
-  const handleDragStart = useCallback((start: any) => {
+  const handleDragStart = useCallback((start: unknown) => {
     const task = backlogTasks.find(t => t.id === start.draggableId);
     setDraggingTask(task || null);
     dropSlotRef.current = null;

@@ -155,12 +155,12 @@ export function AdEditModal({
   }, [utmSource, utmMedium, utmCampaign, utmContent, utmTerm]);
 
   // Original values for comparison
-  const [originalValues, setOriginalValues] = useState<any>(null);
+  const [originalValues, setOriginalValues] = useState<unknown>(null);
 
   // Reset form when node changes
   useEffect(() => {
     if (node && isOpen && node.type === 'ad') {
-      const nodeAny = node as any;
+      const nodeAny = node as unknown;
       
       setEditName(node.name);
       setEditStatus(node.status === 'active' ? 'active' : 'paused');
@@ -323,7 +323,7 @@ export function AdEditModal({
 
     setIsSaving(true);
     const platform = node.platform as 'meta' | 'google';
-    const facebookId = (node as any).facebookId;
+    const facebookId = (node as unknown).facebookId;
 
     try {
       // Build URL with UTM parameters
@@ -355,7 +355,7 @@ export function AdEditModal({
       // For Meta ads with creative changes, we need to create a new creative
       if (platform === 'meta' && facebookId) {
         // Check if pixel changed
-        const pixelChanged = pixelId !== (node as any).pixelId;
+        const pixelChanged = pixelId !== (node as unknown).pixelId;
         
         const { data, error } = await supabase.functions.invoke('update-meta-ad', {
           body: {
@@ -418,7 +418,7 @@ export function AdEditModal({
       setCreativeChanged(false);
       onSuccess?.();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving ad:', error);
       toast.error(error.message || 'Erro ao salvar alterações');
     } finally {

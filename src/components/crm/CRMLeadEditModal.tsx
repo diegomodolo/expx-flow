@@ -120,7 +120,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
   const currentStage = stages.find(s => s.id === lead.stage_id);
   const currentBoard = boards.find(b => b.id === boardId);
 
-  const handleFieldUpdate = async (field: keyof typeof formData, value: any) => {
+  const handleFieldUpdate = async (field: keyof typeof formData, value: unknown) => {
     const updates = { [field]: value };
     await updateLead({
       leadId: lead.id,

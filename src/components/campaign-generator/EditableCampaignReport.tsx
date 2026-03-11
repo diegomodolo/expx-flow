@@ -71,7 +71,7 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
     });
   };
 
-  const updateConfiguration = (field: string, value: any) => {
+  const updateConfiguration = (field: string, value: unknown) => {
     setEditedCampaign(prev => ({
       ...prev,
       configuration: {
@@ -81,7 +81,7 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
     }));
   };
 
-  const updateTargeting = (field: string, value: any) => {
+  const updateTargeting = (field: string, value: unknown) => {
     setEditedCampaign(prev => ({
       ...prev,
       configuration: {
@@ -94,7 +94,7 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
     }));
   };
 
-  const updateBudget = (field: string, value: any) => {
+  const updateBudget = (field: string, value: unknown) => {
     setEditedCampaign(prev => ({
       ...prev,
       configuration: {
@@ -107,10 +107,10 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
     }));
   };
 
-  const updateCreative = (creativeIndex: number, field: string, value: any) => {
+  const updateCreative = (creativeIndex: number, field: string, value: unknown) => {
     setEditedCampaign(prev => ({
       ...prev,
-      creatives: prev.creatives.map((creative: any, index: number) => 
+      creatives: prev.creatives.map((creative: unknown, index: number) => 
         index === creativeIndex ? { ...creative, [field]: value } : creative
       )
     }));
@@ -385,7 +385,7 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
                 <div>
                   <Label className="text-base font-semibold">Segmentações por Conjunto</Label>
                   <div className="space-y-4 mt-3">
-                    {configuration.adSets.map((adSet: any, index: number) => (
+                    {configuration.adSets.map((adSet: unknown, index: number) => (
                       <div key={index} className="border rounded-lg p-4 bg-background">
                         <div className="space-y-3">
                           <div>
@@ -490,7 +490,7 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
       <Card className="p-6">
         <h4 className="font-semibold mb-4">Criativos por Conjunto</h4>
         <div className="space-y-6">
-          {creatives.map((creative: any, index: number) => (
+          {creatives.map((creative: unknown, index: number) => (
             <div key={creative.id || index} className="border rounded-lg p-4 bg-muted/20">
               <div className="flex items-center justify-between mb-4">
                 <h5 className="font-medium">Conjunto {index + 1}: {creative.adSetName}</h5>

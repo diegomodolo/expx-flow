@@ -28,10 +28,10 @@ export function useAllBoardColumns() {
 
       // Fetch all board columns for the company
       const { data: columns, error: colError } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .select('*')
         .eq('company_id', companyId)
-        .order('order_index', { ascending: true }) as any);
+        .order('order_index', { ascending: true }) as unknown);
 
       if (colError) throw colError;
 
@@ -45,11 +45,11 @@ export function useAllBoardColumns() {
       if (empError) throw empError;
 
       const employeeMap = new Map<string, string>();
-      (employees || []).forEach((e: any) => employeeMap.set(e.user_id, e.name));
+      (employees || []).forEach((e: unknown) => employeeMap.set(e.user_id, e.name));
 
       // Group by user_id
       const grouped = new Map<string, BoardGroup>();
-      (columns || []).forEach((col: any) => {
+      (columns || []).forEach((col: unknown) => {
         const ownerName = employeeMap.get(col.user_id) || 'Desconhecido';
         if (!grouped.has(col.user_id)) {
           grouped.set(col.user_id, {

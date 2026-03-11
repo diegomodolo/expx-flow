@@ -107,7 +107,7 @@ export const RuleEditorModal = ({
 
           <div className="space-y-2">
             <Label htmlFor="status-output">Status de Saída</Label>
-            <Select value={statusOutput} onValueChange={(value: any) => setStatusOutput(value)}>
+            <Select value={statusOutput} onValueChange={(value: unknown) => setStatusOutput(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -123,7 +123,7 @@ export const RuleEditorModal = ({
 
           <div className="space-y-2">
             <Label>Lógica das Condições</Label>
-            <RadioGroup value={logic} onValueChange={(value: any) => setLogic(value)}>
+            <RadioGroup value={logic} onValueChange={(value: unknown) => setLogic(value)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="AND" id="and" />
                 <Label htmlFor="and" className="font-normal cursor-pointer">

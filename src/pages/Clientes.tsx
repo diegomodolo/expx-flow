@@ -112,7 +112,7 @@ type SortDirection = 'asc' | 'desc';
 // Função para gerar a explicação do status baseada nas métricas do cliente
 const getStatusExplanation = (client: Client): string => {
   // Use the explanation calculated by the automatic status function
-  return (client as any).statusExplanation || "Status calculado automaticamente baseado nas métricas de campanhas.";
+  return (client as unknown).statusExplanation || "Status calculado automaticamente baseado nas métricas de campanhas.";
 };
 
 // Função para obter a configuração do status com fallback
@@ -126,7 +126,7 @@ const getStatusConfig = (status: ClientStatus | undefined) => {
 // Função para obter o status visual do cliente (considera pausado/cancelado primeiro)
 const getClientVisualStatus = (client: Client): keyof typeof statusConfig => {
   if (client.is_canceled) return "cancelado";
-  if ((client as any).is_paused) return "pausado";
+  if ((client as unknown).is_paused) return "pausado";
   return client.status || "atencao";
 };
 
@@ -471,9 +471,9 @@ const Clientes = () => {
     const matchesClientFilter = (() => {
       if (clientFilter === "all") return true;
       if (clientFilter === "canceled") return client.is_canceled === true;
-      if (clientFilter === "paused") return (client as any).is_paused === true && !client.is_canceled;
+      if (clientFilter === "paused") return (client as unknown).is_paused === true && !client.is_canceled;
       // "active" = not paused and not canceled
-      return !(client as any).is_paused && !client.is_canceled;
+      return !(client as unknown).is_paused && !client.is_canceled;
     })();
     
     const matchesStatus = statusFilter === "all" || client.status === statusFilter;
@@ -520,8 +520,8 @@ const Clientes = () => {
     
     return matchesClientFilter && matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns && matchesSquad && matchesRestriction;
   }).sort((a, b) => {
-    let aValue: any = a[sortField];
-    let bValue: any = b[sortField];
+    let aValue: unknown = a[sortField];
+    let bValue: unknown = b[sortField];
 
     // Handle status field specially for emergency order
     if (sortField === 'status') {
@@ -659,7 +659,7 @@ const Clientes = () => {
       emergencial: filteredAndSortedClients.filter(client => client.status === 'emergencial').length,
       sem_fundos: filteredAndSortedClients.filter(client => client.status === 'sem_fundos').length,
       inativo: filteredAndSortedClients.filter(client => client.status === 'inativo').length,
-      pausados: allActiveClients.filter(client => (client as any).is_paused === true).length,
+      pausados: allActiveClients.filter(client => (client as unknown).is_paused === true).length,
       restritas: allActiveClients.filter(client => isAccountRestricted(client)).length,
     };
     

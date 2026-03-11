@@ -56,7 +56,7 @@ export function CRMSourcesReport({ workspaceId }: CRMSourcesReportProps) {
             Performance por origem e UTM
           </p>
         </div>
-        <Select value={groupBy} onValueChange={(value: any) => setGroupBy(value)}>
+        <Select value={groupBy} onValueChange={(value: unknown) => setGroupBy(value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Agrupar por" />
           </SelectTrigger>

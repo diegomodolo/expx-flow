@@ -15,7 +15,7 @@ export interface CreativeQueueItem {
   caption: string | null;
   hashtags: string | null;
   theme: string | null;
-  generated_content: any;
+  generated_content: unknown;
   status: string;
   quality_score: number | null;
   source_creative_id: string | null;
@@ -49,7 +49,7 @@ export function useCreativeGenerationQueue(clientId: string) {
 
       if (error) throw error;
       setCreatives(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching creatives:', error);
       toast.error('Erro ao carregar criativos');
     } finally {
@@ -79,7 +79,7 @@ export function useCreativeGenerationQueue(clientId: string) {
       
       toast.success(status === 'approved' ? 'Criativo aprovado!' : 'Criativo rejeitado');
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating status:', error);
       toast.error('Erro ao atualizar status');
       return false;
@@ -98,7 +98,7 @@ export function useCreativeGenerationQueue(clientId: string) {
       setCreatives(prev => prev.filter(c => c.id !== id));
       toast.success('Criativo removido');
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting creative:', error);
       toast.error('Erro ao remover criativo');
       return false;

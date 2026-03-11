@@ -41,7 +41,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-const iconMap: { [key: string]: React.ComponentType<any> } = {
+const iconMap: { [key: string]: React.ComponentType<unknown> } = {
   Megaphone,
   Palette,
   Code,

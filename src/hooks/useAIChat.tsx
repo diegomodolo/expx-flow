@@ -59,7 +59,7 @@ export function useAIChat() {
       }
       
       // Transform data to include client_name
-      const conversationsWithClientNames = data?.map((conv: any) => ({
+      const conversationsWithClientNames = data?.map((conv: unknown) => ({
         ...conv,
         client_name: conv.clients?.name || 'Cliente não encontrado'
       })) || [];

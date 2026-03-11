@@ -89,7 +89,7 @@ export function ReelsVideoGenerator({
         subheadline,
       });
       toast.success("Geração de vídeo iniciada!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao iniciar geração: " + error.message);
     }
   };
@@ -105,7 +105,7 @@ export function ReelsVideoGenerator({
     try {
       await regenerateScenes(postId, sceneNumbers);
       toast.success(`Regenerando ${sceneNumbers.length} cena(s)...`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao regenerar: " + error.message);
       setRegeneratingScenes([]);
     }
@@ -165,7 +165,7 @@ export function ReelsVideoGenerator({
 
       onUploadedVideoChange?.(urlData.publicUrl);
       toast.success("Vídeo enviado com sucesso!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast.error("Erro ao enviar vídeo: " + error.message);
     } finally {
@@ -187,7 +187,7 @@ export function ReelsVideoGenerator({
 
       onUploadedVideoChange?.(null);
       toast.success("Vídeo removido");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erro ao remover vídeo: " + error.message);
     }
   };

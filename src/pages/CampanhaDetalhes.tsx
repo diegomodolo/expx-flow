@@ -52,11 +52,11 @@ export default function CampanhaDetalhes() {
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [selectedAdSet, setSelectedAdSet] = useState<any>(null);
-  const [selectedAd, setSelectedAd] = useState<any>(null);
+  const [selectedAdSet, setSelectedAdSet] = useState<unknown>(null);
+  const [selectedAd, setSelectedAd] = useState<unknown>(null);
   const [showAdSetMetrics, setShowAdSetMetrics] = useState(false);
   const [showAdMetrics, setShowAdMetrics] = useState(false);
-  const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
+  const [campaignSuggestions, setCampaignSuggestions] = useState<unknown[]>([]);
   const [campaignAnalysis, setCampaignAnalysis] = useState<string | null>(null);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const { toast } = useToast();
@@ -74,7 +74,7 @@ export default function CampanhaDetalhes() {
       // Simular análise (aqui você pode fazer uma chamada real para uma API ou função)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const suggestions: any[] = [];
+      const suggestions: unknown[] = [];
       
       // 1. Análise de CTR
       if (campaign.ctr && campaign.ctr < 1.5) {
@@ -263,7 +263,7 @@ export default function CampanhaDetalhes() {
   };
 
   // Função para criar tarefa baseada na sugestão
-  const handleCreateTask = async (suggestion: any) => {
+  const handleCreateTask = async (suggestion: unknown) => {
     try {
       if (!campaign) return;
       
@@ -343,7 +343,7 @@ export default function CampanhaDetalhes() {
   };
 
   // Função para avaliar performance de conjuntos de anúncios
-  const getAdSetPerformance = (adSet: any) => {
+  const getAdSetPerformance = (adSet: unknown) => {
     const ctr = adSet.ctr || 0;
     const cpc = adSet.cpc || 0;
     const conversions = adSet.conversions || 0;
@@ -387,7 +387,7 @@ export default function CampanhaDetalhes() {
   };
 
   // Função para avaliar performance de criativos
-  const getAdPerformance = (ad: any) => {
+  const getAdPerformance = (ad: unknown) => {
     const ctr = ad.ctr || 0;
     const cpc = ad.cpc || 0;
     const conversions = ad.conversions || 0;
@@ -487,18 +487,18 @@ export default function CampanhaDetalhes() {
       if (targetingObj.geo_locations?.regions?.length > 0) {
         const regions = targetingObj.geo_locations.regions;
         if (regions.length <= 3) {
-          details.push(`Região: ${regions.map((r: any) => r.name || r).join(', ')}`);
+          details.push(`Região: ${regions.map((r: unknown) => r.name || r).join(', ')}`);
         } else {
-          details.push(`Região: ${regions.slice(0, 3).map((r: any) => r.name || r).join(', ')} +${regions.length - 3} outras`);
+          details.push(`Região: ${regions.slice(0, 3).map((r: unknown) => r.name || r).join(', ')} +${regions.length - 3} outras`);
         }
       }
       
       if (targetingObj.geo_locations?.cities?.length > 0) {
         const cities = targetingObj.geo_locations.cities;
         if (cities.length <= 3) {
-          details.push(`Cidades: ${cities.map((c: any) => c.name || c).join(', ')}`);
+          details.push(`Cidades: ${cities.map((c: unknown) => c.name || c).join(', ')}`);
         } else {
-          details.push(`Cidades: ${cities.slice(0, 3).map((c: any) => c.name || c).join(', ')} +${cities.length - 3} outras`);
+          details.push(`Cidades: ${cities.slice(0, 3).map((c: unknown) => c.name || c).join(', ')} +${cities.length - 3} outras`);
         }
       }
       
@@ -506,9 +506,9 @@ export default function CampanhaDetalhes() {
       if (targetingObj.custom_audiences?.length > 0) {
         const audiences = targetingObj.custom_audiences;
         if (audiences.length <= 3) {
-          details.push(`Audiências: ${audiences.map((a: any) => a.name || a).join(', ')}`);
+          details.push(`Audiências: ${audiences.map((a: unknown) => a.name || a).join(', ')}`);
         } else {
-          details.push(`Audiências: ${audiences.slice(0, 3).map((a: any) => a.name || a).join(', ')} +${audiences.length - 3} outras`);
+          details.push(`Audiências: ${audiences.slice(0, 3).map((a: unknown) => a.name || a).join(', ')} +${audiences.length - 3} outras`);
         }
       }
       
@@ -516,9 +516,9 @@ export default function CampanhaDetalhes() {
       if (targetingObj.interests?.length > 0) {
         const interests = targetingObj.interests;
         if (interests.length <= 3) {
-          details.push(`Interesses: ${interests.map((i: any) => i.name || i).join(', ')}`);
+          details.push(`Interesses: ${interests.map((i: unknown) => i.name || i).join(', ')}`);
         } else {
-          details.push(`Interesses: ${interests.slice(0, 3).map((i: any) => i.name || i).join(', ')} +${interests.length - 3} outros`);
+          details.push(`Interesses: ${interests.slice(0, 3).map((i: unknown) => i.name || i).join(', ')} +${interests.length - 3} outros`);
         }
       }
       
@@ -526,9 +526,9 @@ export default function CampanhaDetalhes() {
       if (targetingObj.behaviors?.length > 0) {
         const behaviors = targetingObj.behaviors;
         if (behaviors.length <= 3) {
-          details.push(`Comportamentos: ${behaviors.map((b: any) => b.name || b).join(', ')}`);
+          details.push(`Comportamentos: ${behaviors.map((b: unknown) => b.name || b).join(', ')}`);
         } else {
-          details.push(`Comportamentos: ${behaviors.slice(0, 3).map((b: any) => b.name || b).join(', ')} +${behaviors.length - 3} outros`);
+          details.push(`Comportamentos: ${behaviors.slice(0, 3).map((b: unknown) => b.name || b).join(', ')} +${behaviors.length - 3} outros`);
         }
       }
       

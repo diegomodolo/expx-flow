@@ -164,10 +164,10 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
           reference_image_4: data.reference_image_4 ?? null,
           reference_image_5: data.reference_image_5 ?? null,
           reference_image_6: data.reference_image_6 ?? null,
-          reference_image_7: (data as any).reference_image_7 ?? null,
-          reference_image_8: (data as any).reference_image_8 ?? null,
-          reference_image_9: (data as any).reference_image_9 ?? null,
-          reference_image_10: (data as any).reference_image_10 ?? null,
+          reference_image_7: (data as unknown).reference_image_7 ?? null,
+          reference_image_8: (data as unknown).reference_image_8 ?? null,
+          reference_image_9: (data as unknown).reference_image_9 ?? null,
+          reference_image_10: (data as unknown).reference_image_10 ?? null,
         });
       } else {
         setConfig(defaultConfig);
@@ -231,7 +231,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
       toast.success('Configurações salvas!');
       onSave?.();
       loadConfig();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving config:', error);
       toast.error('Erro ao salvar: ' + error.message);
     } finally {
@@ -252,7 +252,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
 
       toast.success('Fábrica removida!');
       onDelete?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting config:', error);
       toast.error('Erro ao remover: ' + error.message);
     }
@@ -274,7 +274,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
       if (error) throw error;
 
       toast.success('Reset realizado! Geração habilitada para hoje.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error resetting:', error);
       toast.error('Erro ao resetar: ' + error.message);
     } finally {
@@ -301,7 +301,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
       const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
       setConfig(prev => ({ ...prev, [fieldName]: publicUrl }));
       toast.success('Imagem enviada!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading image:', error);
       toast.error('Erro ao enviar imagem');
     } finally {
@@ -325,7 +325,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
     for (let i = 1; i <= 10 && urlIndex < urls.length; i++) {
       const fieldName = `reference_image_${i}` as keyof ScheduleConfig;
       if (!currentImages[i - 1]) {
-        (newConfig as any)[fieldName] = urls[urlIndex];
+        (newConfig as unknown)[fieldName] = urls[urlIndex];
         urlIndex++;
       }
     }

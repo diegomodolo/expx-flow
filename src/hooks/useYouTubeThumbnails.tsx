@@ -131,7 +131,7 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
       });
 
       await fetchConfig();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving config:', error);
       toast({
         title: 'Erro ao salvar',
@@ -174,7 +174,7 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
       });
 
       return data.imageUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating thumbnail:', error);
       toast({
         title: 'Erro ao gerar thumbnail',

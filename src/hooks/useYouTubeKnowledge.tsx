@@ -128,7 +128,7 @@ export function useYouTubeKnowledge(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['youtube-knowledge-videos', configId] });
       toast.success('Vídeo adicionado e transcrição iniciada');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       if (error.code === '23505') {
         toast.error('Este vídeo já está na base de conhecimento');
       } else {
@@ -166,7 +166,7 @@ export function useYouTubeKnowledge(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['youtube-knowledge-videos', configId] });
       toast.success('Vídeo removido da base de conhecimento');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao remover vídeo', { description: error.message });
     }
   });
@@ -191,7 +191,7 @@ export function useYouTubeKnowledge(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['youtube-knowledge-videos', configId] });
       toast.success('Transcrição concluída');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao transcrever vídeo', { description: error.message });
     }
   });

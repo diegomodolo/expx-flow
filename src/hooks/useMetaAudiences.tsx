@@ -8,7 +8,7 @@ export interface MetaAudience {
   description?: string;
   subtype?: string;
   approximate_count: number;
-  operation_status?: any;
+  operation_status?: unknown;
 }
 
 export interface UserData {
@@ -26,7 +26,7 @@ export interface UploadResult {
   session_id: string;
   num_received: number;
   num_invalid_entries: number;
-  invalid_entry_samples?: any;
+  invalid_entry_samples?: unknown;
 }
 
 export function useMetaAudiences(clientId: string | null) {
@@ -58,7 +58,7 @@ export function useMetaAudiences(clientId: string | null) {
 
       setAudiences(data.audiences || []);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching audiences:', err);
       setError(err.message);
       // Only show toast for non-integration errors
@@ -108,7 +108,7 @@ export function useMetaAudiences(clientId: string | null) {
 
       await fetchAudiences();
       return data.audience;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating audience:', error);
       
       // Re-throw TOS error for component handling
@@ -150,7 +150,7 @@ export function useMetaAudiences(clientId: string | null) {
 
       await fetchAudiences();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting audience:', error);
       toast({
         title: 'Erro ao excluir público',
@@ -179,7 +179,7 @@ export function useMetaAudiences(clientId: string | null) {
       if (!data.success) throw new Error(data.error);
 
       return data.audience;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting audience details:', error);
       toast({
         title: 'Erro ao carregar detalhes',
@@ -245,7 +245,7 @@ export function useMetaAudiences(clientId: string | null) {
       });
 
       return finalResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding users:', error);
       toast({
         title: 'Erro ao adicionar leads',
@@ -284,7 +284,7 @@ export function useMetaAudiences(clientId: string | null) {
       });
 
       return data.result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error removing users:', error);
       toast({
         title: 'Erro ao remover leads',
@@ -330,7 +330,7 @@ export function useMetaAudiences(clientId: string | null) {
 
       await fetchAudiences();
       return data.audience;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating lookalike audience:', error);
       toast({
         title: 'Erro ao criar público semelhante',
@@ -378,7 +378,7 @@ export function useMetaAudiences(clientId: string | null) {
 
       await fetchAudiences();
       return data.audience;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating website audience:', error);
       toast({
         title: 'Erro ao criar público de website',
@@ -434,7 +434,7 @@ export function useMetaAudiences(clientId: string | null) {
 
       await fetchAudiences();
       return data.audience;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating engagement audience:', error);
       toast({
         title: 'Erro ao criar público de engajamento',

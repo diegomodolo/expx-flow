@@ -196,7 +196,7 @@ export function InstagramAutoPostsManager({
             selectedFacebookPage={selectedFacebookPage}
             availableClients={availableClients || []}
             selectedClient={selectedClient}
-            onUpdateConfig={(updates) => updateConfig(updates as any)}
+            onUpdateConfig={(updates) => updateConfig(updates as unknown)}
             isUpdating={isUpdating}
           />
         );

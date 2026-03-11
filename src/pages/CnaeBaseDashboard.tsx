@@ -32,7 +32,7 @@ export default function CnaeBaseDashboard() {
     queryFn: async () => {
       if (!companyId) return 0;
       const { count, error } = await supabase
-        .from('cnae_lead_pool' as any)
+        .from('cnae_lead_pool' as unknown)
         .select('*', { count: 'exact', head: true })
         .eq('company_id', companyId);
       
@@ -67,7 +67,7 @@ export default function CnaeBaseDashboard() {
       
       if (error) throw error;
       
-      return (data || []).map((item: any) => ({
+      return (data || []).map((item: unknown) => ({
         cnae_code: item.cnae_code,
         cnae_description: item.cnae_description,
         lead_count: Number(item.lead_count)

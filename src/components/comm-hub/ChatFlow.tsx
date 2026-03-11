@@ -100,7 +100,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
         .from('internal-chat-files')
         .getPublicUrl(filePath);
 
-      const insertData: any = {
+      const insertData: unknown = {
         channel_id: channel.id,
         user_id: user.id,
         content: text || `📎 ${pendingFile.name}`,
@@ -236,7 +236,7 @@ export function ChatFlow({ channel, messages, loading, onSendMessage, sendingMes
         ? message.content.slice(0, 77) + '...'
         : message.content;
 
-      const { error } = await (supabase.from('tasks') as any).insert({
+      const { error } = await (supabase.from('tasks') as unknown).insert({
         title,
         description: `Criado a partir de mensagem no canal de chat.\n\nMensagem original de ${message.user_name}:\n"${message.content}"`,
         company_id: activeCompany.company_id,

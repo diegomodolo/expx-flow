@@ -241,7 +241,7 @@ export function SlidesSection({
               </Alert>
             )}
 
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as unknown)}>
               <TabsList className="mb-4">
                 <TabsTrigger value="carousel" className="flex items-center gap-1">
                   <Images className="h-4 w-4" />

@@ -150,7 +150,7 @@ export function useCSHealthScore360(clientId?: string) {
       // Buscar dados de campanhas para cada cliente
       const clientIds = (healthConfigs || []).map((h: RawHealthConfig) => h.client_id);
       
-      let campaignStats: Record<string, { roas: number | null; cpl: number | null; activeCampaigns: number; totalSpend: number; totalConversions: number }> = {};
+      const campaignStats: Record<string, { roas: number | null; cpl: number | null; activeCampaigns: number; totalSpend: number; totalConversions: number }> = {};
       
       if (clientIds.length > 0) {
         const { data: campaigns } = await supabase
@@ -160,7 +160,7 @@ export function useCSHealthScore360(clientId?: string) {
           .eq('company_id', activeCompany.company_id);
 
         // Agregar métricas por cliente
-        (campaigns || []).forEach((c: any) => {
+        (campaigns || []).forEach((c: unknown) => {
           if (!campaignStats[c.client_id]) {
             campaignStats[c.client_id] = { roas: null, cpl: null, activeCampaigns: 0, totalSpend: 0, totalConversions: 0 };
           }
@@ -184,7 +184,7 @@ export function useCSHealthScore360(clientId?: string) {
 
       // Buscar squads para mapear nomes
       const teamIds = [...new Set((healthConfigs || []).map((h: RawHealthConfig) => h.clients?.team_id).filter(Boolean))];
-      let teamsMap: Record<string, { name: string; color: string | null }> = {};
+      const teamsMap: Record<string, { name: string; color: string | null }> = {};
       
       if (teamIds.length > 0) {
         const { data: teams } = await supabase
@@ -192,7 +192,7 @@ export function useCSHealthScore360(clientId?: string) {
           .select('id, name, color')
           .in('id', teamIds);
         
-        (teams || []).forEach((t: any) => {
+        (teams || []).forEach((t: unknown) => {
           teamsMap[t.id] = { name: t.name, color: t.color };
         });
       }

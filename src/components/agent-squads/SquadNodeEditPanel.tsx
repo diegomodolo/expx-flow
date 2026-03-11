@@ -140,7 +140,7 @@ export function SquadNodeEditPanel({ node, isOpen, onClose, onSave, onDelete, on
             <Button
               onClick={() => {
                 onSave(node.id, {
-                  role: role as any,
+                  role: role as unknown,
                   squad_instructions: instructions,
                 });
                 onClose();

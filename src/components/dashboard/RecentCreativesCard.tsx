@@ -41,7 +41,7 @@ export function RecentCreativesCard() {
 
       if (imageCreatives) {
         for (const creative of imageCreatives) {
-          const content = creative.generated_content as any;
+          const content = creative.generated_content as unknown;
           if (content?.image_url) {
             const { data: client } = await supabase
               .from("clients")
@@ -76,7 +76,7 @@ export function RecentCreativesCard() {
 
       if (carousels) {
         for (const carousel of carousels) {
-          const slides = carousel.slides as any[];
+          const slides = carousel.slides as unknown[];
           const firstSlide = slides?.[0];
           if (firstSlide?.image_url) {
             const { data: client } = await supabase

@@ -100,7 +100,7 @@ export function useRecurringTasks(clientId?: string) {
 
       // Buscar dados dos clientes
       const clientIds = [...new Set(data.map(t => t.client_id).filter(Boolean))];
-      let clientsData: any[] = [];
+      let clientsData: unknown[] = [];
       if (clientIds.length > 0) {
         const { data: clients } = await supabase
           .from("clients")
@@ -159,7 +159,7 @@ export function useRecurringTasks(clientId?: string) {
 
   // Mutation para atualizar template
   const updateTemplateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, unknown> }) => {
       const { error } = await supabase
         .from("recurring_task_templates")
         .update(updates)

@@ -364,7 +364,7 @@ export function useHealthDashboard() {
         .filter((id): id is string => id !== null);
       
       // Fetch ad accounts with balance, recharge_day, and restriction info
-      let adAccountMap = new Map<string, AdAccountData>();
+      const adAccountMap = new Map<string, AdAccountData>();
       
       if (adAccountIds.length > 0) {
         const { data: adAccounts, error: accountsError } = await supabase
@@ -429,7 +429,7 @@ export function useHealthDashboard() {
         .map(t => t.related_client_id)
         .filter((id): id is string => id !== null);
       
-      let taskClientMap = new Map<string, { name: string; avatar: string | null }>();
+      const taskClientMap = new Map<string, { name: string; avatar: string | null }>();
       
       if (taskClientIds.length > 0) {
         const { data: taskClients } = await supabase

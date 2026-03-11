@@ -43,7 +43,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       
       setSlides(typedSlides);
       return typedSlides;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching slides:", error);
       toast.error("Erro ao carregar slides");
       return [];
@@ -68,7 +68,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       if (error) throw error;
 
       if (data?.slides) {
-        const typedSlides = data.slides.map((slide: any) => ({
+        const typedSlides = data.slides.map((slide: unknown) => ({
           ...slide,
           status: slide.status as YouTubeSlide["status"]
         }));
@@ -78,7 +78,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       }
       
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating structure:", error);
       toast.error(error.message || "Erro ao gerar estrutura de slides");
       return null;
@@ -101,7 +101,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       ));
       
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating slide:", error);
       toast.error("Erro ao atualizar slide");
       return false;
@@ -135,7 +135,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       }
       
       throw new Error("No image returned");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating slide image:", error);
       setSlides(prev => prev.map(s => 
         s.id === slideId ? { ...s, status: "error" as const } : s
@@ -216,7 +216,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       setSlides(prev => prev.filter(s => s.id !== slideId));
       toast.success("Slide removido");
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting slide:", error);
       toast.error("Erro ao remover slide");
       return false;
@@ -240,7 +240,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       });
       
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error reordering slides:", error);
       return false;
     }
@@ -303,7 +303,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       const fileName = `${scriptTitle.replace(/[^a-zA-Z0-9À-ÿ\s]/g, "").trim().substring(0, 50)}.pptx`;
       await pptx.writeFile({ fileName });
       toast.success(`PPT baixado com ${slidesWithImgs.length} slides!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error exporting to PPT:", error);
       toast.error(error.message || "Erro ao gerar arquivo PPT");
     } finally {

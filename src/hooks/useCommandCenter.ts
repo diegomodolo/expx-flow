@@ -92,10 +92,10 @@ export function useCommandCenter() {
 
       // Fetch task_clients for all tasks
       const allTaskIds = [...(backlog || []), ...(timeline || [])].map(t => t.id);
-      let taskClientsMap: Record<string, TaskClient[]> = {};
+      const taskClientsMap: Record<string, TaskClient[]> = {};
       
       if (allTaskIds.length > 0) {
-        const { data: tcData } = await (supabase as any)
+        const { data: tcData } = await (supabase as unknown)
           .from("task_clients")
           .select("task_id, client_id, clients:client_id(name, avatar)")
           .in("task_id", allTaskIds);
@@ -138,7 +138,7 @@ export function useCommandCenter() {
         }
       }
 
-      const enrichTask = (t: any): CommandCenterTask => ({
+      const enrichTask = (t: unknown): CommandCenterTask => ({
         ...t,
         clients: taskClientsMap[t.id] || [],
       });
@@ -183,14 +183,14 @@ export function useCommandCenter() {
     let boardColumnId: string | null = null;
     try {
       const { data: columns } = await (supabase
-        .from('task_board_columns' as any)
+        .from('task_board_columns' as unknown)
         .select('id, status, order_index')
         .eq('user_id', userId)
         .eq('company_id', activeCompany?.company_id || '')
-        .order('order_index', { ascending: true }) as any);
+        .order('order_index', { ascending: true }) as unknown);
 
       if (columns && columns.length > 0) {
-        const todoCol = columns.find((c: any) => c.status === 'todo');
+        const todoCol = columns.find((c: unknown) => c.status === 'todo');
         boardColumnId = todoCol?.id || columns[0]?.id || null;
       }
     } catch (e) {
@@ -209,12 +209,12 @@ export function useCommandCenter() {
         deadline: deadlineDate.toISOString().split('T')[0],
         due_date: deadlineDate.toISOString(),
         quadro_column_id: boardColumnId,
-      } as any;
+      } as unknown;
       setBacklogTasks(prev => prev.filter(t => t.id !== taskId));
       setTimelineTasks(prev => [...prev, updatedTask].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || '')));
     }
     
-    const updatePayload: any = {
+    const updatePayload: unknown = {
       assigned_user_id: userId,
       responsible_name: memberName,
       start_date: startDate.toISOString(),
@@ -256,7 +256,7 @@ export function useCommandCenter() {
         task_state: "planejamento",
         due_date: null,
         quadro_column_id: null,
-      } as any;
+      } as unknown;
       setTimelineTasks(prev => prev.filter(t => t.id !== taskId));
       setBacklogTasks(prev => [...prev, updatedTask]);
     }
@@ -267,11 +267,11 @@ export function useCommandCenter() {
         assigned_user_id: null,
         responsible_name: '',
         start_date: null,
-        status: "todo" as any,
-        task_state: "planejamento" as any,
+        status: "todo" as unknown,
+        task_state: "planejamento" as unknown,
         due_date: null,
         quadro_column_id: null,
-      } as any)
+      } as unknown)
       .eq("id", taskId);
     if (error) {
       if (task) {

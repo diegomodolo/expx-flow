@@ -65,7 +65,7 @@ export const useWhatsAppQuickReplies = (instanceId: string | null) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-quick-replies', instanceId] });
       toast.success('Resposta rápida criada com sucesso');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error creating quick reply:', error);
       toast.error('Erro ao criar resposta rápida');
     }
@@ -91,7 +91,7 @@ export const useWhatsAppQuickReplies = (instanceId: string | null) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-quick-replies', instanceId] });
       toast.success('Resposta rápida atualizada com sucesso');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error updating quick reply:', error);
       toast.error('Erro ao atualizar resposta rápida');
     }
@@ -128,7 +128,7 @@ export const useWhatsAppQuickReplies = (instanceId: string | null) => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-quick-replies', instanceId] });
       toast.success('Resposta rápida excluída com sucesso');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error deleting quick reply:', error);
       toast.error(error.message || 'Erro ao excluir resposta rápida');
     }

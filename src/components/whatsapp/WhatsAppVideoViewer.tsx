@@ -130,7 +130,7 @@ export function WhatsAppVideoViewer({
       setVideoLoaded(true);
       generateThumbnail(url);
       console.log("[WhatsAppVideoViewer] Video ready, cached:", !!cachedUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppVideoViewer] Error:", err);
       setError(err.message || "Erro ao carregar vídeo");
     } finally {

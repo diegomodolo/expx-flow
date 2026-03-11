@@ -247,7 +247,7 @@ const Colaboradores = () => {
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                     <div className="flex items-center gap-1.5">
                       <label className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap">Tipo:</label>
-                      <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+                      <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as unknown)}>
                         <SelectTrigger className="w-28 sm:w-36 h-8 sm:h-10 text-xs sm:text-sm">
                           <SelectValue />
                         </SelectTrigger>

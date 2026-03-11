@@ -114,7 +114,7 @@ export function AdEditContent({
   const [parentPixelName, setParentPixelName] = useState<string | null>(null);
 
   // Original values for comparison
-  const [originalValues, setOriginalValues] = useState<any>(null);
+  const [originalValues, setOriginalValues] = useState<unknown>(null);
 
   // Build full UTM string from individual fields
   const buildUtmString = () => {
@@ -148,7 +148,7 @@ export function AdEditContent({
   // Reset form when node changes
   useEffect(() => {
     if (node && node.type === 'ad') {
-      const nodeAny = node as any;
+      const nodeAny = node as unknown;
       
       setEditName(node.name);
       setEditStatus(node.status === 'active' ? 'active' : 'paused');
@@ -298,7 +298,7 @@ export function AdEditContent({
     }
 
     const platform = node.platform as 'meta' | 'google';
-    const facebookId = (node as any).facebookId;
+    const facebookId = (node as unknown).facebookId;
 
     const metaAction = async () => {
       let finalUrl = linkUrl;
@@ -326,7 +326,7 @@ export function AdEditContent({
       }
 
       if (platform === 'meta' && facebookId) {
-        const pixelChanged = pixelId !== (node as any).pixelId;
+        const pixelChanged = pixelId !== (node as unknown).pixelId;
         
         const { data, error } = await supabase.functions.invoke('update-meta-ad', {
           body: {

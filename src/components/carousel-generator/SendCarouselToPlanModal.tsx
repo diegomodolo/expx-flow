@@ -175,7 +175,7 @@ export function SendCarouselToPlanModal({
       toast.success(createNew ? 'Planejamento criado e carrossel adicionado!' : 'Carrossel enviado para o planejamento!');
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending to plan:', error);
       toast.error('Erro ao enviar: ' + error.message);
     } finally {

@@ -109,7 +109,7 @@ export function WorkspaceShareDialog({
                 </SelectContent>
               </Select>
 
-              <Select value={selectedPermission} onValueChange={(v: any) => setSelectedPermission(v)}>
+              <Select value={selectedPermission} onValueChange={(v: unknown) => setSelectedPermission(v)}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -165,7 +165,7 @@ export function WorkspaceShareDialog({
                       <div className="flex items-center gap-2">
                         <Select
                           value={share.permission}
-                          onValueChange={(v: any) => handlePermissionChange(share.id, v)}
+                          onValueChange={(v: unknown) => handlePermissionChange(share.id, v)}
                         >
                           <SelectTrigger className="w-28 h-8">
                             <SelectValue />

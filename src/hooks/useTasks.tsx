@@ -97,7 +97,7 @@ export function useTasks() {
 
       // Buscar campanhas relacionadas se existirem
       const campaignIds = [...new Set(tasksData.map(task => task.related_campaign_id).filter(Boolean))];
-      let campaignsData: any[] = [];
+      let campaignsData: unknown[] = [];
       if (campaignIds.length > 0) {
         const { data, error } = await supabase
           .from("campaigns")
@@ -115,7 +115,7 @@ export function useTasks() {
 
       // Buscar clientes relacionados se existirem
       const clientIds = [...new Set(tasksData.map(task => task.related_client_id).filter(Boolean))];
-      let clientsData: any[] = [];
+      let clientsData: unknown[] = [];
       if (clientIds.length > 0) {
         const { data, error } = await supabase
           .from("clients")
@@ -195,7 +195,7 @@ export function useTasks() {
   // Mutation para atualizar tarefa
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
-      const isTriggeredConflict = (err: any) =>
+      const isTriggeredConflict = (err: unknown) =>
         err?.message?.includes('tuple to be updated was already modified') ||
         err?.code === '55000';
 
@@ -236,16 +236,16 @@ export function useTasks() {
       const previousTasks = queryClient.getQueryData(['tasks', activeCompany?.company_id]);
 
       // Optimistically update the task in the cache so the card moves immediately
-      queryClient.setQueryData(['tasks', activeCompany?.company_id], (old: any) => {
+      queryClient.setQueryData(['tasks', activeCompany?.company_id], (old: unknown) => {
         if (!Array.isArray(old)) return old;
-        return old.map((task: any) =>
+        return old.map((task: unknown) =>
           task.id === id ? { ...task, ...updates } : task
         );
       });
 
       return { previousTasks };
     },
-    onError: (error, _variables, context: any) => {
+    onError: (error, _variables, context: unknown) => {
       // Revert the optimistic update on a real (non-trigger) error
       if (context?.previousTasks !== undefined) {
         queryClient.setQueryData(['tasks', activeCompany?.company_id], context.previousTasks);

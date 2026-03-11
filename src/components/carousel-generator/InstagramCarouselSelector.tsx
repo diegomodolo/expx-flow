@@ -88,7 +88,7 @@ export function InstagramCarouselSelector({
       
       setNextCursor(data.nextCursor || null);
       setHasMore(data.hasMore || false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching carousels:", err);
       toast.error("Erro ao buscar carrosséis do Instagram");
     } finally {
@@ -136,7 +136,7 @@ export function InstagramCarouselSelector({
 
       onSelect(selectedCarousel);
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching carousel children:", err);
       toast.error("Erro ao buscar slides do carrossel");
       setSelectedId(null);

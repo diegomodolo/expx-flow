@@ -106,7 +106,7 @@ export function CnaeLeadFiltersDialog({
       if (!companyId || !cnaeCode) return [];
       
       let query = supabase
-        .from('cnae_lead_pool' as any)
+        .from('cnae_lead_pool' as unknown)
         .select('municipio, uf')
         .eq('company_id', companyId)
         .eq('cnae_code', cnaeCode)
@@ -123,7 +123,7 @@ export function CnaeLeadFiltersDialog({
 
       // Get unique municipalities with their UF
       const municipiosMap = new Map<string, { municipio: string; uf: string }>();
-      (data || []).forEach((item: any) => {
+      (data || []).forEach((item: unknown) => {
         if (item.municipio) {
           const key = `${item.municipio}-${item.uf}`;
           if (!municipiosMap.has(key)) {

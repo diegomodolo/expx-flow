@@ -49,7 +49,7 @@ export function WhatsAppBlockedContactsModal({
       } else {
         throw new Error(data?.error || "Erro ao buscar contatos bloqueados");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppBlockedContactsModal] Error:", err);
       toast.error(err.message || "Erro ao buscar contatos bloqueados");
     } finally {
@@ -80,7 +80,7 @@ export function WhatsAppBlockedContactsModal({
       } else {
         throw new Error(data?.error || "Erro ao desbloquear contato");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppBlockedContactsModal] Unblock error:", err);
       toast.error(err.message || "Erro ao desbloquear contato");
     } finally {

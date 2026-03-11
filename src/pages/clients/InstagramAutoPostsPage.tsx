@@ -117,8 +117,8 @@ export default function InstagramAutoPostsPage() {
       post_briefing: briefing,
       scheduled_days: selectedDays,
       scheduled_hours: selectedHours,
-      company_id: activeCompany?.company_id!,
-      created_by: user?.id!,
+      company_id: activeCompany?.company_id ?? '',
+      created_by: user?.id ?? '',
       reference_image_1: newConfigRefImages.reference_image_1,
       reference_image_2: newConfigRefImages.reference_image_2,
       reference_image_3: newConfigRefImages.reference_image_3
@@ -189,7 +189,7 @@ export default function InstagramAutoPostsPage() {
                     <SelectValue placeholder="Selecione a conta" />
                   </SelectTrigger>
                   <SelectContent>
-                    {instagramAccounts.map((account: any) => (
+                    {instagramAccounts.map((account: unknown) => (
                       <SelectItem key={account.id} value={account.id}>
                         @{account.username}
                       </SelectItem>

@@ -308,8 +308,8 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
 
         if (leadsToInsert.length > 0) {
           const { data, error } = await supabase
-            .from('cnae_lead_pool' as any)
-            .upsert(leadsToInsert as any, { 
+            .from('cnae_lead_pool' as unknown)
+            .upsert(leadsToInsert as unknown, { 
               onConflict: 'cnpj,company_id',
               ignoreDuplicates: importMode === 'ignore'
             })

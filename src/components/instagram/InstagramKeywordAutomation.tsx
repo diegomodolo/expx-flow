@@ -23,7 +23,7 @@ interface KeywordTrigger {
   instagram_account_id: string;
   is_active: boolean;
   created_at: string;
-  instagram_automation_flows?: { flow_name: string; flow_data: any };
+  instagram_automation_flows?: { flow_name: string; flow_data: unknown };
   instagram_accounts?: { username: string };
 }
 
@@ -70,7 +70,7 @@ export function InstagramKeywordAutomation() {
     enabled: !!companyId,
   });
 
-  const globalVerifyToken = (waConfig as any)?.meta_webhook_verify_token ?? "";
+  const globalVerifyToken = (waConfig as unknown)?.meta_webhook_verify_token ?? "";
 
   const saveGlobalVerifyToken = async () => {
     setSavingToken(true);
@@ -79,16 +79,16 @@ export function InstagramKeywordAutomation() {
       if (waConfig) {
         await supabase
           .from("whatsapp_configs")
-          .update({ meta_webhook_verify_token: newToken } as any)
-          .eq("id", (waConfig as any).id);
+          .update({ meta_webhook_verify_token: newToken } as unknown)
+          .eq("id", (waConfig as unknown).id);
       } else {
         await supabase
           .from("whatsapp_configs")
-          .insert({ company_id: companyId!, meta_webhook_verify_token: newToken } as any);
+          .insert({ company_id: companyId!, meta_webhook_verify_token: newToken } as unknown);
       }
       await refetchWaConfig();
       toast({ title: "Token gerado e salvo!", description: "Copie e cole no campo 'Verificar Token' do Meta for Developers." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Erro ao salvar token", description: err.message, variant: "destructive" });
     } finally {
       setSavingToken(false);
@@ -181,7 +181,7 @@ export function InstagramKeywordAutomation() {
       setIsTriggerDialogOpen(false);
       resetTriggerForm();
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: unknown) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const toggleTrigger = useMutation({
@@ -323,7 +323,7 @@ export function InstagramKeywordAutomation() {
 
       {flows && flows.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {flows.map((flow: any) => (
+          {flows.map((flow: unknown) => (
             <Card key={flow.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsFlowDialogOpen(true)}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -335,9 +335,9 @@ export function InstagramKeywordAutomation() {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <MessageSquare className="w-3 h-3" />
-                    {flow.flow_data?.steps?.filter((s: any) => s.type === "message").length ?? 0} msgs
+                    {flow.flow_data?.steps?.filter((s: unknown) => s.type === "message").length ?? 0} msgs
                     <Clock className="w-3 h-3 ml-2" />
-                    {flow.flow_data?.steps?.filter((s: any) => s.type === "delay").length ?? 0} delays
+                    {flow.flow_data?.steps?.filter((s: unknown) => s.type === "delay").length ?? 0} delays
                   </div>
                 </div>
               </CardContent>
@@ -389,8 +389,8 @@ export function InstagramKeywordAutomation() {
                       ))}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-3">
-                      <span>@{(trigger as any).instagram_accounts?.username ?? "—"}</span>
-                      <span>→ {(trigger as any).instagram_automation_flows?.flow_name ?? "—"}</span>
+                      <span>@{(trigger as unknown).instagram_accounts?.username ?? "—"}</span>
+                      <span>→ {(trigger as unknown).instagram_automation_flows?.flow_name ?? "—"}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -431,7 +431,7 @@ export function InstagramKeywordAutomation() {
           </button>
           {expandedLogs && (
             <div className="space-y-2">
-              {logs.map((log: any) => (
+              {logs.map((log: unknown) => (
                 <div key={log.id} className="flex items-center justify-between text-xs bg-muted/50 rounded px-3 py-2">
                   <span className="text-muted-foreground">{new Date(log.executed_at).toLocaleString("pt-BR")}</span>
                   <span>Usuário: {log.ig_user_id?.substring(0, 12)}...</span>
@@ -463,7 +463,7 @@ export function InstagramKeywordAutomation() {
               <Select value={selectedAccount} onValueChange={setSelectedAccount}>
                 <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                 <SelectContent>
-                  {instagramAccounts?.map((acc: any) => (
+                  {instagramAccounts?.map((acc: unknown) => (
                     <SelectItem key={acc.id} value={acc.id}>@{acc.username}</SelectItem>
                   ))}
                 </SelectContent>
@@ -489,7 +489,7 @@ export function InstagramKeywordAutomation() {
               <Select value={selectedFlow} onValueChange={setSelectedFlow}>
                 <SelectTrigger><SelectValue placeholder="Selecione o fluxo" /></SelectTrigger>
                 <SelectContent>
-                  {flows?.map((flow: any) => (
+                  {flows?.map((flow: unknown) => (
                     <SelectItem key={flow.id} value={flow.id}>{flow.flow_name}</SelectItem>
                   ))}
                 </SelectContent>

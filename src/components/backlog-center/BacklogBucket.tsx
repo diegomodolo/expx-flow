@@ -20,7 +20,7 @@ interface Props {
   onToggleTask: (id: string) => void;
   getReadiness: (task: BacklogTask) => { ready: boolean; hasDescription: boolean; hasEstimate: boolean; hasClient: boolean };
   getAgingHours: (createdAt: string) => number;
-  clients: any[];
+  clients: unknown[];
   taskToClients: Map<string, string[]>;
   companyId: string | undefined;
   selectionBar?: React.ReactNode;
@@ -40,14 +40,14 @@ export function BacklogBucket({
   selectionBar,
   subtasksByParent = new Map(),
 }: Props) {
-  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editingTask, setEditingTask] = useState<unknown>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const { updateTask } = useTasks();
   const queryClient = useQueryClient();
 
   const clientsMap = useMemo(() => {
     const map = new Map<string, { name: string; avatar: string | null }>();
-    clients.forEach((c: any) => map.set(c.id, { name: c.name, avatar: c.avatar }));
+    clients.forEach((c: unknown) => map.set(c.id, { name: c.name, avatar: c.avatar }));
     return map;
   }, [clients]);
 

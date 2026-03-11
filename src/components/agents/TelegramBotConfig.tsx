@@ -52,7 +52,7 @@ export function TelegramBotConfig({
       });
       setToken("");
       onUpdate();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erro ao conectar bot",
         description: err.message || "Verifique o token e tente novamente.",
@@ -78,7 +78,7 @@ export function TelegramBotConfig({
         description: "O bot do Telegram foi removido deste agente.",
       });
       onUpdate();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erro ao desconectar",
         description: err.message,

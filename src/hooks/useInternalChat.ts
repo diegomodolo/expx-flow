@@ -261,7 +261,7 @@ export function useInternalChat() {
       const taskRefMatch = content.match(/#([a-f0-9-]{36})/i);
       const taskRefId = taskRefMatch ? taskRefMatch[1] : null;
 
-      const insertData: any = {
+      const insertData: unknown = {
         channel_id: activeChannelId,
         user_id: user.id,
         content,
@@ -336,7 +336,7 @@ export function useInternalChat() {
           if (mentionInserts.length > 0) {
             // Insert mention records
             await supabase
-              .from('internal_message_mentions' as any)
+              .from('internal_message_mentions' as unknown)
               .insert(mentionInserts);
 
             // Create notifications for mentioned users
@@ -354,7 +354,7 @@ export function useInternalChat() {
             }));
 
             await supabase
-              .from('user_notifications' as any)
+              .from('user_notifications' as unknown)
               .insert(notifInserts);
           }
         }

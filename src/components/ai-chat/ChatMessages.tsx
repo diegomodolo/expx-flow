@@ -51,7 +51,7 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
     let formatted = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
     // Convert bullet points starting with - or *
-    formatted = formatted.replace(/^[•\-\*]\s+(.+)$/gm, '• $1');
+    formatted = formatted.replace(/^[•\-*]\s+(.+)$/gm, '• $1');
     
     // Convert numbered lists
     formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '• $1');

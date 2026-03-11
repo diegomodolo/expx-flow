@@ -126,9 +126,9 @@ export function useHistorias() {
         return;
       }
 
-      const historiaIds = historiasData.map((h: any) => h.id);
-      const teamIds = [...new Set(historiasData.map((h: any) => h.team_id).filter(Boolean))];
-      const clientIds = [...new Set(historiasData.map((h: any) => h.related_client_id).filter(Boolean))];
+      const historiaIds = historiasData.map((h: unknown) => h.id);
+      const teamIds = [...new Set(historiasData.map((h: unknown) => h.team_id).filter(Boolean))];
+      const clientIds = [...new Set(historiasData.map((h: unknown) => h.related_client_id).filter(Boolean))];
 
       // Fetch subtasks, teams, clients, and work time in parallel
       const [subtasksRes, teamsRes, clientsRes, workTimeDirectRes, workTimeSubsRes] = await Promise.all([
@@ -157,8 +157,8 @@ export function useHistorias() {
       ]);
 
       // Now fetch time tracking for subtasks
-      const subtaskIds = (workTimeSubsRes.data || []).map((s: any) => s.id);
-      let subtaskTimeMap: Record<string, number> = {};
+      const subtaskIds = (workTimeSubsRes.data || []).map((s: unknown) => s.id);
+      const subtaskTimeMap: Record<string, number> = {};
 
       if (subtaskIds.length > 0) {
         const { data: subtaskTimeData } = await supabase
@@ -168,11 +168,11 @@ export function useHistorias() {
 
         // Map subtask time to parent
         const subtaskToParent: Record<string, string> = {};
-        (workTimeSubsRes.data || []).forEach((s: any) => {
+        (workTimeSubsRes.data || []).forEach((s: unknown) => {
           subtaskToParent[s.id] = s.parent_task_id;
         });
 
-        (subtaskTimeData || []).forEach((t: any) => {
+        (subtaskTimeData || []).forEach((t: unknown) => {
           const parentId = subtaskToParent[t.task_id];
           if (parentId) {
             subtaskTimeMap[parentId] = (subtaskTimeMap[parentId] || 0) + (t.duration_minutes || 0);
@@ -182,23 +182,23 @@ export function useHistorias() {
 
       // Direct time on parent
       const directTimeMap: Record<string, number> = {};
-      (workTimeDirectRes.data || []).forEach((t: any) => {
+      (workTimeDirectRes.data || []).forEach((t: unknown) => {
         directTimeMap[t.task_id] = (directTimeMap[t.task_id] || 0) + (t.duration_minutes || 0);
       });
 
       const subtasksByParent: Record<string, Subtask[]> = {};
-      (subtasksRes.data || []).forEach((s: any) => {
+      (subtasksRes.data || []).forEach((s: unknown) => {
         if (!subtasksByParent[s.parent_task_id]) subtasksByParent[s.parent_task_id] = [];
         subtasksByParent[s.parent_task_id].push(s);
       });
 
-      const teamsMap: Record<string, any> = {};
-      (teamsRes.data || []).forEach((t: any) => { teamsMap[t.id] = t; });
+      const teamsMap: Record<string, unknown> = {};
+      (teamsRes.data || []).forEach((t: unknown) => { teamsMap[t.id] = t; });
 
-      const clientsMap: Record<string, any> = {};
-      (clientsRes.data || []).forEach((c: any) => { clientsMap[c.id] = c; });
+      const clientsMap: Record<string, unknown> = {};
+      (clientsRes.data || []).forEach((c: unknown) => { clientsMap[c.id] = c; });
 
-      const mapped: Historia[] = historiasData.map((h: any) => {
+      const mapped: Historia[] = historiasData.map((h: unknown) => {
         const subs = subtasksByParent[h.id] || [];
         const team = teamsMap[h.team_id];
         const client = clientsMap[h.related_client_id];

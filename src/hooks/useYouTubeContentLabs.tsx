@@ -32,8 +32,8 @@ export function useYouTubeContentLabs(companyId: string) {
       if (error) throw error;
 
       // Get channel counts per lab
-      const labIds = (data || []).map((l: any) => l.id);
-      let channelCounts = new Map<string, number>();
+      const labIds = (data || []).map((l: unknown) => l.id);
+      const channelCounts = new Map<string, number>();
       
       if (labIds.length > 0) {
         const { data: channelData } = await supabase
@@ -43,13 +43,13 @@ export function useYouTubeContentLabs(companyId: string) {
           .eq('is_active', true);
 
         if (channelData) {
-          channelData.forEach((c: any) => {
+          channelData.forEach((c: unknown) => {
             channelCounts.set(c.lab_id, (channelCounts.get(c.lab_id) || 0) + 1);
           });
         }
       }
 
-      const mapped: YouTubeContentLab[] = (data || []).map((l: any) => ({
+      const mapped: YouTubeContentLab[] = (data || []).map((l: unknown) => ({
         ...l,
         client_name: l.clients?.name || null,
         clients: undefined,
@@ -87,7 +87,7 @@ export function useYouTubeContentLabs(companyId: string) {
       toast({ title: 'Lab criado!' });
       await fetchLabs();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating lab:', error);
       toast({ title: 'Erro ao criar lab', description: error.message, variant: 'destructive' });
       return null;

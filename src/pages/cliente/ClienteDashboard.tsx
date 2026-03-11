@@ -47,10 +47,10 @@ interface ClienteDashboardProps {
   totalSales: number;
   roi: number;
   syncPeriodDays: number;
-  conversionsInPeriod: any[];
+  conversionsInPeriod: unknown[];
   funnelCompletenessScore: number;
-  cplByCampaignData: any[];
-  investmentDistributionData: any[];
+  cplByCampaignData: unknown[];
+  investmentDistributionData: unknown[];
   metaMetrics?: PlatformMetrics;
   googleMetrics?: PlatformMetrics;
   unifiedCampaigns?: UnifiedCampaign[];
@@ -321,8 +321,8 @@ export function ClienteDashboard({
       <BudgetProjectionIndicator
         campaigns={unifiedCampaigns}
         monthlyBudget={client.monthly_budget}
-        metaMonthlyBudget={(client as any).meta_monthly_budget}
-        googleMonthlyBudget={(client as any).google_monthly_budget}
+        metaMonthlyBudget={(client as unknown).meta_monthly_budget}
+        googleMonthlyBudget={(client as unknown).google_monthly_budget}
         platformFilter="all"
       />
 

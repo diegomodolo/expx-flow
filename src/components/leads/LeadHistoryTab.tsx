@@ -111,7 +111,7 @@ export const LeadHistoryTab = ({ companyId }: LeadHistoryTabProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {imports.map((imp: any) => (
+                {imports.map((imp: unknown) => (
                   <TableRow key={imp.id}>
                     <TableCell className="text-sm">
                       {format(new Date(imp.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
@@ -177,7 +177,7 @@ export const LeadHistoryTab = ({ companyId }: LeadHistoryTabProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {apiRequests.map((req: any) => (
+                {apiRequests.map((req: unknown) => (
                   <TableRow key={req.id}>
                     <TableCell className="text-sm">
                       {format(new Date(req.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}

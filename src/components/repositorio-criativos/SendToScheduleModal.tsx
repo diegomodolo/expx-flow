@@ -87,7 +87,7 @@ export function SendToScheduleModal({ creative, open, onOpenChange, onSuccess }:
       toast.success('Publicação agendada com sucesso!');
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error scheduling:', error);
       toast.error('Erro ao agendar: ' + error.message);
     } finally {

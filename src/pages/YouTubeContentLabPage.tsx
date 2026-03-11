@@ -36,7 +36,7 @@ export default function YouTubeContentLabPage() {
         .eq('id', labId)
         .single();
       if (error) throw error;
-      return data as any;
+      return data as unknown;
     },
     enabled: !!labId,
   });
@@ -80,14 +80,14 @@ export default function YouTubeContentLabPage() {
 
   const filteredSuggestions = useMemo(() => {
     if (!categoryChannelIds) return suggestionsHook.suggestions;
-    return suggestionsHook.suggestions.filter((s: any) =>
+    return suggestionsHook.suggestions.filter((s: unknown) =>
       s.category_id === selectedCategoryId || !s.category_id
     );
   }, [suggestionsHook.suggestions, selectedCategoryId, categoryChannelIds]);
 
   const filteredScripts = useMemo(() => {
     if (!categoryChannelIds) return scriptsHook.scripts;
-    return scriptsHook.scripts.filter((s: any) =>
+    return scriptsHook.scripts.filter((s: unknown) =>
       s.category_id === selectedCategoryId || !s.category_id
     );
   }, [scriptsHook.scripts, selectedCategoryId, categoryChannelIds]);

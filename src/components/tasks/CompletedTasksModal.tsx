@@ -36,7 +36,7 @@ interface Task {
   progress: number;
   task_type?: string | null;
   user_profile?: { avatar_url: string | null; full_name: string | null } | null;
-  client?: any;
+  client?: unknown;
   team?: { name: string; color: string };
 }
 
@@ -44,7 +44,7 @@ interface CompletedTasksModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tasks: Task[];
-  onEditTask: (task: any) => void;
+  onEditTask: (task: unknown) => void;
   allTimeTracking: Record<string, number>;
 }
 

@@ -44,7 +44,7 @@ export function useTaskReview(taskId: string | undefined) {
     queryFn: async () => {
       if (!taskId || !currentEmployee?.id) return false;
       const { data } = await supabase
-        .from("task_members" as any)
+        .from("task_members" as unknown)
         .select("id")
         .eq("task_id", taskId)
         .eq("employee_id", currentEmployee.id)
@@ -61,24 +61,24 @@ export function useTaskReview(taskId: string | undefined) {
     queryFn: async () => {
       if (!taskId || !companyId) return [];
       const { data, error } = await supabase
-        .from("task_review_history" as any)
+        .from("task_review_history" as unknown)
         .select("*")
         .eq("task_id", taskId)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
       // Attach reviewer names
-      const employeeIds = [...new Set((data || []).map((r: any) => r.reviewer_employee_id))];
+      const employeeIds = [...new Set((data || []).map((r: unknown) => r.reviewer_employee_id))];
       const empMap: Record<string, string> = {};
       if (employeeIds.length > 0) {
         const { data: emps } = await supabase
           .from("employees")
           .select("id, name")
           .in("id", employeeIds);
-        (emps || []).forEach((e: any) => { empMap[e.id] = e.name; });
+        (emps || []).forEach((e: unknown) => { empMap[e.id] = e.name; });
       }
 
-      return (data || []).map((r: any) => ({
+      return (data || []).map((r: unknown) => ({
         ...r,
         reviewer_name: empMap[r.reviewer_employee_id] || "Desconhecido",
       })) as TaskReviewHistoryItem[];

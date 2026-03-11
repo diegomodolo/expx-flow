@@ -34,7 +34,7 @@ interface TriggerEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   trigger: NotificationTrigger | null;
-  onSave: (data: any) => void;
+  onSave: (data: unknown) => void;
   isSaving: boolean;
 }
 
@@ -397,7 +397,7 @@ export function TriggerEditModal({
   const [triggerName, setTriggerName] = useState('');
   const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [conditions, setConditions] = useState<Record<string, any>>({});
+  const [conditions, setConditions] = useState<Record<string, unknown>>({});
 
   // Schedule config
   const [frequencyType, setFrequencyType] = useState<TriggerSchedule['frequency_type']>('daily');

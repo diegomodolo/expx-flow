@@ -8,7 +8,7 @@ export interface GroupOpsScoringProfile {
   company_id: string;
   name: string;
   description: string | null;
-  rules_json: any;
+  rules_json: unknown;
   is_default: boolean | null;
   created_at: string;
   updated_at: string;
@@ -20,7 +20,7 @@ export interface GroupOpsBadge {
   name: string;
   description: string | null;
   icon: string | null;
-  rule_json: any;
+  rule_json: unknown;
   created_at: string;
 }
 
@@ -107,7 +107,7 @@ export function useGroupOpsScoring() {
       const { id, created_at, updated_at, company_id, ...rest } = profile;
       const { data, error } = await supabase
         .from('groupops_scoring_profiles')
-        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Novo Perfil', rules_json: rest.rules_json ?? DEFAULT_SCORING_RULES } as any)
+        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Novo Perfil', rules_json: rest.rules_json ?? DEFAULT_SCORING_RULES } as unknown)
         .select().single();
       if (error) throw error;
       return data;
@@ -118,7 +118,7 @@ export function useGroupOpsScoring() {
 
   const updateProfile = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<GroupOpsScoringProfile> & { id: string }) => {
-      const { data, error } = await supabase.from('groupops_scoring_profiles').update(updates as any).eq('id', id).select().single();
+      const { data, error } = await supabase.from('groupops_scoring_profiles').update(updates as unknown).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
@@ -140,7 +140,7 @@ export function useGroupOpsScoring() {
       const { id, created_at, company_id, ...rest } = badge;
       const { data, error } = await supabase
         .from('groupops_badges')
-        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Novo Badge' } as any)
+        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Novo Badge' } as unknown)
         .select().single();
       if (error) throw error;
       return data;
@@ -151,7 +151,7 @@ export function useGroupOpsScoring() {
 
   const updateBadge = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<GroupOpsBadge> & { id: string }) => {
-      const { data, error } = await supabase.from('groupops_badges').update(updates as any).eq('id', id).select().single();
+      const { data, error } = await supabase.from('groupops_badges').update(updates as unknown).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
@@ -180,7 +180,7 @@ export function useGroupOpsScoring() {
       }));
       const { error } = await supabase
         .from('groupops_badges')
-        .insert(rows as any);
+        .insert(rows as unknown);
       if (error) throw error;
     },
     onSuccess: () => {

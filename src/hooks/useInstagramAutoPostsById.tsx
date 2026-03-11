@@ -86,7 +86,7 @@ export function useInstagramAutoPostConfigById(configId: string) {
         title: 'Configuração atualizada!',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao atualizar',
         description: error.message,
@@ -113,7 +113,7 @@ export function useInstagramAutoPostConfigById(configId: string) {
         description: 'Automação desativada com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao remover',
         description: error.message,
@@ -206,7 +206,7 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
         description: 'Novo post gerado com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao regenerar',
         description: error.message,
@@ -233,7 +233,7 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
         description: 'Nova postagem gerada para o próximo horário.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao gerar post',
         description: error.message,
@@ -257,7 +257,7 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
         title: 'Post removido',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao remover',
         description: error.message,
@@ -281,7 +281,7 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
         title: 'Legenda atualizada!',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro ao atualizar legenda',
         description: error.message,
@@ -307,7 +307,7 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
         description: 'O post foi publicado no Instagram com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts-by-config', configId] });
       toast({
         title: 'Erro ao publicar',
@@ -352,7 +352,7 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Erro na verificação',
         description: error.message,

@@ -148,7 +148,7 @@ export function SendToPresentationModal({ creative, open, onOpenChange, onSucces
       toast.success(createNew ? 'Apresentação criada e criativo adicionado!' : 'Criativo enviado para a apresentação!');
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending to presentation:', error);
       toast.error('Erro ao enviar: ' + error.message);
     } finally {

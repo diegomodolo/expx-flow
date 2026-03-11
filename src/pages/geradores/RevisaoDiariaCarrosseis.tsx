@@ -17,7 +17,7 @@ interface Slide {
   headline?: string;
   body?: string;
   image_url?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface Carousel {
@@ -108,7 +108,7 @@ export default function RevisaoDiariaCarrosseis() {
       queryClient.invalidateQueries({ queryKey: ['pending-carousels'] });
       toast.success(status === 'approved' ? 'Carrossel aprovado!' : 'Carrossel rejeitado');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Erro ao atualizar: ' + error.message);
     },
   });

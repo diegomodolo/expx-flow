@@ -81,7 +81,7 @@ export const GenerateVariationsModal: React.FC<GenerateVariationsModalProps> = (
         });
         onOpenChange(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating variations:', error);
       toast({
         title: 'Erro ao gerar variações',

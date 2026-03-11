@@ -118,7 +118,7 @@ export default function ApresentacaoResultadosPublica() {
           return;
         }
 
-        const client = presentationData.clients as any;
+        const client = presentationData.clients as unknown;
 
         setPresentation({
           ...presentationData,
@@ -135,10 +135,10 @@ export default function ApresentacaoResultadosPublica() {
         // Increment view count
         await supabase
           .from("campaign_presentations")
-          .update({ view_count: (presentationData as any).view_count + 1 })
+          .update({ view_count: (presentationData as unknown).view_count + 1 })
           .eq("id", presentationData.id);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err.message);
       } finally {
         setLoading(false);

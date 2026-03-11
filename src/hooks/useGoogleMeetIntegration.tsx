@@ -64,7 +64,7 @@ export function useGoogleMeetIntegration() {
       toast.success("Google Meet conectado com sucesso!");
       processingCodeRef.current = null;
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       processingCodeRef.current = null;
       toast.error(`Erro ao conectar Google Meet: ${error.message}`);
       throw error;
@@ -75,15 +75,15 @@ export function useGoogleMeetIntegration() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('google_meet_integrations' as any)
+        .from('google_meet_integrations' as unknown)
         .select('*')
         .eq('company_id', companyId)
         .eq('is_active', true)
         .maybeSingle();
 
       if (error) throw error;
-      setIntegration(data as any);
-    } catch (error: any) {
+      setIntegration(data as unknown);
+    } catch (error: unknown) {
       console.error("Error loading Meet integration:", error);
     } finally {
       setLoading(false);
@@ -94,14 +94,14 @@ export function useGoogleMeetIntegration() {
     if (!activeCompany || !integration) return;
     try {
       const { error } = await supabase
-        .from('google_meet_integrations' as any)
+        .from('google_meet_integrations' as unknown)
         .update({ is_active: false })
         .eq('id', integration.id);
 
       if (error) throw error;
       setIntegration(null);
       toast.success("Google Meet desconectado com sucesso!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(`Erro ao desconectar: ${error.message}`);
     }
   };
@@ -117,7 +117,7 @@ export function useGoogleMeetIntegration() {
       if (data.error) throw new Error(data.error);
       toast.success(data.message || 'Token renovado!');
       await loadIntegration(activeCompany.company_id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(`Erro ao renovar token: ${error.message}`);
     } finally {
       setLoading(false);

@@ -76,7 +76,7 @@ export const ConditionBuilder = ({ conditions, onChange }: ConditionBuilderProps
             <Label>Operador</Label>
             <Select
               value={condition.operator}
-              onValueChange={(operator: any) => updateCondition(index, { operator })}
+              onValueChange={(operator: unknown) => updateCondition(index, { operator })}
             >
               <SelectTrigger>
                 <SelectValue />

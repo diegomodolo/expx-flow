@@ -12,7 +12,7 @@ interface FormatPanelProps {
     use_short_paragraphs: boolean;
     mandatory_cta: string | null;
   };
-  onChange: (field: string, value: any) => void;
+  onChange: (field: string, value: unknown) => void;
 }
 
 export function WhatsAppAIAgentFormatPanel({ config, onChange }: FormatPanelProps) {

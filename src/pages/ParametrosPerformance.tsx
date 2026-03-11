@@ -49,7 +49,7 @@ const ParametrosPerformance = () => {
     if (selectedRule) {
       await updateRule(selectedRule.id, ruleData);
     } else {
-      await createRule(ruleData as any);
+      await createRule(ruleData as unknown);
     }
     setEditorOpen(false);
     setSelectedRule(null);

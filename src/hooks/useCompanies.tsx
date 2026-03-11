@@ -49,7 +49,7 @@ export const useCompanies = () => {
       if (error) throw error;
 
       setCompanies(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching companies:", error);
       setError(error.message);
       toast({
@@ -90,7 +90,7 @@ export const useCompanies = () => {
       await fetchUserCompanies();
       
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating company:", error);
       toast({
         title: "Erro ao criar empresa",
@@ -119,7 +119,7 @@ export const useCompanies = () => {
 
       await fetchUserCompanies();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating company:", error);
       toast({
         title: "Erro ao atualizar empresa",

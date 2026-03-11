@@ -37,8 +37,8 @@ interface Task {
     avatar_url: string | null;
     full_name: string | null;
   } | null;
-  campaign?: any;
-  client?: any;
+  campaign?: unknown;
+  client?: unknown;
 }
 
 interface TaskListProps {

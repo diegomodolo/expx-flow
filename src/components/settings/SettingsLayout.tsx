@@ -13,14 +13,14 @@ interface SettingsLayoutProps {
 interface NavItem {
   title: string;
   href: string;
-  icon: any;
+  icon: unknown;
   description: string;
 }
 
 interface NavGroup {
   title: string;
   description: string;
-  icon: any;
+  icon: unknown;
   items: NavItem[];
 }
 
@@ -78,7 +78,7 @@ const settingsNavGroups: NavGroup[] = [
       {
         title: "Google Ads",
         href: "/configuracoes/integracao-google",
-        icon: SiGoogle as any,
+        icon: SiGoogle as unknown,
         description: "Integração com Google Ads",
       },
       {
@@ -102,7 +102,7 @@ const settingsNavGroups: NavGroup[] = [
       {
         title: "Discord",
         href: "/configuracoes/discord",
-        icon: SiDiscord as any,
+        icon: SiDiscord as unknown,
         description: "Integração com Discord para notificações",
       },
       {

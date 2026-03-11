@@ -27,10 +27,10 @@ export interface AutomationRule {
     }>;
   };
   action_type: string;
-  action_config: any;
-  budget_safety_limits: any;
-  execution_limits: any;
-  scope_filters: any;
+  action_config: unknown;
+  budget_safety_limits: unknown;
+  execution_limits: unknown;
+  scope_filters: unknown;
   is_active: boolean;
   last_execution_at: string | null;
   execution_count: number;
@@ -61,7 +61,7 @@ export const useAutomationRules = (clientId?: string | null) => {
       return;
     }
     
-    setTemplates((data as any) || []);
+    setTemplates((data as unknown) || []);
   };
 
   const fetchRules = async () => {
@@ -89,7 +89,7 @@ export const useAutomationRules = (clientId?: string | null) => {
         variant: "destructive",
       });
     } else {
-      setRules((data as any) || []);
+      setRules((data as unknown) || []);
     }
     
     setLoading(false);
@@ -197,7 +197,7 @@ export const useAutomationRules = (clientId?: string | null) => {
   const importConfiguredTemplate = async (
     templateId: string,
     targetClientId: string,
-    configuredConditions: any
+    configuredConditions: unknown
   ) => {
     if (!activeCompany?.company_id) return null;
 
@@ -218,7 +218,7 @@ export const useAutomationRules = (clientId?: string | null) => {
 
     // Validate that all conditions have operator and value
     const allConfigured = configuredConditions.conditions.every(
-      (c: any) => c.operator !== null && c.value !== null
+      (c: unknown) => c.operator !== null && c.value !== null
     );
 
     if (!allConfigured) {
@@ -321,8 +321,8 @@ export const useAutomationRules = (clientId?: string | null) => {
     await fetchRules();
   };
 
-  const updateRuleConditions = async (ruleId: string, newConditions: any, timeWindowDays?: number) => {
-    const updateData: any = { 
+  const updateRuleConditions = async (ruleId: string, newConditions: unknown, timeWindowDays?: number) => {
+    const updateData: unknown = { 
       conditions: newConditions,
       updated_at: new Date().toISOString()
     };
@@ -394,7 +394,7 @@ export const useAutomationRules = (clientId?: string | null) => {
       if (error) throw error;
 
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro na simulação",
         description: error.message,

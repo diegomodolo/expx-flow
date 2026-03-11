@@ -210,7 +210,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       } else {
         throw new Error(data?.error || "Erro ao deletar chat");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppChatWindow] Delete chat error:", err);
       toast.error(err.message || "Erro ao deletar chat");
     } finally {
@@ -242,7 +242,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       } else {
         throw new Error(data?.error || "Erro ao marcar mensagens");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppChatWindow] Mark read error:", err);
       toast.error(err.message || "Erro ao marcar como lida");
     } finally {
@@ -278,7 +278,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       } else {
         throw new Error(data?.error || "Erro ao arquivar chat");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppChatWindow] Archive chat error:", err);
       toast.error(err.message || "Erro ao arquivar chat");
     } finally {
@@ -313,7 +313,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       } else {
         throw new Error(data?.error || "Erro ao alterar status");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppChatWindow] Toggle read error:", err);
       toast.error(err.message || "Erro ao alterar status de leitura");
     } finally {
@@ -346,7 +346,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       } else {
         throw new Error(data?.error || "Erro ao silenciar chat");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppChatWindow] Mute chat error:", err);
       toast.error(err.message || "Erro ao silenciar chat");
     } finally {
@@ -380,7 +380,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       } else {
         throw new Error(data?.error || "Erro ao fixar chat");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppChatWindow] Pin chat error:", err);
       toast.error(err.message || "Erro ao fixar chat");
     } finally {
@@ -413,7 +413,7 @@ export function WhatsAppChatWindow({ conversation, companyId, instanceId, onChat
       } else {
         throw new Error(data?.error || "Erro ao bloquear contato");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[WhatsAppChatWindow] Block contact error:", err);
       toast.error(err.message || "Erro ao bloquear contato");
     } finally {
@@ -1028,7 +1028,7 @@ function formatPhoneNumber(phone: string): string {
 }
 
 function getInitials(name: string): string {
-  if (/^\d+$/.test(name.replace(/[\s\-\(\)]/g, ""))) {
+  if (/^\d+$/.test(name.replace(/[\s\-()]/g, ""))) {
     const digits = name.replace(/\D/g, "");
     return digits.slice(-2);
   }

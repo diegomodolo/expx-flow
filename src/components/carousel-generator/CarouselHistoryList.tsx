@@ -19,7 +19,7 @@ type CarouselItem = {
   theme: string | null;
   status: string;
   created_at: string;
-  slides: any[];
+  slides: unknown[];
   caption: string | null;
   client: {
     id: string;
@@ -71,7 +71,7 @@ export function CarouselHistoryList() {
       if (error) throw error;
 
       return {
-        items: (items || []).map((item: any) => ({
+        items: (items || []).map((item: unknown) => ({
           ...item,
           client: item.clients,
         })),
@@ -108,7 +108,7 @@ export function CarouselHistoryList() {
     return labels[type] || type;
   };
 
-  const getFirstSlideImage = (slides: any[]): string | null => {
+  const getFirstSlideImage = (slides: unknown[]): string | null => {
     if (!Array.isArray(slides) || slides.length === 0) return null;
     const first = slides[0];
     return first?.image_url || first?.imageUrl || null;

@@ -108,7 +108,7 @@ export function RegenerateCarouselModal({
           }
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e.name === "AbortError") return;
       console.error("Regeneration error:", e);
       setError(e.message || "Erro ao regenerar imagens");
@@ -118,13 +118,14 @@ export function RegenerateCarouselModal({
 
   const handleEvent = (event: StreamEvent) => {
     switch (event.type) {
-      case "started":
+      case "started": {
         const initialSlides: SlideProgress[] = event.missing_indices.map((idx) => ({
           index: idx,
           status: "pending" as const,
         }));
         setSlides(initialSlides);
         break;
+      }
 
       case "slide_start":
         setCurrentSlide(event.index);

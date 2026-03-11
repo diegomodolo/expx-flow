@@ -71,7 +71,7 @@ export function useWorkSchedules() {
   const assignScheduleToEmployee = async (employeeId: string, scheduleId: string | null) => {
     const { error } = await supabase
       .from("employees")
-      .update({ work_schedule_id: scheduleId } as any)
+      .update({ work_schedule_id: scheduleId } as unknown)
       .eq("id", employeeId);
     if (error) throw error;
   };

@@ -10,7 +10,7 @@ interface ClientBriefingTabProps {
   client?: Client;
   formData: {
     website_url: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   onBriefingUpdate: (updatedClient: Client) => void;
 }

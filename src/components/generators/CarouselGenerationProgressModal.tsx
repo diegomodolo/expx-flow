@@ -158,7 +158,7 @@ export function CarouselGenerationProgressModal({
           return;
         }
       },
-    }).catch((e: any) => {
+    }).catch((e: unknown) => {
       console.error(e);
       toast.error(e?.message || "Erro ao gerar carrossel");
       setIsDone(true);

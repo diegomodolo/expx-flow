@@ -83,7 +83,7 @@ export function useClientUrls({ clientId, companyId }: UseClientUrlsOptions) {
       queryClient.invalidateQueries({ queryKey });
       toast.success('URL adicionada com sucesso');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       if (error.code === '23505') {
         toast.error('Esta URL já está cadastrada para este cliente');
       } else {
@@ -259,7 +259,7 @@ export function useClientUrls({ clientId, companyId }: UseClientUrlsOptions) {
       const count = data?.results?.length || 0;
       toast.success(`${count} URL(s) validada(s)`);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Validation error:', error);
       toast.error('Erro ao validar URLs');
     },

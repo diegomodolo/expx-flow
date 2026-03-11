@@ -26,7 +26,7 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
   const { activeCompany } = useCompany();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<unknown>(null);
   const [completionBlockOpen, setCompletionBlockOpen] = useState(false);
   const [completionBlockItems, setCompletionBlockItems] = useState<{ type: 'subtasks' | 'checklist'; count: number }[]>([]);
   const { getSetting } = useCompanyUsageDefaults();
@@ -34,7 +34,7 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
   // Filtrar tarefas do cliente
   const clientTasks = tasks.filter(task => task.related_client_id === clientId);
 
-  const handleEditTask = (task: any) => {
+  const handleEditTask = (task: unknown) => {
     setSelectedTask(task);
     setTaskDialogOpen(true);
   };
@@ -55,19 +55,19 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
             .select('id, status')
             .eq('parent_task_id', taskId)
             .neq('origin', 'ghost');
-          const pendingSubtasks = (subtasks || []).filter((s: any) => s.status !== 'done');
+          const pendingSubtasks = (subtasks || []).filter((s: unknown) => s.status !== 'done');
           if (pendingSubtasks.length > 0) {
             pendingItems.push({ type: 'subtasks', count: pendingSubtasks.length });
           }
         }
 
         if (blockChecklist && existingTask) {
-          let checklist = (existingTask as any).checklist || [];
+          let checklist = (existingTask as unknown).checklist || [];
           if (typeof checklist === 'string') {
             try { checklist = JSON.parse(checklist); } catch { checklist = []; }
           }
           if (!Array.isArray(checklist)) checklist = [];
-          const pendingChecklist = checklist.filter((item: any) => !item.done && !item.completed);
+          const pendingChecklist = checklist.filter((item: unknown) => !item.done && !item.completed);
           if (pendingChecklist.length > 0) {
             pendingItems.push({ type: 'checklist', count: pendingChecklist.length });
           }
@@ -86,7 +86,7 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
       await handleAutoTimeTracking(taskId, existingTask.status, status, user?.id, activeCompany?.company_id);
     }
 
-    const updates: any = { status: status as any };
+    const updates: unknown = { status: status as unknown };
     // Always update quadro_column_id so task moves to correct column
     // If columnId is explicitly provided, use it; otherwise clear it so status-based fallback works
     updates.quadro_column_id = columnId !== undefined ? (columnId || null) : null;
@@ -101,7 +101,7 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
     }
   };
 
-  const handleCreateTask = async (taskData: any) => {
+  const handleCreateTask = async (taskData: unknown) => {
     await createTask({
       ...taskData,
       related_client_id: clientId,
@@ -109,7 +109,7 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
     setTaskDialogOpen(false);
   };
 
-  const handleUpdateTask = async (taskData: any) => {
+  const handleUpdateTask = async (taskData: unknown) => {
     if (selectedTask) {
       await updateTask(selectedTask.id, taskData);
       setSelectedTask(null);

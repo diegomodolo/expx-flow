@@ -14,7 +14,7 @@ export interface GroupOpsGroup {
   timezone: string | null;
   language: string | null;
   rules_text: string | null;
-  config_json: any;
+  config_json: unknown;
   created_at: string;
   updated_at: string;
   member_count?: number;
@@ -82,7 +82,7 @@ export function useGroupOpsGroups() {
       const { id, created_at, updated_at, company_id, ...rest } = group;
       const { data, error } = await supabase
         .from('groupops_groups')
-        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Novo Grupo' } as any)
+        .insert({ ...rest, company_id: companyId!, name: rest.name ?? 'Novo Grupo' } as unknown)
         .select()
         .single();
       if (error) throw error;

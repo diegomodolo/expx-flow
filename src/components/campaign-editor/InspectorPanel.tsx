@@ -109,7 +109,7 @@ export function InspectorPanel({ node, isOpen, onClose, clientId, onUpdate }: In
     if (!clientId || !node) return;
 
     const platform = node.platform as "meta" | "google";
-    const facebookId = (node as any).facebookId;
+    const facebookId = (node as unknown).facebookId;
 
     try {
       // Update name if changed

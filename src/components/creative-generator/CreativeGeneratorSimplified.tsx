@@ -277,7 +277,7 @@ export function CreativeGeneratorSimplified() {
         handleInputChange(index, { theme: data.theme });
         toast({ title: "Tema gerado com IA!" });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao gerar tema",
         description: error.message,
@@ -317,7 +317,7 @@ export function CreativeGeneratorSimplified() {
         handleInputChange(index, { copyText: data.copy });
         toast({ title: "Texto gerado com IA!" });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao gerar texto",
         description: error.message,
@@ -374,7 +374,7 @@ export function CreativeGeneratorSimplified() {
         handleInputChange(creativeIndex, { slides: newSlides });
         toast({ title: `${field === 'headline' ? 'Headline' : 'Descrição'} gerada com IA!` });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: `Erro ao gerar ${field === 'headline' ? 'headline' : 'descrição'}`,
         description: error.message,
@@ -565,7 +565,7 @@ export function CreativeGeneratorSimplified() {
             await generateVideo(input, originalIndex);
             hasVideo = true;
           }
-        } catch (itemError: any) {
+        } catch (itemError: unknown) {
           console.error(`Erro ao gerar criativo ${i + 1}:`, itemError);
           toast({
             title: `Erro no criativo ${i + 1}`,
@@ -590,7 +590,7 @@ export function CreativeGeneratorSimplified() {
         });
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar criativos:', error);
       toast({
         title: "Erro na geração",
@@ -744,7 +744,7 @@ export function CreativeGeneratorSimplified() {
         );
         toast({ title: "Criativo regenerado!" });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao regenerar",
         description: error.message,
@@ -779,7 +779,7 @@ export function CreativeGeneratorSimplified() {
         await generateVideo(input, index);
         toast({ title: "Vídeo iniciado! Aguarde o processamento." });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Erro ao gerar criativo ${index + 1}:`, error);
       toast({
         title: `Erro ao gerar criativo`,

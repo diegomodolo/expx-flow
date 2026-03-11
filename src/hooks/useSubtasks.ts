@@ -63,7 +63,7 @@ export function useSubtasks(parentTaskId: string | null) {
   const createSubtask = useMutation({
     mutationFn: async (input: { title: string; task_type?: string; priority?: string }) => {
       if (!parentTaskId || !companyId || !user || !parentTask) throw new Error('Missing context');
-      const row: any = {
+      const row: unknown = {
         title: input.title,
         task_type: input.task_type || 'Tarefa',
         priority: input.priority || parentTask.priority || 'medium',
@@ -122,7 +122,7 @@ export function useSubtasks(parentTaskId: string | null) {
       }
 
       const validTaskTypes = ['Backlog', 'Criativo', 'História', 'Negócio', 'Reunião', 'Tarefa', 'Ticket'];
-      const rows: any[] = atividades.map(a => {
+      const rows: unknown[] = atividades.map(a => {
         const rawType = a.tipo || 'Tarefa';
         const normalizedType = validTaskTypes.find(t => t.toLowerCase() === rawType.toLowerCase()) || 'Tarefa';
         return {
@@ -164,11 +164,11 @@ export function useSubtasks(parentTaskId: string | null) {
       queryClient.invalidateQueries({ queryKey: ['backlog-center-tasks'] });
       toast.success('Roteiro importado com sucesso!');
     },
-    onError: (e: any) => toast.error(e?.message || 'Erro ao importar roteiro'),
+    onError: (e: unknown) => toast.error(e?.message || 'Erro ao importar roteiro'),
   });
 
   const updateSubtask = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, unknown> }) => {
       const { error } = await supabase.from('tasks').update(updates).eq('id', id);
       if (error) throw error;
     },
@@ -195,7 +195,7 @@ export function useSubtasks(parentTaskId: string | null) {
   const toggleSubtaskDone = useMutation({
     mutationFn: async (subtask: Subtask) => {
       const newStatus = subtask.status === 'done' ? 'todo' : 'done';
-      const updates: any = { status: newStatus, progress: newStatus === 'done' ? 100 : 0 };
+      const updates: unknown = { status: newStatus, progress: newStatus === 'done' ? 100 : 0 };
       const { error } = await supabase.from('tasks').update(updates).eq('id', subtask.id);
       if (error) throw error;
     },

@@ -71,9 +71,9 @@ export function UsageDefaultsSettings() {
                       <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                     </div>
                     <Switch
-                      checked={getSetting(item.key as any)}
+                      checked={getSetting(item.key as unknown)}
                       onCheckedChange={(checked) =>
-                        updateSetting.mutate({ key: item.key as any, value: checked })
+                        updateSetting.mutate({ key: item.key as unknown, value: checked })
                       }
                       disabled={updateSetting.isPending}
                     />

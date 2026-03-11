@@ -78,7 +78,7 @@ export function useYouTubeSuggestions(clientId: string, companyId: string) {
 
       await fetchSuggestions();
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating suggestions:', error);
       toast({
         title: 'Erro ao gerar sugestões',

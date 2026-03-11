@@ -557,3 +557,9 @@ verify_jwt = false
 
 [functions.shotstack-webhook]
 verify_jwt = false
+
+[functions.create-github-issue]
+verify_jwt = true
+
+[functions.fetch-github-issue-status]
+verify_jwt = true

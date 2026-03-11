@@ -59,7 +59,7 @@ export default function GroupOpsSettings() {
   const [config, setConfig] = useState<GroupOpsConfig>(DEFAULT_CONFIG);
   const [isDirty, setIsDirty] = useState(false);
 
-  const update = (key: keyof GroupOpsConfig, value: any) => {
+  const update = (key: keyof GroupOpsConfig, value: unknown) => {
     setConfig(prev => ({ ...prev, [key]: value }));
     setIsDirty(true);
   };

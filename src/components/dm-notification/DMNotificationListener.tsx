@@ -10,7 +10,7 @@ import { MessageSquare } from 'lucide-react';
 // Simple notification sound using Web Audio API
 function playNotificationSound() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = new (window.AudioContext || (window as unknown).webkitAudioContext)();
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
     
@@ -80,7 +80,7 @@ export function DMNotificationListener() {
           table: 'internal_messages',
         },
         async (payload) => {
-          const msg = payload.new as any;
+          const msg = payload.new as unknown;
 
           // Skip own messages
           if (msg.user_id === user.id) return;

@@ -90,7 +90,7 @@ export function useWordpressAutoPostConfigById(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-auto-post-config', configId] });
       toast.success('Configuração atualizada!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error updating config:', error);
       toast.error('Erro ao atualizar configuração');
     },
@@ -109,7 +109,7 @@ export function useWordpressAutoPostConfigById(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-auto-post-configs'] });
       toast.success('Automação excluída!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error deleting config:', error);
       toast.error('Erro ao excluir automação');
     },
@@ -184,7 +184,7 @@ export function useWordpressAutoPostsByConfigId(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
       toast.success('Post regenerado com sucesso!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error regenerating post:', error);
       toast.error('Erro ao regenerar post');
     },
@@ -215,7 +215,7 @@ export function useWordpressAutoPostsByConfigId(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
       toast.success('Novo post gerado!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error generating post:', error);
       toast.error('Erro ao gerar post');
     },
@@ -234,7 +234,7 @@ export function useWordpressAutoPostsByConfigId(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
       toast.success('Post excluído!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error deleting post:', error);
       toast.error('Erro ao excluir post');
     },
@@ -256,7 +256,7 @@ export function useWordpressAutoPostsByConfigId(configId: string) {
       queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
       toast.success('Post atualizado!');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error updating post:', error);
       toast.error('Erro ao atualizar post');
     },
@@ -278,7 +278,7 @@ export function useWordpressAutoPostsByConfigId(configId: string) {
         window.open(data.wordpressPostUrl, '_blank');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error publishing post:', error);
       toast.error('Erro ao publicar post');
     },

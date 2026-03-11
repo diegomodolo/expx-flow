@@ -25,7 +25,7 @@ interface AddTaskToSlotModalProps {
   slot: PlannerTimeSlot;
   selectedDate: Date;
   onTaskSelected: (taskId: string) => void;
-  onNewTaskCreated: (taskData: any) => void;
+  onNewTaskCreated: (taskData: unknown) => void;
 }
 
 interface TaskFormData {

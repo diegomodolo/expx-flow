@@ -27,7 +27,7 @@ export default function CommunicationDashboard() {
   const { unreadCounts, mentionCounts, markAsRead } = useChannelUnread();
   const [focusMode, setFocusMode] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<unknown>(null);
 
   // Handle DM navigation from notification click
   useEffect(() => {

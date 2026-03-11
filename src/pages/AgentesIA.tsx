@@ -198,7 +198,7 @@ export default function AgentesIA() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        {(agent as any).is_collaborator ? (
+                        {(agent as unknown).is_collaborator ? (
                           <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-0 text-xs gap-1">
                             <UserCheck className="w-3 h-3" />
                             Sim
@@ -209,7 +209,7 @@ export default function AgentesIA() {
                       </TableCell>
                       <TableCell>
                         <span className="text-xs text-muted-foreground">
-                          {(agent as any).model?.split('/').pop() || 'gemini-2.5-flash'}
+                          {(agent as unknown).model?.split('/').pop() || 'gemini-2.5-flash'}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">

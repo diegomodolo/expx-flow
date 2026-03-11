@@ -185,7 +185,7 @@ export const ListaCnaeSegmentModal = ({ open, onOpenChange, companyId }: ListaCn
         // Open preview modal with results
         setIsPreviewModalOpen(true);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Preview error:", error);
       toast.error(error.message || "Erro ao buscar prévia");
     } finally {

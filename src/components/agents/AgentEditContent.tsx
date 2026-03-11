@@ -79,7 +79,7 @@ export function AgentEditContent({
     const { data: existingEmployee } = await supabase
       .from('employees')
       .select('id')
-      .eq('ia_agent_id', agentId as any)
+      .eq('ia_agent_id', agentId as unknown)
       .eq('company_id', activeCompany.company_id)
       .maybeSingle();
     
@@ -93,7 +93,7 @@ export function AgentEditContent({
         start_date: new Date().toISOString().split('T')[0],
         user_id: agentId,
         ia_agent_id: agentId,
-      } as any);
+      } as unknown);
       if (error) {
         console.error('Error creating collaborator employee:', error);
         toast.error('Erro ao criar colaborador. Tente desativar e reativar.');
@@ -151,9 +151,9 @@ export function AgentEditContent({
         description: currentAgent.description || "",
         prompt_base: currentAgent.prompt_base,
         additional_instructions: currentAgent.additional_instructions || "",
-        output_instructions: (currentAgent as any).output_instructions || "",
+        output_instructions: (currentAgent as unknown).output_instructions || "",
         client_id: currentAgent.client_id || "none",
-        is_collaborator: (currentAgent as any).is_collaborator || false,
+        is_collaborator: (currentAgent as unknown).is_collaborator || false,
       });
     }
   }, [currentAgent]);
@@ -174,7 +174,7 @@ export function AgentEditContent({
         ...rest,
         client_id: rest.client_id === "none" ? null : rest.client_id,
         is_collaborator,
-      } as any);
+      } as unknown);
       
       await syncCollaboratorStatus(agentId, is_collaborator, formData.agent_name);
       
@@ -438,8 +438,8 @@ export function AgentEditContent({
                 <h2 className="text-lg font-semibold mb-4">Integração com Telegram</h2>
                 <TelegramBotConfig
                   agentId={agentId}
-                  telegramBotToken={(currentAgent as any).telegram_bot_token || null}
-                  telegramBotName={(currentAgent as any).telegram_bot_name || null}
+                  telegramBotToken={(currentAgent as unknown).telegram_bot_token || null}
+                  telegramBotName={(currentAgent as unknown).telegram_bot_name || null}
                   onUpdate={() => loadAgent(agentId)}
                 />
               </div>

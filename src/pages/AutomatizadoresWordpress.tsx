@@ -121,7 +121,7 @@ export default function AutomatizadoresWordpress() {
       toast.success('Automação criada com sucesso!');
       navigate(`/automatizadores/wordpress/${config.id}`);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error creating config:', error);
       toast.error('Erro ao criar automação');
     },
