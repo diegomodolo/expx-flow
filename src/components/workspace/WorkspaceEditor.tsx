@@ -62,22 +62,34 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
   const saveContent = useCallback(async () => {
     if (!document) return;
     const content = editor.document;
-    await updateDocument.mutateAsync({ id: document.id, content });
+    try {
+      await updateDocument.mutateAsync({ id: document.id, content });
+    } catch {
+      // Error handled by mutation's onError
+    }
   }, [document, editor, updateDocument]);
 
   // Save title on blur
   const handleTitleBlur = async () => {
     if (!document || title === document.title) return;
-    await updateDocument.mutateAsync({
-      id: document.id,
-      title: title || "Sem título",
-    });
+    try {
+      await updateDocument.mutateAsync({
+        id: document.id,
+        title: title || "Sem título",
+      });
+    } catch {
+      // Error handled by mutation's onError
+    }
   };
 
   // Handle icon change
   const handleIconChange = async (icon: string) => {
     if (!document) return;
-    await updateDocument.mutateAsync({ id: document.id, icon });
+    try {
+      await updateDocument.mutateAsync({ id: document.id, icon });
+    } catch {
+      // Error handled by mutation's onError
+    }
     setShowEmojiPicker(false);
   };
 

@@ -58,25 +58,36 @@ export function WorkspaceShareDialog({
   const handleAddShare = async () => {
     if (!selectedUser) return;
 
-    await createShare.mutateAsync({
-      resourceType,
-      resourceId,
-      sharedWithUserId: selectedUser,
-      permission: selectedPermission,
-    });
-
-    setSelectedUser("");
+    try {
+      await createShare.mutateAsync({
+        resourceType,
+        resourceId,
+        sharedWithUserId: selectedUser,
+        permission: selectedPermission,
+      });
+      setSelectedUser("");
+    } catch {
+      // Error handled by mutation's onError
+    }
   };
 
   const handlePermissionChange = async (
     shareId: string,
     permission: "view" | "edit" | "admin",
   ) => {
-    await updateShare.mutateAsync({ id: shareId, permission });
+    try {
+      await updateShare.mutateAsync({ id: shareId, permission });
+    } catch {
+      // Error handled by mutation's onError
+    }
   };
 
   const handleRemoveShare = async (shareId: string) => {
-    await deleteShare.mutateAsync(shareId);
+    try {
+      await deleteShare.mutateAsync(shareId);
+    } catch {
+      // Error handled by mutation's onError
+    }
   };
 
   const getPermissionLabel = (permission: string) => {

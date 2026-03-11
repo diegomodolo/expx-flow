@@ -12,7 +12,20 @@ import { Label } from "@/components/ui/label";
 import { useWorkspaceFolders } from "@/hooks/useWorkspaceFolders";
 import type { WorkspaceFolder } from "@/types/workspace";
 
-const FOLDER_ICONS = ['📁', '📂', '🗂️', '📚', '📖', '🎯', '💼', '🏠', '🔒', '⭐', '🚀', '💡'];
+const FOLDER_ICONS = [
+  "📁",
+  "📂",
+  "🗂️",
+  "📚",
+  "📖",
+  "🎯",
+  "💼",
+  "🏠",
+  "🔒",
+  "⭐",
+  "🚀",
+  "💡",
+];
 
 interface CreateFolderDialogProps {
   open: boolean;
@@ -21,57 +34,62 @@ interface CreateFolderDialogProps {
   parentId?: string | null;
 }
 
-export function CreateFolderDialog({ 
-  open, 
-  onOpenChange, 
+export function CreateFolderDialog({
+  open,
+  onOpenChange,
   editingFolder,
-  parentId 
+  parentId,
 }: CreateFolderDialogProps) {
   const { createFolder, updateFolder } = useWorkspaceFolders();
-  const [name, setName] = useState('');
-  const [icon, setIcon] = useState('📁');
+  const [name, setName] = useState("");
+  const [icon, setIcon] = useState("📁");
 
   useEffect(() => {
     if (editingFolder) {
       setName(editingFolder.name);
       setIcon(editingFolder.icon);
     } else {
-      setName('');
-      setIcon('📁');
+      setName("");
+      setIcon("📁");
     }
   }, [editingFolder, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) return;
 
-    if (editingFolder) {
-      await updateFolder.mutateAsync({
-        id: editingFolder.id,
-        name: name.trim(),
-        icon,
-      });
-    } else {
-      await createFolder.mutateAsync({
-        name: name.trim(),
-        icon,
-        parentId,
-      });
+    try {
+      if (editingFolder) {
+        await updateFolder.mutateAsync({
+          id: editingFolder.id,
+          name: name.trim(),
+          icon,
+        });
+      } else {
+        await createFolder.mutateAsync({
+          name: name.trim(),
+          icon,
+          parentId,
+        });
+      }
+      onOpenChange(false);
+      setName("");
+      setIcon("📁");
+    } catch {
+      // Error handled by mutation's onError
     }
-
-    onOpenChange(false);
-    setName('');
-    setIcon('📁');
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{editingFolder ? 'Renomear pasta' : 'Nova pasta'}</DialogTitle>
+          <DialogTitle>
+            {editingFolder ? "Renomear pasta" : "Nova pasta"}
+          </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -83,9 +101,9 @@ export function CreateFolderDialog({
                     type="button"
                     onClick={() => setIcon(emoji)}
                     className={`p-2 text-xl rounded-md transition-colors ${
-                      icon === emoji 
-                        ? 'bg-primary/20 ring-2 ring-primary' 
-                        : 'hover:bg-muted'
+                      icon === emoji
+                        ? "bg-primary/20 ring-2 ring-primary"
+                        : "hover:bg-muted"
                     }`}
                   >
                     {emoji}
@@ -107,14 +125,20 @@ export function CreateFolderDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              disabled={!name.trim() || createFolder.isPending || updateFolder.isPending}
+            <Button
+              type="submit"
+              disabled={
+                !name.trim() || createFolder.isPending || updateFolder.isPending
+              }
             >
-              {editingFolder ? 'Salvar' : 'Criar'}
+              {editingFolder ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </form>
