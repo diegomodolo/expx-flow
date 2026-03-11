@@ -180,11 +180,12 @@ export function useBacklogCommandCenter() {
     return map;
   }, [taskClients, backlogTasks]);
 
-  // Build backlog clients with stats
+  // Build backlog clients with stats (only parent tasks, matching filteredTasks logic)
   const backlogClients = useMemo((): BacklogClient[] => {
     const clientMap = new Map<string, { minutes: number; count: number }>();
+    const parentTasks = backlogTasks.filter((t) => !t.parent_task_id);
 
-    backlogTasks.forEach((task) => {
+    parentTasks.forEach((task) => {
       const clientIds = taskToClients.get(task.id) || [];
       const minutes = task.ai_estimated_minutes || 18;
       clientIds.forEach((cid) => {
@@ -386,11 +387,12 @@ export function useBacklogCommandCenter() {
     },
   });
 
-  // Total backlog stats
+  // Total backlog stats (only parent tasks, consistent with sidebar)
   const totalStats = useMemo(() => {
-    const totalMinutes = backlogTasks.reduce((sum, t) => sum + (t.ai_estimated_minutes || 18), 0);
+    const parents = backlogTasks.filter((t) => !t.parent_task_id);
+    const totalMinutes = parents.reduce((sum, t) => sum + (t.ai_estimated_minutes || 18), 0);
     const totalHours = Math.round(totalMinutes / 60);
-    return { totalTasks: backlogTasks.length, totalMinutes, totalHours };
+    return { totalTasks: parents.length, totalMinutes, totalHours };
   }, [backlogTasks]);
 
   return {
