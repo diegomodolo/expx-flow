@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Rocket, X } from "lucide-react";
@@ -163,6 +164,9 @@ export function CampaignBuilderModal({
         className="w-[1800px] max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden"
         hideCloseButton
       >
+        <VisuallyHidden>
+          <DialogTitle>Criar campanha</DialogTitle>
+        </VisuallyHidden>
         <div className="flex h-full">
           {/* Left sidebar - Tree navigation */}
           <div className="w-[450px] min-w-[450px] border-r bg-muted/30 flex flex-col">

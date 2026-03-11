@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2,
@@ -301,6 +302,9 @@ export function GeneratedCarouselPreview({
           onOpenChange={(open) => !open && setPreviewImageIndex(null)}
         >
           <DialogContent className="max-w-4xl w-[95vw] p-2 bg-background">
+            <VisuallyHidden>
+              <DialogTitle>Pré-visualização do carrossel</DialogTitle>
+            </VisuallyHidden>
             {previewImageIndex !== null &&
               carousel.slides[previewImageIndex]?.image_url && (
                 <div className="relative">
