@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
           console.log(`[agent-task-executor] Processing task "${task.title}" (${task.id})`);
 
           // 1. Move task to "in progress" + update board column
-          const progressUpdate: any = {
+          const progressUpdate: Record<string, unknown> = {
             status: 'progress',
             updated_at: new Date().toISOString(),
           };
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
           if (ttStartErr) console.error(`[agent-task-executor] ❌ Error starting time tracking:`, ttStartErr);
 
           // Log status change in task history
-          const historyEntries: any[] = [
+          const historyEntries: Record<string, unknown>[] = [
             {
               task_id: task.id,
               company_id: task.company_id || employee.company_id,
