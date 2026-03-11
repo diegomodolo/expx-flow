@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
-import { useEmployees } from "@/hooks/useEmployees";
 
 export interface TaskAwaitingApproval {
   id: string;
@@ -15,20 +14,28 @@ export interface TaskAwaitingApproval {
 export function useTasksAwaitingApproval() {
   const { user } = useAuth();
   const { activeCompany } = useCompany();
-  const { employees } = useEmployees();
   const companyId = activeCompany?.company_id;
-  const currentEmployee = employees?.find(e => e.user_id === user?.id);
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks-awaiting-approval", companyId, currentEmployee?.id],
+    queryKey: ["tasks-awaiting-approval", companyId, user?.id],
     queryFn: async () => {
-      if (!companyId || !currentEmployee?.id) return [];
+      if (!companyId || !user?.id) return [];
+
+      // 0. Get current employee ID directly (avoid useEmployees timing issues)
+      const { data: empData } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("company_id", companyId)
+        .maybeSingle();
+
+      if (!empData?.id) return [];
 
       // 1. Get task IDs where current user is authorizer
       const { data: memberRows, error: memberError } = await supabase
         .from("task_members" as unknown)
         .select("task_id")
-        .eq("employee_id", currentEmployee.id)
+        .eq("employee_id", empData.id)
         .eq("role", "authorizer");
 
       if (memberError) throw memberError;
@@ -90,7 +97,7 @@ export function useTasksAwaitingApproval() {
         updated_at: t.updated_at,
       })) as TaskAwaitingApproval[];
     },
-    enabled: !!companyId && !!currentEmployee?.id,
+    enabled: !!companyId && !!user?.id,
     refetchInterval: 30000,
   });
 
