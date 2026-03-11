@@ -784,7 +784,7 @@ export default function ApresentacaoPublica() {
           {creative.caption && (
             <div className="mb-5">
               <div className="text-base font-medium text-foreground mb-2">Legenda</div>
-              <p className="text-base text-muted-foreground whitespace-pre-wrap line-clamp-6">
+              <p className="text-base text-muted-foreground whitespace-pre-wrap">
                 {creative.caption}
               </p>
             </div>

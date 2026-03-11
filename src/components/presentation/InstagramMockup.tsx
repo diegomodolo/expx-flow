@@ -268,10 +268,10 @@ export function InstagramMockup({
         </div>
         <p className="text-sm font-semibold text-gray-900 mb-1">1.234 curtidas</p>
         {caption && (
-          <p className="text-sm text-gray-800 line-clamp-2">
-            <span className="font-semibold">{username}</span> {caption.substring(0, 100)}
-            {caption.length > 100 ? "..." : ""}
-          </p>
+          <div className="text-sm text-gray-800 max-h-40 overflow-y-auto">
+            <span className="font-semibold">{username}</span>{" "}
+            <span className="whitespace-pre-wrap">{caption}</span>
+          </div>
         )}
       </div>
     </div>
