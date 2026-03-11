@@ -275,74 +275,78 @@ export default function GoogleProspectingPage() {
 
       // Import to CNAE Pool
       if (destinations.cnaePool) {
-        let successCount = 0;
-        for (const lead of selectedLeads) {
+        const cnaePayloads = selectedLeads.map(lead => {
           const cnpjValue = lead.cnpj || `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          
-          const { error } = await supabase
-            .from('cnae_lead_pool')
-            .upsert({
-              company_id: activeCompany.company_id,
-              cnpj: cnpjValue,
-              cnae_code: cnaeCode,
-              cnae_description: businessTypeData?.label || businessType,
-              nome_fantasia: lead.nome_fantasia,
-              razao_social: lead.razao_social,
-              phone: lead.phone,
-              phone_2: lead.phone_2,
-              email: lead.email,
-              logradouro: lead.endereco,
-              municipio: city,
-              uf: state,
-              source: 'google_prospecting',
-            }, { 
-              onConflict: 'cnpj,company_id',
-              ignoreDuplicates: true 
-            });
+          return {
+            company_id: activeCompany.company_id,
+            cnpj: cnpjValue,
+            cnae_code: cnaeCode,
+            cnae_description: businessTypeData?.label || businessType,
+            nome_fantasia: lead.nome_fantasia,
+            razao_social: lead.razao_social,
+            phone: lead.phone,
+            phone_2: lead.phone_2,
+            email: lead.email,
+            logradouro: lead.endereco,
+            municipio: city,
+            uf: state,
+            source: 'google_prospecting',
+          };
+        });
 
-          if (!error) successCount++;
-        }
-        
-        if (successCount === 0 && selectedLeads.length > 0) {
-          console.warn('No leads were imported to CNAE pool (all duplicates)');
+        const { error } = await supabase
+          .from('cnae_lead_pool')
+          .upsert(cnaePayloads, {
+            onConflict: 'cnpj,company_id',
+            ignoreDuplicates: true
+          });
+
+        if (error) {
+          console.error('Error batch upserting to CNAE pool:', error);
+        } else if (cnaePayloads.length > 0) {
+          // Note: In batch operations, it's harder to track exact success count due to ignoreDuplicates
+          // so we log success if there was no error.
+          console.log(`Successfully processed batch upsert for ${cnaePayloads.length} CNAE pool leads.`);
         }
       }
 
       // Import to custom segment (lead_master_pool + assignment)
       if (destinations.segmentId) {
-        for (const lead of selectedLeads) {
-          // Insert into lead_master_pool
-          const { data: insertedLead, error: leadError } = await supabase
-            .from('lead_master_pool')
-            .insert({
-              company_id: activeCompany.company_id,
-              full_name: lead.nome_fantasia || lead.razao_social,
-              company_name: lead.razao_social || lead.nome_fantasia,
-              email: lead.email,
-              phone: lead.phone,
-              whatsapp: lead.phone,
-              city: city,
-              state: state,
-              company_segment: businessTypeData?.label || businessType,
-              acquisition_channel: 'google_prospecting',
-              source: 'google_prospecting',
-            })
-            .select('id')
-            .single();
+        const masterPoolPayloads = selectedLeads.map(lead => ({
+          company_id: activeCompany.company_id,
+          full_name: lead.nome_fantasia || lead.razao_social,
+          company_name: lead.razao_social || lead.nome_fantasia,
+          email: lead.email,
+          phone: lead.phone,
+          whatsapp: lead.phone,
+          city: city,
+          state: state,
+          company_segment: businessTypeData?.label || businessType,
+          acquisition_channel: 'google_prospecting',
+          source: 'google_prospecting',
+        }));
 
-          if (leadError) {
-            console.error('Error inserting lead:', leadError);
-            continue;
-          }
+        // Batch insert into lead_master_pool
+        const { data: insertedLeads, error: leadError } = await supabase
+          .from('lead_master_pool')
+          .insert(masterPoolPayloads)
+          .select('id');
 
-          // Assign to segment
-          if (insertedLead) {
-            await supabase
-              .from('lead_segment_assignments')
-              .insert({
-                lead_id: insertedLead.id,
-                segment_id: destinations.segmentId,
-              });
+        if (leadError) {
+          console.error('Error batch inserting leads into master pool:', leadError);
+        } else if (insertedLeads && insertedLeads.length > 0) {
+          // Assign to segment in batch
+          const assignmentPayloads = insertedLeads.map(lead => ({
+            lead_id: lead.id,
+            segment_id: destinations.segmentId,
+          }));
+
+          const { error: assignmentError } = await supabase
+            .from('lead_segment_assignments')
+            .insert(assignmentPayloads);
+
+          if (assignmentError) {
+             console.error('Error batch assigning leads to segment:', assignmentError);
           }
         }
       }
