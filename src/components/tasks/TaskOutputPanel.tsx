@@ -238,7 +238,7 @@ export function TaskOutputPanel({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <div>
@@ -267,8 +267,8 @@ export function TaskOutputPanel({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+      <ScrollArea className="flex-1 w-full">
+        <div className="p-4 space-y-4 overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -314,7 +314,7 @@ export function TaskOutputPanel({
                         )}
                       </div>
                       {output.content && (
-                        <div className="mt-1 text-sm prose prose-sm dark:prose-invert max-w-none break-words">
+                        <div className="mt-1 text-sm prose prose-sm dark:prose-invert max-w-none break-words overflow-hidden">
                           <ReactMarkdown>{output.content}</ReactMarkdown>
                         </div>
                       )}
@@ -358,7 +358,7 @@ export function TaskOutputPanel({
                       {/* Attachments */}
                       {output.attachments &&
                         (output.attachments as unknown[]).length > 0 && (
-                          <div className="mt-2 space-y-1.5">
+                          <div className="mt-2 space-y-1.5 overflow-hidden">
                             {(output.attachments as unknown[]).map((att, i) => {
                               const isImage =
                                 att.type?.startsWith("image/") ||

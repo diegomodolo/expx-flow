@@ -2498,8 +2498,8 @@ export function TaskDialog({
                   <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-primary/10" />
                 </div>
                 <div
-                  className="shrink-0 overflow-hidden"
-                  style={{ width: outputWidth }}
+                  className="shrink-0 overflow-hidden min-w-0"
+                  style={{ width: outputWidth, maxWidth: "50vw" }}
                 >
                   <TaskOutputPanel
                     taskId={task.id}
