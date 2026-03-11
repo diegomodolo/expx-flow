@@ -115,6 +115,7 @@ export default function BacklogCommandCenterPage() {
               clients={clients}
               taskToClients={taskToClients}
               companyId={activeCompany?.company_id}
+              selectedSquadId={selectedSquadId}
               subtasksByParent={subtasksByParent}
               selectionBar={
                 <BacklogFooterBar

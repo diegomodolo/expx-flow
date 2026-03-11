@@ -23,6 +23,7 @@ interface Props {
   clients: unknown[];
   taskToClients: Map<string, string[]>;
   companyId: string | undefined;
+  selectedSquadId?: string | null;
   selectionBar?: React.ReactNode;
   subtasksByParent?: Map<string, BacklogTask[]>;
 }
@@ -37,6 +38,7 @@ export function BacklogBucket({
   clients,
   taskToClients,
   companyId,
+  selectedSquadId,
   selectionBar,
   subtasksByParent = new Map(),
 }: Props) {
@@ -260,7 +262,7 @@ export function BacklogBucket({
 
       {/* Quick Entry - anchored bottom */}
       <div className="flex-shrink-0 px-4 pt-3 pb-4">
-        <BacklogQuickEntry clients={clients} companyId={companyId} />
+        <BacklogQuickEntry clients={clients} companyId={companyId} selectedSquadId={selectedSquadId} />
       </div>
       {/* Edit Task Dialog */}
       <TaskDialog

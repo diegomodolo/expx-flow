@@ -490,6 +490,7 @@ export default function SquadCommandCenter() {
                   clients={backlogCenter.clients}
                   taskToClients={backlogCenter.taskToClients}
                   companyId={activeCompany?.company_id}
+                  selectedSquadId={backlogCenter.selectedSquadId}
                   subtasksByParent={backlogCenter.subtasksByParent}
                   selectionBar={
                     <BacklogFooterBar
