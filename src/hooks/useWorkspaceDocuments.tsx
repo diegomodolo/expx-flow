@@ -5,6 +5,26 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { WorkspaceDocument } from "@/types/workspace";
 
+async function enrichWithCreatorNames(docs: WorkspaceDocument[], companyId: string): Promise<WorkspaceDocument[]> {
+  if (docs.length === 0) return docs;
+
+  const creatorIds = [...new Set(docs.map(d => d.created_by).filter(Boolean))];
+  if (creatorIds.length === 0) return docs;
+
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('user_id, name')
+    .eq('company_id', companyId)
+    .in('user_id', creatorIds);
+
+  const nameMap = new Map((employees || []).map((e: { user_id: string; name: string }) => [e.user_id, e.name]));
+
+  return docs.map(doc => ({
+    ...doc,
+    creator_name: nameMap.get(doc.created_by) || undefined,
+  }));
+}
+
 export function useWorkspaceDocuments(folderId?: string | null) {
   const { activeCompany } = useCompany();
   const { user } = useAuth();
@@ -15,23 +35,23 @@ export function useWorkspaceDocuments(folderId?: string | null) {
     queryKey: ['workspace-documents', activeCompany?.company_id, folderId],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      
+
       let query = supabase
         .from('workspace_documents')
         .select('*')
         .eq('company_id', activeCompany.company_id)
         .order('updated_at', { ascending: false });
-      
+
       if (folderId === null) {
         query = query.is('folder_id', null);
       } else if (folderId) {
         query = query.eq('folder_id', folderId);
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) throw error;
-      return data as WorkspaceDocument[];
+      return enrichWithCreatorNames(data || [], activeCompany.company_id);
     },
     enabled: !!activeCompany?.company_id,
   });
@@ -40,15 +60,15 @@ export function useWorkspaceDocuments(folderId?: string | null) {
     queryKey: ['workspace-documents-all', activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      
+
       const { data, error } = await supabase
         .from('workspace_documents')
         .select('*')
         .eq('company_id', activeCompany.company_id)
         .order('updated_at', { ascending: false });
-      
+
       if (error) throw error;
-      return data as WorkspaceDocument[];
+      return enrichWithCreatorNames(data || [], activeCompany.company_id);
     },
     enabled: !!activeCompany?.company_id,
   });
@@ -57,16 +77,16 @@ export function useWorkspaceDocuments(folderId?: string | null) {
     queryKey: ['workspace-documents-favorites', activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      
+
       const { data, error } = await supabase
         .from('workspace_documents')
         .select('*')
         .eq('company_id', activeCompany.company_id)
         .eq('is_favorite', true)
         .order('updated_at', { ascending: false });
-      
+
       if (error) throw error;
-      return data as WorkspaceDocument[];
+      return enrichWithCreatorNames(data || [], activeCompany.company_id);
     },
     enabled: !!activeCompany?.company_id,
   });
