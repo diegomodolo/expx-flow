@@ -48,7 +48,7 @@ export async function cacheWhatsAppMedia({ messageId, blob, fileExtension }: Cac
       // Still return the URL even if update failed - file is cached
     }
 
-    console.log("[useWhatsAppMediaCache] Media cached successfully:", cachedUrl);
+
     return cachedUrl;
   } catch (err) {
     console.error("[useWhatsAppMediaCache] Cache failed:", err);
@@ -91,7 +91,6 @@ export async function downloadAndCacheMedia({
 
     const functionUrl = `${SUPABASE_URL}/functions/v1/download-whatsapp-media`;
 
-    console.log("[downloadAndCacheMedia] Downloading media...", { instanceId, externalMessageId });
 
     const response = await fetch(functionUrl, {
       method: "POST",
@@ -119,7 +118,6 @@ export async function downloadAndCacheMedia({
       return null;
     }
 
-    console.log("[downloadAndCacheMedia] Downloaded, size:", blob.size);
 
     // Cache the media
     let cachedUrl: string | null = null;

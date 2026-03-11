@@ -75,21 +75,9 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
 
   // Load template data when it changes
   useEffect(() => {
-    console.log('🔄 TemplateEditorDialog useEffect triggered', { 
-      hasTemplate: !!template, 
-      templateId: template?.id,
-      template
-    });
     
     if (template) {
       setIsLoadingTemplate(true);
-      console.log('✅ Loading template data:', {
-        rule_name: template.rule_name,
-        entity_type: template.entity_type,
-        action_type: template.action_type,
-        rule_order: template.rule_order,
-        time_window_days: template.time_window_days,
-      });
       
       const newFormData = {
         rule_name: template.rule_name,
@@ -102,7 +90,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         entity_type: (template.entity_type || "campaign") as "campaign" | "adset" | "ad",
       };
       
-      console.log('📝 Setting form data:', newFormData);
+
       setFormData(newFormData);
       
       setConditions(template.conditions as ConditionsGroup);
@@ -127,7 +115,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       // Delay to ensure state is updated before rendering
       setTimeout(() => {
         setIsLoadingTemplate(false);
-        console.log('✅ Template loading complete');
+
       }, 0);
     } else {
       setIsLoadingTemplate(false);

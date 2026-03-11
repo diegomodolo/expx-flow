@@ -239,8 +239,7 @@ export function YouTubeScriptBuilder({
         script.suggested_titles
       );
       
-      console.log('Thumbnail generated, URL:', imageUrl);
-      
+
       if (imageUrl) {
         setThumbnailUrl(imageUrl);
         setShowThumbnailModal(false);

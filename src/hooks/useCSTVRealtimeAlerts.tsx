@@ -65,7 +65,7 @@ export function useCSTVRealtimeAlerts({
       }
 
       if (existing) {
-        console.log("[useCSTVRealtimeAlerts] Alert already displayed:", analysisId);
+
         return false;
       }
 
@@ -85,14 +85,14 @@ export function useCSTVRealtimeAlerts({
       if (insertError) {
         // Might be a race condition with another dashboard - that's OK
         if (insertError.code === "23505") {
-          console.log("[useCSTVRealtimeAlerts] Alert was displayed by another dashboard:", analysisId);
+
           return false;
         }
         console.error("[useCSTVRealtimeAlerts] Error marking alert as displayed:", insertError);
         return false;
       }
 
-      console.log("[useCSTVRealtimeAlerts] Alert marked as displayed:", analysisId);
+
       return true;
     } catch (err) {
       console.error("[useCSTVRealtimeAlerts] Unexpected error:", err);
@@ -102,11 +102,10 @@ export function useCSTVRealtimeAlerts({
 
   // Handle new alert event from Realtime
   const handleNewAlert = useCallback(async (event: RealtimeAlertEvent) => {
-    console.log("[useCSTVRealtimeAlerts] New alert event received:", event);
 
     const analysisId = event.alert_data.analysisId;
     if (!analysisId) {
-      console.warn("[useCSTVRealtimeAlerts] Alert event missing analysisId");
+
       return;
     }
 
@@ -154,11 +153,10 @@ export function useCSTVRealtimeAlerts({
 
   useEffect(() => {
     if (!companyId) {
-      console.log("[useCSTVRealtimeAlerts] No companyId, skipping subscription");
+
       return;
     }
 
-    console.log("[useCSTVRealtimeAlerts] Subscribing to realtime alerts for company:", companyId);
 
     // Create channel for realtime alerts
     const channel = supabasePublic
@@ -172,20 +170,20 @@ export function useCSTVRealtimeAlerts({
           filter: `company_id=eq.${companyId}`,
         },
         (payload) => {
-          console.log("[useCSTVRealtimeAlerts] Realtime payload received:", payload);
+
           const event = payload.new as RealtimeAlertEvent;
           handleNewAlert(event);
         }
       )
       .subscribe((status) => {
-        console.log("[useCSTVRealtimeAlerts] Subscription status:", status);
+
         setIsConnected(status === "SUBSCRIBED");
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log("[useCSTVRealtimeAlerts] Cleaning up subscription");
+
       if (channelRef.current) {
         supabasePublic.removeChannel(channelRef.current);
         channelRef.current = null;

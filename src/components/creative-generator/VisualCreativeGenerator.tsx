@@ -45,7 +45,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
       // Converter referências para base64 se existirem
       let references: string[] = [];
       if (data.references && data.references.length > 0) {
-        console.log('Converting reference images to base64...');
+
         references = await Promise.all(
           data.references.map(async (item) => {
             // Se for URL, usar diretamente
@@ -65,7 +65,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
           })
         );
         references = references.filter(r => r !== '');
-        console.log(`Processed ${references.length} reference images`);
+
       }
 
       const requestBody = {
@@ -78,15 +78,13 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         approvedText: data.context.copy,
       };
       
-      console.log('Sending request to generate-visual-creative:', requestBody);
-      console.log('Context data:', data.context);
-      console.log('Active company:', activeCompany);
-      
+
+
+
       const { data: result, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: requestBody,
       });
 
-      console.log('Response from generate-visual-creative:', { result, error });
 
       if (error) throw error;
 
@@ -146,8 +144,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         status: 'completed' as const
       };
 
-      console.log('Saving creative to database:', creativeData);
-      
+
       await createCreative(creativeData);
       
       // Remover o toast aqui pois já é exibido no hook

@@ -74,7 +74,7 @@ export function CarouselGenerationProgressModal({
 
     // GUARD: Se já iniciou, não inicia novamente (previne re-execução por mudança de props)
     if (hasStartedRef.current) {
-      console.log("[CarouselGenerationProgressModal] Already started, skipping re-execution...");
+
       return;
     }
 
@@ -82,14 +82,6 @@ export function CarouselGenerationProgressModal({
     hasStartedRef.current = true;
 
     // Debug log to verify props being passed
-    console.log("[CarouselGenerationProgressModal] Starting with:", {
-      clientId,
-      companyId,
-      carouselType: carouselType || "NOT PROVIDED",
-      referenceCarouselImages: referenceCarouselImages?.length || 0,
-      preGeneratedSlides: preGeneratedSlides?.length || 0,
-      visualVariations: visualVariations || "NOT PROVIDED",
-    });
 
     // Start on open
     start({

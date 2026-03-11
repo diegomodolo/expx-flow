@@ -18,7 +18,7 @@ export const fixCreativesStatus = async () => {
     return;
   }
 
-  console.log('Updated creatives:', data);
+
   return data;
 };
 

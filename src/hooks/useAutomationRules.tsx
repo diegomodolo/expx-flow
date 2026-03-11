@@ -124,8 +124,7 @@ export const useAutomationRules = (clientId?: string | null) => {
           correctEntityType = 'adset';
         }
 
-        console.log(`🔧 Auto-fixing entity_type for rule "${rule.rule_name}": ${rule.entity_type} → ${correctEntityType}`);
-        
+
         await supabase
           .from('campaign_automation_rules')
           .update({ entity_type: correctEntityType })

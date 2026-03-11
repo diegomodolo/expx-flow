@@ -49,14 +49,13 @@ export const useGoogleAdsSyncSchedule = () => {
   const fetchSchedule = async () => {
     const companyId = activeCompany?.company_id;
     if (!companyId) {
-      console.log('[useGoogleAdsSyncSchedule] No company_id, skipping fetch');
+
       return;
     }
 
     try {
       setLoading(true);
-      console.log('[useGoogleAdsSyncSchedule] Fetching schedule for company:', companyId);
-      
+
       const { data, error } = await supabase.functions.invoke('manage-google-ads-sync-schedule', {
         body: JSON.stringify({
           action: 'get',

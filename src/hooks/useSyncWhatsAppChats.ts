@@ -37,7 +37,7 @@ export function useSyncWhatsAppChats(companyId: string | undefined) {
 
         if (data.synced === 0) {
           // Se nenhuma conversa foi encontrada, apenas log (sem toast)
-          console.log("[useSyncWhatsAppChats] Nenhuma conversa encontrada. Tentativas:", data.attempts);
+
         }
 
         return { success: true, synced: data.synced || 0, attempts: data.attempts };
@@ -78,7 +78,7 @@ export function useSyncWhatsAppChats(companyId: string | undefined) {
 
       if (data?.success) {
         toast.success("Webhook configurado com sucesso!");
-        console.log("[useSyncWhatsAppChats] Webhook configurado:", data);
+
         return { success: true, webhook_url: data.webhook_url };
       } else {
         const errorMessage = data?.error || "Erro ao configurar webhook";

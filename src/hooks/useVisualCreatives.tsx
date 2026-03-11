@@ -73,8 +73,7 @@ export function useVisualCreatives() {
 
   const createCreative = async (creativeData: Omit<VisualCreative, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      console.log('Creating visual creative:', creativeData);
-      
+
       const { data, error } = await supabase
         .from('visual_creatives')
         .insert([creativeData])
@@ -86,7 +85,6 @@ export function useVisualCreatives() {
         throw error;
       }
 
-      console.log('Visual creative created successfully:', data);
 
       // Atualizar lista local
       setCreatives(prev => [{

@@ -215,12 +215,11 @@ export function WhatsAppAIAssistant({
     if (analysis && isNewAnalysis && analysis.timestamp) {
       // Check if we already saved this exact analysis (by timestamp)
       if (lastSavedAnalysisTimestamp.current === analysis.timestamp) {
-        console.log("[WhatsAppAIAssistant] Analysis already saved, skipping duplicate");
+
         return;
       }
 
-      console.log("[WhatsAppAIAssistant] Saving new analysis as chat message, timestamp:", analysis.timestamp);
-      
+
       // Mark as saving immediately to prevent race conditions
       lastSavedAnalysisTimestamp.current = analysis.timestamp;
       

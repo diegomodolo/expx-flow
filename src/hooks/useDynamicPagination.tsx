@@ -25,14 +25,6 @@ export const useDynamicPagination = ({
     const availableHeight = containerHeight - headerHeight - footerHeight;
     const calculatedItems = Math.floor(availableHeight / itemHeight);
     
-    console.log('Calculando itens por página:', {
-      containerHeight,
-      availableHeight,
-      itemHeight,
-      calculatedItems,
-      finalItems: Math.max(minItemsPerPage, Math.min(maxItemsPerPage, calculatedItems))
-    });
-    
     // Garantir que está dentro dos limites
     return Math.max(minItemsPerPage, Math.min(maxItemsPerPage, calculatedItems));
   };

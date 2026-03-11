@@ -44,7 +44,7 @@ export function useUnscheduledTasks() {
           .in("user_id", userIds);
 
         if (profilesError) {
-          console.warn("Erro ao buscar perfis:", profilesError);
+
         } else {
           profilesData = profiles || [];
         }
@@ -56,13 +56,7 @@ export function useUnscheduledTasks() {
         user_profile: profilesData.find(profile => profile.user_id === task.user_id) || null
       }));
 
-      console.log('🔍 Unscheduled tasks found:', tasksWithProfiles.length);
-      console.log('📋 Tasks:', tasksWithProfiles.map(t => ({
-        id: t.id,
-        title: t.title,
-        user_id: t.user_id,
-        deadline: t.deadline
-      })));
+
 
       return tasksWithProfiles;
     },

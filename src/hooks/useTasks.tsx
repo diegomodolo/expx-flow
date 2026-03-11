@@ -92,7 +92,7 @@ export function useTasks() {
         .in("user_id", userIds);
 
       if (profilesError) {
-        console.warn("Erro ao buscar perfis:", profilesError);
+
       }
 
       // Buscar campanhas relacionadas se existirem
@@ -206,7 +206,7 @@ export function useTasks() {
 
       if (error) {
         if (isTriggeredConflict(error)) {
-          console.warn('[useTasks] Trigger conflict, retrying in 400ms...');
+
           // Wait for trigger transaction to fully commit, then retry
           await new Promise(resolve => setTimeout(resolve, 400));
           const { error: retryError } = await supabase
@@ -218,7 +218,7 @@ export function useTasks() {
             if (isTriggeredConflict(retryError)) {
               // Still conflicting — the task flow trigger fully owns this move.
               // Just let the invalidation bring the correct state.
-              console.warn('[useTasks] Trigger conflict persists after retry — letting task flow handle it.');
+
               return;
             }
             throw retryError;

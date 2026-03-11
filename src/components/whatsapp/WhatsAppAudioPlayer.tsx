@@ -54,7 +54,7 @@ export function WhatsAppAudioPlayer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-      console.log("[WhatsAppAudioPlayer] Using cached audio URL:", cachedMediaUrl);
+
       setAudioSrc(cachedMediaUrl!);
     }
   }, [cachedMediaUrl]);
@@ -71,14 +71,14 @@ export function WhatsAppAudioPlayer({
       instanceId &&
       messageId
     ) {
-      console.log("[WhatsAppAudioPlayer] Auto-triggering transcription for audio:", isOutgoing ? "outgoing" : "incoming");
+
       triggerTranscription();
     }
   }, [audioTranscription, transcriptionStatus, supabaseMessageId, instanceId, messageId]);
 
   const triggerTranscription = async () => {
     if (!supabaseMessageId || !instanceId || !messageId) {
-      console.log("[WhatsAppAudioPlayer] Missing IDs for transcription");
+
       return;
     }
 
@@ -86,8 +86,7 @@ export function WhatsAppAudioPlayer({
     setShowTranscription(true);
 
     try {
-      console.log("[WhatsAppAudioPlayer] Calling transcribe-audio edge function...");
-      
+
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: {
           messageId: supabaseMessageId,
@@ -102,7 +101,7 @@ export function WhatsAppAudioPlayer({
         setIsTranscribing(false);
         return;
       } else if (data?.transcription) {
-        console.log("[WhatsAppAudioPlayer] Transcription received:", data.transcription.substring(0, 50));
+
         setTranscription(data.transcription);
         setIsTranscribing(false);
         return;
@@ -196,7 +195,6 @@ export function WhatsAppAudioPlayer({
         return;
       }
 
-      console.log("[WhatsAppAudioPlayer] Downloading and caching audio...");
 
       const result = await downloadAndCacheMedia({
         instanceId,
@@ -220,7 +218,7 @@ export function WhatsAppAudioPlayer({
         setAudioSrc(objectUrl);
       }
 
-      console.log("[WhatsAppAudioPlayer] Audio ready, cached:", !!cachedUrl);
+
     } catch (err: unknown) {
       console.error("[WhatsAppAudioPlayer] Error loading audio:", err);
       setError("Erro ao carregar áudio");

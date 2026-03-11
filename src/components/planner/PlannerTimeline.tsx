@@ -106,8 +106,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     const taskId = draggableId.replace('planner-task-', '');
     const newSlotId = destination.droppableId;
     
-    console.log('🔄 Dragging task:', taskId, 'to slot:', newSlotId);
-    
+
     // Encontrar o slot de destino
     const targetSlot = timeSlots.find(slot => slot.id === newSlotId);
     if (!targetSlot) {
@@ -125,11 +124,6 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     const newEndDate = new Date(selectedDate);
     newEndDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
 
-    console.log('📅 New dates:', {
-      start: newStartDate.toISOString(),
-      end: newEndDate.toISOString(),
-      slot: `${targetSlot.start_time} - ${targetSlot.end_time}`
-    });
 
     try {
       await updateTask(taskId, {
@@ -138,7 +132,6 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         deadline: format(selectedDate, 'yyyy-MM-dd')
       });
 
-      console.log('✅ Task moved successfully');
 
       // Invalidar queries para atualizar a UI
       queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
@@ -199,15 +192,13 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       endDate.setHours(endHours, endMinutes, 0, 0);
 
       // Atualizar a tarefa existente com os novos horários
-      console.log('🔄 Updating task:', taskId, 'with start_date:', startDate.toISOString());
-      
+
       await updateTask(taskId, {
         start_date: startDate.toISOString(),
         due_date: endDate.toISOString(),
         deadline: format(selectedDate, 'yyyy-MM-dd'),
       });
 
-      console.log('✅ Task updated successfully');
 
       toast({
         title: "Tarefa adicionada ao slot",
@@ -306,7 +297,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      console.log("Resumo exportado com sucesso!");
+
     } catch (error) {
       console.error("Erro ao exportar resumo:", error);
     }
@@ -367,10 +358,9 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   // Organizar com IA - Abrir modal de escopo
   const handleOrganizeWithAI = () => {
-    console.log('🚀 Starting AI organization...');
-    console.log('📋 Unscheduled tasks:', unscheduledTasks.length);
-    console.log('⏰ Available time slots:', timeSlots.length);
-    
+
+
+
     if (unscheduledTasks.length === 0) {
       toast({
         title: "Nenhuma tarefa para organizar",

@@ -149,7 +149,6 @@ export function useClientDetails(clientId: string) {
 
       if (campaignsError) throw campaignsError;
 
-      console.log('Campaigns fetched for client:', clientId, campaignsData);
 
       // Combine client and campaigns data and calculate status
       const { status, explanation } = await calculateClientStatus(clientId, activeCompany.company_id);
@@ -160,7 +159,6 @@ export function useClientDetails(clientId: string) {
         statusExplanation: explanation
       };
 
-      console.log('Client with campaigns:', clientWithCampaigns);
 
       setClient(clientWithCampaigns);
     } catch (err) {

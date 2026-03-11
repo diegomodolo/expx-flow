@@ -182,12 +182,11 @@ export const useDashboardAlerts = () => {
           const campaignData = await findCampaignData(alert.campaign_id);
           
           if (!campaignData) {
-            console.warn(`Campaign data not found for ${alert.campaign_id}`);
+
             updatedAlerts[i] = { ...alert, recommendation: getDefaultRecommendation(issueType) };
             continue;
           }
 
-          console.log('Sending campaign data to AI:', campaignData, 'Issue type:', issueType);
 
           const recommendation = await generateRecommendation(campaignData, issueType);
           updatedAlerts[i] = { ...alert, recommendation };

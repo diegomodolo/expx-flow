@@ -20,13 +20,13 @@ export default function GoogleAdsCallback() {
   useEffect(() => {
     // Só processar se activeCompany estiver disponível
     if (!activeCompany) {
-      console.log('Waiting for activeCompany to load...');
+
       return;
     }
 
     // Marcar IMEDIATAMENTE para prevenir race conditions
     if (hasProcessedRef.current) {
-      console.log('Callback already processed in this session, preventing duplicate');
+
       return;
     }
     hasProcessedRef.current = true;
@@ -35,12 +35,6 @@ export default function GoogleAdsCallback() {
       const code = searchParams.get('code');
       const errorParam = searchParams.get('error');
 
-      console.log('GoogleAdsCallback - Processing:', { 
-        hasCode: !!code, 
-        hasError: !!errorParam,
-        hasCompany: !!activeCompany,
-        companyId: activeCompany?.company_id
-      });
 
       if (errorParam) {
         setStatus('error');
@@ -55,7 +49,7 @@ export default function GoogleAdsCallback() {
       }
 
       try {
-        console.log('Processing callback with company:', activeCompany.company_id);
+
         await handleCallback(code, activeCompany.company_id);
         await refreshAdAccounts();
         setStatus('success');

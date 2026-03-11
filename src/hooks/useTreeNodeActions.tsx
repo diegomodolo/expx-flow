@@ -220,7 +220,7 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
         await invalidateTreeQueries(clientId);
 
         // Wait 10 seconds for Meta to process the deep_copy
-        console.log(`Auto-sync: waiting 10s for Meta to process ${type} ${newEntityFacebookId}`);
+
         await new Promise(resolve => setTimeout(resolve, 10000));
         
         // Try syncing with retries
@@ -230,8 +230,7 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
         
         while (attempt < maxAttempts && !success) {
           attempt++;
-          console.log(`Auto-sync: attempt ${attempt}/${maxAttempts} for ${type} ${newEntityId}`);
-          
+
           try {
             success = await syncEntityCore({
               type,
@@ -241,7 +240,7 @@ export function useTreeNodeActions({ onSuccess, addSyncingItem, removeSyncingIte
             });
             
             if (!success && attempt < maxAttempts) {
-              console.log(`Auto-sync: attempt ${attempt} failed, waiting 5s before retry...`);
+
               await new Promise(resolve => setTimeout(resolve, 5000));
             }
           } catch (error) {

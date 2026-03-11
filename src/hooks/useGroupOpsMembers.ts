@@ -133,7 +133,6 @@ export function useGroupOpsMembers(groupId?: string) {
         });
 
         const removeResult = await removeRes.json();
-        console.log('[useGroupOpsMembers] Remove participant result:', removeResult);
 
         if (!removeRes.ok) {
           throw new Error(`Erro ao remover do grupo: ${removeResult?.message || removeResult?.error || JSON.stringify(removeResult)}`);

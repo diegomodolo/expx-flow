@@ -186,13 +186,6 @@ export default function ReportLeadDesqualificado() {
         const timestamp = Date.now();
         const fileName = `${clientInfo.id}/${timestamp}-${sanitizedName}`;
         
-        console.log('Uploading file:', {
-          originalName: evidenceFile.name,
-          sanitizedName,
-          generatedName: fileName,
-          fileSize: evidenceFile.size,
-          fileType: evidenceFile.type
-        });
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('lead-evidence')
@@ -209,7 +202,7 @@ export default function ReportLeadDesqualificado() {
             variant: "destructive",
           });
         } else {
-          console.log('Upload success:', uploadData);
+
           evidenceFileUrl = fileName;
         }
       }

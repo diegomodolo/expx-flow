@@ -48,8 +48,7 @@ export const useCRMStages = ({ workspaceId, boardId }: UseCRMStagesProps) => {
 
   const reorderStagesMutation = useMutation({
     mutationFn: async (stages: CRMStage[]) => {
-      console.log('[useCRMStages] Reordering stages:', stages);
-      
+
       // Estratégia: primeiro colocar todos em valores temporários negativos
       // para evitar conflito com a constraint unique, depois atualizar para os valores finais
       
@@ -79,7 +78,7 @@ export const useCRMStages = ({ workspaceId, boardId }: UseCRMStagesProps) => {
         }
       }
       
-      console.log('[useCRMStages] All stages reordered successfully');
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId, boardId] });

@@ -27,7 +27,6 @@ export function useLeadQuality() {
     setError(null);
 
     try {
-      console.log('🔍 Buscando dados de qualidade de leads para empresa:', activeCompany.company_id);
 
       // Primeiro, buscar dados sem filtro de período para debug
       const { data: allCampaigns, error: allCampaignsError } = await supabase
@@ -44,11 +43,9 @@ export function useLeadQuality() {
 
       if (allReportsError) throw allReportsError;
 
-      console.log('📊 Total de campanhas encontradas:', allCampaigns?.length || 0);
-      console.log('📊 Total de reports encontrados:', allReports?.length || 0);
+
 
       const totalLeadsAll = allCampaigns?.reduce((sum, campaign) => sum + (campaign.conversions || 0), 0) || 0;
-      console.log('📊 Total de leads (todas as campanhas):', totalLeadsAll);
 
       // Buscar dados de sincronização mais recente para determinar o período
       const { data: clients, error: clientsError } = await supabase
@@ -71,8 +68,7 @@ export function useLeadQuality() {
         const lastSync = clients[0];
         const syncDate = new Date(lastSync.last_sync_at);
         
-        console.log('🔄 Última sincronização:', lastSync.last_sync_at, 'Período:', lastSync.last_sync_period);
-        
+
         // Calcular período baseado na última sincronização
         switch (lastSync.last_sync_period) {
           case '7_days':
@@ -92,7 +88,6 @@ export function useLeadQuality() {
         }
         periodEnd = syncDate.toISOString().split('T')[0];
 
-        console.log('📅 Período filtrado:', periodStart, 'até', periodEnd);
 
         // Aplicar filtro de período nas campanhas
         const filteredCampaigns = allCampaigns?.filter(campaign => {
@@ -110,10 +105,10 @@ export function useLeadQuality() {
 
         disqualifiedLeads = filteredReports.length;
 
-        console.log('📊 Campanhas no período:', filteredCampaigns.length);
-        console.log('📊 Reports no período:', filteredReports.length);
+
+
       } else {
-        console.log('⚠️ Nenhuma sincronização encontrada, usando todos os dados');
+
         // Fallback: usar últimos 30 dias se não houver sincronização
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -121,14 +116,12 @@ export function useLeadQuality() {
         periodEnd = new Date().toISOString().split('T')[0];
       }
 
-      console.log('🎯 Total de leads calculado:', totalLeads);
-      console.log('❌ Leads desqualificados:', disqualifiedLeads);
+
 
       const qualifiedLeads = Math.max(0, totalLeads - disqualifiedLeads);
       const mqlPercentage = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
 
-      console.log('✅ Leads qualificados:', qualifiedLeads);
-      console.log('📈 Percentual MQL:', mqlPercentage.toFixed(2) + '%');
+
 
       setData({
         totalLeads,

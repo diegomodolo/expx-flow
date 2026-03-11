@@ -283,8 +283,7 @@ const RelatorioProdutividadeSquads = () => {
     activeSquads: filteredData.filter(s => s.totalTasks > 0).length
   };
 
-  console.log('RelatorioProdutividadeSquads loading - no charts here!');
-  
+
   return (
     <ReportLayout
       title="Relatório de Produtividade de Squads"

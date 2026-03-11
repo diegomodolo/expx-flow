@@ -31,7 +31,7 @@ export function WhatsAppImageViewer({
   // Check if we have cached media on mount
   useEffect(() => {
     if (hasCachedMedia(cachedMediaUrl)) {
-      console.log("[WhatsAppImageViewer] Using cached image URL:", cachedMediaUrl);
+
       setImageSrc(cachedMediaUrl!);
       setImageLoaded(true);
     }
@@ -66,7 +66,6 @@ export function WhatsAppImageViewer({
     setError(null);
 
     try {
-      console.log("[WhatsAppImageViewer] Downloading and caching image...");
 
       const result = await downloadAndCacheMedia({
         instanceId,
@@ -91,7 +90,7 @@ export function WhatsAppImageViewer({
       }
 
       setImageLoaded(true);
-      console.log("[WhatsAppImageViewer] Image ready, cached:", !!cachedUrl);
+
     } catch (err: unknown) {
       console.error("[WhatsAppImageViewer] Error:", err);
       setError(err.message || "Erro ao carregar imagem");

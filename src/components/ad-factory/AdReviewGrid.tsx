@@ -80,7 +80,6 @@ export function AdReviewGrid({
   const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
     if (!selectedAd || !clientId || !companyId) return;
 
-    console.log('[AdReviewGrid] Publishing ad:', selectedAd.id, 'to destinations:', destinations);
 
     const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
       body: {

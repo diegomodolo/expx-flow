@@ -18,7 +18,7 @@ export function useSocialMetrics(clientId: string) {
         .single();
 
       if (!client?.dashboard_token) {
-        console.log('No dashboard token found for client:', clientId);
+
         return { social_metrics: null };
       }
 
@@ -26,7 +26,6 @@ export function useSocialMetrics(clientId: string) {
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      console.log('Fetching social metrics with dates:', { startDate, endDate, token: client.dashboard_token.substring(0, 8) + '...' });
 
       // Fetch dashboard data which includes social metrics
       const { data, error } = await supabase.functions.invoke('client-dashboard-data', {
@@ -42,7 +41,6 @@ export function useSocialMetrics(clientId: string) {
         throw error;
       }
 
-      console.log('Social metrics received:', data?.social_metrics ? 'yes' : 'no');
 
       return {
         social_metrics: data?.social_metrics || null

@@ -58,16 +58,11 @@ export default function AdminLeadReports() {
   // Função local para marcar como visualizado
   const markAsViewedLocal = async () => {
     if (!activeCompany?.company_id || !user?.id) {
-      console.log('markAsViewedLocal: Dados insuficientes', {
-        companyId: activeCompany?.company_id,
-        userId: user?.id
-      });
       return false;
     }
 
     try {
-      console.log('markAsViewedLocal: Executando para company:', activeCompany.company_id);
-      
+
       // Primeiro vamos ver o que existe na tabela
       const { data: allReports, error: fetchError } = await supabase
         .from('lead_disqualification_reports')
@@ -75,7 +70,6 @@ export default function AdminLeadReports() {
         .eq('company_id', activeCompany.company_id)
         .order('created_at', { ascending: false });
 
-      console.log('markAsViewedLocal: Todos os reports da company:', allReports);
 
       // Agora vamos ver especificamente os não visualizados
       const { data: unviewedReports, error: unviewedError } = await supabase
@@ -84,7 +78,6 @@ export default function AdminLeadReports() {
         .eq('company_id', activeCompany.company_id)
         .is('viewed_at', null);
 
-      console.log('markAsViewedLocal: Reports não visualizados:', unviewedReports);
 
       if (fetchError || unviewedError) {
         console.error('markAsViewedLocal: Erro ao buscar dados:', fetchError || unviewedError);
@@ -92,7 +85,7 @@ export default function AdminLeadReports() {
       }
 
       if (!unviewedReports || unviewedReports.length === 0) {
-        console.log('markAsViewedLocal: Nenhum report não visualizado encontrado');
+
         return true; // Não há nada para marcar
       }
 
@@ -112,7 +105,7 @@ export default function AdminLeadReports() {
         return false;
       }
 
-      console.log('markAsViewedLocal: Sucesso!', updateResult?.length || 0, 'reports marcados');
+
       return true;
     } catch (err) {
       console.error('markAsViewedLocal: Erro:', err);
@@ -123,29 +116,23 @@ export default function AdminLeadReports() {
   // Auto-mark as viewed when component mounts
   React.useEffect(() => {
     const markAsViewed = async () => {
-      console.log('AdminLeadReports: activeCompany disponível?', activeCompany?.company_id);
-      
+
       if (activeCompany?.company_id && user?.id) {
-        console.log('Página AdminLeadReports carregada, tentando marcar como visualizados');
-        
+
         // Tentar primeiro a função local
         const localSuccess = await markAsViewedLocal();
         
         if (!localSuccess && markAllAsViewed) {
-          console.log('Tentativa local falhou, usando markAllAsViewed');
+
           await markAllAsViewed();
         }
         
         // Forçar update do contador no header
         setTimeout(() => {
-          console.log('Forçando refresh do contador após 2 segundos');
+
           window.dispatchEvent(new CustomEvent('refreshNotificationCount'));
         }, 2000);
       } else {
-        console.log('AdminLeadReports: Aguardando dados...', {
-          companyId: activeCompany?.company_id,
-          userId: user?.id
-        });
       }
     };
     
@@ -234,8 +221,7 @@ export default function AdminLeadReports() {
         return;
       }
 
-      console.log('Tentando acessar evidência:', evidenceUrl);
-      
+
       // Criar signed URL para acessar o arquivo
       const { data, error } = await supabase.storage
         .from('lead-evidence')
@@ -252,8 +238,7 @@ export default function AdminLeadReports() {
       }
 
       if (data?.signedUrl) {
-        console.log('Signed URL criada com sucesso:', data.signedUrl);
-        
+
         // Verificar se é imagem para visualizar
         const fileExtension = evidenceUrl.split('.').pop()?.toLowerCase();
         const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');

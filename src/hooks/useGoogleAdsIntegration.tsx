@@ -40,8 +40,7 @@ export function useGoogleAdsIntegration() {
     const redirectUri = `${window.location.origin}/google-ads/callback`;
     const scope = 'https://www.googleapis.com/auth/adwords';
     
-    console.log('Auth URL redirect_uri:', redirectUri);
-    
+
     return `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
@@ -57,36 +56,24 @@ export function useGoogleAdsIntegration() {
   };
 
   const handleCallback = async (code: string, companyId: string) => {
-    console.log('handleCallback called with:', { 
-      codeLength: code?.length, 
-      codeSample: code?.substring(0, 20) + '...', 
-      companyId 
-    });
     
     // Prevenir reprocessamento do mesmo código
     if (processingCodeRef.current === code) {
-      console.log('Code already being processed, skipping duplicate request...');
+
       throw new Error('Code already being processed');
     }
 
     try {
       processingCodeRef.current = code;
-      console.log("Processing Google Ads OAuth callback...");
-      
+
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session check:', { hasSession: !!session, userId: session?.user?.id });
-      
+
       if (!session) {
         throw new Error("No active session");
       }
 
       // Use redirect_uri dinâmico baseado no domínio atual
       const redirectUri = `${window.location.origin}/google-ads/callback`;
-      console.log('Calling edge function with:', { 
-        redirectUri, 
-        companyId,
-        hasCode: !!code 
-      });
 
       const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
         body: {
@@ -97,12 +84,6 @@ export function useGoogleAdsIntegration() {
         },
       });
 
-      console.log('Edge function response:', { 
-        hasData: !!data, 
-        hasError: !!error,
-        dataKeys: data ? Object.keys(data) : [],
-        errorMessage: error?.message 
-      });
 
       if (error) {
         console.error('Edge function returned error:', error);
@@ -114,7 +95,7 @@ export function useGoogleAdsIntegration() {
         throw new Error(data.error);
       }
 
-      console.log("Google Ads connected successfully");
+
       toast.success("Google Ads conectado com sucesso!");
       
       // Limpar o código processado após sucesso
@@ -194,8 +175,7 @@ export function useGoogleAdsIntegration() {
     
     setLoading(true);
     try {
-      console.log('Refreshing Google Ads accounts...');
-      
+
       const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
         body: {
           action: 'refresh_accounts',
@@ -207,7 +187,7 @@ export function useGoogleAdsIntegration() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      console.log('Accounts refreshed:', data);
+
       toast.success(`${data.accounts?.length || 0} conta(s) recarregada(s) com sucesso!`);
       
       // Reload integration data
@@ -228,8 +208,7 @@ export function useGoogleAdsIntegration() {
     
     setLoading(true);
     try {
-      console.log('Refreshing Google Ads token...');
-      
+
       const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
         body: {
           action: 'refresh_token',
@@ -240,7 +219,7 @@ export function useGoogleAdsIntegration() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      console.log('Token refreshed:', data);
+
       toast.success(data.message || 'Token renovado com sucesso!');
       
       // Reload integration data
@@ -267,8 +246,7 @@ export function useGoogleAdsIntegration() {
         return;
       }
 
-      console.log('Adding Google Ads Customer ID:', customerId, 'for client:', clientId);
-      
+
       const { data, error } = await supabase.functions.invoke('google-ads-fetch-account', {
         body: {
           customerId: cleanId,

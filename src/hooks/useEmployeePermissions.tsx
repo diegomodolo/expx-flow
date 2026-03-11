@@ -238,8 +238,7 @@ export function useEmployeePermissions() {
   // Alternar permissão de um colaborador
   const togglePermission = async (employeeId: string, menuItem: MenuItemType) => {
     try {
-      console.log('Toggling permission:', { employeeId, menuItem });
-      
+
       // Primeiro buscar o valor atual
       const { data: currentPerm } = await supabase
         .from('employee_permissions')
@@ -248,7 +247,6 @@ export function useEmployeePermissions() {
         .eq('menu_item', menuItem as unknown)
         .single();
 
-      console.log('Current permission:', currentPerm);
 
       // Se não existir a permissão, criar primeiro
       if (!currentPerm) {
@@ -266,8 +264,7 @@ export function useEmployeePermissions() {
           throw insertError;
         }
 
-        console.log('Permission created and enabled');
-        
+
         // Atualizar estado local
         setEmployeesWithPermissions(prev => 
           prev.map(emp => {
@@ -288,8 +285,7 @@ export function useEmployeePermissions() {
       } else {
         // Alternar o valor existente
         const newValue = !currentPerm.is_enabled;
-        console.log('Updating to:', newValue);
-        
+
         const { error } = await supabase
           .from('employee_permissions')
           .update({ 
@@ -304,7 +300,6 @@ export function useEmployeePermissions() {
           throw error;
         }
 
-        console.log('Permission updated successfully');
 
         // Atualizar estado local
         setEmployeesWithPermissions(prev => 
