@@ -76,6 +76,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; category: string }[] = [
   { key: 'whatsapp', label: 'Notificações WhatsApp', category: 'Marketing & Tráfego' },
   // Sistema
   { key: 'alertas', label: 'Alertas', category: 'Sistema' },
+  { key: 'reportes', label: 'Reportes', category: 'Sistema' },
   { key: 'configuracoes', label: 'Configurações', category: 'Sistema' },
   // Especial
   { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', category: 'Especial' },

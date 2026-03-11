@@ -75,6 +75,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string; categ
   { key: 'whatsapp', label: 'Notificações WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'Marketing & Tráfego' },
   // Sistema
   { key: 'alertas', label: 'Alertas', description: 'Alertas e notificações do sistema', category: 'Sistema' },
+  { key: 'reportes', label: 'Reportes', description: 'Reportar bugs e sugerir novas funcionalidades', category: 'Sistema' },
   { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'Sistema' },
   // Especial
   { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', description: 'Visualizar quadro de tarefas de outros colaboradores', category: 'Especial' },
