@@ -25,15 +25,24 @@ function determineStatus(
   return "implementado";
 }
 
-function extractClaudeResponse(comments: any[]): string | null {
-  const claudeComments = comments.filter((c: any) =>
+interface GitHubComment {
+  user?: { login?: string; type?: string };
+  body?: string;
+}
+
+interface GitHubLabel {
+  name?: string;
+}
+
+function extractClaudeResponse(comments: GitHubComment[]): string | null {
+  const claudeComments = comments.filter((c) =>
     c.user?.login?.includes("github-actions") ||
     c.user?.login?.includes("claude") ||
     c.user?.type === "Bot"
   );
 
   if (claudeComments.length === 0) return null;
-  return claudeComments[claudeComments.length - 1].body;
+  return claudeComments[claudeComments.length - 1].body || null;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -96,18 +105,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     const comments = commentsRes.ok ? await commentsRes.json() : [];
 
-    const labels = (issueData.labels || []).map((l: any) =>
+    const labels = (issueData.labels || []).map((l: string | GitHubLabel) =>
       typeof l === "string" ? l : l.name
     );
-    const hasClaudeComment = comments.some(
-      (c: any) =>
+    const hasClaudeComment = (comments as GitHubComment[]).some(
+      (c) =>
         c.user?.login?.includes("github-actions") ||
         c.user?.login?.includes("claude") ||
         c.user?.type === "Bot"
     );
 
     const newStatus = determineStatus(issueData.state, labels, hasClaudeComment);
-    const claudeResponse = extractClaudeResponse(comments);
+    const claudeResponse = extractClaudeResponse(comments as GitHubComment[]);
 
     const { data: updated, error: updateError } = await supabase
       .from("user_reports")
@@ -131,10 +140,11 @@ const handler = async (req: Request): Promise<Response> => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar status:", error);
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: message }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
