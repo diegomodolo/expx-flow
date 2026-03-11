@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useUserReports } from "@/hooks/useUserReports";
+import { useSyncOpenReports } from "@/hooks/useSyncOpenReports";
 import { useCompany } from "@/contexts/CompanyContext";
 import { ReportStatusCards } from "@/components/reportes/ReportStatusCards";
 import { ReportList } from "@/components/reportes/ReportList";
@@ -14,6 +15,7 @@ type TabFilter = "todos" | "bug" | "feature";
 export function ReportesPage() {
   const { activeCompany } = useCompany();
   const { data: reports = [], isLoading } = useUserReports(activeCompany?.company_id);
+  useSyncOpenReports(reports, activeCompany?.company_id);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabFilter>("todos");
 
