@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -240,7 +241,7 @@ ${
             if (i < missingIndices.length - 1) {
               await new Promise((r) => setTimeout(r, 300));
             }
-          } catch (e: any) {
+          } catch (e: unknown) {
             console.error("[regenerate-carousel-images] Slide error", {
               slideIdx: slideIdx + 1,
               err: e?.message,
@@ -267,7 +268,7 @@ ${
         send({ type: "completed", carousel_id, success: true });
         controller.enqueue(sseDone());
         controller.close();
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("[regenerate-carousel-images] Failed:", e);
         send({ type: "failed", message: e?.message || "Erro desconhecido" });
         controller.enqueue(sseDone());
@@ -349,7 +350,7 @@ async function uploadDataUrlToStorage({
   dataUrl,
   path,
 }: {
-  supabase: any;
+  supabase: unknown;
   dataUrl: string;
   path: string;
 }): Promise<string> {
@@ -476,7 +477,7 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
     if (imageUrl) return imageUrl;
 
     return null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       "[regenerate-carousel-images] Error calling image generation API:",
       error,

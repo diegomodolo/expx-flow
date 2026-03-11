@@ -1,11 +1,28 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useMarketResearchInsights, MarketResearchInsight } from "@/hooks/useMarketResearchInsights";
+import {
+  useMarketResearchInsights,
+  MarketResearchInsight,
+} from "@/hooks/useMarketResearchInsights";
 import { TemasPesquisaDialog } from "./TemasPesquisaDialog";
 import { GerarTemasIADialog } from "./GerarTemasIADialog";
-import { Lightbulb, ExternalLink, Trash2, AlertCircle, Loader2, TrendingUp, Sparkles } from "lucide-react";
+import {
+  Lightbulb,
+  ExternalLink,
+  Trash2,
+  AlertCircle,
+  Loader2,
+  TrendingUp,
+  Sparkles,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -25,10 +42,12 @@ interface Props {
 }
 
 export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
-  const { insights, loading, deleteInsight, refetch } = useMarketResearchInsights(clientId);
+  const { insights, loading, deleteInsight, refetch } =
+    useMarketResearchInsights(clientId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showIADialog, setShowIADialog] = useState(false);
-  const [editingInsight, setEditingInsight] = useState<MarketResearchInsight | null>(null);
+  const [editingInsight, setEditingInsight] =
+    useState<MarketResearchInsight | null>(null);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -51,28 +70,34 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
 
   const getSentimentColor = (sentiment: string | null) => {
     switch (sentiment) {
-      case 'positive': return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'negative': return 'bg-red-500/10 text-red-600 border-red-500/20';
-      default: return 'bg-muted text-muted-foreground';
+      case "positive":
+        return "bg-green-500/10 text-green-600 border-green-500/20";
+      case "negative":
+        return "bg-red-500/10 text-red-600 border-red-500/20";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getSentimentLabel = (sentiment: string | null) => {
     switch (sentiment) {
-      case 'positive': return 'Positivo';
-      case 'negative': return 'Negativo';
-      default: return 'Neutro';
+      case "positive":
+        return "Positivo";
+      case "negative":
+        return "Negativo";
+      default:
+        return "Neutro";
     }
   };
 
   const getSourceTypeLabel = (sourceType: string) => {
     const labels: Record<string, string> = {
-      manual: 'Manual',
-      reddit: 'Reddit',
-      forum: 'Fórum',
-      social: 'Redes Sociais',
-      article: 'Artigo',
-      research: 'Pesquisa',
+      manual: "Manual",
+      reddit: "Reddit",
+      forum: "Fórum",
+      social: "Redes Sociais",
+      article: "Artigo",
+      research: "Pesquisa",
     };
     return labels[sourceType] || sourceType;
   };
@@ -91,8 +116,9 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Você configurou {conceptPercentage}% de conceitos, mas não tem temas de pesquisa cadastrados. 
-            Adicione pelo menos um tema para gerar anúncios do tipo Conceito.
+            Você configurou {conceptPercentage}% de conceitos, mas não tem temas
+            de pesquisa cadastrados. Adicione pelo menos um tema para gerar
+            anúncios do tipo Conceito.
           </AlertDescription>
         </Alert>
       )}
@@ -105,8 +131,8 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="gap-2"
             onClick={() => setShowIADialog(true)}
           >
@@ -117,16 +143,16 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
         </div>
       </div>
 
-      <GerarTemasIADialog 
-        open={showIADialog} 
-        onOpenChange={setShowIADialog} 
-        clientId={clientId} 
-        onThemesAdded={refetch} 
+      <GerarTemasIADialog
+        open={showIADialog}
+        onOpenChange={setShowIADialog}
+        clientId={clientId}
+        onThemesAdded={refetch}
       />
 
       {/* Edit Dialog - controlled */}
-      <TemasPesquisaDialog 
-        clientId={clientId} 
+      <TemasPesquisaDialog
+        clientId={clientId}
         onInsightAdded={refetch}
         insightToEdit={editingInsight}
         open={!!editingInsight}
@@ -146,8 +172,8 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {insights.map((insight) => (
-            <Card 
-              key={insight.id} 
+            <Card
+              key={insight.id}
               className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
               onClick={() => handleCardClick(insight)}
             >
@@ -163,9 +189,10 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button aria-label="Excluir"
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        aria-label="Excluir"
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -185,7 +212,9 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(insight.id)}>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(insight.id)}
+                        >
                           Remover
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -195,7 +224,10 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className={getSentimentColor(insight.sentiment)}>
+                  <Badge
+                    variant="outline"
+                    className={getSentimentColor(insight.sentiment)}
+                  >
                     {getSentimentLabel(insight.sentiment)}
                   </Badge>
                   <Badge variant="secondary">
@@ -210,7 +242,8 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
 
                 {insight.opportunity && (
                   <p className="text-sm text-muted-foreground line-clamp-2">
-                    <span className="font-medium">Oportunidade:</span> {insight.opportunity}
+                    <span className="font-medium">Oportunidade:</span>{" "}
+                    {insight.opportunity}
                   </p>
                 )}
 
@@ -218,13 +251,15 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
                   <div className="flex items-center gap-2 text-sm">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Relevância:</span>
-                    <span className="font-medium">{insight.relevance_score || 0}%</span>
+                    <span className="font-medium">
+                      {insight.relevance_score || 0}%
+                    </span>
                   </div>
-                  
+
                   {insight.source_url && (
-                    <a 
-                      href={insight.source_url} 
-                      target="_blank" 
+                    <a
+                      href={insight.source_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
                       onClick={(e) => e.stopPropagation()}

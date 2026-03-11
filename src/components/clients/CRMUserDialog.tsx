@@ -1,9 +1,21 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { generateSecurePassword } from "@/lib/passwordGenerator";
@@ -15,10 +27,10 @@ interface CRMUserDialogProps {
   onSubmit: (data: {
     email: string;
     fullName: string;
-    role: 'admin' | 'collaborator';
+    role: "admin" | "collaborator";
     password?: string;
   }) => void;
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   user?: CRMUser;
   isLoading?: boolean;
   onResetPassword?: (newPassword: string) => void;
@@ -35,20 +47,20 @@ export function CRMUserDialog({
 }: CRMUserDialogProps) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<'admin' | 'collaborator'>('collaborator');
+  const [role, setRole] = useState<"admin" | "collaborator">("collaborator");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   useEffect(() => {
-    if (mode === 'edit' && user) {
+    if (mode === "edit" && user) {
       setEmail(user.email);
       setFullName(user.full_name);
       setRole(user.role);
-    } else if (mode === 'create') {
+    } else if (mode === "create") {
       setEmail("");
       setFullName("");
-      setRole('collaborator');
+      setRole("collaborator");
       setPassword(generateSecurePassword());
     }
   }, [mode, user, open]);
@@ -66,8 +78,8 @@ export function CRMUserDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (mode === 'create') {
+
+    if (mode === "create") {
       onSubmit({ email, fullName, role, password });
     } else {
       onSubmit({ email, fullName, role });
@@ -88,11 +100,13 @@ export function CRMUserDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Adicionar Usuário do CRM' : 'Editar Usuário do CRM'}
+            {mode === "create"
+              ? "Adicionar Usuário do CRM"
+              : "Editar Usuário do CRM"}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'create' 
-              ? 'Crie um novo usuário para acessar o CRM. A senha será gerada automaticamente.'
+            {mode === "create"
+              ? "Crie um novo usuário para acessar o CRM. A senha será gerada automaticamente."
               : 'Atualize as informações do usuário. Para alterar a senha, use a opção "Resetar Senha".'}
           </DialogDescription>
         </DialogHeader>
@@ -123,18 +137,25 @@ export function CRMUserDialog({
 
           <div className="space-y-2">
             <Label htmlFor="role">Tipo de Usuário</Label>
-            <Select value={role} onValueChange={(value: 'admin' | 'collaborator') => setRole(value)}>
+            <Select
+              value={role}
+              onValueChange={(value: "admin" | "collaborator") =>
+                setRole(value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin (acesso total)</SelectItem>
-                <SelectItem value="collaborator">Colaborador (acesso limitado)</SelectItem>
+                <SelectItem value="collaborator">
+                  Colaborador (acesso limitado)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {mode === 'create' && (
+          {mode === "create" && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Senha Gerada</Label>
@@ -155,15 +176,21 @@ export function CRMUserDialog({
                   readOnly
                   className="font-mono"
                 />
-                <Button aria-label="Visualizar"
+                <Button
+                  aria-label="Visualizar"
                   type="button"
                   variant="outline"
                   size="icon"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
-                <Button aria-label="Copiar"
+                <Button
+                  aria-label="Copiar"
                   type="button"
                   variant="outline"
                   size="icon"
@@ -178,7 +205,7 @@ export function CRMUserDialog({
             </div>
           )}
 
-          {mode === 'edit' && (
+          {mode === "edit" && (
             <div className="space-y-2">
               <Label>Redefinir Senha</Label>
               {!showResetPassword ? (
@@ -200,15 +227,21 @@ export function CRMUserDialog({
                       readOnly
                       className="font-mono"
                     />
-                    <Button aria-label="Visualizar"
+                    <Button
+                      aria-label="Visualizar"
                       type="button"
                       variant="outline"
                       size="icon"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
-                    <Button aria-label="Copiar"
+                    <Button
+                      aria-label="Copiar"
                       type="button"
                       variant="outline"
                       size="icon"
@@ -235,7 +268,11 @@ export function CRMUserDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Salvando..." : mode === 'create' ? "Criar Usuário" : "Salvar Alterações"}
+              {isLoading
+                ? "Salvando..."
+                : mode === "create"
+                  ? "Criar Usuário"
+                  : "Salvar Alterações"}
             </Button>
           </div>
         </form>

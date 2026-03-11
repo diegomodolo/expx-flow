@@ -1,13 +1,25 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -15,20 +27,28 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Plus, Globe, ArrowRight, ChevronLeft, Loader2, Calendar, Clock } from 'lucide-react';
-import { useCompany } from '@/contexts/CompanyContext';
-import { useAuth } from '@/hooks/useAuth';
-import { useWordpressSites } from '@/hooks/useWordpressSites';
-import { AddWordpressSiteDialog } from '@/components/wordpress/AddWordpressSiteDialog';
-import { ManageWordpressSitesDialog } from '@/components/wordpress/ManageWordpressSitesDialog';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+} from "@/components/ui/dialog";
+import {
+  Plus,
+  Globe,
+  ArrowRight,
+  ChevronLeft,
+  Loader2,
+  Calendar,
+  Clock,
+} from "lucide-react";
+import { useCompany } from "@/contexts/CompanyContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useWordpressSites } from "@/hooks/useWordpressSites";
+import { AddWordpressSiteDialog } from "@/components/wordpress/AddWordpressSiteDialog";
+import { ManageWordpressSitesDialog } from "@/components/wordpress/ManageWordpressSitesDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export default function AutomatizadoresWordpress() {
   const navigate = useNavigate();
@@ -39,36 +59,40 @@ export default function AutomatizadoresWordpress() {
   const [showAddSiteDialog, setShowAddSiteDialog] = useState(false);
   const [showManageSitesDialog, setShowManageSitesDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  
+
   const [newConfig, setNewConfig] = useState({
-    name: '',
-    wordpress_site_id: '',
-    post_briefing: '',
-    post_type: 'post',
-    post_status: 'draft',
-    post_category: '',
+    name: "",
+    wordpress_site_id: "",
+    post_briefing: "",
+    post_type: "post",
+    post_status: "draft",
+    post_category: "",
     scheduled_days: [1, 2, 3, 4, 5] as number[],
     scheduled_hours: [10] as number[],
   });
 
-  const { sites, isLoading: sitesLoading } = useWordpressSites(activeCompany?.company_id || '');
+  const { sites, isLoading: sitesLoading } = useWordpressSites(
+    activeCompany?.company_id || "",
+  );
 
   // Fetch all wordpress configs
   const { data: configs, isLoading: configsLoading } = useQuery({
-    queryKey: ['wordpress-auto-post-configs', activeCompany?.company_id],
+    queryKey: ["wordpress-auto-post-configs", activeCompany?.company_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('wordpress_auto_post_configs')
-        .select(`
+        .from("wordpress_auto_post_configs")
+        .select(
+          `
           *,
           wordpress_sites (
             id,
             name,
             site_url
           )
-        `)
-        .eq('company_id', activeCompany!.company_id)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .eq("company_id", activeCompany!.company_id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
@@ -80,7 +104,7 @@ export default function AutomatizadoresWordpress() {
     mutationFn: async () => {
       // Create the config
       const { data: config, error: configError } = await supabase
-        .from('wordpress_auto_post_configs')
+        .from("wordpress_auto_post_configs")
         .insert({
           ...newConfig,
           company_id: activeCompany!.company_id,
@@ -93,50 +117,52 @@ export default function AutomatizadoresWordpress() {
 
       // Generate first post
       try {
-        await supabase.functions.invoke('generate-wordpress-auto-post', {
+        await supabase.functions.invoke("generate-wordpress-auto-post", {
           body: {
             configId: config.id,
             companyId: activeCompany!.company_id,
           },
         });
       } catch (e) {
-        console.warn('Failed to generate first post:', e);
+        console.warn("Failed to generate first post:", e);
       }
 
       return config;
     },
     onSuccess: (config) => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-post-configs'] });
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-post-configs"],
+      });
       setShowCreateDialog(false);
       setNewConfig({
-        name: '',
-        wordpress_site_id: '',
-        post_briefing: '',
-        post_type: 'post',
-        post_status: 'draft',
-        post_category: '',
+        name: "",
+        wordpress_site_id: "",
+        post_briefing: "",
+        post_type: "post",
+        post_status: "draft",
+        post_category: "",
         scheduled_days: [1, 2, 3, 4, 5],
         scheduled_hours: [10],
       });
-      toast.success('Automação criada com sucesso!');
+      toast.success("Automação criada com sucesso!");
       navigate(`/automatizadores/wordpress/${config.id}`);
     },
     onError: (error: unknown) => {
-      console.error('Error creating config:', error);
-      toast.error('Erro ao criar automação');
+      console.error("Error creating config:", error);
+      toast.error("Erro ao criar automação");
     },
   });
 
   const handleToggleDay = (day: number) => {
     const newDays = newConfig.scheduled_days.includes(day)
-      ? newConfig.scheduled_days.filter(d => d !== day)
+      ? newConfig.scheduled_days.filter((d) => d !== day)
       : [...newConfig.scheduled_days, day].sort((a, b) => a - b);
     setNewConfig({ ...newConfig, scheduled_days: newDays });
   };
 
   const handleToggleHour = (hour: number) => {
     const newHours = newConfig.scheduled_hours.includes(hour)
-      ? newConfig.scheduled_hours.filter(h => h !== hour)
+      ? newConfig.scheduled_hours.filter((h) => h !== hour)
       : [...newConfig.scheduled_hours, hour].sort((a, b) => a - b);
     setNewConfig({ ...newConfig, scheduled_hours: newHours });
   };
@@ -149,7 +175,12 @@ export default function AutomatizadoresWordpress() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => navigate('/automatizadores')}>
+            <Button
+              aria-label="Voltar"
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/automatizadores")}
+            >
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <div>
@@ -160,11 +191,17 @@ export default function AutomatizadoresWordpress() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowManageSitesDialog(true)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowManageSitesDialog(true)}
+            >
               <Globe className="w-4 h-4 mr-2" />
               Gerenciar Sites
             </Button>
-            <Button onClick={() => setShowCreateDialog(true)} disabled={sites.length === 0}>
+            <Button
+              onClick={() => setShowCreateDialog(true)}
+              disabled={sites.length === 0}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Nova Automação
             </Button>
@@ -178,7 +215,9 @@ export default function AutomatizadoresWordpress() {
               <div className="flex items-center gap-4">
                 <Globe className="w-8 h-8 text-yellow-500" />
                 <div className="flex-1">
-                  <p className="font-medium">Nenhum site WordPress configurado</p>
+                  <p className="font-medium">
+                    Nenhum site WordPress configurado
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Adicione um site WordPress para começar a criar automações.
                   </p>
@@ -203,19 +242,23 @@ export default function AutomatizadoresWordpress() {
               <Card
                 key={config.id}
                 className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
-                onClick={() => navigate(`/automatizadores/wordpress/${config.id}`)}
+                onClick={() =>
+                  navigate(`/automatizadores/wordpress/${config.id}`)
+                }
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="p-2 rounded-lg bg-primary/10">
                       <Globe className="w-5 h-5 text-primary" />
                     </div>
-                    <Badge variant={config.is_enabled ? 'default' : 'secondary'}>
-                      {config.is_enabled ? 'Ativo' : 'Pausado'}
+                    <Badge
+                      variant={config.is_enabled ? "default" : "secondary"}
+                    >
+                      {config.is_enabled ? "Ativo" : "Pausado"}
                     </Badge>
                   </div>
                   <CardTitle className="text-lg mt-3">
-                    {config.name || 'Automação WordPress'}
+                    {config.name || "Automação WordPress"}
                   </CardTitle>
                   <CardDescription className="line-clamp-2">
                     {config.post_briefing}
@@ -239,9 +282,12 @@ export default function AutomatizadoresWordpress() {
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Globe className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium mb-2">Nenhuma automação criada</p>
+              <p className="text-lg font-medium mb-2">
+                Nenhuma automação criada
+              </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Crie sua primeira automação para publicar artigos automaticamente.
+                Crie sua primeira automação para publicar artigos
+                automaticamente.
               </p>
               <Button onClick={() => setShowCreateDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -256,14 +302,14 @@ export default function AutomatizadoresWordpress() {
       <AddWordpressSiteDialog
         open={showAddSiteDialog}
         onOpenChange={setShowAddSiteDialog}
-        companyId={activeCompany?.company_id || ''}
+        companyId={activeCompany?.company_id || ""}
       />
 
       {/* Manage Sites Dialog */}
       <ManageWordpressSitesDialog
         open={showManageSitesDialog}
         onOpenChange={setShowManageSitesDialog}
-        companyId={activeCompany?.company_id || ''}
+        companyId={activeCompany?.company_id || ""}
       />
 
       {/* Create Automation Dialog */}
@@ -282,7 +328,9 @@ export default function AutomatizadoresWordpress() {
               <Input
                 placeholder="Ex: Blog de Marketing"
                 value={newConfig.name}
-                onChange={(e) => setNewConfig({ ...newConfig, name: e.target.value })}
+                onChange={(e) =>
+                  setNewConfig({ ...newConfig, name: e.target.value })
+                }
               />
             </div>
 
@@ -290,7 +338,9 @@ export default function AutomatizadoresWordpress() {
               <Label>Site WordPress</Label>
               <Select
                 value={newConfig.wordpress_site_id}
-                onValueChange={(value) => setNewConfig({ ...newConfig, wordpress_site_id: value })}
+                onValueChange={(value) =>
+                  setNewConfig({ ...newConfig, wordpress_site_id: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um site" />
@@ -310,7 +360,9 @@ export default function AutomatizadoresWordpress() {
               <Textarea
                 placeholder="Ex: Artigos sobre dicas de marketing digital para pequenas empresas..."
                 value={newConfig.post_briefing}
-                onChange={(e) => setNewConfig({ ...newConfig, post_briefing: e.target.value })}
+                onChange={(e) =>
+                  setNewConfig({ ...newConfig, post_briefing: e.target.value })
+                }
                 rows={4}
               />
             </div>
@@ -320,7 +372,9 @@ export default function AutomatizadoresWordpress() {
                 <Label>Tipo</Label>
                 <Select
                   value={newConfig.post_type}
-                  onValueChange={(value) => setNewConfig({ ...newConfig, post_type: value })}
+                  onValueChange={(value) =>
+                    setNewConfig({ ...newConfig, post_type: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -336,7 +390,9 @@ export default function AutomatizadoresWordpress() {
                 <Label>Status ao Publicar</Label>
                 <Select
                   value={newConfig.post_status}
-                  onValueChange={(value) => setNewConfig({ ...newConfig, post_status: value })}
+                  onValueChange={(value) =>
+                    setNewConfig({ ...newConfig, post_status: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -354,7 +410,9 @@ export default function AutomatizadoresWordpress() {
               <Input
                 placeholder="Nome da categoria no WordPress"
                 value={newConfig.post_category}
-                onChange={(e) => setNewConfig({ ...newConfig, post_category: e.target.value })}
+                onChange={(e) =>
+                  setNewConfig({ ...newConfig, post_category: e.target.value })
+                }
               />
             </div>
 
@@ -368,7 +426,11 @@ export default function AutomatizadoresWordpress() {
                   <Button
                     key={index}
                     type="button"
-                    variant={newConfig.scheduled_days.includes(index) ? 'default' : 'outline'}
+                    variant={
+                      newConfig.scheduled_days.includes(index)
+                        ? "default"
+                        : "outline"
+                    }
                     size="sm"
                     onClick={() => handleToggleDay(index)}
                   >
@@ -388,7 +450,11 @@ export default function AutomatizadoresWordpress() {
                   <Button
                     key={hour}
                     type="button"
-                    variant={newConfig.scheduled_hours.includes(hour) ? 'default' : 'outline'}
+                    variant={
+                      newConfig.scheduled_hours.includes(hour)
+                        ? "default"
+                        : "outline"
+                    }
                     size="sm"
                     onClick={() => handleToggleHour(hour)}
                   >
@@ -400,7 +466,10 @@ export default function AutomatizadoresWordpress() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+            >
               Cancelar
             </Button>
             <Button
@@ -414,7 +483,9 @@ export default function AutomatizadoresWordpress() {
                 createConfigMutation.isPending
               }
             >
-              {createConfigMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {createConfigMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Criar Automação
             </Button>
           </DialogFooter>

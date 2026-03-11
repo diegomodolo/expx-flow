@@ -11,12 +11,13 @@ interface SlowUrlsCardProps {
 
 export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
   // Sort by response time descending
-  const sortedUrls = [...urls].sort((a, b) => 
-    (b.validation_load_time_ms || 0) - (a.validation_load_time_ms || 0)
+  const sortedUrls = [...urls].sort(
+    (a, b) =>
+      (b.validation_load_time_ms || 0) - (a.validation_load_time_ms || 0),
   );
 
   const formatResponseTime = (ms: number | null) => {
-    if (!ms) return '-';
+    if (!ms) return "-";
     if (ms >= 1000) {
       return `${(ms / 1000).toFixed(1)}s`;
     }
@@ -24,10 +25,10 @@ export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
   };
 
   const getSpeedColor = (ms: number | null) => {
-    if (!ms) return 'text-muted-foreground';
-    if (ms > 5000) return 'text-destructive';
-    if (ms > 3000) return 'text-orange-600 dark:text-orange-500';
-    return 'text-yellow-600 dark:text-yellow-500';
+    if (!ms) return "text-muted-foreground";
+    if (ms > 5000) return "text-destructive";
+    if (ms > 3000) return "text-orange-600 dark:text-orange-500";
+    return "text-yellow-600 dark:text-yellow-500";
   };
 
   return (
@@ -37,7 +38,10 @@ export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
           <Gauge className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-500" />
           Lentas (&gt;3s)
           {urls.length > 0 && (
-            <Badge variant="outline" className="ml-1 h-5 text-xs text-yellow-600 dark:text-yellow-500 border-yellow-600">
+            <Badge
+              variant="outline"
+              className="ml-1 h-5 text-xs text-yellow-600 dark:text-yellow-500 border-yellow-600"
+            >
               {urls.length}
             </Badge>
           )}
@@ -54,8 +58,8 @@ export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
           <ScrollArea className="h-[160px]">
             <div className="space-y-1.5 pr-2">
               {sortedUrls.slice(0, 10).map((url) => (
-                <div 
-                  key={url.id} 
+                <div
+                  key={url.id}
                   className="flex items-center justify-between gap-2 p-1.5 rounded-md bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
@@ -63,8 +67,8 @@ export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
                       <span className="font-medium text-xs truncate max-w-[80px]">
                         {url.client_name}
                       </span>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`text-[10px] h-4 px-1 shrink-0 ${getSpeedColor(url.validation_load_time_ms)}`}
                       >
                         {formatResponseTime(url.validation_load_time_ms)}
@@ -74,7 +78,8 @@ export function SlowUrlsCard({ urls }: SlowUrlsCardProps) {
                       {url.url}
                     </p>
                   </div>
-                  <Button aria-label="Fechar"
+                  <Button
+                    aria-label="Fechar"
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 shrink-0"

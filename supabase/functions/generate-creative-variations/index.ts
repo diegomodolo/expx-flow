@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -31,7 +32,7 @@ interface VariationRequest {
 async function generateImage(
   apiKey: string,
   prompt: string,
-  contentArray: any[],
+  contentArray: unknown[],
   model: string,
 ): Promise<string | null> {
   console.log(`Calling Gemini API with model: ${model}`);
@@ -74,7 +75,7 @@ async function generateImage(
       return null;
     }
 
-    let data: any;
+    let data: unknown;
     try {
       const responseText = await response.text();
       if (!responseText || responseText.trim() === "") {
@@ -110,7 +111,7 @@ async function generateImage(
 async function generateWithRetry(
   apiKey: string,
   prompts: string[],
-  contentArrays: any[][],
+  contentArrays: unknown[][],
   model: string,
   maxRetries: number = 2,
 ): Promise<string | null> {
@@ -131,7 +132,7 @@ async function generateWithRetry(
           );
           return result;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (
           error.message?.includes("Rate limit") ||
           error.message?.includes("Payment required")
@@ -343,7 +344,7 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
     const minimalPrompt = `Crie uma variação desta imagem de marketing (${aspectRatio}). COPIE TODOS OS TEXTOS da imagem original para a nova imagem. Textos devem ser legíveis. Variação ${variationIndex + 1}. ${text ? `Texto: "${text}".` : ""} Design profissional.`;
 
     // Build content arrays
-    const baseContent: any[] = [
+    const baseContent: unknown[] = [
       { type: "text", text: mainPrompt },
       { type: "image_url", image_url: { url: baseImage } },
     ];
@@ -351,7 +352,7 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
       baseContent.push({ type: "image_url", image_url: { url: personImage } });
     }
 
-    const fallbackContent: any[] = [
+    const fallbackContent: unknown[] = [
       { type: "text", text: fallbackPrompt },
       { type: "image_url", image_url: { url: baseImage } },
     ];
@@ -362,7 +363,7 @@ A variação deve parecer uma versão alternativa do mesmo anúncio, com todos o
       });
     }
 
-    const minimalContent: any[] = [
+    const minimalContent: unknown[] = [
       { type: "text", text: minimalPrompt },
       { type: "image_url", image_url: { url: baseImage } },
     ];

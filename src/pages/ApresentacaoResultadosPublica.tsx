@@ -1,7 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronLeft, ChevronRight, TrendingUp, DollarSign, Users, MousePointer, Target, BarChart3, Sparkles, CheckCircle, ArrowRight, Play } from "lucide-react";
+import {
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  DollarSign,
+  Users,
+  MousePointer,
+  Target,
+  BarChart3,
+  Sparkles,
+  CheckCircle,
+  ArrowRight,
+  Play,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -88,9 +102,11 @@ export default function ApresentacaoResultadosPublica() {
 
       try {
         // Fetch presentation by public token
-        const { data: presentationData, error: presentationError } = await supabase
-          .from("campaign_presentations")
-          .select(`
+        const { data: presentationData, error: presentationError } =
+          await supabase
+            .from("campaign_presentations")
+            .select(
+              `
             id,
             name,
             period_start,
@@ -107,10 +123,11 @@ export default function ApresentacaoResultadosPublica() {
               avatar,
               presentation_logo
             )
-          `)
-          .eq("public_token", token)
-          .eq("status", "published")
-          .single();
+          `,
+            )
+            .eq("public_token", token)
+            .eq("status", "published")
+            .single();
 
         if (presentationError || !presentationData) {
           setError("Apresentação não encontrada ou não publicada");
@@ -122,8 +139,10 @@ export default function ApresentacaoResultadosPublica() {
 
         setPresentation({
           ...presentationData,
-          campaign_analyses: (presentationData.campaign_analyses || []) as unknown as CampaignAnalysis[],
-          metrics_snapshot: presentationData.metrics_snapshot as unknown as Presentation['metrics_snapshot'],
+          campaign_analyses: (presentationData.campaign_analyses ||
+            []) as unknown as CampaignAnalysis[],
+          metrics_snapshot:
+            presentationData.metrics_snapshot as unknown as Presentation["metrics_snapshot"],
           client: {
             name: client?.name || "",
             company: client?.company || "",
@@ -137,7 +156,6 @@ export default function ApresentacaoResultadosPublica() {
           .from("campaign_presentations")
           .update({ view_count: (presentationData as unknown).view_count + 1 })
           .eq("id", presentationData.id);
-
       } catch (err: unknown) {
         setError(err.message);
       } finally {
@@ -156,16 +174,27 @@ export default function ApresentacaoResultadosPublica() {
 
   // Slides: Cover (1) + KPIs (1) + Campaigns Overview (1) + Campaign Details (campaigns.length) + Top Creatives (ceil(topAds/2)) + Action Plan (1)
   const creativeSlides = Math.ceil(topAds.length / 2);
-  const totalSlides = presentation ? 1 + 1 + 1 + Math.min(campaigns.length, 5) + creativeSlides + 1 : 0;
+  const totalSlides = presentation
+    ? 1 + 1 + 1 + Math.min(campaigns.length, 5) + creativeSlides + 1
+    : 0;
 
-  const goToSlide = useCallback((index: number) => {
-    if (index >= 0 && index < totalSlides) {
-      setCurrentSlide(index);
-    }
-  }, [totalSlides]);
+  const goToSlide = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < totalSlides) {
+        setCurrentSlide(index);
+      }
+    },
+    [totalSlides],
+  );
 
-  const nextSlide = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
-  const prevSlide = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
+  const nextSlide = useCallback(
+    () => goToSlide(currentSlide + 1),
+    [currentSlide, goToSlide],
+  );
+  const prevSlide = useCallback(
+    () => goToSlide(currentSlide - 1),
+    [currentSlide, goToSlide],
+  );
 
   // Keyboard navigation
   useEffect(() => {
@@ -204,11 +233,14 @@ export default function ApresentacaoResultadosPublica() {
   }
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
   };
 
   const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('pt-BR').format(value);
+    return new Intl.NumberFormat("pt-BR").format(value);
   };
 
   const formatPercent = (value: number) => {
@@ -221,7 +253,10 @@ export default function ApresentacaoResultadosPublica() {
       <div className="mb-8">
         {presentation.client.presentation_logo || presentation.client.avatar ? (
           <img
-            src={presentation.client.presentation_logo || presentation.client.avatar!}
+            src={
+              presentation.client.presentation_logo ||
+              presentation.client.avatar!
+            }
             alt={presentation.client.name}
             className="w-32 h-32 object-contain mx-auto"
           />
@@ -241,7 +276,13 @@ export default function ApresentacaoResultadosPublica() {
       </p>
       <div className="flex items-center gap-2 text-muted-foreground">
         <span>
-          {format(new Date(presentation.period_start), "dd 'de' MMMM", { locale: ptBR })} - {format(new Date(presentation.period_end), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          {format(new Date(presentation.period_start), "dd 'de' MMMM", {
+            locale: ptBR,
+          })}{" "}
+          -{" "}
+          {format(new Date(presentation.period_end), "dd 'de' MMMM 'de' yyyy", {
+            locale: ptBR,
+          })}
         </span>
       </div>
       <div className="mt-12 animate-bounce">
@@ -252,7 +293,9 @@ export default function ApresentacaoResultadosPublica() {
 
   const renderKPIsSlide = () => (
     <div className="h-full flex flex-col p-8">
-      <h2 className="text-3xl font-bold mb-8 text-center">Visão Geral de Performance</h2>
+      <h2 className="text-3xl font-bold mb-8 text-center">
+        Visão Geral de Performance
+      </h2>
       <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-6 content-center">
         <KPICard
           icon={<DollarSign className="w-8 h-8" />}
@@ -299,7 +342,9 @@ export default function ApresentacaoResultadosPublica() {
         <KPICard
           icon={<Sparkles className="w-8 h-8" />}
           label="Campanhas Ativas"
-          value={campaigns.filter(c => c.status === 'ACTIVE').length.toString()}
+          value={campaigns
+            .filter((c) => c.status === "ACTIVE")
+            .length.toString()}
           color="text-yellow-500"
         />
       </div>
@@ -308,7 +353,9 @@ export default function ApresentacaoResultadosPublica() {
 
   const renderCampaignsOverviewSlide = () => (
     <div className="h-full flex flex-col p-8">
-      <h2 className="text-3xl font-bold mb-6 text-center">Campanhas do Período</h2>
+      <h2 className="text-3xl font-bold mb-6 text-center">
+        Campanhas do Período
+      </h2>
       <div className="flex-1 overflow-auto">
         <div className="space-y-4">
           {campaigns.slice(0, 6).map((campaign, index) => (
@@ -317,21 +364,30 @@ export default function ApresentacaoResultadosPublica() {
               className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-4">
-                <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center font-bold",
-                  campaign.status === 'ACTIVE' ? "bg-green-500/20 text-green-500" : "bg-muted-foreground/20 text-muted-foreground"
-                )}>
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center font-bold",
+                    campaign.status === "ACTIVE"
+                      ? "bg-green-500/20 text-green-500"
+                      : "bg-muted-foreground/20 text-muted-foreground",
+                  )}
+                >
                   {index + 1}
                 </div>
                 <div>
-                  <p className="font-medium truncate max-w-[300px]">{campaign.name}</p>
+                  <p className="font-medium truncate max-w-[300px]">
+                    {campaign.name}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    {campaign.conversions} conversões • CTR: {formatPercent(campaign.ctr)}
+                    {campaign.conversions} conversões • CTR:{" "}
+                    {formatPercent(campaign.ctr)}
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold text-lg">{formatCurrency(campaign.spend)}</p>
+                <p className="font-bold text-lg">
+                  {formatCurrency(campaign.spend)}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   CPA: {formatCurrency(campaign.cpa)}
                 </p>
@@ -345,30 +401,38 @@ export default function ApresentacaoResultadosPublica() {
 
   const renderCampaignDetailSlide = (campaignIndex: number) => {
     const campaign = campaigns[campaignIndex];
-    const analysis = analyses.find(a => a.campaign_id === campaign?.id);
-    
+    const analysis = analyses.find((a) => a.campaign_id === campaign?.id);
+
     if (!campaign) return null;
 
     return (
       <div className="h-full flex flex-col p-8">
         <div className="flex items-center gap-4 mb-6">
-          <div className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center",
-            campaign.status === 'ACTIVE' ? "bg-green-500" : "bg-muted-foreground"
-          )}>
+          <div
+            className={cn(
+              "w-12 h-12 rounded-full flex items-center justify-center",
+              campaign.status === "ACTIVE"
+                ? "bg-green-500"
+                : "bg-muted-foreground",
+            )}
+          >
             <BarChart3 className="w-6 h-6 text-white" />
           </div>
           <div>
             <h2 className="text-2xl font-bold">{campaign.name}</h2>
             <p className="text-muted-foreground">
-              {campaign.status === 'ACTIVE' ? 'Campanha Ativa' : 'Campanha Pausada'}
+              {campaign.status === "ACTIVE"
+                ? "Campanha Ativa"
+                : "Campanha Pausada"}
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-4 gap-4 mb-8">
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold">{formatCurrency(campaign.spend)}</p>
+            <p className="text-2xl font-bold">
+              {formatCurrency(campaign.spend)}
+            </p>
             <p className="text-sm text-muted-foreground">Investido</p>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">
@@ -390,7 +454,9 @@ export default function ApresentacaoResultadosPublica() {
             <div className="bg-green-500/10 rounded-lg p-6">
               <div className="flex items-center gap-2 mb-4">
                 <CheckCircle className="w-5 h-5 text-green-500" />
-                <h3 className="font-semibold text-green-600">O que está funcionando</h3>
+                <h3 className="font-semibold text-green-600">
+                  O que está funcionando
+                </h3>
               </div>
               <ul className="space-y-2">
                 {analysis.highlights.map((highlight, i) => (
@@ -404,7 +470,9 @@ export default function ApresentacaoResultadosPublica() {
             <div className="bg-blue-500/10 rounded-lg p-6">
               <div className="flex items-center gap-2 mb-4">
                 <ArrowRight className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-blue-600">Oportunidades de melhoria</h3>
+                <h3 className="font-semibold text-blue-600">
+                  Oportunidades de melhoria
+                </h3>
               </div>
               <ul className="space-y-2">
                 {analysis.opportunities.map((opportunity, i) => (
@@ -427,7 +495,9 @@ export default function ApresentacaoResultadosPublica() {
 
     return (
       <div className="h-full flex flex-col p-8">
-        <h2 className="text-3xl font-bold mb-6 text-center">Criativos em Destaque</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center">
+          Criativos em Destaque
+        </h2>
         <div className="flex-1 grid md:grid-cols-2 gap-8 content-center">
           {adsToShow.map((ad) => (
             <div key={ad.id} className="flex flex-col">
@@ -438,7 +508,11 @@ export default function ApresentacaoResultadosPublica() {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
                     <div className="w-full h-full rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center overflow-hidden">
                       {presentation.client.avatar ? (
-                        <img src={presentation.client.avatar} alt={presentation.client.name} className="w-full h-full object-cover" />
+                        <img
+                          src={presentation.client.avatar}
+                          alt={presentation.client.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <span className="text-xs font-bold">
                           {presentation.client.name.charAt(0).toUpperCase()}
@@ -447,8 +521,12 @@ export default function ApresentacaoResultadosPublica() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold">{presentation.client.name}</p>
-                    <p className="text-[10px] text-muted-foreground">Patrocinado</p>
+                    <p className="text-xs font-semibold">
+                      {presentation.client.name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Patrocinado
+                    </p>
                   </div>
                 </div>
 
@@ -468,10 +546,16 @@ export default function ApresentacaoResultadosPublica() {
                       </div>
                     </div>
                   ) : ad.image_url ? (
-                    <img src={ad.image_url} alt={ad.name} className="w-full h-full object-cover" />
+                    <img
+                      src={ad.image_url}
+                      alt={ad.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-sm text-muted-foreground">Sem imagem</span>
+                      <span className="text-sm text-muted-foreground">
+                        Sem imagem
+                      </span>
                     </div>
                   )}
                 </div>
@@ -537,7 +621,8 @@ export default function ApresentacaoResultadosPublica() {
 
       <div className="mt-8 text-center">
         <p className="text-muted-foreground">
-          Obrigado pela confiança! Estamos comprometidos com o sucesso das suas campanhas.
+          Obrigado pela confiança! Estamos comprometidos com o sucesso das suas
+          campanhas.
         </p>
       </div>
     </div>
@@ -548,10 +633,10 @@ export default function ApresentacaoResultadosPublica() {
     if (currentSlide === 0) return renderCoverSlide();
     if (currentSlide === 1) return renderKPIsSlide();
     if (currentSlide === 2) return renderCampaignsOverviewSlide();
-    
+
     const campaignDetailStart = 3;
     const numCampaignSlides = Math.min(campaigns.length, 5);
-    
+
     if (currentSlide < campaignDetailStart + numCampaignSlides) {
       return renderCampaignDetailSlide(currentSlide - campaignDetailStart);
     }
@@ -573,7 +658,8 @@ export default function ApresentacaoResultadosPublica() {
 
       {/* Navigation */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border">
-        <Button aria-label="Voltar"
+        <Button
+          aria-label="Voltar"
           variant="ghost"
           size="icon"
           onClick={prevSlide}
@@ -581,7 +667,7 @@ export default function ApresentacaoResultadosPublica() {
         >
           <ChevronLeft className="w-5 h-5" />
         </Button>
-        
+
         <div className="flex items-center gap-2">
           {Array.from({ length: totalSlides }).map((_, index) => (
             <button
@@ -591,13 +677,14 @@ export default function ApresentacaoResultadosPublica() {
                 "w-2 h-2 rounded-full transition-all",
                 currentSlide === index
                   ? "bg-primary w-6"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
               )}
             />
           ))}
         </div>
 
-        <Button aria-label="Avançar"
+        <Button
+          aria-label="Avançar"
           variant="ghost"
           size="icon"
           onClick={nextSlide}
@@ -611,7 +698,17 @@ export default function ApresentacaoResultadosPublica() {
 }
 
 // KPI Card component
-function KPICard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
+function KPICard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color: string;
+}) {
   return (
     <div className="bg-muted/50 rounded-xl p-6 text-center hover:bg-muted/70 transition-colors">
       <div className={cn("mx-auto mb-3", color)}>{icon}</div>

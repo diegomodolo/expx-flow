@@ -12,17 +12,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useTeams, Team } from "@/hooks/useTeams";
 import { useToast } from "@/hooks/use-toast";
 import { SquadDialog } from "@/components/squads/SquadDialog";
 import { DeleteSquadDialog } from "@/components/squads/DeleteSquadDialog";
 import { SquadMembersDialog } from "@/components/squads/SquadMembersDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  Plus, 
-  Search, 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Plus,
+  Search,
   Loader2,
   Edit,
   Users,
@@ -59,16 +69,31 @@ const Squad = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedSquad, setSelectedSquad] = useState<Team | null>(null);
-  const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
-  const { teams, loading, error, createTeam, updateTeam, deleteTeam, fetchTeams } = useTeams();
+  const [dialogMode, setDialogMode] = useState<"create" | "edit" | "view">(
+    "create",
+  );
+  const {
+    teams,
+    loading,
+    error,
+    createTeam,
+    updateTeam,
+    deleteTeam,
+    fetchTeams,
+  } = useTeams();
   const { toast } = useToast();
 
-  const activeTeams = teams.filter(team => team.progress > 0).length;
-  const totalMembers = teams.reduce((acc, team) => acc + (team.members?.length || 0), 0);
+  const activeTeams = teams.filter((team) => team.progress > 0).length;
+  const totalMembers = teams.reduce(
+    (acc, team) => acc + (team.members?.length || 0),
+    0,
+  );
 
-  const filteredTeams = teams.filter(team => {
+  const filteredTeams = teams.filter((team) => {
     const matchesSearch = searchTerm
-      ? [team.name, team.description].some(v => v?.toLowerCase().includes(searchTerm.toLowerCase()))
+      ? [team.name, team.description].some((v) =>
+          v?.toLowerCase().includes(searchTerm.toLowerCase()),
+        )
       : true;
     return matchesSearch;
   });
@@ -84,13 +109,32 @@ const Squad = () => {
   }, [error, toast]);
 
   const getPerformanceBadge = (progress: number) => {
-    if (progress >= 90) return <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-0 text-xs">Alta</Badge>;
-    if (progress >= 70) return <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-0 text-xs">Média</Badge>;
-    return <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-0 text-xs">Baixa</Badge>;
+    if (progress >= 90)
+      return (
+        <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-0 text-xs">
+          Alta
+        </Badge>
+      );
+    if (progress >= 70)
+      return (
+        <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-0 text-xs">
+          Média
+        </Badge>
+      );
+    return (
+      <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-0 text-xs">
+        Baixa
+      </Badge>
+    );
   };
 
-  const PersonCell = ({ person }: { person?: { name: string; avatar?: string | null } | null }) => {
-    if (!person) return <span className="text-xs text-muted-foreground">—</span>;
+  const PersonCell = ({
+    person,
+  }: {
+    person?: { name: string; avatar?: string | null } | null;
+  }) => {
+    if (!person)
+      return <span className="text-xs text-muted-foreground">—</span>;
     return (
       <div className="flex items-center gap-1.5">
         <Avatar className="h-5 w-5">
@@ -99,7 +143,9 @@ const Squad = () => {
             {person.name.charAt(0)}
           </AvatarFallback>
         </Avatar>
-        <span className="text-xs text-foreground truncate max-w-[120px]">{person.name}</span>
+        <span className="text-xs text-foreground truncate max-w-[120px]">
+          {person.name}
+        </span>
       </div>
     );
   };
@@ -113,7 +159,7 @@ const Squad = () => {
             <span className="ml-2">Carregando squads...</span>
           </div>
         )}
-        
+
         {!loading && (
           <>
             {/* Page Header */}
@@ -123,14 +169,18 @@ const Squad = () => {
                   <Users className="text-primary text-2xl" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Gerenciamento de Squads</h1>
-                  <p className="text-muted-foreground">Organize e monitore suas equipes de trabalho</p>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Gerenciamento de Squads
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Organize e monitore suas equipes de trabalho
+                  </p>
                 </div>
               </div>
-              <Button 
+              <Button
                 className="flex items-center space-x-2"
                 onClick={() => {
-                  setDialogMode('create');
+                  setDialogMode("create");
                   setSelectedSquad(null);
                   setDialogOpen(true);
                 }}
@@ -146,8 +196,12 @@ const Squad = () => {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{teams.length}</div>
-                      <div className="text-sm text-muted-foreground">Total de Squads</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {teams.length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Total de Squads
+                      </div>
                     </div>
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                       <Users className="text-primary w-5 h-5" />
@@ -160,8 +214,12 @@ const Squad = () => {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{activeTeams}</div>
-                      <div className="text-sm text-muted-foreground">Squads Ativos</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {activeTeams}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Squads Ativos
+                      </div>
                     </div>
                     <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
                       <BarChart3 className="text-green-500 w-5 h-5" />
@@ -174,8 +232,12 @@ const Squad = () => {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-foreground">{totalMembers}</div>
-                      <div className="text-sm text-muted-foreground">Total de Membros</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {totalMembers}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Total de Membros
+                      </div>
                     </div>
                     <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
                       <User className="text-blue-500 w-5 h-5" />
@@ -197,7 +259,8 @@ const Squad = () => {
                 />
               </div>
               <span className="text-sm text-muted-foreground">
-                {filteredTeams.length} squad{filteredTeams.length !== 1 ? 's' : ''}
+                {filteredTeams.length} squad
+                {filteredTeams.length !== 1 ? "s" : ""}
               </span>
             </div>
 
@@ -219,7 +282,10 @@ const Squad = () => {
                 <TableBody>
                   {filteredTeams.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-12 text-muted-foreground"
+                      >
                         Nenhum squad encontrado
                       </TableCell>
                     </TableRow>
@@ -233,7 +299,9 @@ const Squad = () => {
                               <div
                                 className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
                                 style={{
-                                  backgroundColor: team.color ? `${team.color}20` : undefined,
+                                  backgroundColor: team.color
+                                    ? `${team.color}20`
+                                    : undefined,
                                 }}
                               >
                                 <IconComponent
@@ -242,16 +310,26 @@ const Squad = () => {
                                 />
                               </div>
                               <div className="min-w-0">
-                                <div className="font-medium text-foreground text-sm truncate">{team.name}</div>
+                                <div className="font-medium text-foreground text-sm truncate">
+                                  {team.name}
+                                </div>
                                 {team.description && (
-                                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">{team.description}</div>
+                                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                    {team.description}
+                                  </div>
                                 )}
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell><PersonCell person={team.leader} /></TableCell>
-                          <TableCell><PersonCell person={team.whatsapp_responsible} /></TableCell>
-                          <TableCell><PersonCell person={team.authorizer} /></TableCell>
+                          <TableCell>
+                            <PersonCell person={team.leader} />
+                          </TableCell>
+                          <TableCell>
+                            <PersonCell person={team.whatsapp_responsible} />
+                          </TableCell>
+                          <TableCell>
+                            <PersonCell person={team.authorizer} />
+                          </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1">
                               {team.members && team.members.length > 0 ? (
@@ -261,25 +339,38 @@ const Squad = () => {
                                       <Tooltip key={member.id}>
                                         <TooltipTrigger asChild>
                                           <Avatar className="h-5 w-5 border border-background">
-                                            <AvatarImage src={member.avatar || undefined} />
+                                            <AvatarImage
+                                              src={member.avatar || undefined}
+                                            />
                                             <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                                               {member.name.charAt(0)}
                                             </AvatarFallback>
                                           </Avatar>
                                         </TooltipTrigger>
-                                        <TooltipContent side="top" className="text-xs">{member.name}</TooltipContent>
+                                        <TooltipContent
+                                          side="top"
+                                          className="text-xs"
+                                        >
+                                          {member.name}
+                                        </TooltipContent>
                                       </Tooltip>
                                     ))}
                                   </div>
-                                  <span className="text-xs text-muted-foreground ml-1">{team.members.length}</span>
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    {team.members.length}
+                                  </span>
                                 </>
                               ) : (
-                                <span className="text-xs text-muted-foreground">0</span>
+                                <span className="text-xs text-muted-foreground">
+                                  0
+                                </span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="text-sm text-foreground">{team.active_tasks}</span>
+                            <span className="text-sm text-foreground">
+                              {team.active_tasks}
+                            </span>
                           </TableCell>
                           <TableCell className="text-center">
                             {getPerformanceBadge(team.progress)}
@@ -288,7 +379,8 @@ const Squad = () => {
                             <div className="flex items-center justify-end gap-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button aria-label="Fechar"
+                                  <Button
+                                    aria-label="Fechar"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
@@ -304,12 +396,13 @@ const Squad = () => {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button aria-label="Editar"
+                                  <Button
+                                    aria-label="Editar"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
                                     onClick={() => {
-                                      setDialogMode('edit');
+                                      setDialogMode("edit");
                                       setSelectedSquad(team);
                                       setDialogOpen(true);
                                     }}
@@ -321,7 +414,8 @@ const Squad = () => {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button aria-label="Excluir"
+                                  <Button
+                                    aria-label="Excluir"
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-destructive hover:text-destructive"
@@ -346,10 +440,10 @@ const Squad = () => {
             </Card>
           </>
         )}
-        
+
         {/* Dialogs */}
         <SquadDialog
-          key={`${dialogMode}-${selectedSquad?.id || 'new'}`}
+          key={`${dialogMode}-${selectedSquad?.id || "new"}`}
           open={dialogOpen}
           onOpenChange={(open) => {
             setDialogOpen(open);
@@ -359,23 +453,25 @@ const Squad = () => {
             }
           }}
           onSubmit={
-            dialogMode === 'create' 
-              ? createTeam 
-              : dialogMode === 'edit' && selectedSquad
+            dialogMode === "create"
+              ? createTeam
+              : dialogMode === "edit" && selectedSquad
                 ? (squadData) => updateTeam(selectedSquad.id, squadData)
                 : () => Promise.resolve(null)
           }
-          squad={dialogMode === 'create' ? undefined : selectedSquad || undefined}
+          squad={
+            dialogMode === "create" ? undefined : selectedSquad || undefined
+          }
           title={
-            dialogMode === 'create' 
-              ? "Adicionar Squad" 
-              : dialogMode === 'edit' 
-                ? "Editar Squad" 
+            dialogMode === "create"
+              ? "Adicionar Squad"
+              : dialogMode === "edit"
+                ? "Editar Squad"
                 : "Visualizar Squad"
           }
-          readOnly={dialogMode === 'view'}
+          readOnly={dialogMode === "view"}
         />
-        
+
         <DeleteSquadDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}

@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -455,7 +456,7 @@ async function chatWithToolCalling(
     // Filter out generate_image tool if already generated to prevent duplicates
     const activeTools = imageAlreadyGenerated
       ? tools.filter(
-          (t: any) =>
+          (t: unknown) =>
             t.function?.name !== "generate_image_ai" &&
             t.function?.name !== "generate_image",
         )
@@ -516,7 +517,7 @@ async function chatWithToolCalling(
               "Imagem já foi gerada nesta sessão. Use a URL já fornecida.",
             image_url: lastGeneratedImageUrl,
           }),
-        } as any);
+        } as unknown);
         continue;
       }
 
@@ -606,7 +607,7 @@ async function chatWithToolCalling(
         role: "tool",
         tool_call_id: toolCall.id,
         content: JSON.stringify(result),
-      } as any);
+      } as unknown);
     }
   }
 
@@ -776,7 +777,7 @@ Leads Gerados: ${client.leads_generated || 0}
 
     // Build enabled skills list
     const enabledSkills: SkillRecord[] = (enabledSkillsResult.data || [])
-      .map((row: any) => row.ia_agent_skills)
+      .map((row: unknown) => row.ia_agent_skills)
       .filter(Boolean);
 
     const hasFixedClient = !!agent.client_id;

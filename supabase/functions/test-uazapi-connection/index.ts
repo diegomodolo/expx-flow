@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface TestConnectionPayload {
@@ -30,7 +32,11 @@ serve(async (req) => {
     const payload: TestConnectionPayload = await req.json();
     const { instance_id, endpoint, token, session, company_id } = payload;
 
-    console.log("[test-uazapi-connection] Request:", { instance_id, session, company_id });
+    console.log("[test-uazapi-connection] Request:", {
+      instance_id,
+      session,
+      company_id,
+    });
 
     // If instance_id is provided, fetch credentials from database
     if (instance_id) {
@@ -42,10 +48,16 @@ serve(async (req) => {
         .single();
 
       if (instanceError || !instance) {
-        console.error("[test-uazapi-connection] Instance not found:", instanceError);
+        console.error(
+          "[test-uazapi-connection] Instance not found:",
+          instanceError,
+        );
         return new Response(
           JSON.stringify({ success: false, error: "Instância não encontrada" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -57,10 +69,19 @@ serve(async (req) => {
         .single();
 
       if (configError || !config) {
-        console.error("[test-uazapi-connection] Config not found:", configError);
+        console.error(
+          "[test-uazapi-connection] Config not found:",
+          configError,
+        );
         return new Response(
-          JSON.stringify({ success: false, error: "Configuração UazapiGO não encontrada" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error: "Configuração UazapiGO não encontrada",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -77,8 +98,14 @@ serve(async (req) => {
 
       if (configError || !config) {
         return new Response(
-          JSON.stringify({ success: false, error: "Configuração não encontrada" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            success: false,
+            error: "Configuração não encontrada",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -103,8 +130,14 @@ serve(async (req) => {
     if (!endpoint || !token) {
       console.error("[test-uazapi-connection] Missing required credentials");
       return new Response(
-        JSON.stringify({ success: false, error: "Endpoint e Token são obrigatórios" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Endpoint e Token são obrigatórios",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -118,57 +151,77 @@ serve(async (req) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "token": token,
+        token: token,
       },
     });
 
     const responseText = await response.text();
-    console.log("[test-uazapi-connection] UazapiGO response status:", response.status);
-    console.log("[test-uazapi-connection] UazapiGO response:", responseText.substring(0, 500));
+    console.log(
+      "[test-uazapi-connection] UazapiGO response status:",
+      response.status,
+    );
+    console.log(
+      "[test-uazapi-connection] UazapiGO response:",
+      responseText.substring(0, 500),
+    );
 
     let data;
     try {
       data = JSON.parse(responseText);
     } catch {
-      console.error("[test-uazapi-connection] Failed to parse UazapiGO response");
+      console.error(
+        "[test-uazapi-connection] Failed to parse UazapiGO response",
+      );
       return new Response(
-        JSON.stringify({ success: false, error: "Resposta inválida da UazapiGO" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Resposta inválida da UazapiGO",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!response.ok) {
       console.error("[test-uazapi-connection] UazapiGO error:", data);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: data.message || data.error || "Erro ao conectar com UazapiGO" 
+        JSON.stringify({
+          success: false,
+          error: data.message || data.error || "Erro ao conectar com UazapiGO",
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Parse UazapiGO v2 response
     // Response structure: { instance: { status, profileName, profilePicUrl }, status: { connected, loggedIn, jid: { user } } }
     const instanceStatus = data.instance?.status || data.status;
-    const isConnected = instanceStatus === "connected" || 
-                       data.status?.connected === true || 
-                       data.status?.loggedIn === true ||
-                       data.connected === true;
-    
-    const connectedPhone = data.status?.jid?.user || 
-                          data.instance?.phone || 
-                          data.jid?.user?.replace("@s.whatsapp.net", "") || 
-                          null;
-    
-    const profileName = data.instance?.profileName || data.profileName || null;
-    const profilePicUrl = data.instance?.profilePicUrl || data.profilePicUrl || null;
+    const isConnected =
+      instanceStatus === "connected" ||
+      data.status?.connected === true ||
+      data.status?.loggedIn === true ||
+      data.connected === true;
 
-    console.log("[test-uazapi-connection] Connection status:", { 
-      isConnected, 
-      connectedPhone, 
+    const connectedPhone =
+      data.status?.jid?.user ||
+      data.instance?.phone ||
+      data.jid?.user?.replace("@s.whatsapp.net", "") ||
+      null;
+
+    const profileName = data.instance?.profileName || data.profileName || null;
+    const profilePicUrl =
+      data.instance?.profilePicUrl || data.profilePicUrl || null;
+
+    console.log("[test-uazapi-connection] Connection status:", {
+      isConnected,
+      connectedPhone,
       profileName,
-      instanceStatus 
+      instanceStatus,
     });
 
     // Update instance in database
@@ -184,14 +237,17 @@ serve(async (req) => {
       if (profilePicUrl) updateData.profile_pic_url = profilePicUrl;
 
       console.log("[test-uazapi-connection] Updating instance:", instance_id);
-      
+
       const { error: updateError } = await supabase
         .from("whatsapp_instances")
         .update(updateData)
         .eq("id", instance_id);
 
       if (updateError) {
-        console.error("[test-uazapi-connection] Database update error:", updateError);
+        console.error(
+          "[test-uazapi-connection] Database update error:",
+          updateError,
+        );
       }
     }
 
@@ -217,14 +273,22 @@ serve(async (req) => {
         status: instanceStatus,
         raw: data,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
     console.error("[test-uazapi-connection] Error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Erro interno ao testar conexão" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno ao testar conexão",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

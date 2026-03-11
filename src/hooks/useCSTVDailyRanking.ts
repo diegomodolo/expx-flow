@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface UseCSTVDailyRankingOptions {
   enabled?: boolean;
@@ -9,33 +9,36 @@ interface UseCSTVDailyRankingOptions {
  * Hook that triggers a callback at 17:00 Brasília time every day.
  * Uses localStorage to prevent showing multiple times on the same day.
  */
-export function useCSTVDailyRanking({ enabled = true, onTrigger }: UseCSTVDailyRankingOptions) {
+export function useCSTVDailyRanking({
+  enabled = true,
+  onTrigger,
+}: UseCSTVDailyRankingOptions) {
   const [isTimeToShow, setIsTimeToShow] = useState(false);
   const hasTriggeredRef = useRef(false);
 
   const getBrasiliaTime = useCallback(() => {
     const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const brasilia = new Date(utc - 3 * 60 * 60 * 1000);
     return brasilia;
   }, []);
 
   const getTodayKey = useCallback(() => {
     const brasilia = getBrasiliaTime();
     const year = brasilia.getFullYear();
-    const month = String(brasilia.getMonth() + 1).padStart(2, '0');
-    const day = String(brasilia.getDate()).padStart(2, '0');
+    const month = String(brasilia.getMonth() + 1).padStart(2, "0");
+    const day = String(brasilia.getDate()).padStart(2, "0");
     return `cs-tv-daily-ranking-shown-${year}-${month}-${day}`;
   }, [getBrasiliaTime]);
 
   const hasShownToday = useCallback(() => {
     const key = getTodayKey();
-    return localStorage.getItem(key) === 'shown';
+    return localStorage.getItem(key) === "shown";
   }, [getTodayKey]);
 
   const markAsShown = useCallback(() => {
     const key = getTodayKey();
-    localStorage.setItem(key, 'shown');
+    localStorage.setItem(key, "shown");
   }, [getTodayKey]);
 
   const checkTime = useCallback(() => {
@@ -50,7 +53,6 @@ export function useCSTVDailyRanking({ enabled = true, onTrigger }: UseCSTVDailyR
     const is5PM = hours === 17 && minutes === 0;
 
     if (is5PM && !hasShownToday()) {
-      console.log('[useCSTVDailyRanking] 17:00 Brasília detected, triggering ranking!');
       hasTriggeredRef.current = true;
       markAsShown();
       setIsTimeToShow(true);
@@ -94,7 +96,6 @@ export function useCSTVDailyRanking({ enabled = true, onTrigger }: UseCSTVDailyR
 
   // Manual trigger for testing (bypasses localStorage check)
   const triggerManually = useCallback(() => {
-    console.log('[useCSTVDailyRanking] Manual trigger!');
     setIsTimeToShow(true);
     onTrigger();
   }, [onTrigger]);

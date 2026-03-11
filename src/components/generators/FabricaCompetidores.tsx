@@ -1,10 +1,25 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCompetitors, Competitor } from "@/hooks/useCompetitors";
 import { CompetitorDialog } from "@/components/clients/CompetitorDialog";
-import { Plus, Building2, Globe, Instagram, ExternalLink, Trash2, AlertCircle, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Building2,
+  Globe,
+  Instagram,
+  ExternalLink,
+  Trash2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -24,7 +39,8 @@ interface Props {
 }
 
 export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
-  const { competitors, competitorAds, loading, deleteCompetitor, refetch } = useCompetitors(clientId);
+  const { competitors, competitorAds, loading, deleteCompetitor, refetch } =
+    useCompetitors(clientId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
@@ -37,7 +53,8 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
   };
 
   const getAdsCount = (competitorId: string) => {
-    return competitorAds.filter(ad => ad.competitor_id === competitorId).length;
+    return competitorAds.filter((ad) => ad.competitor_id === competitorId)
+      .length;
   };
 
   if (loading) {
@@ -54,8 +71,9 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Você configurou {clonePercentage}% de clones, mas não tem concorrentes cadastrados. 
-            Adicione pelo menos um concorrente para gerar anúncios do tipo Clone.
+            Você configurou {clonePercentage}% de clones, mas não tem
+            concorrentes cadastrados. Adicione pelo menos um concorrente para
+            gerar anúncios do tipo Clone.
           </AlertDescription>
         </Alert>
       )}
@@ -87,14 +105,17 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-base">{competitor.name}</CardTitle>
+                    <CardTitle className="text-base">
+                      {competitor.name}
+                    </CardTitle>
                     <CardDescription>{competitor.company_name}</CardDescription>
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button aria-label="Excluir"
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        aria-label="Excluir"
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       >
                         {deletingId === competitor.id ? (
@@ -106,14 +127,19 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Remover concorrente?</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          Remover concorrente?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação removerá o concorrente e todos os anúncios associados.
+                          Esta ação removerá o concorrente e todos os anúncios
+                          associados.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(competitor.id)}>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(competitor.id)}
+                        >
                           Remover
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -126,14 +152,16 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
                   {competitor.industry && (
                     <Badge variant="secondary">{competitor.industry}</Badge>
                   )}
-                  <Badge variant="outline">{getAdsCount(competitor.id)} anúncios</Badge>
+                  <Badge variant="outline">
+                    {getAdsCount(competitor.id)} anúncios
+                  </Badge>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                   {competitor.website_url && (
-                    <a 
-                      href={competitor.website_url} 
-                      target="_blank" 
+                    <a
+                      href={competitor.website_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 hover:text-primary"
                     >
@@ -143,14 +171,14 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
                   )}
                   {competitor.instagram_handle && (
                     <span className="flex items-center gap-1">
-                      <Instagram className="h-3 w-3" />
-                      @{competitor.instagram_handle}
+                      <Instagram className="h-3 w-3" />@
+                      {competitor.instagram_handle}
                     </span>
                   )}
                   {competitor.ad_library_url && (
-                    <a 
-                      href={competitor.ad_library_url} 
-                      target="_blank" 
+                    <a
+                      href={competitor.ad_library_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 hover:text-primary"
                     >
@@ -162,7 +190,10 @@ export function FabricaCompetidores({ clientId, clonePercentage }: Props) {
 
                 {competitor.last_scrape_at && (
                   <p className="text-xs text-muted-foreground">
-                    Último scrape: {new Date(competitor.last_scrape_at).toLocaleDateString('pt-BR')}
+                    Último scrape:{" "}
+                    {new Date(competitor.last_scrape_at).toLocaleDateString(
+                      "pt-BR",
+                    )}
                   </p>
                 )}
               </CardContent>

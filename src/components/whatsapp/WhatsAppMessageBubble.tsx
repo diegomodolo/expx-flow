@@ -1,7 +1,22 @@
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, AlertCircle, Download, FileText, Image, Video, Headphones, Loader2, Trash2, Pencil, Sparkles, Reply } from "lucide-react";
+import {
+  Check,
+  CheckCheck,
+  Clock,
+  AlertCircle,
+  Download,
+  FileText,
+  Image,
+  Video,
+  Headphones,
+  Loader2,
+  Trash2,
+  Pencil,
+  Sparkles,
+  Reply,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +59,17 @@ interface WhatsAppMessageBubbleProps {
   onReply?: (message: WhatsAppMessage) => void;
 }
 
-export function WhatsAppMessageBubble({ message, allMessages, contactName, instanceId, companyId, remoteJid, onMessageEdited, onOpenAIAssistant, onReply }: WhatsAppMessageBubbleProps) {
+export function WhatsAppMessageBubble({
+  message,
+  allMessages,
+  contactName,
+  instanceId,
+  companyId,
+  remoteJid,
+  onMessageEdited,
+  onOpenAIAssistant,
+  onReply,
+}: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -56,47 +81,69 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
   const isOutgoing = message.direction === "outgoing";
   const isFailed = message.status === "failed";
   const hasMedia = !!message.media_url;
-  const isMediaType = ["image", "video", "audio", "document", "sticker", "gif"].includes(message.message_type);
+  const isMediaType = [
+    "image",
+    "video",
+    "audio",
+    "document",
+    "sticker",
+    "gif",
+  ].includes(message.message_type);
   const isStickerOrGif = ["sticker", "gif"].includes(message.message_type);
   const isAudioMessage = message.message_type === "audio";
   const isTextMessage = message.message_type === "text";
-  const isPlaceholderContent = message.content?.startsWith("[") || message.content?.startsWith("📎");
-  
+  const isPlaceholderContent =
+    message.content?.startsWith("[") || message.content?.startsWith("📎");
+
   const extractFileName = (): string => {
     // Try to extract filename from content (e.g., "📎 fatura_rene_tanana.pdf")
     let fileName = message.content
       .replace("📎 ", "")
       .replace(/^\[.*\]\s*/, "")
       .trim();
-    
+
     // If no valid filename found, create one based on message type
     if (!fileName || fileName.length < 2) {
-      const extension = message.message_type === "image" ? "jpg" 
-        : message.message_type === "video" ? "mp4"
-        : message.message_type === "audio" ? "mp3"
-        : message.message_type === "document" ? "pdf"
-        : "file";
+      const extension =
+        message.message_type === "image"
+          ? "jpg"
+          : message.message_type === "video"
+            ? "mp4"
+            : message.message_type === "audio"
+              ? "mp3"
+              : message.message_type === "document"
+                ? "pdf"
+                : "file";
       fileName = `whatsapp_${message.message_type}_${Date.now()}.${extension}`;
     }
-    
+
     return fileName;
   };
 
   const handleDownload = async () => {
     if (!message.media_url && !message.external_id) return;
-    
+
     setIsDownloading(true);
     const fileName = extractFileName();
-    
+
     try {
       // Use edge function as proxy (UazapiGO requires /message/download before getting the real file)
-      const { data: blob, error } = await supabase.functions.invoke("download-whatsapp-media", {
-        body: { instanceId, messageId: message.external_id, mediaUrl: message.media_url, fileName },
-      });
-      
+      const { data: blob, error } = await supabase.functions.invoke(
+        "download-whatsapp-media",
+        {
+          body: {
+            instanceId,
+            messageId: message.external_id,
+            mediaUrl: message.media_url,
+            fileName,
+          },
+        },
+      );
+
       if (error) throw error;
-      if (!(blob instanceof Blob)) throw new Error("Resposta inválida do download");
-      
+      if (!(blob instanceof Blob))
+        throw new Error("Resposta inválida do download");
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -106,7 +153,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       toast.success("Download concluído!");
     } catch (error) {
       console.error("Error downloading file:", error);
@@ -148,16 +195,19 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
     try {
       // If we have external_id and instanceId, delete from provider too
       if (instanceId && message.external_id) {
-        const { data, error } = await supabase.functions.invoke("delete-whatsapp-message", {
-          body: {
-            company_id: companyId,
-            instance_id: instanceId,
-            message_id: message.external_id,
-            remote_jid: messageRemoteJid,
-            from_me: isOutgoing,
-            supabase_message_id: message.id,
+        const { data, error } = await supabase.functions.invoke(
+          "delete-whatsapp-message",
+          {
+            body: {
+              company_id: companyId,
+              instance_id: instanceId,
+              message_id: message.external_id,
+              remote_jid: messageRemoteJid,
+              from_me: isOutgoing,
+              supabase_message_id: message.id,
+            },
           },
-        });
+        );
 
         if (error) throw error;
 
@@ -201,15 +251,18 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
     setIsEditing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("edit-whatsapp-message", {
-        body: {
-          company_id: companyId,
-          instance_id: instanceId,
-          message_id: message.external_id,
-          new_text: editText.trim(),
-          supabase_message_id: message.id,
+      const { data, error } = await supabase.functions.invoke(
+        "edit-whatsapp-message",
+        {
+          body: {
+            company_id: companyId,
+            instance_id: instanceId,
+            message_id: message.external_id,
+            new_text: editText.trim(),
+            supabase_message_id: message.id,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -281,7 +334,7 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
         return "Arquivo";
     }
   };
-  
+
   // Build remoteJid if not provided
   const messageRemoteJid = remoteJid || `${message.company_id}@s.whatsapp.net`;
 
@@ -289,369 +342,438 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
   if (isDeleted) {
     return (
       <div className={cn("flex", isOutgoing ? "justify-end" : "justify-start")}>
-        <div className={cn(
-          "rounded-lg px-3 py-2 shadow-sm italic text-muted-foreground",
-          isOutgoing ? "bg-muted/50 rounded-br-none" : "bg-muted/50 rounded-bl-none"
-        )}>
+        <div
+          className={cn(
+            "rounded-lg px-3 py-2 shadow-sm italic text-muted-foreground",
+            isOutgoing
+              ? "bg-muted/50 rounded-br-none"
+              : "bg-muted/50 rounded-bl-none",
+          )}
+        >
           <span className="text-sm">🚫 Mensagem apagada</span>
         </div>
       </div>
     );
   }
-  
+
   // Check if delete action is available (needs external_id to delete from provider)
-  const canDeleteFromProvider = !!message.external_id && !!instanceId && !!companyId;
+  const canDeleteFromProvider =
+    !!message.external_id && !!instanceId && !!companyId;
   // Always allow showing delete button for outgoing messages (will delete locally if no external_id)
   const canShowDeleteButton = isOutgoing && !!companyId;
   // Edit is only available for text messages with external_id
-  const canEditMessage = isOutgoing && isTextMessage && !!message.external_id && !!instanceId && !!companyId;
-  
+  const canEditMessage =
+    isOutgoing &&
+    isTextMessage &&
+    !!message.external_id &&
+    !!instanceId &&
+    !!companyId;
+
   return (
     <>
-    <div className={cn("flex group", isOutgoing ? "justify-end" : "justify-start")}>
-      {/* Action buttons for outgoing messages - show on left */}
-      {canShowDeleteButton && (
-        <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* Reply button */}
-          {onReply && (
-            <Button aria-label="Ação"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-              onClick={() => onReply(message)}
-              title="Responder"
-            >
-              <Reply className="h-4 w-4" />
-            </Button>
-          )}
-          
-          {/* Delete button */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button aria-label="Excluir"
+      <div
+        className={cn(
+          "flex group",
+          isOutgoing ? "justify-end" : "justify-start",
+        )}
+      >
+        {/* Action buttons for outgoing messages - show on left */}
+        {canShowDeleteButton && (
+          <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Reply button */}
+            {onReply && (
+              <Button
+                aria-label="Ação"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                disabled={isDeleting}
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => onReply(message)}
+                title="Responder"
               >
-                {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
+                <Reply className="h-4 w-4" />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Apagar mensagem?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {canDeleteFromProvider 
-                    ? "Esta ação irá apagar a mensagem para todos os participantes da conversa. Esta ação não pode ser desfeita."
-                    : "Esta ação irá apagar a mensagem localmente. Esta ação não pode ser desfeita."
-                  }
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={handleDeleteMessage}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Apagar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            )}
 
-          {/* Edit button - only for text messages with external_id */}
-          {canEditMessage && (
-            <Button aria-label="Editar"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-              onClick={() => {
-                setEditText(displayContent);
-                setIsEditDialogOpen(true);
-              }}
-              disabled={isEditing}
-            >
-              {isEditing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Pencil className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-
-          {/* Reaction picker - only if has external_id */}
-          {message.external_id && instanceId && (
-            <WhatsAppReactionPicker
-              messageId={message.external_id}
-              remoteJid={messageRemoteJid}
-              companyId={companyId}
-              instanceId={instanceId}
-              isOutgoing={isOutgoing}
-              currentReaction={message.reaction}
-            />
-          )}
-        </div>
-      )}
-      
-      {/* Action buttons for incoming messages - show on right after bubble */}
-      {!isOutgoing && (
-        <div className="flex items-center gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity order-last">
-          {/* Reply button */}
-          {onReply && (
-            <Button aria-label="Ação"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-              onClick={() => onReply(message)}
-              title="Responder"
-            >
-              <Reply className="h-4 w-4" />
-            </Button>
-          )}
-          
-          {/* Reaction picker for incoming messages */}
-          {message.external_id && instanceId && (
-            <WhatsAppReactionPicker
-              messageId={message.external_id}
-              remoteJid={messageRemoteJid}
-              companyId={companyId}
-              instanceId={instanceId}
-              isOutgoing={isOutgoing}
-              currentReaction={message.reaction}
-            />
-          )}
-        </div>
-      )}
-      
-      <div className="relative max-w-[75%]">
-        <div
-          className={cn(
-            "rounded-lg px-3 py-2 shadow-sm overflow-hidden",
-            isOutgoing
-              ? isFailed 
-                ? "bg-destructive/20 text-foreground rounded-br-none border border-destructive/30"
-                : "bg-primary text-primary-foreground rounded-br-none"
-              : "bg-muted rounded-bl-none",
-            // Add bottom margin if there's a reaction to make room for the badge
-            message.reaction && "mb-4"
-          )}
-        >
-          {/* Quoted message preview */}
-          {message.reply_to_message_id && allMessages && (() => {
-            const quotedMessage = allMessages.find(m => m.id === message.reply_to_message_id);
-            if (!quotedMessage) return null;
-            
-            const isQuotedOutgoing = quotedMessage.direction === "outgoing";
-            const quotedSenderName = isQuotedOutgoing ? "Você" : (contactName || "Contato");
-            
-            const getQuotedContent = () => {
-              if (quotedMessage.message_type === "image") return "📷 Foto";
-              if (quotedMessage.message_type === "video") return "🎬 Vídeo";
-              if (quotedMessage.message_type === "audio") return "🎵 Áudio";
-              if (quotedMessage.message_type === "document") return "📎 Documento";
-              if (quotedMessage.message_type === "sticker") return "🎨 Sticker";
-              if (quotedMessage.message_type === "gif") return "🎞️ GIF";
-              const content = quotedMessage.content || "";
-              return content.length > 60 ? content.substring(0, 60) + "..." : content;
-            };
-            
-            return (
-              <div 
-                className={cn(
-                  "mb-2 px-2 py-1.5 rounded text-xs border-l-2 cursor-pointer hover:opacity-80 transition-opacity",
-                  isOutgoing && !isFailed
-                    ? "bg-primary-foreground/10 border-primary-foreground/50"
-                    : "bg-background/50 border-muted-foreground/50",
-                  isQuotedOutgoing 
-                    ? (isOutgoing && !isFailed ? "border-l-primary-foreground" : "border-l-primary") 
-                    : "border-l-emerald-500"
-                )}
-                onClick={() => {
-                  // Scroll to quoted message
-                  const el = document.getElementById(`message-${quotedMessage.id}`);
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "center" });
-                    el.classList.add("ring-2", "ring-primary/50");
-                    setTimeout(() => el.classList.remove("ring-2", "ring-primary/50"), 2000);
-                  }
-                }}
-              >
-                <p className={cn(
-                  "font-medium mb-0.5",
-                  isQuotedOutgoing 
-                    ? (isOutgoing && !isFailed ? "text-primary-foreground/80" : "text-primary") 
-                    : "text-emerald-600 dark:text-emerald-400"
-                )}>
-                  {quotedSenderName}
-                </p>
-                <p className={cn(
-                  "truncate",
-                  isOutgoing && !isFailed ? "text-primary-foreground/70" : "text-muted-foreground"
-                )}>
-                  {getQuotedContent()}
-                </p>
-              </div>
-            );
-          })()}
-          
-          {/* Media preview/download area */}
-          {isMediaType && (hasMedia || message.external_id) && (
-            <div className="mb-2">
-              {message.message_type === "image" ? (
-                <WhatsAppImageViewer
-                  mediaUrl={message.media_url}
-                  messageId={message.external_id}
-                  supabaseMessageId={message.id}
-                  instanceId={instanceId ?? null}
-                  isOutgoing={isOutgoing && !isFailed}
-                  cachedMediaUrl={message.cached_media_url}
-                />
-              ) : message.message_type === "video" ? (
-                <WhatsAppVideoViewer
-                  mediaUrl={message.media_url}
-                  messageId={message.external_id}
-                  supabaseMessageId={message.id}
-                  instanceId={instanceId ?? null}
-                  isOutgoing={isOutgoing && !isFailed}
-                  cachedMediaUrl={message.cached_media_url}
-                />
-              ) : message.message_type === "audio" ? (
-                <WhatsAppAudioPlayer
-                  mediaUrl={message.media_url}
-                  messageId={message.external_id}
-                  supabaseMessageId={message.id}
-                  instanceId={instanceId ?? null}
-                  isOutgoing={isOutgoing && !isFailed}
-                  cachedMediaUrl={message.cached_media_url}
-                  audioTranscription={(message as unknown).audio_transcription}
-                  transcriptionStatus={(message as unknown).transcription_status}
-                />
-              ) : isStickerOrGif ? (
-                <WhatsAppImageViewer
-                  mediaUrl={message.media_url}
-                  messageId={message.external_id}
-                  supabaseMessageId={message.id}
-                  instanceId={instanceId ?? null}
-                  isOutgoing={isOutgoing && !isFailed}
-                  cachedMediaUrl={message.cached_media_url}
-                />
-              ) : (
+            {/* Delete button */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
                 <Button
-                  variant={isOutgoing && !isFailed ? "secondary" : "outline"}
-                  size="sm"
-                  className="w-full justify-start gap-2"
-                  onClick={handleDownload}
-                  disabled={isDownloading}
+                  aria-label="Excluir"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  disabled={isDeleting}
                 >
-                  {isDownloading ? (
+                  {isDeleting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    getMediaIcon()
+                    <Trash2 className="h-4 w-4" />
                   )}
-                  <span className="flex-1 text-left truncate">
-                    {isDownloading 
-                      ? "Baixando..." 
-                      : message.content.startsWith("📎") || message.content.startsWith("[") 
-                        ? message.content.replace("📎 ", "").replace(/^\[.*\]$/, getMediaLabel())
-                        : message.content.substring(0, 30)}
-                  </span>
-                  {!isDownloading && <Download className="h-4 w-4 shrink-0" />}
                 </Button>
-              )}
-            </div>
-          )}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apagar mensagem?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {canDeleteFromProvider
+                      ? "Esta ação irá apagar a mensagem para todos os participantes da conversa. Esta ação não pode ser desfeita."
+                      : "Esta ação irá apagar a mensagem localmente. Esta ação não pode ser desfeita."}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteMessage}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Apagar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
-          {/* Text content - hide for media types that already have their own UI */}
-          {/* Hide for: audio (has player), image/video/sticker/gif with media_url, or placeholder content */}
-          {!isAudioMessage && !isStickerOrGif && !(isMediaType && (hasMedia || message.external_id) && isPlaceholderContent) && (
-            <p className="text-sm whitespace-pre-wrap break-words">{parseWhatsAppFormatting(displayContent)}</p>
-          )}
-
-          {/* Media without URL - show content as is (but not for audio which has the player) */}
-          {isMediaType && !hasMedia && !isAudioMessage && !message.external_id && (
-            <div className="flex items-center gap-2 text-sm opacity-80">
-              {getMediaIcon()}
-              <span>{message.content}</span>
-            </div>
-          )}
-
-          <div className={cn(
-            "flex items-center justify-end gap-1 mt-1",
-            isOutgoing 
-              ? isFailed 
-                ? "text-destructive" 
-                : "text-primary-foreground/70" 
-              : "text-muted-foreground"
-          )}>
-            {message.is_edited && (
-              <span className="text-xs italic">editada</span>
+            {/* Edit button - only for text messages with external_id */}
+            {canEditMessage && (
+              <Button
+                aria-label="Editar"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => {
+                  setEditText(displayContent);
+                  setIsEditDialogOpen(true);
+                }}
+                disabled={isEditing}
+              >
+                {isEditing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Pencil className="h-4 w-4" />
+                )}
+              </Button>
             )}
-            <span className="text-xs">
-              {format(new Date(message.sent_at), "HH:mm")}
-            </span>
-            {isOutgoing && (
-              <MessageStatus status={message.status} />
+
+            {/* Reaction picker - only if has external_id */}
+            {message.external_id && instanceId && (
+              <WhatsAppReactionPicker
+                messageId={message.external_id}
+                remoteJid={messageRemoteJid}
+                companyId={companyId}
+                instanceId={instanceId}
+                isOutgoing={isOutgoing}
+                currentReaction={message.reaction}
+              />
             )}
           </div>
-          {isFailed && (
-            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              Falha ao enviar
-            </p>
-          )}
-        </div>
-        
-        {/* Persistent reaction badge - WhatsApp style */}
-        {message.reaction && (
-          <div 
+        )}
+
+        {/* Action buttons for incoming messages - show on right after bubble */}
+        {!isOutgoing && (
+          <div className="flex items-center gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity order-last">
+            {/* Reply button */}
+            {onReply && (
+              <Button
+                aria-label="Ação"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => onReply(message)}
+                title="Responder"
+              >
+                <Reply className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Reaction picker for incoming messages */}
+            {message.external_id && instanceId && (
+              <WhatsAppReactionPicker
+                messageId={message.external_id}
+                remoteJid={messageRemoteJid}
+                companyId={companyId}
+                instanceId={instanceId}
+                isOutgoing={isOutgoing}
+                currentReaction={message.reaction}
+              />
+            )}
+          </div>
+        )}
+
+        <div className="relative max-w-[75%]">
+          <div
             className={cn(
-              "absolute -bottom-3 bg-background border rounded-full px-1.5 py-0.5 shadow-sm text-sm",
-              isOutgoing ? "right-2" : "left-2"
+              "rounded-lg px-3 py-2 shadow-sm overflow-hidden",
+              isOutgoing
+                ? isFailed
+                  ? "bg-destructive/20 text-foreground rounded-br-none border border-destructive/30"
+                  : "bg-primary text-primary-foreground rounded-br-none"
+                : "bg-muted rounded-bl-none",
+              // Add bottom margin if there's a reaction to make room for the badge
+              message.reaction && "mb-4",
             )}
           >
-            {message.reaction}
+            {/* Quoted message preview */}
+            {message.reply_to_message_id &&
+              allMessages &&
+              (() => {
+                const quotedMessage = allMessages.find(
+                  (m) => m.id === message.reply_to_message_id,
+                );
+                if (!quotedMessage) return null;
+
+                const isQuotedOutgoing = quotedMessage.direction === "outgoing";
+                const quotedSenderName = isQuotedOutgoing
+                  ? "Você"
+                  : contactName || "Contato";
+
+                const getQuotedContent = () => {
+                  if (quotedMessage.message_type === "image") return "📷 Foto";
+                  if (quotedMessage.message_type === "video") return "🎬 Vídeo";
+                  if (quotedMessage.message_type === "audio") return "🎵 Áudio";
+                  if (quotedMessage.message_type === "document")
+                    return "📎 Documento";
+                  if (quotedMessage.message_type === "sticker")
+                    return "🎨 Sticker";
+                  if (quotedMessage.message_type === "gif") return "🎞️ GIF";
+                  const content = quotedMessage.content || "";
+                  return content.length > 60
+                    ? content.substring(0, 60) + "..."
+                    : content;
+                };
+
+                return (
+                  <div
+                    className={cn(
+                      "mb-2 px-2 py-1.5 rounded text-xs border-l-2 cursor-pointer hover:opacity-80 transition-opacity",
+                      isOutgoing && !isFailed
+                        ? "bg-primary-foreground/10 border-primary-foreground/50"
+                        : "bg-background/50 border-muted-foreground/50",
+                      isQuotedOutgoing
+                        ? isOutgoing && !isFailed
+                          ? "border-l-primary-foreground"
+                          : "border-l-primary"
+                        : "border-l-emerald-500",
+                    )}
+                    onClick={() => {
+                      // Scroll to quoted message
+                      const el = document.getElementById(
+                        `message-${quotedMessage.id}`,
+                      );
+                      if (el) {
+                        el.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                        el.classList.add("ring-2", "ring-primary/50");
+                        setTimeout(
+                          () =>
+                            el.classList.remove("ring-2", "ring-primary/50"),
+                          2000,
+                        );
+                      }
+                    }}
+                  >
+                    <p
+                      className={cn(
+                        "font-medium mb-0.5",
+                        isQuotedOutgoing
+                          ? isOutgoing && !isFailed
+                            ? "text-primary-foreground/80"
+                            : "text-primary"
+                          : "text-emerald-600 dark:text-emerald-400",
+                      )}
+                    >
+                      {quotedSenderName}
+                    </p>
+                    <p
+                      className={cn(
+                        "truncate",
+                        isOutgoing && !isFailed
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {getQuotedContent()}
+                    </p>
+                  </div>
+                );
+              })()}
+
+            {/* Media preview/download area */}
+            {isMediaType && (hasMedia || message.external_id) && (
+              <div className="mb-2">
+                {message.message_type === "image" ? (
+                  <WhatsAppImageViewer
+                    mediaUrl={message.media_url}
+                    messageId={message.external_id}
+                    supabaseMessageId={message.id}
+                    instanceId={instanceId ?? null}
+                    isOutgoing={isOutgoing && !isFailed}
+                    cachedMediaUrl={message.cached_media_url}
+                  />
+                ) : message.message_type === "video" ? (
+                  <WhatsAppVideoViewer
+                    mediaUrl={message.media_url}
+                    messageId={message.external_id}
+                    supabaseMessageId={message.id}
+                    instanceId={instanceId ?? null}
+                    isOutgoing={isOutgoing && !isFailed}
+                    cachedMediaUrl={message.cached_media_url}
+                  />
+                ) : message.message_type === "audio" ? (
+                  <WhatsAppAudioPlayer
+                    mediaUrl={message.media_url}
+                    messageId={message.external_id}
+                    supabaseMessageId={message.id}
+                    instanceId={instanceId ?? null}
+                    isOutgoing={isOutgoing && !isFailed}
+                    cachedMediaUrl={message.cached_media_url}
+                    audioTranscription={
+                      (message as unknown).audio_transcription
+                    }
+                    transcriptionStatus={
+                      (message as unknown).transcription_status
+                    }
+                  />
+                ) : isStickerOrGif ? (
+                  <WhatsAppImageViewer
+                    mediaUrl={message.media_url}
+                    messageId={message.external_id}
+                    supabaseMessageId={message.id}
+                    instanceId={instanceId ?? null}
+                    isOutgoing={isOutgoing && !isFailed}
+                    cachedMediaUrl={message.cached_media_url}
+                  />
+                ) : (
+                  <Button
+                    variant={isOutgoing && !isFailed ? "secondary" : "outline"}
+                    size="sm"
+                    className="w-full justify-start gap-2"
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      getMediaIcon()
+                    )}
+                    <span className="flex-1 text-left truncate">
+                      {isDownloading
+                        ? "Baixando..."
+                        : message.content.startsWith("📎") ||
+                            message.content.startsWith("[")
+                          ? message.content
+                              .replace("📎 ", "")
+                              .replace(/^\[.*\]$/, getMediaLabel())
+                          : message.content.substring(0, 30)}
+                    </span>
+                    {!isDownloading && (
+                      <Download className="h-4 w-4 shrink-0" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Text content - hide for media types that already have their own UI */}
+            {/* Hide for: audio (has player), image/video/sticker/gif with media_url, or placeholder content */}
+            {!isAudioMessage &&
+              !isStickerOrGif &&
+              !(
+                isMediaType &&
+                (hasMedia || message.external_id) &&
+                isPlaceholderContent
+              ) && (
+                <p className="text-sm whitespace-pre-wrap break-words">
+                  {parseWhatsAppFormatting(displayContent)}
+                </p>
+              )}
+
+            {/* Media without URL - show content as is (but not for audio which has the player) */}
+            {isMediaType &&
+              !hasMedia &&
+              !isAudioMessage &&
+              !message.external_id && (
+                <div className="flex items-center gap-2 text-sm opacity-80">
+                  {getMediaIcon()}
+                  <span>{message.content}</span>
+                </div>
+              )}
+
+            <div
+              className={cn(
+                "flex items-center justify-end gap-1 mt-1",
+                isOutgoing
+                  ? isFailed
+                    ? "text-destructive"
+                    : "text-primary-foreground/70"
+                  : "text-muted-foreground",
+              )}
+            >
+              {message.is_edited && (
+                <span className="text-xs italic">editada</span>
+              )}
+              <span className="text-xs">
+                {format(new Date(message.sent_at), "HH:mm")}
+              </span>
+              {isOutgoing && <MessageStatus status={message.status} />}
+            </div>
+            {isFailed && (
+              <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Falha ao enviar
+              </p>
+            )}
+          </div>
+
+          {/* Persistent reaction badge - WhatsApp style */}
+          {message.reaction && (
+            <div
+              className={cn(
+                "absolute -bottom-3 bg-background border rounded-full px-1.5 py-0.5 shadow-sm text-sm",
+                isOutgoing ? "right-2" : "left-2",
+              )}
+            >
+              {message.reaction}
+            </div>
+          )}
+        </div>
+
+        {/* Reaction picker and AI button for incoming messages - show on right */}
+        {!isOutgoing && companyId && instanceId && message.external_id && (
+          <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* AI Assistant button */}
+            {isTextMessage && onOpenAIAssistant && (
+              <Button
+                aria-label="Gerar com IA"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                onClick={() => onOpenAIAssistant(message.content)}
+                title="Sugerir resposta com IA"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
+            <WhatsAppReactionPicker
+              messageId={message.external_id}
+              remoteJid={messageRemoteJid}
+              companyId={companyId}
+              instanceId={instanceId}
+              isOutgoing={isOutgoing}
+              currentReaction={message.reaction}
+            />
           </div>
         )}
       </div>
-      
-      {/* Reaction picker and AI button for incoming messages - show on right */}
-      {!isOutgoing && companyId && instanceId && message.external_id && (
-        <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* AI Assistant button */}
-          {isTextMessage && onOpenAIAssistant && (
-            <Button aria-label="Gerar com IA"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
-              onClick={() => onOpenAIAssistant(message.content)}
-              title="Sugerir resposta com IA"
-            >
-              <Sparkles className="h-4 w-4" />
-            </Button>
-          )}
-          <WhatsAppReactionPicker
-            messageId={message.external_id}
-            remoteJid={messageRemoteJid}
-            companyId={companyId}
-            instanceId={instanceId}
-            isOutgoing={isOutgoing}
-            currentReaction={message.reaction}
-          />
-        </div>
-      )}
-    </div>
-      
+
       {/* Edit message dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar mensagem</DialogTitle>
             <DialogDescription>
-              Edite o texto da mensagem. A alteração será visível para todos os participantes.
+              Edite o texto da mensagem. A alteração será visível para todos os
+              participantes.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -669,10 +791,16 @@ export function WhatsAppMessageBubble({ message, allMessages, contactName, insta
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleEditMessage} disabled={isEditing || !editText.trim()}>
+            <Button
+              onClick={handleEditMessage}
+              disabled={isEditing || !editText.trim()}
+            >
               {isEditing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

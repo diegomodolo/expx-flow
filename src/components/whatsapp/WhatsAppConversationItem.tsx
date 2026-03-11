@@ -1,16 +1,34 @@
 import { useState } from "react";
-import { WhatsAppConversation, ConversationTemperature } from "@/hooks/useWhatsAppConversations";
+import {
+  WhatsAppConversation,
+  ConversationTemperature,
+} from "@/hooks/useWhatsAppConversations";
 import { WhatsAppAssignment } from "@/hooks/useWhatsAppAssignments";
 import { WhatsAppAssignmentIndicator } from "./WhatsAppAssignmentIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseWhatsAppFormatting } from "@/lib/whatsappFormatting";
-import { Mic, Image, Video, FileText, Camera, BellOff, Pin, Building2, Bell } from "lucide-react";
+import {
+  Mic,
+  Image,
+  Video,
+  FileText,
+  Camera,
+  BellOff,
+  Pin,
+  Building2,
+  Bell,
+} from "lucide-react";
 
 // Temperature color mapping (values from AI: positive, neutral, negative)
 const temperatureStyles: Record<string, { ring: string; label: string }> = {
@@ -35,10 +53,13 @@ export function WhatsAppConversationItem({
   hasTodayReminder = false,
 }: WhatsAppConversationItemProps) {
   const [showProfilePic, setShowProfilePic] = useState(false);
-  const displayName = conversation.contact_name || formatPhoneNumber(conversation.phone);
+  const displayName =
+    conversation.contact_name || formatPhoneNumber(conversation.phone);
   const initials = getInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
-  const tempStyle = conversation.temperature ? temperatureStyles[conversation.temperature] : null;
+  const tempStyle = conversation.temperature
+    ? temperatureStyles[conversation.temperature]
+    : null;
 
   const handleAvatarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -50,7 +71,7 @@ export function WhatsAppConversationItem({
   // Format the preview message, handling media types
   const renderMessagePreview = () => {
     const preview = conversation.last_message_preview;
-    
+
     if (!preview) {
       return <span className="text-muted-foreground">Sem mensagens</span>;
     }
@@ -129,23 +150,24 @@ export function WhatsAppConversationItem({
         onClick={onClick}
         className={cn(
           "w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-muted/50",
-          isSelected && "bg-muted"
+          isSelected && "bg-muted",
         )}
       >
         <div className="relative shrink-0">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Avatar 
+              <Avatar
                 className={cn(
                   "h-10 w-10 transition-all",
                   tempStyle?.ring,
-                  conversation.profile_pic_url && "cursor-pointer hover:opacity-90"
+                  conversation.profile_pic_url &&
+                    "cursor-pointer hover:opacity-90",
                 )}
                 onClick={handleAvatarClick}
               >
                 {conversation.profile_pic_url && (
-                  <AvatarImage 
-                    src={conversation.profile_pic_url} 
+                  <AvatarImage
+                    src={conversation.profile_pic_url}
                     alt={displayName}
                     className="object-cover"
                   />
@@ -161,15 +183,15 @@ export function WhatsAppConversationItem({
               </TooltipContent>
             )}
           </Tooltip>
-          
+
           {/* Client logo overlay */}
           {conversation.client_id && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background bg-background overflow-hidden shadow-sm cursor-default">
                   {conversation.client_logo_url ? (
-                    <img 
-                      src={conversation.client_logo_url} 
+                    <img
+                      src={conversation.client_logo_url}
                       alt={conversation.client_name || "Cliente"}
                       className="h-full w-full object-cover"
                     />
@@ -188,8 +210,8 @@ export function WhatsAppConversationItem({
 
           {/* Assignment indicator */}
           <div className="absolute -top-1 -left-1">
-            <WhatsAppAssignmentIndicator 
-              assignment={assignment || null} 
+            <WhatsAppAssignmentIndicator
+              assignment={assignment || null}
               size="sm"
               showUnassigned={true}
             />
@@ -199,7 +221,12 @@ export function WhatsAppConversationItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className={cn("font-medium text-sm truncate", hasUnread && "font-semibold")}>
+              <span
+                className={cn(
+                  "font-medium text-sm truncate",
+                  hasUnread && "font-semibold",
+                )}
+              >
                 {displayName}
               </span>
               {hasTodayReminder && (
@@ -230,10 +257,14 @@ export function WhatsAppConversationItem({
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
-              <p className={cn(
-                "text-xs truncate flex-1",
-                hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
-              )}>
+              <p
+                className={cn(
+                  "text-xs truncate flex-1",
+                  hasUnread
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground",
+                )}
+              >
                 {renderMessagePreview()}
               </p>
             </div>
@@ -249,6 +280,9 @@ export function WhatsAppConversationItem({
       {/* Modal para foto de perfil ampliada */}
       <Dialog open={showProfilePic} onOpenChange={setShowProfilePic}>
         <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-none">
+          <VisuallyHidden>
+            <DialogTitle>Foto de perfil</DialogTitle>
+          </VisuallyHidden>
           <div className="flex flex-col items-center gap-4 p-4">
             {conversation.profile_pic_url && (
               <img
@@ -270,7 +304,7 @@ export function WhatsAppConversationItem({
 function formatPhoneNumber(phone: string): string {
   // Remove country code if present
   const cleaned = phone.replace(/^55/, "");
-  
+
   // Format as (XX) XXXXX-XXXX for Brazilian numbers
   if (cleaned.length === 11) {
     return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
@@ -287,7 +321,7 @@ function getInitials(name: string): string {
     const digits = name.replace(/\D/g, "");
     return digits.slice(-2);
   }
-  
+
   // Otherwise get initials from name
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {

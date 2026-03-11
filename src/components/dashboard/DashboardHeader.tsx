@@ -1,4 +1,12 @@
-import { Sun, Moon, LogOut, User, ChevronDown, FileText } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  LogOut,
+  User,
+  ChevronDown,
+  FileText,
+  Megaphone,
+} from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -119,7 +127,8 @@ export function DashboardHeader() {
           <NotificationCenter />
 
           {/* Workspace Quick Access */}
-          <Button aria-label="Fechar"
+          <Button
+            aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={() => navigate("/workspace")}
@@ -131,7 +140,8 @@ export function DashboardHeader() {
 
           {/* WhatsApp Chat - Only show if user has instances assigned */}
           {hasWhatsAppInstances && (
-            <Button aria-label="Fechar"
+            <Button
+              aria-label="Fechar"
               variant="ghost"
               size="icon"
               onClick={() => setIsWhatsAppOpen(true)}
@@ -209,6 +219,12 @@ export function DashboardHeader() {
                 <Link to="/perfil" className="flex items-center">
                   <User className="mr-3 h-4 w-4 text-muted-foreground" />
                   <span>Meu Perfil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link to="/release-notes" className="flex items-center">
+                  <Megaphone className="mr-3 h-4 w-4 text-muted-foreground" />
+                  <span>Novidades</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

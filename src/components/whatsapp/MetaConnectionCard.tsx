@@ -1,9 +1,24 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, Eye, EyeOff, ExternalLink, Copy, Check, Info } from "lucide-react";
+import {
+  Loader2,
+  Settings,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Copy,
+  Check,
+  Info,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
@@ -133,7 +148,9 @@ export function MetaConnectionCard({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="meta_business_account_id">WhatsApp Business Account ID *</Label>
+          <Label htmlFor="meta_business_account_id">
+            WhatsApp Business Account ID *
+          </Label>
           <Input
             id="meta_business_account_id"
             placeholder="ID da sua conta Business"
@@ -169,18 +186,24 @@ export function MetaConnectionCard({
               onChange={(e) => setAccessToken(e.target.value)}
               className="pr-10"
             />
-            <Button aria-label="Avançar"
+            <Button
+              aria-label="Avançar"
               type="button"
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-full"
               onClick={() => setShowToken(!showToken)}
             >
-              {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showToken ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Gere um token permanente em: Business Settings → System Users → Generate Token
+            Gere um token permanente em: Business Settings → System Users →
+            Generate Token
           </p>
         </div>
 
@@ -191,8 +214,17 @@ export function MetaConnectionCard({
             <Label>Callback URL</Label>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="bg-muted" />
-              <Button aria-label="Copiar" variant="outline" size="icon" onClick={handleCopyWebhook}>
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              <Button
+                aria-label="Copiar"
+                variant="outline"
+                size="icon"
+                onClick={handleCopyWebhook}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -208,7 +240,8 @@ export function MetaConnectionCard({
                 value={verifyToken}
                 onChange={(e) => setVerifyToken(e.target.value)}
               />
-              <Button aria-label="Fechar"
+              <Button
+                aria-label="Fechar"
                 variant="outline"
                 size="icon"
                 onClick={() => {
@@ -220,7 +253,8 @@ export function MetaConnectionCard({
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Use este token ao configurar o webhook no Meta. Salve antes de configurar!
+              Use este token ao configurar o webhook no Meta. Salve antes de
+              configurar!
             </p>
           </div>
 

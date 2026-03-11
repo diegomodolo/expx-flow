@@ -2,8 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin":
+    Deno.env.get("FRONTEND_URL") ?? "https://controledetrafego.com.br",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface InstancePayload {
@@ -26,12 +28,25 @@ serve(async (req) => {
     const payload: InstancePayload = await req.json();
     const { action, company_id, instance_id } = payload;
 
-    console.log("[manage-whatsapp-instance] Action:", action, "Company:", company_id, "Instance:", instance_id);
+    console.log(
+      "[manage-whatsapp-instance] Action:",
+      action,
+      "Company:",
+      company_id,
+      "Instance:",
+      instance_id,
+    );
 
     if (!company_id || !action) {
       return new Response(
-        JSON.stringify({ success: false, error: "company_id e action são obrigatórios" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "company_id e action são obrigatórios",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -43,17 +58,26 @@ serve(async (req) => {
       .single();
 
     if (configError || !config) {
-      console.error("[manage-whatsapp-instance] Config not found:", configError);
+      console.error(
+        "[manage-whatsapp-instance] Config not found:",
+        configError,
+      );
       return new Response(
-        JSON.stringify({ success: false, error: "Configuração base não encontrada" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Configuração base não encontrada",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const cleanEndpoint = config.uazapi_endpoint?.replace(/\/$/, "");
 
     // Get instance if instance_id provided
-    let instance: any = null;
+    let instance: unknown = null;
     if (instance_id) {
       const { data: instanceData, error: instanceError } = await supabase
         .from("whatsapp_instances")
@@ -62,10 +86,16 @@ serve(async (req) => {
         .single();
 
       if (instanceError || !instanceData) {
-        console.error("[manage-whatsapp-instance] Instance not found:", instanceError);
+        console.error(
+          "[manage-whatsapp-instance] Instance not found:",
+          instanceError,
+        );
         return new Response(
           JSON.stringify({ success: false, error: "Instância não encontrada" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
 
@@ -74,8 +104,14 @@ serve(async (req) => {
 
     if (!instance?.uazapi_token && action !== "delete") {
       return new Response(
-        JSON.stringify({ success: false, error: "Token da instância não encontrado. Recrie a instância." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "Token da instância não encontrado. Recrie a instância.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -91,27 +127,38 @@ serve(async (req) => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "token": instance.uazapi_token,
+            token: instance.uazapi_token,
           },
         });
 
         const responseText = await response.text();
-        console.log("[manage-whatsapp-instance] Test response:", responseText.substring(0, 500));
+        console.log(
+          "[manage-whatsapp-instance] Test response:",
+          responseText.substring(0, 500),
+        );
 
         let data;
         try {
           data = JSON.parse(responseText);
         } catch {
           return new Response(
-            JSON.stringify({ success: false, error: "Resposta inválida da UazapiGO" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({
+              success: false,
+              error: "Resposta inválida da UazapiGO",
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
-        const isConnected = data.instance?.status === "connected" || 
-                           data.status?.connected === true || 
-                           data.connected === true;
-        const connectedPhone = data.status?.jid?.user || data.instance?.phone || null;
+        const isConnected =
+          data.instance?.status === "connected" ||
+          data.status?.connected === true ||
+          data.connected === true;
+        const connectedPhone =
+          data.status?.jid?.user || data.instance?.phone || null;
         const profileName = data.instance?.profileName || null;
         const profilePicUrl = data.instance?.profilePicUrl || null;
 
@@ -148,20 +195,29 @@ serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "token": instance.uazapi_token,
+            token: instance.uazapi_token,
           },
         });
 
         const responseText = await response.text();
-        console.log("[manage-whatsapp-instance] QR response:", responseText.substring(0, 500));
+        console.log(
+          "[manage-whatsapp-instance] QR response:",
+          responseText.substring(0, 500),
+        );
 
         let data;
         try {
           data = JSON.parse(responseText);
         } catch {
           return new Response(
-            JSON.stringify({ success: false, error: "Resposta inválida da UazapiGO" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({
+              success: false,
+              error: "Resposta inválida da UazapiGO",
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
 
@@ -201,7 +257,9 @@ serve(async (req) => {
 
             result = {
               success: true,
-              qr_code: qrcode.startsWith("data:") ? qrcode : `data:image/png;base64,${qrcode}`,
+              qr_code: qrcode.startsWith("data:")
+                ? qrcode
+                : `data:image/png;base64,${qrcode}`,
               paircode: paircode,
               status: "connecting",
             };
@@ -222,13 +280,16 @@ serve(async (req) => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "token": instance.uazapi_token,
+            token: instance.uazapi_token,
           },
         });
 
         const data = await response.json();
-        const isConnected = data.instance?.status === "connected" || data.status?.connected === true;
-        const connectedPhone = data.status?.jid?.user || data.instance?.phone || null;
+        const isConnected =
+          data.instance?.status === "connected" ||
+          data.status?.connected === true;
+        const connectedPhone =
+          data.status?.jid?.user || data.instance?.phone || null;
 
         await supabase
           .from("whatsapp_instances")
@@ -260,7 +321,7 @@ serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "token": instance.uazapi_token,
+            token: instance.uazapi_token,
           },
         });
 
@@ -291,19 +352,25 @@ serve(async (req) => {
         // Delete instance from UazapiGO via DELETE /instance with admintoken
         if (instance?.uazapi_instance_id && config.uazapi_admintoken) {
           const deleteUrl = `${cleanEndpoint}/instance`;
-          console.log("[manage-whatsapp-instance] Deleting from UazapiGO:", deleteUrl);
+          console.log(
+            "[manage-whatsapp-instance] Deleting from UazapiGO:",
+            deleteUrl,
+          );
 
           try {
             await fetch(deleteUrl, {
               method: "DELETE",
               headers: {
                 "Content-Type": "application/json",
-                "admintoken": config.uazapi_admintoken,
+                admintoken: config.uazapi_admintoken,
               },
               body: JSON.stringify({ instanceId: instance.uazapi_instance_id }),
             });
           } catch (deleteError) {
-            console.log("[manage-whatsapp-instance] UazapiGO delete failed (non-critical):", deleteError);
+            console.log(
+              "[manage-whatsapp-instance] UazapiGO delete failed (non-critical):",
+              deleteError,
+            );
           }
         }
 
@@ -323,20 +390,28 @@ serve(async (req) => {
       default:
         return new Response(
           JSON.stringify({ success: false, error: "Ação inválida" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
     }
 
-    return new Response(
-      JSON.stringify(result),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[manage-whatsapp-instance] Error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Erro interno" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        error: error.message || "Erro interno",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

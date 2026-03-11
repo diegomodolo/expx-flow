@@ -5,6 +5,36 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { WorkspaceDocument } from "@/types/workspace";
 
+async function enrichWithCreatorNames(
+  docs: WorkspaceDocument[],
+  companyId: string,
+): Promise<WorkspaceDocument[]> {
+  if (docs.length === 0) return docs;
+
+  const creatorIds = [
+    ...new Set(docs.map((d) => d.created_by).filter(Boolean)),
+  ];
+  if (creatorIds.length === 0) return docs;
+
+  const { data: employees } = await supabase
+    .from("employees")
+    .select("user_id, name")
+    .eq("company_id", companyId)
+    .in("user_id", creatorIds);
+
+  const nameMap = new Map(
+    (employees || []).map((e: { user_id: string; name: string }) => [
+      e.user_id,
+      e.name,
+    ]),
+  );
+
+  return docs.map((doc) => ({
+    ...doc,
+    creator_name: nameMap.get(doc.created_by) || undefined,
+  }));
+}
+
 export function useWorkspaceDocuments(folderId?: string | null) {
   const { activeCompany } = useCompany();
   const { user } = useAuth();
@@ -35,7 +65,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as WorkspaceDocument[];
+      return enrichWithCreatorNames(data || [], activeCompany.company_id);
     },
     enabled: !!activeCompany?.company_id,
   });
@@ -52,7 +82,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      return data as WorkspaceDocument[];
+      return enrichWithCreatorNames(data || [], activeCompany.company_id);
     },
     enabled: !!activeCompany?.company_id,
   });
@@ -70,7 +100,7 @@ export function useWorkspaceDocuments(folderId?: string | null) {
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      return data as WorkspaceDocument[];
+      return enrichWithCreatorNames(data || [], activeCompany.company_id);
     },
     enabled: !!activeCompany?.company_id,
   });
