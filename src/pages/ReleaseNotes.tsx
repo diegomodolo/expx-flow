@@ -3,7 +3,7 @@ import { useReleaseNotes, ReleaseNote } from "@/hooks/useReleaseNotes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { RefreshCw, ExternalLink, Megaphone, Loader2, Sparkles, Bug, Wrench, Package } from "lucide-react";
+import { RefreshCw, Megaphone, Loader2, Sparkles, Bug, Wrench, Package } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
@@ -83,9 +83,6 @@ function NoteCard({ note }: { note: ReleaseNote }) {
             <Badge variant="secondary" className={config.className}>
               {config.label}
             </Badge>
-            {note.source_type === "pr" && (
-              <span className="text-xs text-muted-foreground">PR</span>
-            )}
           </div>
           <h3 className="text-sm font-medium text-foreground leading-snug">
             {note.friendly_title || note.title}
@@ -99,17 +96,6 @@ function NoteCard({ note }: { note: ReleaseNote }) {
             </span>
           </div>
         </div>
-        {note.source_url && (
-          <a
-            href={note.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground shrink-0"
-            title="Ver no GitHub"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        )}
       </div>
     </div>
   );
