@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface AgentSquad {
   id: string;
@@ -44,51 +44,46 @@ export interface SquadFlow {
 }
 
 export function useAgentSquads() {
-  const [squads, setSquads] = useState<AgentSquad[]>([]);
-  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchSquads = async () => {
-    if (!activeCompany?.company_id) return;
-    setLoading(true);
-    try {
+  const fetchSquadsQuery = useQuery({
+    queryKey: ["agent_squads", activeCompany?.company_id],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("ia_agent_squads" as unknown)
         .select("*, clients(id, name, company)")
-        .eq("company_id", activeCompany.company_id)
+        .eq("company_id", activeCompany!.company_id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Fetch member counts
       const squadsData = (data || []) as unknown[];
       const squadsWithCounts = await Promise.all(
         squadsData.map(async (squad: unknown) => {
+          const typedSquad = squad as AgentSquad & { clients?: AgentSquad["client"] };
           const { count } = await supabase
             .from("ia_agent_squad_members" as unknown)
             .select("*", { count: "exact", head: true })
-            .eq("squad_id", squad.id);
+            .eq("squad_id", typedSquad.id);
           return {
-            ...squad,
-            client: squad.clients,
+            ...typedSquad,
+            client: typedSquad.clients,
             members_count: count || 0,
-          };
+          } as AgentSquad;
         })
       );
 
-      setSquads(squadsWithCounts);
-    } catch (err: unknown) {
-      toast({ title: "Erro ao carregar squads", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return squadsWithCounts;
+    },
+    enabled: !!activeCompany?.company_id,
+  });
 
-  const createSquad = async (data: { name: string; description?: string; client_id: string }) => {
-    if (!activeCompany?.company_id || !user?.id) return null;
-    try {
+  const createSquadMutation = useMutation({
+    mutationFn: async (data: { name: string; description?: string; client_id: string }) => {
+      if (!activeCompany?.company_id || !user?.id) throw new Error("Missing company or user");
       const { data: squad, error } = await supabase
         .from("ia_agent_squads" as unknown)
         .insert({
@@ -102,88 +97,64 @@ export function useAgentSquads() {
         .single();
 
       if (error) throw error;
-      toast({ title: "Squad criada com sucesso!" });
-      fetchSquads();
       return squad;
-    } catch (err: unknown) {
+    },
+    onSuccess: () => {
+      toast({ title: "Squad criada com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro ao criar squad", description: err.message, variant: "destructive" });
-      return null;
-    }
-  };
+    },
+  });
 
-  const updateSquad = async (id: string, data: { name?: string; description?: string; client_id?: string }) => {
-    try {
+  const updateSquadMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { name?: string; description?: string; client_id?: string } }) => {
       const { error } = await supabase
         .from("ia_agent_squads" as unknown)
         .update(data as unknown)
         .eq("id", id);
       if (error) throw error;
+    },
+    onSuccess: () => {
       toast({ title: "Squad atualizada!" });
-      fetchSquads();
-    } catch (err: unknown) {
+      queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro ao atualizar squad", description: err.message, variant: "destructive" });
-    }
-  };
+    },
+  });
 
-  const deleteSquad = async (id: string) => {
-    try {
+  const deleteSquadMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase.from("ia_agent_squads" as unknown).delete().eq("id", id);
       if (error) throw error;
+    },
+    onSuccess: () => {
       toast({ title: "Squad excluída!" });
-      fetchSquads();
-    } catch (err: unknown) {
+      queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro ao excluir squad", description: err.message, variant: "destructive" });
-    }
-  };
+    },
+  });
 
-  const fetchSquadById = async (id: string) => {
-    const { data, error } = await supabase
-      .from("ia_agent_squads" as unknown)
-      .select("*, clients(id, name, company)")
-      .eq("id", id)
-      .single();
-    if (error) throw error;
-    return { ...(data as unknown), client: (data as unknown).clients };
-  };
-
-  const fetchSquadMembers = async (squadId: string): Promise<SquadMember[]> => {
-    const { data, error } = await supabase
-      .from("ia_agent_squad_members" as unknown)
-      .select("*, ia_agents(id, agent_name, description)")
-      .eq("squad_id", squadId);
-    if (error) throw error;
-    return ((data || []) as unknown[]).map((m: unknown) => ({ ...m, agent: m.ia_agents }));
-  };
-
-  const fetchSquadFlows = async (squadId: string): Promise<SquadFlow[]> => {
-    const { data, error } = await supabase
-      .from("ia_agent_squad_flows" as unknown)
-      .select("*")
-      .eq("squad_id", squadId);
-    if (error) throw error;
-    return (data || []) as unknown[];
-  };
-
-  const saveSquadLayout = async (
-    squadId: string,
-    members: Array<{ id?: string; agent_id: string; role: string; squad_instructions?: string; position_x: number; position_y: number }>,
-    flows: Array<{ source_member_id: string; target_member_id: string; label?: string; condition?: string }>
-  ) => {
-    try {
-      // Delete existing flows first (they reference members), then members
+  const saveSquadLayoutMutation = useMutation({
+    mutationFn: async ({
+      squadId,
+      members,
+      flows
+    }: {
+      squadId: string;
+      members: Array<{ id?: string; agent_id: string; role: string; squad_instructions?: string; position_x: number; position_y: number }>;
+      flows: Array<{ source_member_id: string; target_member_id: string; label?: string; condition?: string }>;
+    }) => {
       const { error: delFlowsErr } = await supabase.from("ia_agent_squad_flows" as unknown).delete().eq("squad_id", squadId);
-      if (delFlowsErr) {
-        console.error("Error deleting flows:", delFlowsErr);
-        throw delFlowsErr;
-      }
+      if (delFlowsErr) throw delFlowsErr;
       
       const { error: delMembersErr } = await supabase.from("ia_agent_squad_members" as unknown).delete().eq("squad_id", squadId);
-      if (delMembersErr) {
-        console.error("Error deleting members:", delMembersErr);
-        throw delMembersErr;
-      }
+      if (delMembersErr) throw delMembersErr;
 
-      // Insert members
       if (members.length > 0) {
         const { data: insertedMembers, error: membersError } = await supabase
           .from("ia_agent_squad_members" as unknown)
@@ -201,17 +172,14 @@ export function useAgentSquads() {
 
         if (membersError) throw membersError;
 
-        // Build id mapping (old temp ids to new DB ids)
         const membersList = insertedMembers as unknown[];
         
-        // Insert flows using the new member IDs
         if (flows.length > 0 && membersList.length > 0) {
-          // Map: we need to match source/target by agent_id + position
           const memberMap = new Map<string, string>();
           members.forEach((m, i) => {
             const key = m.id || `${m.agent_id}-${m.position_x}-${m.position_y}`;
             if (membersList[i]) {
-              memberMap.set(key, membersList[i].id);
+              memberMap.set(key, (membersList[i] as { id: string }).id);
             }
           });
 
@@ -233,28 +201,70 @@ export function useAgentSquads() {
           }
         }
       }
-
+    },
+    onSuccess: () => {
       toast({ title: "Squad salva com sucesso!" });
-    } catch (err: unknown) {
+      queryClient.invalidateQueries({ queryKey: ["agent_squads"] });
+    },
+    onError: (err: Error) => {
       toast({ title: "Erro ao salvar squad", description: err.message, variant: "destructive" });
-      throw err;
-    }
+    },
+  });
+
+  const fetchSquadById = async (id: string) => {
+    const { data, error } = await supabase
+      .from("ia_agent_squads" as unknown)
+      .select("*, clients(id, name, company)")
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    const typedData = data as unknown as AgentSquad & { clients?: AgentSquad["client"] };
+    return { ...typedData, client: typedData.clients };
   };
 
-  useEffect(() => {
-    if (activeCompany?.company_id) fetchSquads();
-  }, [activeCompany?.company_id]);
+  const fetchSquadMembers = async (squadId: string): Promise<SquadMember[]> => {
+    const { data, error } = await supabase
+      .from("ia_agent_squad_members" as unknown)
+      .select("*, ia_agents(id, agent_name, description)")
+      .eq("squad_id", squadId);
+    if (error) throw error;
+    return ((data || []) as unknown[]).map((m: unknown) => {
+      const typedM = m as SquadMember & { ia_agents?: SquadMember["agent"] };
+      return { ...typedM, agent: typedM.ia_agents };
+    });
+  };
+
+  const fetchSquadFlows = async (squadId: string): Promise<SquadFlow[]> => {
+    const { data, error } = await supabase
+      .from("ia_agent_squad_flows" as unknown)
+      .select("*")
+      .eq("squad_id", squadId);
+    if (error) throw error;
+    return (data || []) as unknown[];
+  };
 
   return {
-    squads,
-    loading,
-    fetchSquads,
-    createSquad,
-    updateSquad,
-    deleteSquad,
+    squads: fetchSquadsQuery.data || [],
+    loading: fetchSquadsQuery.isLoading,
+    fetchSquads: fetchSquadsQuery.refetch,
+    createSquad: async (data: { name: string; description?: string; client_id: string }) => {
+      return createSquadMutation.mutateAsync(data).catch(() => null);
+    },
+    updateSquad: async (id: string, data: { name?: string; description?: string; client_id?: string }) => {
+      return updateSquadMutation.mutateAsync({ id, data }).catch(() => {});
+    },
+    deleteSquad: async (id: string) => {
+      return deleteSquadMutation.mutateAsync(id).catch(() => {});
+    },
     fetchSquadById,
     fetchSquadMembers,
     fetchSquadFlows,
-    saveSquadLayout,
+    saveSquadLayout: async (
+      squadId: string,
+      members: Array<{ id?: string; agent_id: string; role: string; squad_instructions?: string; position_x: number; position_y: number }>,
+      flows: Array<{ source_member_id: string; target_member_id: string; label?: string; condition?: string }>
+    ) => {
+      return saveSquadLayoutMutation.mutateAsync({ squadId, members, flows });
+    },
   };
 }

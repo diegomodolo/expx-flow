@@ -121,7 +121,7 @@ serve(async (req) => {
           continue;
         }
 
-        const client = urlData.clients as any;
+        const client = urlData.clients as Record<string, unknown> | null;
         const aiBriefing = client?.ai_briefing;
 
         if (!aiBriefing || aiBriefing.trim().length < 20) {

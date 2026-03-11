@@ -13,8 +13,10 @@ interface ResolvedInstagramCredentials {
   source: 'page' | 'business_manager' | 'fallback';
 }
 
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 export async function resolveInstagramCredentials(
-  supabase: any,
+  supabase: SupabaseClient,
   instagramAccountId: string,
   companyId: string
 ): Promise<ResolvedInstagramCredentials> {
