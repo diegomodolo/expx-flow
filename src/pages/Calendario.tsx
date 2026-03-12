@@ -24,6 +24,7 @@ import { CalendarShareModal } from "@/components/calendar/CalendarShareModal";
 import { CreateMeetingModal } from "@/components/meetings/CreateMeetingModal";
 import { MeetingDetailsModal } from "@/components/meetings/MeetingDetailsModal";
 import { EditMeetingModal } from "@/components/meetings/EditMeetingModal";
+import { PresentationDetailsModal } from "@/components/calendar/PresentationDetailsModal";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
@@ -67,6 +68,11 @@ export default function Calendario() {
   const [selectedMeeting, setSelectedMeeting] =
     useState<GoogleMeetMeeting | null>(null);
   const [editMeetingOpen, setEditMeetingOpen] = useState(false);
+  const [presentationDetailsOpen, setPresentationDetailsOpen] = useState(false);
+  const [selectedPresentationEvent, setSelectedPresentationEvent] = useState<{
+    presentationId: string;
+    meetingId: string;
+  } | null>(null);
 
   const { data: events = [], isLoading } = useCalendarEvents({
     currentDate,
@@ -90,6 +96,13 @@ export default function Calendario() {
         if (meeting) {
           setSelectedMeeting(meeting);
           setMeetingDetailsOpen(true);
+        }
+      } else if (event.type === "presentation") {
+        const meetingId = event.id.replace(/^presentation-/, "");
+        const presentationId = event.metadata?.presentationId;
+        if (presentationId) {
+          setSelectedPresentationEvent({ presentationId, meetingId });
+          setPresentationDetailsOpen(true);
         }
       }
     },
@@ -219,6 +232,19 @@ export default function Calendario() {
           onEdit={() => {
             setMeetingDetailsOpen(false);
             setEditMeetingOpen(true);
+          }}
+        />
+      )}
+
+      {/* Presentation Details Modal */}
+      {selectedPresentationEvent && (
+        <PresentationDetailsModal
+          presentationId={selectedPresentationEvent.presentationId}
+          meetingId={selectedPresentationEvent.meetingId}
+          open={presentationDetailsOpen}
+          onClose={() => {
+            setPresentationDetailsOpen(false);
+            setSelectedPresentationEvent(null);
           }}
         />
       )}

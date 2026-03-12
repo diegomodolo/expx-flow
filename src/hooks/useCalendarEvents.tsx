@@ -238,7 +238,9 @@ export function useCalendarEvents({
           (async () => {
             const { data, error } = await supabase
               .from("presentation_meetings")
-              .select("id, presentation_id, meeting_date, status, created_at")
+              .select(
+                "id, presentation_id, meeting_date, status, created_at, notes, recording_url, approved_count, rejected_count, content_presentations(id, name, clients(name))",
+              )
               .gte("meeting_date", from.split("T")[0])
               .lte("meeting_date", to.split("T")[0]);
 
@@ -248,10 +250,17 @@ export function useCalendarEvents({
             }
 
             for (const p of data || []) {
+              const presentation = (p as any).content_presentations;
+              const clientName = presentation?.clients?.name;
+              const presentationName = presentation?.name || "Apresentação";
+              const displayTitle = clientName
+                ? `${presentationName} - ${clientName}`
+                : presentationName;
+
               events.push({
                 id: `presentation-${p.id}`,
                 type: "presentation",
-                title: "Apresentação",
+                title: displayTitle,
                 start: new Date(p.meeting_date),
                 allDay: true,
                 color: EVENT_COLORS.presentation,
@@ -259,6 +268,7 @@ export function useCalendarEvents({
                 ownerName: "",
                 metadata: {
                   presentationId: p.presentation_id,
+                  meetingStatus: p.status || undefined,
                   sourceTable: "presentation_meetings",
                 },
               });
