@@ -28,6 +28,7 @@ import {
   Video,
   Play,
   Film,
+  Pencil,
 } from "lucide-react";
 import { GoogleMeetMeeting } from "@/hooks/useGoogleMeetMeetings";
 import { format } from "date-fns";
@@ -42,6 +43,7 @@ interface MeetingDetailsModalProps {
   onCheckTranscript: (id: string) => Promise<void>;
   onProcessSummary: (id: string) => Promise<void>;
   processing: boolean;
+  onEdit?: () => void;
 }
 
 export function MeetingDetailsModal({
@@ -51,6 +53,7 @@ export function MeetingDetailsModal({
   onCheckTranscript,
   onProcessSummary,
   processing,
+  onEdit,
 }: MeetingDetailsModalProps) {
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
@@ -63,9 +66,21 @@ export function MeetingDetailsModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <Video className="h-5 w-5 text-primary" />
-            <DialogTitle className="text-xl">{meeting.title}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Video className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-xl">{meeting.title}</DialogTitle>
+            </div>
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onEdit}
+                title="Editar reunião"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </DialogHeader>
 

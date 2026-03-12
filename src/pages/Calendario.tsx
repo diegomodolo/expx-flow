@@ -23,6 +23,7 @@ import { CalendarFAB } from "@/components/calendar/CalendarFAB";
 import { CalendarShareModal } from "@/components/calendar/CalendarShareModal";
 import { CreateMeetingModal } from "@/components/meetings/CreateMeetingModal";
 import { MeetingDetailsModal } from "@/components/meetings/MeetingDetailsModal";
+import { EditMeetingModal } from "@/components/meetings/EditMeetingModal";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
@@ -40,6 +41,7 @@ export default function Calendario() {
     meetings,
     checkTranscript,
     processSummary,
+    updateMeeting,
     loading: meetingsLoading,
   } = useGoogleMeetMeetings();
   const { tasks, updateTask } = useTasks();
@@ -64,6 +66,7 @@ export default function Calendario() {
   const [meetingDetailsOpen, setMeetingDetailsOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] =
     useState<GoogleMeetMeeting | null>(null);
+  const [editMeetingOpen, setEditMeetingOpen] = useState(false);
 
   const { data: events = [], isLoading } = useCalendarEvents({
     currentDate,
@@ -213,6 +216,29 @@ export default function Calendario() {
           onCheckTranscript={checkTranscript}
           onProcessSummary={processSummary}
           processing={meetingsLoading}
+          onEdit={() => {
+            setMeetingDetailsOpen(false);
+            setEditMeetingOpen(true);
+          }}
+        />
+      )}
+
+      {/* Edit Meeting Modal */}
+      {selectedMeeting && (
+        <EditMeetingModal
+          meeting={selectedMeeting}
+          open={editMeetingOpen}
+          onClose={() => {
+            setEditMeetingOpen(false);
+            setSelectedMeeting(null);
+          }}
+          onSubmit={async (meetingId, data) => {
+            const success = await updateMeeting(meetingId, data);
+            if (success) {
+              queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+            }
+            return !!success;
+          }}
         />
       )}
     </DashboardLayout>
