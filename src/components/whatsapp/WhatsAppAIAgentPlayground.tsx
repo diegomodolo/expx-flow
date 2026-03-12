@@ -5,7 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Send, Loader2, Sparkles, RefreshCw, User, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { WhatsAppAIAgentConfig, defaultConfig } from "@/hooks/useWhatsAppAIAgentConfig";
+import {
+  WhatsAppAIAgentConfig,
+  defaultConfig,
+} from "@/hooks/useWhatsAppAIAgentConfig";
 import ReactMarkdown from "react-markdown";
 
 interface PlaygroundProps {
@@ -13,7 +16,10 @@ interface PlaygroundProps {
   companyId?: string;
 }
 
-export function WhatsAppAIAgentPlayground({ config, companyId }: PlaygroundProps) {
+export function WhatsAppAIAgentPlayground({
+  config,
+  companyId,
+}: PlaygroundProps) {
   const [customerMessage, setCustomerMessage] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -21,45 +27,60 @@ export function WhatsAppAIAgentPlayground({ config, companyId }: PlaygroundProps
 
   const buildSystemPrompt = () => {
     const c = { ...defaultConfig, ...config };
-    
-    const formalityDesc = c.formality_level > 70 
-      ? "Use linguagem formal, tratamento respeitoso (Senhor/Senhora), evite gírias." 
-      : c.formality_level < 30 
-        ? "Use linguagem casual e descontraída, pode usar 'você', gírias leves são ok."
-        : "Use linguagem semiformal, profissional mas acessível.";
 
-    const empathyDesc = c.empathy_level > 70
-      ? "Seja muito empático, demonstre compreensão genuína, valide os sentimentos do cliente."
-      : c.empathy_level < 30
-        ? "Seja direto e objetivo, foque na solução sem rodeios."
-        : "Equilibre objetividade com empatia moderada.";
+    const formalityDesc =
+      c.formality_level > 70
+        ? "Use linguagem formal, tratamento respeitoso (Senhor/Senhora), evite gírias."
+        : c.formality_level < 30
+          ? "Use linguagem casual e descontraída, pode usar 'você', gírias leves são ok."
+          : "Use linguagem semiformal, profissional mas acessível.";
 
-    const enthusiasmDesc = c.enthusiasm_level > 70
-      ? "Seja energético e entusiasmado, use expressões positivas."
-      : c.enthusiasm_level < 30
-        ? "Mantenha tom calmo e sereno, evite exageros."
-        : "Use tom equilibrado, nem muito calmo nem muito animado.";
+    const empathyDesc =
+      c.empathy_level > 70
+        ? "Seja muito empático, demonstre compreensão genuína, valide os sentimentos do cliente."
+        : c.empathy_level < 30
+          ? "Seja direto e objetivo, foque na solução sem rodeios."
+          : "Equilibre objetividade com empatia moderada.";
 
-    const emojiRule = c.emoji_usage === "none"
-      ? "NÃO use emojis."
-      : c.emoji_usage === "intense"
-        ? "Use emojis frequentemente para expressar emoções."
-        : "Use emojis com moderação (máximo 1-2 por mensagem).";
+    const enthusiasmDesc =
+      c.enthusiasm_level > 70
+        ? "Seja energético e entusiasmado, use expressões positivas."
+        : c.enthusiasm_level < 30
+          ? "Mantenha tom calmo e sereno, evite exageros."
+          : "Use tom equilibrado, nem muito calmo nem muito animado.";
 
-    const lengthRule = c.response_length === "short"
-      ? "Mantenha respostas curtas e diretas (máximo 2-3 frases)."
-      : c.response_length === "long"
-        ? "Forneça respostas detalhadas e completas."
-        : "Use respostas de tamanho médio, equilibradas.";
+    const emojiRule =
+      c.emoji_usage === "none"
+        ? "NÃO use emojis."
+        : c.emoji_usage === "intense"
+          ? "Use emojis frequentemente para expressar emoções."
+          : "Use emojis com moderação (máximo 1-2 por mensagem).";
+
+    const lengthRule =
+      c.response_length === "short"
+        ? "Mantenha respostas curtas e diretas (máximo 2-3 frases)."
+        : c.response_length === "long"
+          ? "Forneça respostas detalhadas e completas."
+          : "Use respostas de tamanho médio, equilibradas.";
 
     const formatRules = [];
-    if (c.use_bold) formatRules.push("Use **negrito** para destacar palavras-chave importantes.");
-    if (c.use_lists) formatRules.push("Use listas com bullets (•) para múltiplos itens ou passos.");
-    if (c.use_short_paragraphs) formatRules.push("Quebre o texto em parágrafos curtos para melhor legibilidade.");
+    if (c.use_bold)
+      formatRules.push(
+        "Use **negrito** para destacar palavras-chave importantes.",
+      );
+    if (c.use_lists)
+      formatRules.push(
+        "Use listas com bullets (•) para múltiplos itens ou passos.",
+      );
+    if (c.use_short_paragraphs)
+      formatRules.push(
+        "Quebre o texto em parágrafos curtos para melhor legibilidade.",
+      );
 
-    const blacklistRule = c.blacklist_words.length > 0
-      ? `NUNCA use estas palavras ou frases: ${c.blacklist_words.join(", ")}.`
-      : "";
+    const blacklistRule =
+      c.blacklist_words.length > 0
+        ? `NUNCA use estas palavras ou frases: ${c.blacklist_words.join(", ")}.`
+        : "";
 
     const ctaRule = c.mandatory_cta
       ? `SEMPRE finalize com: ${c.mandatory_cta}`
@@ -113,14 +134,18 @@ Responda a mensagem do cliente de forma natural, seguindo todas as diretrizes ac
     try {
       const systemPrompt = buildSystemPrompt();
 
-      const { data, error: fnError } = await supabase.functions.invoke("whatsapp-ai-assistant", {
-        body: {
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: customerMessage },
-          ],
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "whatsapp-ai-assistant",
+        {
+          body: {
+            companyId,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: customerMessage },
+            ],
+          },
         },
-      });
+      );
 
       if (fnError) throw fnError;
 
@@ -145,7 +170,8 @@ Responda a mensagem do cliente de forma natural, seguindo todas as diretrizes ac
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Simule uma mensagem de cliente para ver como o agente responderá com as configurações atuais
+        Simule uma mensagem de cliente para ver como o agente responderá com as
+        configurações atuais
       </p>
 
       {/* Input do Cliente */}
@@ -162,8 +188,8 @@ Responda a mensagem do cliente de forma natural, seguindo todas as diretrizes ac
         />
       </div>
 
-      <Button 
-        onClick={testResponse} 
+      <Button
+        onClick={testResponse}
         disabled={isLoading || !customerMessage.trim()}
         className="w-full"
       >
@@ -186,11 +212,13 @@ Responda a mensagem do cliente de forma natural, seguindo todas as diretrizes ac
           <Bot className="h-4 w-4" />
           Resposta do Agente
         </Label>
-        
-        <div className={cn(
-          "rounded-lg border bg-muted/30 p-4 min-h-[120px]",
-          !aiResponse && !error && "flex items-center justify-center"
-        )}>
+
+        <div
+          className={cn(
+            "rounded-lg border bg-muted/30 p-4 min-h-[120px]",
+            !aiResponse && !error && "flex items-center justify-center",
+          )}
+        >
           {error ? (
             <div className="text-sm text-destructive">{error}</div>
           ) : aiResponse ? (

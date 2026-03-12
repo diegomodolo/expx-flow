@@ -111,7 +111,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages, mode, agentConfig } = body;
+    const { messages, mode, agentConfig, companyId } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -147,6 +147,7 @@ serve(async (req) => {
       try {
         const analyzeResult = await callAI({
           functionName: "whatsapp-ai-assistant",
+          companyId,
           systemPrompt,
           userPrompt: `Analise esta conversa:\n\n${conversationText}`,
         });
@@ -213,6 +214,7 @@ serve(async (req) => {
 
     const chatResult = await callAI({
       functionName: "whatsapp-ai-assistant",
+      companyId,
       systemPrompt: "",
       userPrompt: "",
       messages,

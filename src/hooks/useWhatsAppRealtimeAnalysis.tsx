@@ -345,6 +345,7 @@ export function useWhatsAppRealtimeAnalysis({
           {
             body: {
               mode: "analyze",
+              companyId,
               messages: contextMessages,
               agentConfig: {
                 department: agentConfig.department,

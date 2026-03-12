@@ -370,6 +370,7 @@ Responda diretamente ao que o cliente perguntou ou comentou.`;
         "whatsapp-ai-assistant",
         {
           body: {
+            companyId,
             messages: [
               { role: "system", content: systemPrompt },
               {
@@ -467,6 +468,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
         "whatsapp-ai-assistant",
         {
           body: {
+            companyId,
             messages: [
               { role: "system", content: systemPrompt },
               ...recentMessages,
