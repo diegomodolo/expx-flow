@@ -115,13 +115,14 @@ export default function Calendario() {
   }, []);
 
   const sharedWithMeUserIds = sharedWithMe.map((s) => s.owner_id);
+  const humanEmployees = employees.filter((e: any) => !e.ia_agent_id);
 
   return (
     <DashboardLayout>
       <div className="flex h-[calc(100vh-80px)]">
         {/* Sidebar */}
         <CalendarSidebar
-          employees={employees}
+          employees={humanEmployees}
           sharedWithMeUserIds={sharedWithMeUserIds}
           selectedUserIds={selectedUserIds}
           onSelectedUserIdsChange={setSelectedUserIds}
