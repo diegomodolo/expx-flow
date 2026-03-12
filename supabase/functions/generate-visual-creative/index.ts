@@ -739,7 +739,10 @@ CRITICAL CAROUSEL CONSISTENCY:
         : "";
 
       const imageUrl = await generateSingleImage(singleImagePrompt);
-      const caption = await generateCaption();
+      // Pular geração de caption quando é edição de imagem existente (economiza 1 chamada de API)
+      const isEditingExisting =
+        context?.contextOnly?.isEditingExisting === true;
+      const caption = isEditingExisting ? "" : await generateCaption();
 
       console.log("Function completed successfully");
       return new Response(
