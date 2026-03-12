@@ -144,11 +144,17 @@ export function useWhatsAppMessages(
             "[useWhatsAppMessages] Erro ao buscar mensagens da API:",
             error,
           );
-          toast({
-            title: "Erro ao buscar mensagens",
-            description: error.message || "Falha ao carregar mensagens",
-            variant: "destructive",
-          });
+          // Silencia erros de rede/timeout — nao exibe toast para FunctionsFetchError
+          const isNetworkError =
+            error.message?.includes("Failed to send") ||
+            error.name === "FunctionsFetchError";
+          if (!isNetworkError) {
+            toast({
+              title: "Erro ao buscar mensagens",
+              description: error.message || "Falha ao carregar mensagens",
+              variant: "destructive",
+            });
+          }
         } else if (data?.success) {
           // Invalidate to reload from DB with new messages
           queryClient.invalidateQueries({
@@ -167,11 +173,17 @@ export function useWhatsAppMessages(
           "[useWhatsAppMessages] Exceção ao buscar mensagens:",
           err,
         );
-        toast({
-          title: "Erro ao buscar mensagens",
-          description: err.message || "Erro inesperado",
-          variant: "destructive",
-        });
+        // Silencia erros de rede/timeout
+        const errMsg = (err as Error)?.message || "";
+        const isNetworkError =
+          errMsg.includes("Failed to send") || errMsg.includes("fetch");
+        if (!isNetworkError) {
+          toast({
+            title: "Erro ao buscar mensagens",
+            description: errMsg || "Erro inesperado",
+            variant: "destructive",
+          });
+        }
       } finally {
         setIsFetchingFromApi(false);
         setHasFetchedFromApi(true);

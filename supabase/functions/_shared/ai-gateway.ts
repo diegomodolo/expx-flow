@@ -338,37 +338,66 @@ async function callOpenRouter(
     if (Object.keys(cfg).length > 0) body.image_config = cfg;
   }
 
-  const response = await fetch(OPENROUTER_BASE_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  // Timeout: 45s for image generation, 30s for text
+  const timeoutMs = modalities?.includes("image") ? 45_000 : 30_000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenRouter error (${response.status}): ${errorText}`);
-  }
+  try {
+    const response = await fetch(OPENROUTER_BASE_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  const data = await response.json();
-  const message = data.choices[0].message;
+    clearTimeout(timeoutId);
 
-  // Extract images if present (OpenRouter returns images in message.images array)
-  const images: string[] = [];
-  if (message.images && Array.isArray(message.images)) {
-    for (const img of message.images) {
-      if (img.image_url?.url) {
-        images.push(img.image_url.url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenRouter error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Validate response structure
+    if (
+      !data.choices ||
+      !Array.isArray(data.choices) ||
+      data.choices.length === 0
+    ) {
+      throw new Error(`OpenRouter response invalida: choices vazio ou ausente`);
+    }
+
+    const message = data.choices[0].message;
+    if (!message) {
+      throw new Error(`OpenRouter response invalida: message ausente`);
+    }
+
+    // Extract images if present (OpenRouter returns images in message.images array)
+    const images: string[] = [];
+    if (message.images && Array.isArray(message.images)) {
+      for (const img of message.images) {
+        if (img.image_url?.url) {
+          images.push(img.image_url.url);
+        }
       }
     }
-  }
 
-  return {
-    content: message.content || "",
-    images: images.length > 0 ? images : undefined,
-  };
+    return {
+      content: message.content || "",
+      images: images.length > 0 ? images : undefined,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`OpenRouter timeout apos ${timeoutMs / 1000}s`);
+    }
+    throw error;
+  }
 }
 
 // --- Public API ---

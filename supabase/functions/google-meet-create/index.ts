@@ -281,8 +281,6 @@ serve(async (req) => {
         status: "scheduled",
         scheduled_at: scheduledAtUTC || null,
         transcript_status: "pending",
-        participants: participants || [],
-        google_calendar_event_id: calendarEventId,
       })
       .select()
       .single();
@@ -293,6 +291,36 @@ serve(async (req) => {
     }
 
     console.log("Meeting saved:", meeting.id);
+
+    // Save participants if provided
+    if (
+      participants &&
+      Array.isArray(participants) &&
+      participants.length > 0
+    ) {
+      try {
+        const participantsData = participants.map(
+          (p: { name?: string; email?: string; display_name?: string }) => ({
+            meeting_id: meeting.id,
+            display_name: p.display_name || p.name || p.email || "",
+            email: p.email || null,
+          }),
+        );
+
+        const { error: partError } = await supabaseClient
+          .from("google_meet_participants")
+          .insert(participantsData);
+
+        if (partError) {
+          console.warn(
+            "Failed to save participants (non-blocking):",
+            partError,
+          );
+        }
+      } catch (partErr) {
+        console.warn("Error saving participants (non-blocking):", partErr);
+      }
+    }
 
     return new Response(
       JSON.stringify({
