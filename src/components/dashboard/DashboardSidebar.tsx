@@ -105,6 +105,12 @@ const menuCategories: MenuCategory[] = [
         icon: ListChecks,
         permission: "rotinas" as MenuItemType,
       },
+      {
+        title: "Calendário",
+        url: "/calendario",
+        icon: CalendarDays,
+        permission: "dashboard" as MenuItemType,
+      },
     ].sort((a, b) => a.title.localeCompare(b.title, "pt-BR")),
   },
   // Demais categorias em ordem alfabética
