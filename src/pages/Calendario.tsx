@@ -9,7 +9,10 @@ import {
   CalendarViewMode,
 } from "@/hooks/useCalendarEvents";
 import { useCalendarShares } from "@/hooks/useCalendarShares";
-import { useGoogleMeetMeetings } from "@/hooks/useGoogleMeetMeetings";
+import {
+  useGoogleMeetMeetings,
+  GoogleMeetMeeting,
+} from "@/hooks/useGoogleMeetMeetings";
 import { useTasks } from "@/hooks/useTasks";
 import { CalendarHeader } from "@/components/calendar/CalendarHeader";
 import { CalendarSidebar } from "@/components/calendar/CalendarSidebar";
@@ -19,9 +22,11 @@ import { CalendarDayView } from "@/components/calendar/CalendarDayView";
 import { CalendarFAB } from "@/components/calendar/CalendarFAB";
 import { CalendarShareModal } from "@/components/calendar/CalendarShareModal";
 import { CreateMeetingModal } from "@/components/meetings/CreateMeetingModal";
+import { MeetingDetailsModal } from "@/components/meetings/MeetingDetailsModal";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Calendario() {
   const { user } = useAuth();
@@ -29,9 +34,17 @@ export default function Calendario() {
   const { employees } = useEmployees();
   const { sharedWithMe, myShares, createShare, removeShare, creatingShare } =
     useCalendarShares();
-  const { createMeeting, creating: creatingMeeting } = useGoogleMeetMeetings();
+  const {
+    createMeeting,
+    creating: creatingMeeting,
+    meetings,
+    checkTranscript,
+    processSummary,
+    loading: meetingsLoading,
+  } = useGoogleMeetMeetings();
   const { tasks, updateTask } = useTasks();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
@@ -48,6 +61,9 @@ export default function Calendario() {
   const [showCreateMeeting, setShowCreateMeeting] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<unknown>(null);
+  const [meetingDetailsOpen, setMeetingDetailsOpen] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] =
+    useState<GoogleMeetMeeting | null>(null);
 
   const { data: events = [], isLoading } = useCalendarEvents({
     currentDate,
@@ -65,9 +81,16 @@ export default function Calendario() {
           setSelectedTask(task);
           setTaskDialogOpen(true);
         }
+      } else if (event.type === "meeting") {
+        const meetingId = event.id.replace(/^meeting-/, "");
+        const meeting = meetings.find((m) => m.id === meetingId);
+        if (meeting) {
+          setSelectedMeeting(meeting);
+          setMeetingDetailsOpen(true);
+        }
       }
     },
-    [tasks],
+    [tasks, meetings],
   );
 
   const handleDayClick = useCallback((date: Date) => {
@@ -169,11 +192,29 @@ export default function Calendario() {
         onClose={() => setShowCreateMeeting(false)}
         onSubmit={async (data) => {
           const result = await createMeeting(data);
-          if (result) setShowCreateMeeting(false);
+          if (result) {
+            setShowCreateMeeting(false);
+            queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+          }
           return result;
         }}
         creating={creatingMeeting}
       />
+
+      {/* Meeting Details Modal */}
+      {selectedMeeting && (
+        <MeetingDetailsModal
+          meeting={selectedMeeting}
+          open={meetingDetailsOpen}
+          onClose={() => {
+            setMeetingDetailsOpen(false);
+            setSelectedMeeting(null);
+          }}
+          onCheckTranscript={checkTranscript}
+          onProcessSummary={processSummary}
+          processing={meetingsLoading}
+        />
+      )}
     </DashboardLayout>
   );
 }

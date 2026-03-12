@@ -145,14 +145,6 @@ serve(async (req) => {
       body: JSON.stringify({
         config: {
           accessType: "OPEN",
-          artifactConfig: {
-            recordingConfig: {
-              autoRecordingGeneration: "ENABLED",
-            },
-            transcriptionConfig: {
-              autoTranscriptionGeneration: "ENABLED",
-            },
-          },
         },
       }),
     });
