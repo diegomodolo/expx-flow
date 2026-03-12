@@ -119,7 +119,7 @@ export default function Calendario() {
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="flex h-[calc(100vh-80px)] -m-8">
         {/* Sidebar */}
         <CalendarSidebar
           employees={humanEmployees}
@@ -132,7 +132,7 @@ export default function Calendario() {
         />
 
         {/* Main content */}
-        <div className="flex-1 p-4 overflow-auto">
+        <div className="flex-1 p-4 overflow-auto flex flex-col">
           <CalendarHeader
             currentDate={currentDate}
             viewMode={viewMode}
@@ -141,9 +141,9 @@ export default function Calendario() {
           />
 
           {isLoading ? (
-            <Skeleton className="h-[400px] w-full" />
+            <Skeleton className="flex-1 w-full" />
           ) : (
-            <>
+            <div className="flex-1 flex flex-col min-h-0">
               {viewMode === "month" && (
                 <CalendarMonthView
                   currentDate={currentDate}
@@ -166,7 +166,7 @@ export default function Calendario() {
                   onEventClick={handleEventClick}
                 />
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

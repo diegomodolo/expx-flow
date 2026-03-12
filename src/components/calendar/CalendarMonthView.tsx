@@ -47,7 +47,7 @@ export function CalendarMonthView({
   }, [events]);
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden flex flex-col flex-1">
       {/* Weekday headers */}
       <div className="grid grid-cols-7 bg-muted/50">
         {WEEKDAYS.map((day) => (
@@ -61,7 +61,7 @@ export function CalendarMonthView({
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 flex-1" style={{ gridAutoRows: "1fr" }}>
         {days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const dayEvents = eventsByDay.get(key) || [];
@@ -71,7 +71,7 @@ export function CalendarMonthView({
           return (
             <div
               key={key}
-              className={`min-h-[100px] border-b border-r p-1 cursor-pointer hover:bg-muted/30 transition-colors ${
+              className={`border-b border-r p-1 cursor-pointer hover:bg-muted/30 transition-colors overflow-hidden ${
                 !isCurrentMonth ? "bg-muted/10" : ""
               }`}
               onClick={() => onDayClick(day)}
