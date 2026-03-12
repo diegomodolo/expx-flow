@@ -213,10 +213,10 @@ export const AI_FUNCTIONS: AIFunctionDef[] = [
   },
   {
     functionName: "generate-visual-creative",
-    label: "Criativo Visual",
-    category: "Campanhas",
-    defaultPrimary: "openai/gpt-4o",
-    defaultFallback: "google/gemini-2.5-flash",
+    label: "Editor de Imagens / Criativo Visual",
+    category: "Imagens & Carrosséis",
+    defaultPrimary: "google/gemini-2.5-flash-image-preview",
+    defaultFallback: "google/gemini-2.5-flash-image-preview",
   },
 
   // Vídeo & YouTube

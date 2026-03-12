@@ -494,12 +494,14 @@ Generate the image now.`;
         systemPrompt: "",
         userPrompt: fullPrompt,
         messages: [{ role: "user", content: slideMessageContent }],
+        modalities: ["image", "text"],
       });
 
-      let base64Url = geminiResult.content;
+      // Extract image from response - OpenRouter returns images in the images array
+      let base64Url = geminiResult.images?.[0] || geminiResult.content;
 
       // Retry if no image returned
-      if (!base64Url) {
+      if (!base64Url || !base64Url.startsWith("data:image/")) {
         console.warn(
           `No image returned for ${slideNumber !== undefined ? `slide ${slideNumber}` : "image"}, retrying...`,
         );
@@ -519,17 +521,16 @@ Generate the image now.`;
           systemPrompt: "",
           userPrompt: retryPrompt,
           messages: [{ role: "user", content: retryPrompt }],
+          modalities: ["image", "text"],
         });
 
-        base64Url = retryResult.content;
+        base64Url = retryResult.images?.[0] || retryResult.content;
 
-        if (!base64Url) {
-          throw new Error("Failed to generate image with Gemini");
+        if (!base64Url || !base64Url.startsWith("data:image/")) {
+          throw new Error(
+            "Failed to generate image - model did not return an image",
+          );
         }
-      }
-
-      if (!base64Url.startsWith("data:image/")) {
-        throw new Error("Gemini returned an unsupported image format");
       }
 
       // Upload to Supabase Storage

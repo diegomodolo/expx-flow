@@ -63,8 +63,8 @@ const FUNCTION_DEFAULTS: Record<
     fallback: "anthropic/claude-3.5-sonnet",
   },
   "generate-visual-creative": {
-    primary: "openai/gpt-4o",
-    fallback: "google/gemini-2.5-flash",
+    primary: "google/gemini-2.5-flash-image-preview",
+    fallback: "google/gemini-2.5-flash-image-preview",
   },
 
   // Vídeo & YouTube
@@ -193,6 +193,11 @@ export interface CallAIOptions {
   temperature?: number;
   responseFormat?: { type: "json_object" | "text" };
   messages?: Array<{ role: string; content: unknown }>;
+  modalities?: ("text" | "image")[];
+  imageConfig?: {
+    aspectRatio?: string;
+    resolution?: string;
+  };
 }
 
 export interface CallAIVisionOptions extends CallAIOptions {
@@ -203,6 +208,7 @@ export interface CallAIResponse {
   content: string;
   model: string;
   provider: "openrouter";
+  images?: string[];
 }
 
 interface CachedConfig {
@@ -295,6 +301,11 @@ async function resolveConfig(
 
 // --- OpenRouter Call ---
 
+interface OpenRouterResult {
+  content: string;
+  images?: string[];
+}
+
 async function callOpenRouter(
   apiKey: string,
   model: string,
@@ -302,7 +313,9 @@ async function callOpenRouter(
   maxTokens: number,
   temperature: number,
   responseFormat?: { type: "json_object" | "text" },
-): Promise<string> {
+  modalities?: ("text" | "image")[],
+  imageConfig?: { aspectRatio?: string; resolution?: string },
+): Promise<OpenRouterResult> {
   const body: Record<string, unknown> = {
     model,
     messages,
@@ -312,6 +325,17 @@ async function callOpenRouter(
 
   if (responseFormat) {
     body.response_format = responseFormat;
+  }
+
+  if (modalities) {
+    body.modalities = modalities;
+  }
+
+  if (imageConfig) {
+    const cfg: Record<string, string> = {};
+    if (imageConfig.aspectRatio) cfg.aspect_ratio = imageConfig.aspectRatio;
+    if (imageConfig.resolution) cfg.resolution = imageConfig.resolution;
+    if (Object.keys(cfg).length > 0) body.image_config = cfg;
   }
 
   const response = await fetch(OPENROUTER_BASE_URL, {
@@ -329,7 +353,22 @@ async function callOpenRouter(
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  const message = data.choices[0].message;
+
+  // Extract images if present (OpenRouter returns images in message.images array)
+  const images: string[] = [];
+  if (message.images && Array.isArray(message.images)) {
+    for (const img of message.images) {
+      if (img.image_url?.url) {
+        images.push(img.image_url.url);
+      }
+    }
+  }
+
+  return {
+    content: message.content || "",
+    images: images.length > 0 ? images : undefined,
+  };
 }
 
 // --- Public API ---
@@ -344,6 +383,8 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResponse> {
     temperature = 0.7,
     responseFormat,
     messages: customMessages,
+    modalities,
+    imageConfig,
   } = options;
 
   const config = await resolveConfig(functionName, companyId);
@@ -356,13 +397,15 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResponse> {
 
   // Try primary model
   try {
-    const content = await callOpenRouter(
+    const result = await callOpenRouter(
       config.apiKey,
       config.primaryModel,
       messages,
       maxTokens,
       temperature,
       responseFormat,
+      modalities,
+      imageConfig,
     );
 
     const latency = Date.now() - startTime;
@@ -370,7 +413,12 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResponse> {
       `[AI Gateway] ${functionName} | model=${config.primaryModel} | ${latency}ms | success`,
     );
 
-    return { content, model: config.primaryModel, provider: "openrouter" };
+    return {
+      content: result.content,
+      model: config.primaryModel,
+      provider: "openrouter",
+      images: result.images,
+    };
   } catch (primaryError) {
     console.warn(
       `[AI Gateway] ${functionName} | model=${config.primaryModel} | FAILED: ${(primaryError as Error).message}`,
@@ -379,13 +427,15 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResponse> {
     // Try fallback if available
     if (config.fallbackModel) {
       try {
-        const content = await callOpenRouter(
+        const result = await callOpenRouter(
           config.apiKey,
           config.fallbackModel,
           messages,
           maxTokens,
           temperature,
           responseFormat,
+          modalities,
+          imageConfig,
         );
 
         const latency = Date.now() - startTime;
@@ -393,7 +443,12 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResponse> {
           `[AI Gateway] ${functionName} | fallback=${config.fallbackModel} | ${latency}ms | success`,
         );
 
-        return { content, model: config.fallbackModel, provider: "openrouter" };
+        return {
+          content: result.content,
+          model: config.fallbackModel,
+          provider: "openrouter",
+          images: result.images,
+        };
       } catch (fallbackError) {
         console.error(
           `[AI Gateway] ${functionName} | fallback=${config.fallbackModel} | FAILED: ${(fallbackError as Error).message}`,
