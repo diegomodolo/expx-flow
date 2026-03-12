@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
       slides = [],
       additionalImageToMerge,
       orientation, // New: custom orientation from image editor
+      skipCaption = false, // Pular geração de caption quando o caller não precisa
     } = await req.json();
 
     console.log("Request data received:", {
@@ -715,7 +716,7 @@ CRITICAL CAROUSEL CONSISTENCY:
         }
       }
 
-      const caption = await generateCaption();
+      const caption = skipCaption ? "" : await generateCaption();
 
       console.log(`Carousel completed: ${generatedImages.length} images`);
       return new Response(
@@ -739,10 +740,11 @@ CRITICAL CAROUSEL CONSISTENCY:
         : "";
 
       const imageUrl = await generateSingleImage(singleImagePrompt);
-      // Pular geração de caption quando é edição de imagem existente (economiza 1 chamada de API)
+      // Pular geração de caption quando não é necessária (economiza 1 chamada de API)
       const isEditingExisting =
         context?.contextOnly?.isEditingExisting === true;
-      const caption = isEditingExisting ? "" : await generateCaption();
+      const shouldSkipCaption = skipCaption || isEditingExisting;
+      const caption = shouldSkipCaption ? "" : await generateCaption();
 
       console.log("Function completed successfully");
       return new Response(

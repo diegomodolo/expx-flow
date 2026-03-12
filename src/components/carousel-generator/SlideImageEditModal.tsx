@@ -119,6 +119,7 @@ export function SlideImageEditModal({
             references,
             additionalImageToMerge: additionalImageUrl,
             extraPrompt: prompt,
+            skipCaption: true,
             context: {
               title: "",
               description: prompt,

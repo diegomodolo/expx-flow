@@ -312,6 +312,7 @@ function SlideCard({
             extraPrompt: extraPrompt.trim() || undefined,
             references: referenceImages,
             additionalImageToMerge: additionalImageToMerge || undefined,
+            skipCaption: true,
             context: {
               title: localHeadline,
               description: localContent,
@@ -1065,6 +1066,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
               extraPrompt: extraPrompt.trim() || undefined,
               references: references.length > 0 ? references : undefined,
               additionalImageToMerge: additionalImageToMerge || undefined,
+              skipCaption: true,
               context: {
                 title: post.headline,
                 description: post.subheadline,
@@ -1184,6 +1186,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
                 approvedText: approvedText || undefined,
                 extraPrompt: allSlidesExtraPrompt.trim() || undefined,
                 references: referenceImages,
+                skipCaption: true,
                 context: {
                   title: slide.headline,
                   description: slide.content,
