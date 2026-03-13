@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface SourceVideoInfo {
   title: string;
@@ -24,7 +24,7 @@ export interface YouTubeScript {
   thumbnail_url: string | null;
   reference_thumbnails: string[];
   video_duration_target: number | null;
-  status: 'draft' | 'review' | 'approved' | 'produced';
+  status: "draft" | "review" | "approved" | "produced";
   created_at: string;
   updated_at: string;
   source_videos?: SourceVideoInfo[];
@@ -33,7 +33,7 @@ export interface YouTubeScript {
 export interface ScriptMessage {
   id: string;
   script_id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   created_at: string;
 }
@@ -49,19 +49,22 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
 
     try {
       const { data, error } = await supabase
-        .from('youtube_scripts')
-        .select('*, youtube_content_suggestions(based_on_videos)')
-        .eq('client_id', clientId)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
+        .from("youtube_scripts")
+        .select("*, youtube_content_suggestions(based_on_videos)")
+        .eq("client_id", clientId)
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
+
       // Collect all video titles from suggestions AND source_video_id column
       const allVideoTitles: string[] = [];
       (data || []).forEach((s: unknown) => {
         const suggestion = s.youtube_content_suggestions;
-        if (suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos)) {
+        if (
+          suggestion?.based_on_videos &&
+          Array.isArray(suggestion.based_on_videos)
+        ) {
           allVideoTitles.push(...suggestion.based_on_videos);
         }
         // Also include source_video_id (stores the original video title)
@@ -78,25 +81,29 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       if (combinedTitles.length > 0) {
         const uniqueTitles = [...new Set(combinedTitles)];
         const { data: videosData } = await supabase
-          .from('youtube_video_analyses')
-          .select('title, view_count, like_count, comment_count, engagement_rate, thumbnail_url, channel_id')
-          .in('title', uniqueTitles)
-          .eq('client_id', clientId);
+          .from("youtube_video_analyses")
+          .select(
+            "title, view_count, like_count, comment_count, engagement_rate, thumbnail_url, channel_id",
+          )
+          .in("title", uniqueTitles)
+          .eq("client_id", clientId);
 
         if (videosData && videosData.length > 0) {
           // Fetch channel names
-          const channelIds = [...new Set(videosData.map(v => v.channel_id))];
+          const channelIds = [...new Set(videosData.map((v) => v.channel_id))];
           const { data: channelsData } = await supabase
-            .from('youtube_monitored_channels')
-            .select('id, channel_name')
-            .in('id', channelIds);
-          
-          const channelMap = new Map((channelsData || []).map(c => [c.id, c.channel_name]));
+            .from("youtube_monitored_channels")
+            .select("id, channel_name")
+            .in("id", channelIds);
 
-          videosData.forEach(v => {
+          const channelMap = new Map(
+            (channelsData || []).map((c) => [c.id, c.channel_name]),
+          );
+
+          videosData.forEach((v) => {
             videoMap.set(v.title, {
               title: v.title,
-              channel_name: channelMap.get(v.channel_id) || 'Desconhecido',
+              channel_name: channelMap.get(v.channel_id) || "Desconhecido",
               view_count: v.view_count,
               like_count: v.like_count,
               comment_count: v.comment_count,
@@ -110,15 +117,17 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       // Parse JSON fields with proper typing
       const parsedScripts: YouTubeScript[] = (data || []).map((s: unknown) => {
         const suggestion = s.youtube_content_suggestions;
-        const basedOnVideos: string[] = suggestion?.based_on_videos && Array.isArray(suggestion.based_on_videos) 
-          ? suggestion.based_on_videos 
-          : [];
-        
+        const basedOnVideos: string[] =
+          suggestion?.based_on_videos &&
+          Array.isArray(suggestion.based_on_videos)
+            ? suggestion.based_on_videos
+            : [];
+
         // Try suggestion-based videos first, then source_video_id
         let sourceVideos = basedOnVideos
-          .map(title => videoMap.get(title))
+          .map((title) => videoMap.get(title))
           .filter((v): v is SourceVideoInfo => !!v);
-        
+
         if (sourceVideos.length === 0 && s.source_video_id) {
           const match = videoMap.get(s.source_video_id);
           if (match) {
@@ -129,20 +138,20 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
         return {
           ...s,
           youtube_content_suggestions: undefined,
-          status: s.status as YouTubeScript['status'],
-          suggested_titles: Array.isArray(s.suggested_titles) 
-            ? (s.suggested_titles as unknown as string[]) 
+          status: s.status as YouTubeScript["status"],
+          suggested_titles: Array.isArray(s.suggested_titles)
+            ? (s.suggested_titles as unknown as string[])
             : [],
-          reference_thumbnails: Array.isArray(s.reference_thumbnails) 
-            ? (s.reference_thumbnails as unknown as string[]) 
+          reference_thumbnails: Array.isArray(s.reference_thumbnails)
+            ? (s.reference_thumbnails as unknown as string[])
             : [],
           source_videos: sourceVideos.length > 0 ? sourceVideos : undefined,
         };
       });
-      
+
       setScripts(parsedScripts);
     } catch (error) {
-      console.error('Error fetching scripts:', error);
+      console.error("Error fetching scripts:", error);
     } finally {
       setLoading(false);
     }
@@ -160,39 +169,45 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       referenceVideoIds?: string[];
       durationTarget?: number;
       sourceVideoTitle?: string;
-    }
+      sourceContent?: string;
+    },
   ) => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-video-script', {
-        body: {
-          topic,
-          clientId,
-          companyId,
-          suggestionId: options?.suggestionId,
-          clientContext: options?.clientContext,
-          referenceVideoIds: options?.referenceVideoIds,
-          durationTarget: options?.durationTarget || 600,
-          sourceVideoTitle: options?.sourceVideoTitle,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-video-script",
+        {
+          body: {
+            topic,
+            clientId,
+            companyId,
+            suggestionId: options?.suggestionId,
+            clientContext: options?.clientContext,
+            referenceVideoIds: options?.referenceVideoIds,
+            durationTarget: options?.durationTarget || 600,
+            sourceVideoTitle: options?.sourceVideoTitle,
+            sourceContent: options?.sourceContent,
+          },
         },
-      });
+      );
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to generate script');
+      if (!data?.success)
+        throw new Error(data?.error || "Failed to generate script");
 
       toast({
-        title: 'Roteiro gerado!',
-        description: 'O roteiro foi criado com sucesso.',
+        title: "Roteiro gerado!",
+        description: "O roteiro foi criado com sucesso.",
       });
 
       await fetchScripts();
       return data.script;
     } catch (error: unknown) {
-      console.error('Error generating script:', error);
+      console.error("Error generating script:", error);
       toast({
-        title: 'Erro ao gerar roteiro',
-        description: error.message || 'Não foi possível gerar o roteiro.',
-        variant: 'destructive',
+        title: "Erro ao gerar roteiro",
+        description: error.message || "Não foi possível gerar o roteiro.",
+        variant: "destructive",
       });
       return null;
     } finally {
@@ -200,27 +215,30 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
     }
   };
 
-  const updateScript = async (scriptId: string, updates: Partial<YouTubeScript>) => {
+  const updateScript = async (
+    scriptId: string,
+    updates: Partial<YouTubeScript>,
+  ) => {
     try {
       const { error } = await supabase
-        .from('youtube_scripts')
+        .from("youtube_scripts")
         .update(updates)
-        .eq('id', scriptId);
+        .eq("id", scriptId);
 
       if (error) throw error;
 
-      setScripts(prev =>
-        prev.map(s => (s.id === scriptId ? { ...s, ...updates } : s))
+      setScripts((prev) =>
+        prev.map((s) => (s.id === scriptId ? { ...s, ...updates } : s)),
       );
 
       toast({
-        title: 'Roteiro atualizado',
+        title: "Roteiro atualizado",
       });
     } catch (error) {
-      console.error('Error updating script:', error);
+      console.error("Error updating script:", error);
       toast({
-        title: 'Erro ao atualizar',
-        variant: 'destructive',
+        title: "Erro ao atualizar",
+        variant: "destructive",
       });
     }
   };
@@ -228,82 +246,92 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
   const deleteScript = async (scriptId: string) => {
     try {
       const { error } = await supabase
-        .from('youtube_scripts')
+        .from("youtube_scripts")
         .delete()
-        .eq('id', scriptId);
+        .eq("id", scriptId);
 
       if (error) throw error;
 
-      setScripts(prev => prev.filter(s => s.id !== scriptId));
+      setScripts((prev) => prev.filter((s) => s.id !== scriptId));
 
       toast({
-        title: 'Roteiro excluído',
+        title: "Roteiro excluído",
       });
     } catch (error) {
-      console.error('Error deleting script:', error);
+      console.error("Error deleting script:", error);
       toast({
-        title: 'Erro ao excluir',
-        variant: 'destructive',
+        title: "Erro ao excluir",
+        variant: "destructive",
       });
     }
   };
 
-  const fetchScriptMessages = async (scriptId: string): Promise<ScriptMessage[]> => {
+  const fetchScriptMessages = async (
+    scriptId: string,
+  ): Promise<ScriptMessage[]> => {
     const { data, error } = await supabase
-      .from('youtube_script_messages')
-      .select('*')
-      .eq('script_id', scriptId)
-      .order('created_at', { ascending: true });
+      .from("youtube_script_messages")
+      .select("*")
+      .eq("script_id", scriptId)
+      .order("created_at", { ascending: true });
 
     if (error) {
-      console.error('Error fetching messages:', error);
+      console.error("Error fetching messages:", error);
       return [];
     }
 
-    return (data || []).map(m => ({
+    return (data || []).map((m) => ({
       ...m,
-      role: m.role as ScriptMessage['role'],
+      role: m.role as ScriptMessage["role"],
     }));
   };
 
   const sendChatMessage = async (scriptId: string, message: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('refine-script-chat', {
-        body: { scriptId, message },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "refine-script-chat",
+        {
+          body: { scriptId, message },
+        },
+      );
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to send message');
+      if (!data?.success)
+        throw new Error(data?.error || "Failed to send message");
 
       return data;
     } catch (error: unknown) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
-        title: 'Erro ao enviar mensagem',
-        variant: 'destructive',
+        title: "Erro ao enviar mensagem",
+        variant: "destructive",
       });
       return null;
     }
   };
 
-  const generateTitles = async (scriptId: string, style = 'mixed') => {
+  const generateTitles = async (scriptId: string, style = "mixed") => {
     try {
-      const script = scripts.find(s => s.id === scriptId);
-      
-      const { data, error } = await supabase.functions.invoke('generate-youtube-titles', {
-        body: { scriptId, topic: script?.title, style },
-      });
+      const script = scripts.find((s) => s.id === scriptId);
+
+      const { data, error } = await supabase.functions.invoke(
+        "generate-youtube-titles",
+        {
+          body: { scriptId, topic: script?.title, style },
+        },
+      );
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to generate titles');
+      if (!data?.success)
+        throw new Error(data?.error || "Failed to generate titles");
 
       await fetchScripts();
       return data.titles;
     } catch (error: unknown) {
-      console.error('Error generating titles:', error);
+      console.error("Error generating titles:", error);
       toast({
-        title: 'Erro ao gerar títulos',
-        variant: 'destructive',
+        title: "Erro ao gerar títulos",
+        variant: "destructive",
       });
       return null;
     }

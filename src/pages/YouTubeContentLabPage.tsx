@@ -20,6 +20,7 @@ import {
   ChannelRefreshStatus,
 } from "@/components/youtube-content-lab/YouTubeRefreshModal";
 import { YouTubeRefreshConfigModal } from "@/components/youtube-content-lab/YouTubeRefreshConfigModal";
+import { NewScriptDialog } from "@/components/youtube-content-lab/NewScriptDialog";
 import {
   Youtube,
   BarChart3,
@@ -68,6 +69,7 @@ export default function YouTubeContentLabPage() {
     ChannelRefreshStatus[]
   >([]);
   const [refreshFinished, setRefreshFinished] = useState(false);
+  const [newScriptDialogOpen, setNewScriptDialogOpen] = useState(false);
 
   // For now hooks still use clientId - they'll work for client-linked labs
   // For standalone labs, we pass labId as clientId (queries will return empty, which is correct for new labs)
@@ -318,9 +320,7 @@ export default function YouTubeContentLabPage() {
                 generating={scriptsHook.generating}
                 onOpenScript={handleOpenScript}
                 onDeleteScript={scriptsHook.deleteScript}
-                onCreateNew={() => {
-                  scriptsHook.generateScript("Novo roteiro");
-                }}
+                onCreateNew={() => setNewScriptDialogOpen(true)}
                 onUpdateStatus={(scriptId, status) =>
                   scriptsHook.updateScript(scriptId, { status })
                 }
@@ -397,6 +397,17 @@ export default function YouTubeContentLabPage() {
         onOpenChange={setRefreshModalOpen}
         channels={refreshStatuses}
         finished={refreshFinished}
+      />
+      <NewScriptDialog
+        open={newScriptDialogOpen}
+        onOpenChange={setNewScriptDialogOpen}
+        generating={scriptsHook.generating}
+        onGenerate={(topic, options) => {
+          scriptsHook.generateScript(topic, {
+            sourceContent: options?.sourceContent,
+            durationTarget: options?.durationTarget,
+          });
+        }}
       />
     </div>
   );

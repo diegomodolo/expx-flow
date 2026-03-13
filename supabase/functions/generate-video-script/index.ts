@@ -18,11 +18,16 @@ async function generateScript(
   referenceVideos: unknown[],
   durationTarget: number,
   companyId: string,
+  sourceContent?: string,
 ): Promise<string> {
   const durationMinutes = Math.round(durationTarget / 60);
 
-  const userPrompt = `Crie um roteiro completo para vídeo do YouTube sobre "${topic}".
+  const sourceContentBlock = sourceContent
+    ? `\nCONTEÚDO BASE FORNECIDO PELO USUÁRIO (usar como referência principal para criar o roteiro):\n---\n${sourceContent}\n---\nIMPORTANTE: O roteiro DEVE ser baseado neste conteúdo. Extraia as ideias principais, reorganize de forma envolvente para vídeo e adapte a linguagem para YouTube.\n`
+    : "";
 
+  const userPrompt = `Crie um roteiro completo para vídeo do YouTube sobre "${topic}".
+${sourceContentBlock}
 CONTEXTO DO CLIENTE/CANAL:
 ${clientContext}
 
@@ -151,6 +156,7 @@ Deno.serve(async (req) => {
       referenceVideoIds,
       durationTarget = 600, // 10 minutes default
       sourceVideoTitle,
+      sourceContent,
     } = await req.json();
 
     console.log("Generating script for topic:", topic);
@@ -193,6 +199,7 @@ Deno.serve(async (req) => {
       referenceVideos,
       durationTarget,
       companyId,
+      sourceContent,
     );
 
     console.log("Script generated, length:", scriptContent.length);
