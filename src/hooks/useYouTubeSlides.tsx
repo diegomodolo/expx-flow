@@ -2,6 +2,13 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import PptxGenJS from "pptxgenjs";
+import html2canvas from "html2canvas";
+import {
+  generateSlideHTML,
+  extractColorsFromThumbnail,
+  DEFAULT_COLORS,
+  type SlideColors,
+} from "@/components/youtube-content-lab/slideTemplates";
 
 export interface YouTubeSlide {
   id: string;
@@ -20,12 +27,15 @@ export function useYouTubeSlides(scriptId: string | null) {
   const [slides, setSlides] = useState<YouTubeSlide[]>([]);
   const [loading, setLoading] = useState(false);
   const [generatingStructure, setGeneratingStructure] = useState(false);
-  const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
-  const [generatingThumbnailFirst, setGeneratingThumbnailFirst] = useState(false);
+  const [generatingImages, setGeneratingImages] = useState<Set<string>>(
+    new Set(),
+  );
+  const [generatingThumbnailFirst, setGeneratingThumbnailFirst] =
+    useState(false);
 
   const fetchSlides = useCallback(async () => {
     if (!scriptId) return [];
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -35,12 +45,12 @@ export function useYouTubeSlides(scriptId: string | null) {
         .order("slide_order", { ascending: true });
 
       if (error) throw error;
-      
-      const typedSlides = (data || []).map(slide => ({
+
+      const typedSlides = (data || []).map((slide) => ({
         ...slide,
-        status: slide.status as YouTubeSlide["status"]
+        status: slide.status as YouTubeSlide["status"],
       }));
-      
+
       setSlides(typedSlides);
       return typedSlides;
     } catch (error: unknown) {
@@ -52,157 +62,478 @@ export function useYouTubeSlides(scriptId: string | null) {
     }
   }, [scriptId]);
 
-  const generateStructure = useCallback(async (
-    scriptContent: string, 
-    title: string,
-    numberOfSlides: number = 10
-  ) => {
-    if (!scriptId) return null;
-    
-    setGeneratingStructure(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-presentation-slides", {
-        body: { scriptId, scriptContent, title, numberOfSlides },
-      });
+  const generateStructure = useCallback(
+    async (
+      scriptContent: string,
+      title: string,
+      numberOfSlides: number = 10,
+    ) => {
+      if (!scriptId) return null;
 
-      if (error) throw error;
-
-      if (data?.slides) {
-        const typedSlides = data.slides.map((slide: unknown) => ({
-          ...slide,
-          status: slide.status as YouTubeSlide["status"]
-        }));
-        setSlides(typedSlides);
-        toast.success(`${typedSlides.length} slides gerados com sucesso!`);
-        return typedSlides;
-      }
-      
-      return null;
-    } catch (error: unknown) {
-      console.error("Error generating structure:", error);
-      toast.error(error.message || "Erro ao gerar estrutura de slides");
-      return null;
-    } finally {
-      setGeneratingStructure(false);
-    }
-  }, [scriptId]);
-
-  const updateSlide = useCallback(async (slideId: string, updates: Partial<YouTubeSlide>) => {
-    try {
-      const { error } = await supabase
-        .from("youtube_script_slides")
-        .update(updates)
-        .eq("id", slideId);
-
-      if (error) throw error;
-
-      setSlides(prev => prev.map(s => 
-        s.id === slideId ? { ...s, ...updates } : s
-      ));
-      
-      return true;
-    } catch (error: unknown) {
-      console.error("Error updating slide:", error);
-      toast.error("Erro ao atualizar slide");
-      return false;
-    }
-  }, []);
-
-  const generateSlideImage = useCallback(async (
-    slideId: string, 
-    companyId: string,
-    thumbnailUrl?: string | null
-  ) => {
-    setGeneratingImages(prev => new Set(prev).add(slideId));
-    
-    // Update local state to show generating
-    setSlides(prev => prev.map(s => 
-      s.id === slideId ? { ...s, status: "generating" as const } : s
-    ));
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-slide-image", {
-        body: { slideId, companyId, thumbnailUrl },
-      });
-
-      if (error) throw error;
-
-      if (data?.imageUrl) {
-        setSlides(prev => prev.map(s => 
-          s.id === slideId ? { ...s, image_url: data.imageUrl, status: "completed" as const } : s
-        ));
-        return data.imageUrl;
-      }
-      
-      throw new Error("No image returned");
-    } catch (error: unknown) {
-      console.error("Error generating slide image:", error);
-      setSlides(prev => prev.map(s => 
-        s.id === slideId ? { ...s, status: "error" as const } : s
-      ));
-      toast.error(`Erro ao gerar imagem: ${error.message}`);
-      return null;
-    } finally {
-      setGeneratingImages(prev => {
-        const next = new Set(prev);
-        next.delete(slideId);
-        return next;
-      });
-    }
-  }, []);
-
-  const generateAllImages = useCallback(async (
-    companyId: string,
-    thumbnailUrl?: string | null,
-    onThumbnailNeeded?: () => Promise<string | null>
-  ) => {
-    const slidesToGenerate = slides.filter(s => !s.image_url || s.status === "draft" || s.status === "error");
-    
-    if (slidesToGenerate.length === 0) {
-      toast.info("Todos os slides já possuem imagens");
-      return;
-    }
-
-    let effectiveThumbnailUrl = thumbnailUrl;
-
-    // If no thumbnail, we need to generate one first
-    if (!effectiveThumbnailUrl && onThumbnailNeeded) {
-      setGeneratingThumbnailFirst(true);
-      toast.info("Gerando thumbnail primeiro para definir o estilo visual...");
-      
+      setGeneratingStructure(true);
       try {
-        effectiveThumbnailUrl = await onThumbnailNeeded();
-        if (!effectiveThumbnailUrl) {
-          toast.error("Não foi possível gerar a thumbnail. Tente novamente.");
+        const { data, error } = await supabase.functions.invoke(
+          "generate-presentation-slides",
+          {
+            body: { scriptId, scriptContent, title, numberOfSlides },
+          },
+        );
+
+        if (error) throw error;
+
+        if (data?.slides) {
+          const typedSlides = data.slides.map((slide: unknown) => ({
+            ...slide,
+            status: slide.status as YouTubeSlide["status"],
+          }));
+          setSlides(typedSlides);
+          toast.success(`${typedSlides.length} slides gerados com sucesso!`);
+          return typedSlides;
+        }
+
+        return null;
+      } catch (error: unknown) {
+        console.error("Error generating structure:", error);
+        toast.error(error.message || "Erro ao gerar estrutura de slides");
+        return null;
+      } finally {
+        setGeneratingStructure(false);
+      }
+    },
+    [scriptId],
+  );
+
+  const updateSlide = useCallback(
+    async (slideId: string, updates: Partial<YouTubeSlide>) => {
+      try {
+        const { error } = await supabase
+          .from("youtube_script_slides")
+          .update(updates)
+          .eq("id", slideId);
+
+        if (error) throw error;
+
+        setSlides((prev) =>
+          prev.map((s) => (s.id === slideId ? { ...s, ...updates } : s)),
+        );
+
+        return true;
+      } catch (error: unknown) {
+        console.error("Error updating slide:", error);
+        toast.error("Erro ao atualizar slide");
+        return false;
+      }
+    },
+    [],
+  );
+
+  const regenerateSlideImageHTML = useCallback(
+    async (
+      slideId: string,
+      videoTitle: string,
+      thumbnailUrl?: string | null,
+    ) => {
+      const slide = slides.find((s) => s.id === slideId);
+      if (!slide) return null;
+
+      setGeneratingImages((prev) => new Set(prev).add(slideId));
+      setSlides((prev) =>
+        prev.map((s) =>
+          s.id === slideId ? { ...s, status: "generating" as const } : s,
+        ),
+      );
+
+      try {
+        let colors: SlideColors = DEFAULT_COLORS;
+        if (thumbnailUrl) {
+          try {
+            colors = await extractColorsFromThumbnail(thumbnailUrl);
+          } catch {
+            // use defaults
+          }
+        }
+
+        const html = generateSlideHTML({
+          title: slide.title,
+          content: slide.content,
+          slideOrder: slide.slide_order,
+          totalSlides: slides.length,
+          videoTitle,
+          thumbnailUrl,
+          colors,
+        });
+
+        const container = document.createElement("div");
+        container.style.position = "fixed";
+        container.style.left = "-9999px";
+        container.style.top = "0";
+        container.style.width = "1920px";
+        container.style.height = "1080px";
+        container.style.overflow = "hidden";
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        const canvas = await html2canvas(container, {
+          width: 1920,
+          height: 1080,
+          scale: 1,
+          useCORS: true,
+          backgroundColor: null,
+          logging: false,
+        });
+
+        document.body.removeChild(container);
+
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (b) => (b ? resolve(b) : reject(new Error("Canvas toBlob failed"))),
+            "image/jpeg",
+            0.92,
+          );
+        });
+
+        const fileName = `slides/${slide.script_id}/${slide.id}_${Date.now()}.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("ai-generated-images")
+          .upload(fileName, blob, {
+            contentType: "image/jpeg",
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from("ai-generated-images")
+          .getPublicUrl(fileName);
+
+        const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+        await supabase
+          .from("youtube_script_slides")
+          .update({
+            image_url: publicUrl,
+            status: "completed",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", slide.id);
+
+        setSlides((prev) =>
+          prev.map((s) =>
+            s.id === slideId
+              ? { ...s, image_url: publicUrl, status: "completed" as const }
+              : s,
+          ),
+        );
+
+        return publicUrl;
+      } catch (error: unknown) {
+        console.error("Error regenerating slide image:", error);
+        setSlides((prev) =>
+          prev.map((s) =>
+            s.id === slideId ? { ...s, status: "error" as const } : s,
+          ),
+        );
+        toast.error(`Erro ao gerar imagem: ${(error as Error).message}`);
+        return null;
+      } finally {
+        setGeneratingImages((prev) => {
+          const next = new Set(prev);
+          next.delete(slideId);
+          return next;
+        });
+      }
+    },
+    [slides],
+  );
+
+  const generateSlideImage = useCallback(
+    async (
+      slideId: string,
+      companyId: string,
+      thumbnailUrl?: string | null,
+    ) => {
+      setGeneratingImages((prev) => new Set(prev).add(slideId));
+
+      // Update local state to show generating
+      setSlides((prev) =>
+        prev.map((s) =>
+          s.id === slideId ? { ...s, status: "generating" as const } : s,
+        ),
+      );
+
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "generate-slide-image",
+          {
+            body: { slideId, companyId, thumbnailUrl },
+          },
+        );
+
+        if (error) throw error;
+
+        if (data?.imageUrl) {
+          setSlides((prev) =>
+            prev.map((s) =>
+              s.id === slideId
+                ? {
+                    ...s,
+                    image_url: data.imageUrl,
+                    status: "completed" as const,
+                  }
+                : s,
+            ),
+          );
+          return data.imageUrl;
+        }
+
+        throw new Error("No image returned");
+      } catch (error: unknown) {
+        console.error("Error generating slide image:", error);
+        setSlides((prev) =>
+          prev.map((s) =>
+            s.id === slideId ? { ...s, status: "error" as const } : s,
+          ),
+        );
+        toast.error(`Erro ao gerar imagem: ${error.message}`);
+        return null;
+      } finally {
+        setGeneratingImages((prev) => {
+          const next = new Set(prev);
+          next.delete(slideId);
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
+  const generateAllImages = useCallback(
+    async (
+      companyId: string,
+      thumbnailUrl?: string | null,
+      onThumbnailNeeded?: () => Promise<string | null>,
+    ) => {
+      const slidesToGenerate = slides.filter(
+        (s) => !s.image_url || s.status === "draft" || s.status === "error",
+      );
+
+      if (slidesToGenerate.length === 0) {
+        toast.info("Todos os slides já possuem imagens");
+        return;
+      }
+
+      let effectiveThumbnailUrl = thumbnailUrl;
+
+      // If no thumbnail, we need to generate one first
+      if (!effectiveThumbnailUrl && onThumbnailNeeded) {
+        setGeneratingThumbnailFirst(true);
+        toast.info(
+          "Gerando thumbnail primeiro para definir o estilo visual...",
+        );
+
+        try {
+          effectiveThumbnailUrl = await onThumbnailNeeded();
+          if (!effectiveThumbnailUrl) {
+            toast.error("Não foi possível gerar a thumbnail. Tente novamente.");
+            setGeneratingThumbnailFirst(false);
+            return;
+          }
+          toast.success("Thumbnail gerada! Agora gerando os slides...");
+        } catch (error) {
+          console.error("Error generating thumbnail first:", error);
+          toast.error("Erro ao gerar thumbnail");
           setGeneratingThumbnailFirst(false);
           return;
         }
-        toast.success("Thumbnail gerada! Agora gerando os slides...");
-      } catch (error) {
-        console.error("Error generating thumbnail first:", error);
-        toast.error("Erro ao gerar thumbnail");
         setGeneratingThumbnailFirst(false);
+      }
+
+      toast.info(
+        `Gerando ${slidesToGenerate.length} imagens com o estilo da thumbnail...`,
+      );
+
+      let successCount = 0;
+      for (const slide of slidesToGenerate) {
+        const result = await generateSlideImage(
+          slide.id,
+          companyId,
+          effectiveThumbnailUrl,
+        );
+        if (result) successCount++;
+        // Small delay between requests to avoid rate limiting
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      if (successCount === slidesToGenerate.length) {
+        toast.success("Todas as imagens foram geradas!");
+      } else {
+        toast.warning(
+          `${successCount}/${slidesToGenerate.length} imagens geradas`,
+        );
+      }
+    },
+    [slides, generateSlideImage],
+  );
+
+  const generateAllImagesHTML = useCallback(
+    async (videoTitle: string, thumbnailUrl?: string | null) => {
+      const slidesToGenerate = slides.filter(
+        (s) => !s.image_url || s.status === "draft" || s.status === "error",
+      );
+
+      if (slidesToGenerate.length === 0) {
+        toast.info("Todos os slides já possuem imagens");
         return;
       }
-      setGeneratingThumbnailFirst(false);
-    }
 
-    toast.info(`Gerando ${slidesToGenerate.length} imagens com o estilo da thumbnail...`);
+      toast.info(
+        `Gerando ${slidesToGenerate.length} imagens da apresentação...`,
+      );
 
-    let successCount = 0;
-    for (const slide of slidesToGenerate) {
-      const result = await generateSlideImage(slide.id, companyId, effectiveThumbnailUrl);
-      if (result) successCount++;
-      // Small delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+      // Extract colors from thumbnail
+      let colors: SlideColors = DEFAULT_COLORS;
+      if (thumbnailUrl) {
+        try {
+          colors = await extractColorsFromThumbnail(thumbnailUrl);
+        } catch {
+          console.warn(
+            "Could not extract colors from thumbnail, using defaults",
+          );
+        }
+      }
 
-    if (successCount === slidesToGenerate.length) {
-      toast.success("Todas as imagens foram geradas!");
-    } else {
-      toast.warning(`${successCount}/${slidesToGenerate.length} imagens geradas`);
-    }
-  }, [slides, generateSlideImage]);
+      // Mark all as generating
+      const allGeneratingIds = new Set(slidesToGenerate.map((s) => s.id));
+      setGeneratingImages(allGeneratingIds);
+      setSlides((prev) =>
+        prev.map((s) =>
+          allGeneratingIds.has(s.id)
+            ? { ...s, status: "generating" as const }
+            : s,
+        ),
+      );
+
+      let successCount = 0;
+      const totalSlides = slides.length;
+
+      for (const slide of slidesToGenerate) {
+        try {
+          // Generate HTML
+          const html = generateSlideHTML({
+            title: slide.title,
+            content: slide.content,
+            slideOrder: slide.slide_order,
+            totalSlides,
+            videoTitle,
+            thumbnailUrl,
+            colors,
+          });
+
+          // Create offscreen container
+          const container = document.createElement("div");
+          container.style.position = "fixed";
+          container.style.left = "-9999px";
+          container.style.top = "0";
+          container.style.width = "1920px";
+          container.style.height = "1080px";
+          container.style.overflow = "hidden";
+          container.innerHTML = html;
+          document.body.appendChild(container);
+
+          // Render to canvas
+          const canvas = await html2canvas(container, {
+            width: 1920,
+            height: 1080,
+            scale: 1,
+            useCORS: true,
+            backgroundColor: null,
+            logging: false,
+          });
+
+          document.body.removeChild(container);
+
+          // Convert to blob
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob(
+              (b) =>
+                b ? resolve(b) : reject(new Error("Canvas toBlob failed")),
+              "image/jpeg",
+              0.92,
+            );
+          });
+
+          // Upload to storage
+          const fileName = `slides/${slide.script_id}/${slide.id}_${Date.now()}.jpg`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("ai-generated-images")
+            .upload(fileName, blob, {
+              contentType: "image/jpeg",
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage
+            .from("ai-generated-images")
+            .getPublicUrl(fileName);
+
+          const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+          // Update DB
+          await supabase
+            .from("youtube_script_slides")
+            .update({
+              image_url: publicUrl,
+              status: "completed",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", slide.id);
+
+          // Update local state
+          setSlides((prev) =>
+            prev.map((s) =>
+              s.id === slide.id
+                ? { ...s, image_url: publicUrl, status: "completed" as const }
+                : s,
+            ),
+          );
+
+          successCount++;
+        } catch (error: unknown) {
+          console.error(`Error generating slide image for ${slide.id}:`, error);
+          setSlides((prev) =>
+            prev.map((s) =>
+              s.id === slide.id ? { ...s, status: "error" as const } : s,
+            ),
+          );
+          await supabase
+            .from("youtube_script_slides")
+            .update({ status: "error" })
+            .eq("id", slide.id);
+        }
+
+        // Remove from generating set
+        setGeneratingImages((prev) => {
+          const next = new Set(prev);
+          next.delete(slide.id);
+          return next;
+        });
+      }
+
+      if (successCount === slidesToGenerate.length) {
+        toast.success("Todas as imagens foram geradas!");
+      } else if (successCount > 0) {
+        toast.warning(
+          `${successCount}/${slidesToGenerate.length} imagens geradas`,
+        );
+      } else {
+        toast.error("Erro ao gerar imagens dos slides");
+      }
+    },
+    [slides],
+  );
 
   const deleteSlide = useCallback(async (slideId: string) => {
     try {
@@ -213,7 +544,7 @@ export function useYouTubeSlides(scriptId: string | null) {
 
       if (error) throw error;
 
-      setSlides(prev => prev.filter(s => s.id !== slideId));
+      setSlides((prev) => prev.filter((s) => s.id !== slideId));
       toast.success("Slide removido");
       return true;
     } catch (error: unknown) {
@@ -223,98 +554,111 @@ export function useYouTubeSlides(scriptId: string | null) {
     }
   }, []);
 
-  const reorderSlides = useCallback(async (slideId: string, newOrder: number) => {
-    try {
-      const { error } = await supabase
-        .from("youtube_script_slides")
-        .update({ slide_order: newOrder })
-        .eq("id", slideId);
+  const reorderSlides = useCallback(
+    async (slideId: string, newOrder: number) => {
+      try {
+        const { error } = await supabase
+          .from("youtube_script_slides")
+          .update({ slide_order: newOrder })
+          .eq("id", slideId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setSlides(prev => {
-        const updated = prev.map(s => 
-          s.id === slideId ? { ...s, slide_order: newOrder } : s
-        );
-        return updated.sort((a, b) => a.slide_order - b.slide_order);
-      });
-      
-      return true;
-    } catch (error: unknown) {
-      console.error("Error reordering slides:", error);
-      return false;
-    }
-  }, []);
+        setSlides((prev) => {
+          const updated = prev.map((s) =>
+            s.id === slideId ? { ...s, slide_order: newOrder } : s,
+          );
+          return updated.sort((a, b) => a.slide_order - b.slide_order);
+        });
+
+        return true;
+      } catch (error: unknown) {
+        console.error("Error reordering slides:", error);
+        return false;
+      }
+    },
+    [],
+  );
 
   const [exportingToPpt, setExportingToPpt] = useState(false);
 
-  const exportToPpt = useCallback(async (scriptTitle: string) => {
-    if (!scriptId || slides.length === 0) return;
+  const exportToPpt = useCallback(
+    async (scriptTitle: string) => {
+      if (!scriptId || slides.length === 0) return;
 
-    const slidesWithImgs = slides.filter(s => s.image_url);
-    if (slidesWithImgs.length === 0) {
-      toast.error("Nenhum slide com imagem para exportar");
-      return;
-    }
-
-    setExportingToPpt(true);
-    toast.info("Gerando arquivo PPT...");
-
-    try {
-      const pptx = new PptxGenJS();
-      pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5 inches (16:9)
-      pptx.title = scriptTitle;
-
-      for (const slide of slidesWithImgs) {
-        const pptSlide = pptx.addSlide();
-        
-        // Convert image URL to base64 for reliable embedding
-        try {
-          const response = await fetch(slide.image_url!);
-          const blob = await response.blob();
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-
-          pptSlide.addImage({
-            data: base64,
-            x: 0,
-            y: 0,
-            w: "100%",
-            h: "100%",
-          });
-        } catch (imgError) {
-          console.error("Error loading slide image:", imgError);
-          // Fallback: add title text if image fails
-          pptSlide.addText(slide.title, {
-            x: 0.5,
-            y: 3,
-            w: 12,
-            h: 1.5,
-            fontSize: 32,
-            align: "center",
-            color: "363636",
-          });
-        }
+      const slidesWithImgs = slides.filter((s) => s.image_url);
+      if (slidesWithImgs.length === 0) {
+        toast.error("Nenhum slide com imagem para exportar");
+        return;
       }
 
-      const fileName = `${scriptTitle.replace(/[^a-zA-Z0-9À-ÿ\s]/g, "").trim().substring(0, 50)}.pptx`;
-      await pptx.writeFile({ fileName });
-      toast.success(`PPT baixado com ${slidesWithImgs.length} slides!`);
-    } catch (error: unknown) {
-      console.error("Error exporting to PPT:", error);
-      toast.error(error.message || "Erro ao gerar arquivo PPT");
-    } finally {
-      setExportingToPpt(false);
-    }
-  }, [scriptId, slides]);
+      setExportingToPpt(true);
+      toast.info("Gerando arquivo PPT...");
+
+      try {
+        const pptx = new PptxGenJS();
+        pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5 inches (16:9)
+        pptx.title = scriptTitle;
+
+        for (const slide of slidesWithImgs) {
+          const pptSlide = pptx.addSlide();
+
+          // Convert image URL to base64 for reliable embedding
+          try {
+            const response = await fetch(slide.image_url!);
+            const blob = await response.blob();
+            const base64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+
+            pptSlide.addImage({
+              data: base64,
+              x: 0,
+              y: 0,
+              w: "100%",
+              h: "100%",
+            });
+          } catch (imgError) {
+            console.error("Error loading slide image:", imgError);
+            // Fallback: add title text if image fails
+            pptSlide.addText(slide.title, {
+              x: 0.5,
+              y: 3,
+              w: 12,
+              h: 1.5,
+              fontSize: 32,
+              align: "center",
+              color: "363636",
+            });
+          }
+        }
+
+        const fileName = `${scriptTitle
+          .replace(/[^a-zA-Z0-9À-ÿ\s]/g, "")
+          .trim()
+          .substring(0, 50)}.pptx`;
+        await pptx.writeFile({ fileName });
+        toast.success(`PPT baixado com ${slidesWithImgs.length} slides!`);
+      } catch (error: unknown) {
+        console.error("Error exporting to PPT:", error);
+        toast.error(error.message || "Erro ao gerar arquivo PPT");
+      } finally {
+        setExportingToPpt(false);
+      }
+    },
+    [scriptId, slides],
+  );
 
   const hasSlides = slides.length > 0;
-  const allImagesGenerated = slides.every(s => s.image_url && s.status === "completed");
-  const pendingImages = slides.filter(s => !s.image_url || s.status === "draft" || s.status === "error").length;
-  const slidesWithImages = slides.filter(s => s.image_url).length;
+  const allImagesGenerated = slides.every(
+    (s) => s.image_url && s.status === "completed",
+  );
+  const pendingImages = slides.filter(
+    (s) => !s.image_url || s.status === "draft" || s.status === "error",
+  ).length;
+  const slidesWithImages = slides.filter((s) => s.image_url).length;
 
   return {
     slides,
@@ -331,7 +675,9 @@ export function useYouTubeSlides(scriptId: string | null) {
     generateStructure,
     updateSlide,
     generateSlideImage,
+    regenerateSlideImageHTML,
     generateAllImages,
+    generateAllImagesHTML,
     deleteSlide,
     reorderSlides,
     exportToPpt,

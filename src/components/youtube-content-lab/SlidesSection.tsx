@@ -55,7 +55,9 @@ export function SlidesSection({
     generateStructure,
     updateSlide,
     generateSlideImage,
+    regenerateSlideImageHTML,
     generateAllImages,
+    generateAllImagesHTML,
     deleteSlide,
     reorderSlides,
     exportToPpt,
@@ -82,11 +84,11 @@ export function SlidesSection({
   };
 
   const handleRegenerateImage = async (slideId: string) => {
-    await generateSlideImage(slideId, companyId, thumbnailUrl);
+    await regenerateSlideImageHTML(slideId, scriptTitle, thumbnailUrl);
   };
 
   const handleGenerateAllImages = async () => {
-    await generateAllImages(companyId, thumbnailUrl, onGenerateThumbnailFirst);
+    await generateAllImagesHTML(scriptTitle, thumbnailUrl);
   };
 
   const handleImageEditorSave = async (newImages: string[]) => {
@@ -101,7 +103,7 @@ export function SlidesSection({
     await exportToPpt(scriptTitle);
   };
 
-  const completedCount = slides.filter(s => s.status === "completed").length;
+  const completedCount = slides.filter((s) => s.status === "completed").length;
   const generatingCount = generatingImages.size;
   const isGenerating = generatingCount > 0 || generatingThumbnailFirst;
 
@@ -124,14 +126,19 @@ export function SlidesSection({
           <div className="flex items-center gap-2">
             {!hasSlides && (
               <div className="flex items-center gap-2">
-                <Label htmlFor="numSlides" className="text-sm text-muted-foreground">
+                <Label
+                  htmlFor="numSlides"
+                  className="text-sm text-muted-foreground"
+                >
                   Qtd:
                 </Label>
                 <Input
                   id="numSlides"
                   type="number"
                   value={numberOfSlides}
-                  onChange={(e) => setNumberOfSlides(parseInt(e.target.value) || 10)}
+                  onChange={(e) =>
+                    setNumberOfSlides(parseInt(e.target.value) || 10)
+                  }
                   min={3}
                   max={20}
                   className="w-16 h-8"
@@ -146,20 +153,15 @@ export function SlidesSection({
                 onClick={handleGenerateAllImages}
                 disabled={isGenerating}
               >
-                {generatingThumbnailFirst ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Gerando thumb...
-                  </>
-                ) : generatingCount > 0 ? (
+                {generatingCount > 0 ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     Gerando {generatingCount}...
                   </>
                 ) : (
                   <>
-                    <Images className="h-4 w-4 mr-1" />
-                    Gerar {pendingImages} imagens
+                    <Presentation className="h-4 w-4 mr-1" />
+                    Gerar Apresentação
                   </>
                 )}
               </Button>
@@ -225,7 +227,8 @@ export function SlidesSection({
               Nenhum slide gerado ainda
             </p>
             <p className="text-sm text-muted-foreground">
-              Clique em "Gerar Slides" para criar a estrutura da apresentação baseada no roteiro
+              Clique em "Gerar Slides" para criar a estrutura da apresentação
+              baseada no roteiro
             </p>
           </div>
         ) : (
@@ -235,15 +238,22 @@ export function SlidesSection({
               <Alert className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Nenhuma thumbnail gerada ainda. Ao gerar as imagens, uma thumbnail será criada primeiro 
-                  para definir o estilo visual de todos os slides.
+                  Gere uma thumbnail primeiro para que os slides usem as cores e
+                  estilo visual dela. Sem thumbnail, será usado um estilo
+                  padrão.
                 </AlertDescription>
               </Alert>
             )}
 
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as unknown)}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as unknown)}
+            >
               <TabsList className="mb-4">
-                <TabsTrigger value="carousel" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="carousel"
+                  className="flex items-center gap-1"
+                >
                   <Images className="h-4 w-4" />
                   Visualizar
                 </TabsTrigger>
