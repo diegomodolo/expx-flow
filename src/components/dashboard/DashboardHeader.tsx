@@ -60,7 +60,7 @@ export function DashboardHeader() {
   ) => {
     const { data } = await supabase
       .from("tasks")
-      .select("*")
+      .select("id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata")
       .eq("id", taskId)
       .single();
     if (data) {

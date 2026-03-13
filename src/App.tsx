@@ -15,11 +15,11 @@ import Configuracoes from "./pages/Configuracoes";
 import ParametrosPerformancePage from "./pages/ParametrosPerformancePage";
 import PlannerConfigPage from "./pages/PlannerConfigPage";
 import Perfil from "./pages/Perfil";
-import Clientes from "./pages/Clientes";
+const Clientes = React.lazy(() => import("./pages/Clientes"));
 import ClienteDetalhes from "./pages/ClienteDetalhes";
-import Campanhas from "./pages/Campanhas";
+const Campanhas = React.lazy(() => import("./pages/Campanhas"));
 import CampanhasUnificadas from "./pages/CampanhasUnificadas";
-import CampanhaDetalhes from "./pages/CampanhaDetalhes";
+const CampanhaDetalhes = React.lazy(() => import("./pages/CampanhaDetalhes"));
 import Colaboradores from "./pages/Colaboradores";
 import WorkSchedules from "./pages/WorkSchedules";
 import Squad from "./pages/Squad";
@@ -29,7 +29,7 @@ import BacklogCommandCenter from "./pages/BacklogCommandCenter";
 import Historias from "./pages/Historias";
 import AgentSquads from "./pages/AgentSquads";
 import AgentSquadEditor from "./pages/AgentSquadEditor";
-import Tarefas from "./pages/Tarefas";
+const Tarefas = React.lazy(() => import("./pages/Tarefas"));
 import TarefasRecorrentes from "./pages/TarefasRecorrentes";
 import Relatorios from "./pages/Relatorios";
 import RelatorioExecutivo from "./pages/reports/RelatorioExecutivo";
@@ -130,7 +130,7 @@ import DashboardRadarTVPublic from "./pages/DashboardRadarTVPublic";
 import DashboardCSTVPublic from "./pages/DashboardCSTVPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
-import TaskTvDashboard from "./pages/TaskTvDashboard";
+const TaskTvDashboard = React.lazy(() => import("./pages/TaskTvDashboard"));
 import PublicContentReview from "./pages/PublicContentReview";
 import CSLayout from "./components/cs/CSLayout";
 import CSCockpitPage from "./pages/cs/CSCockpitPage";
@@ -193,6 +193,7 @@ const App = () => {
             <CompanyProvider>
               <CRMAuthProvider>
                 <DMNotificationListener />
+                <React.Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
                 <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<LandingPage />} />
@@ -1260,6 +1261,7 @@ const App = () => {
                   {/* Catch-all route */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </React.Suspense>
               </CRMAuthProvider>
             </CompanyProvider>
           </AuthProvider>
