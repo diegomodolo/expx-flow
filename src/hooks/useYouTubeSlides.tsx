@@ -153,6 +153,7 @@ export function useYouTubeSlides(scriptId: string | null) {
           }
         }
 
+        const allSlideTitles = slides.map((s) => s.title);
         const html = generateSlideHTML({
           title: slide.title,
           content: slide.content,
@@ -161,6 +162,7 @@ export function useYouTubeSlides(scriptId: string | null) {
           videoTitle,
           thumbnailUrl,
           colors,
+          allSlideTitles,
         });
 
         const container = document.createElement("div");

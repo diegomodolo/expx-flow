@@ -1,7 +1,15 @@
 /**
  * HTML Slide Templates for YouTube Content Lab
- * Generates beautiful, modern HTML slides styled with thumbnail colors.
- * These are rendered to JPG via html2canvas — no LLM API calls needed.
+ *
+ * Design reference: modern corporate deck style (Greener-like)
+ * - Alternating dark (#1a1a2e) and light (#ffffff) backgrounds
+ * - Split 50/50 layouts with accent color blocks
+ * - Very large bold titles with period "."
+ * - Small uppercase category labels above titles
+ * - Generous whitespace (80-120px padding)
+ * - Stats with large numbers
+ * - Numbered outline slide
+ * - Clean sans-serif typography
  */
 
 export interface SlideTemplateData {
@@ -12,31 +20,31 @@ export interface SlideTemplateData {
   videoTitle: string;
   thumbnailUrl?: string | null;
   colors: SlideColors;
+  allSlideTitles?: string[];
 }
 
 export interface SlideColors {
-  primary: string; // dominant color
-  secondary: string; // accent color
-  background: string; // gradient start
-  backgroundEnd: string; // gradient end
-  text: string; // text color
-  textSecondary: string; // subtitle color
-  accent: string; // highlight color
+  primary: string;
+  secondary: string;
+  background: string;
+  backgroundEnd: string;
+  text: string;
+  textSecondary: string;
+  accent: string;
 }
 
 const DEFAULT_COLORS: SlideColors = {
   primary: "#6366f1",
   secondary: "#8b5cf6",
-  background: "#0f172a",
-  backgroundEnd: "#1e293b",
+  background: "#1a1a2e",
+  backgroundEnd: "#16213e",
   text: "#ffffff",
-  textSecondary: "#cbd5e1",
+  textSecondary: "#94a3b8",
   accent: "#38bdf8",
 };
 
-/**
- * Extract dominant colors from a thumbnail image using canvas sampling
- */
+// ── Color extraction ──────────────────────────────────────────────
+
 export async function extractColorsFromThumbnail(
   thumbnailUrl: string,
 ): Promise<SlideColors> {
@@ -52,14 +60,11 @@ export async function extractColorsFromThumbnail(
           return;
         }
 
-        // Sample at small size for performance
         canvas.width = 50;
         canvas.height = 28;
         ctx.drawImage(img, 0, 0, 50, 28);
-
         const imageData = ctx.getImageData(0, 0, 50, 28).data;
 
-        // Collect color samples from different regions
         const regions = {
           topLeft: sampleRegion(imageData, 50, 0, 0, 15, 10),
           topRight: sampleRegion(imageData, 50, 35, 0, 50, 10),
@@ -68,9 +73,8 @@ export async function extractColorsFromThumbnail(
           bottomRight: sampleRegion(imageData, 50, 35, 18, 50, 28),
         };
 
-        // Find the darkest region for background
         const allRegions = Object.values(regions);
-        const sorted = allRegions.sort(
+        const sorted = [...allRegions].sort(
           (a, b) => getLuminance(a) - getLuminance(b),
         );
 
@@ -78,27 +82,25 @@ export async function extractColorsFromThumbnail(
         const brightest = sorted[sorted.length - 1];
         const mid = sorted[Math.floor(sorted.length / 2)];
 
-        // Determine if thumbnail is mostly dark or light
-        const avgLuminance =
-          allRegions.reduce((sum, c) => sum + getLuminance(c), 0) /
-          allRegions.length;
-        const isDark = avgLuminance < 128;
+        // Pick the most saturated color as primary
+        const bySaturation = [...allRegions].sort(
+          (a, b) => getSaturation(b) - getSaturation(a),
+        );
+        const mostSaturated = bySaturation[0];
 
-        const primary = rgbToHex(brightest);
-        const secondary = rgbToHex(mid);
+        const primaryColor =
+          getSaturation(mostSaturated) > 0.15 ? mostSaturated : brightest;
+
+        const primary = rgbToHex(primaryColor);
 
         resolve({
           primary,
-          secondary,
-          background: isDark
-            ? darken(rgbToHex(darkest), 0.3)
-            : darken(rgbToHex(darkest), 0.5),
-          backgroundEnd: isDark
-            ? darken(rgbToHex(sorted[1] || darkest), 0.2)
-            : darken(rgbToHex(sorted[1] || darkest), 0.4),
+          secondary: rgbToHex(mid),
+          background: darken(rgbToHex(darkest), 0.4),
+          backgroundEnd: darken(rgbToHex(sorted[1] || darkest), 0.3),
           text: "#ffffff",
-          textSecondary: isDark ? "#e2e8f0" : "#cbd5e1",
-          accent: saturate(primary, 1.3),
+          textSecondary: "#94a3b8",
+          accent: saturate(primary, 1.2),
         });
       } catch {
         resolve(DEFAULT_COLORS);
@@ -108,6 +110,8 @@ export async function extractColorsFromThumbnail(
     img.src = thumbnailUrl;
   });
 }
+
+// ── Color utilities ───────────────────────────────────────────────
 
 function sampleRegion(
   data: Uint8ClampedArray,
@@ -139,6 +143,13 @@ function getLuminance([r, g, b]: [number, number, number]): number {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+function getSaturation([r, g, b]: [number, number, number]): number {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === 0) return 0;
+  return (max - min) / max;
+}
+
 function rgbToHex([r, g, b]: [number, number, number]): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
@@ -163,6 +174,15 @@ function darken(hex: string, factor: number): string {
   ]);
 }
 
+function lighten(hex: string, factor: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return rgbToHex([
+    Math.min(255, Math.round(r + (255 - r) * factor)),
+    Math.min(255, Math.round(g + (255 - g) * factor)),
+    Math.min(255, Math.round(b + (255 - b) * factor)),
+  ]);
+}
+
 function saturate(hex: string, factor: number): string {
   const [r, g, b] = hexToRgb(hex);
   const gray = 0.299 * r + 0.587 * g + 0.114 * b;
@@ -173,166 +193,237 @@ function saturate(hex: string, factor: number): string {
   ]);
 }
 
-// --- Slide Layout Templates ---
+// ── Shared styles ─────────────────────────────────────────────────
 
-function getIntroSlideHTML(data: SlideTemplateData): string {
+const FONT = "'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
+const DARK_BG = "#1a1a2e";
+const LIGHT_BG = "#ffffff";
+const DARK_TEXT = "#1a1a2e";
+const LIGHT_TEXT = "#ffffff";
+const MUTED_DARK = "#64748b";
+const MUTED_LIGHT = "#94a3b8";
+
+function baseSlide(bg: string): string {
+  return `width:1920px;height:1080px;background:${bg};font-family:${FONT};position:relative;overflow:hidden;box-sizing:border-box;`;
+}
+
+// ── Slide Templates ───────────────────────────────────────────────
+
+/**
+ * Slide 1: COVER
+ * Large bold title with period, subtitle, minimal dark background
+ * Inspired by the "Greener." cover slide
+ */
+function getCoverSlide(data: SlideTemplateData): string {
   const { title, content, colors, videoTitle } = data;
+  const subtitle = parseBullets(content)[0] || "";
+
+  return `<div style="${baseSlide(DARK_BG)}display:flex;flex-direction:column;justify-content:center;padding:120px;">
+    <!-- Top bar -->
+    <div style="position:absolute;top:0;left:0;right:0;height:6px;background:${colors.primary};"></div>
+
+    <!-- Brand label -->
+    <p style="color:${colors.primary};font-size:22px;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin:0 0 40px 0;">
+      ${escapeHtml(videoTitle)}
+    </p>
+
+    <!-- Main title -->
+    <h1 style="color:${LIGHT_TEXT};font-size:96px;font-weight:800;margin:0 0 32px 0;line-height:1.05;letter-spacing:-2px;max-width:1200px;">
+      ${escapeHtml(addPeriod(title))}
+    </h1>
+
+    <!-- Subtitle -->
+    ${
+      subtitle
+        ? `
+      <p style="color:${MUTED_LIGHT};font-size:28px;font-weight:400;margin:0;line-height:1.5;max-width:800px;">
+        ${escapeHtml(subtitle)}
+      </p>
+    `
+        : ""
+    }
+
+    <!-- Accent line bottom -->
+    <div style="position:absolute;bottom:80px;left:120px;width:80px;height:4px;background:${colors.primary};border-radius:2px;"></div>
+  </div>`;
+}
+
+/**
+ * Slide 2: OUTLINE / TABLE OF CONTENTS
+ * Numbered list of topics, light background
+ * Inspired by the "Outline Presentation" slide
+ */
+function getOutlineSlide(data: SlideTemplateData): string {
+  const { colors, videoTitle, allSlideTitles } = data;
+
+  // Use remaining slide titles (skip cover + outline + closing)
+  const topics = (allSlideTitles || []).slice(2, -1);
+
+  return `<div style="${baseSlide(LIGHT_BG)}display:flex;">
+    <!-- Left section -->
+    <div style="flex:1;padding:100px 80px;display:flex;flex-direction:column;justify-content:center;">
+      <!-- Category label -->
+      <p style="color:${MUTED_DARK};font-size:18px;font-weight:500;letter-spacing:2px;text-transform:uppercase;margin:0 0 20px 0;">
+        Conteúdo
+      </p>
+
+      <h2 style="color:${DARK_TEXT};font-size:64px;font-weight:800;margin:0 0 60px 0;line-height:1.1;letter-spacing:-1px;">
+        Visão Geral da<br>Apresentação.
+      </h2>
+
+      <!-- Numbered items -->
+      <div style="display:flex;flex-direction:column;gap:28px;">
+        ${topics
+          .map(
+            (t, i) => `
+          <div style="display:flex;align-items:center;gap:24px;">
+            <span style="color:${colors.primary};font-size:24px;font-weight:700;min-width:40px;">
+              ${String(i + 1).padStart(2, "0")}
+            </span>
+            <span style="color:${DARK_TEXT};font-size:26px;font-weight:500;">
+              ${escapeHtml(t)}
+            </span>
+          </div>
+        `,
+          )
+          .join("")}
+      </div>
+    </div>
+
+    <!-- Right accent block -->
+    <div style="width:420px;background:${colors.primary};display:flex;flex-direction:column;justify-content:flex-end;padding:60px;">
+      <p style="color:${LIGHT_TEXT};font-size:20px;font-weight:500;margin:0;opacity:0.8;">
+        ${escapeHtml(videoTitle)}
+      </p>
+    </div>
+  </div>`;
+}
+
+/**
+ * Content A: SPLIT — Big title left, bullets right
+ * Dark background. Inspired by "The Problem" and "A Glimpse" slides
+ */
+function getContentSplitDark(data: SlideTemplateData): string {
+  const { title, content, colors } = data;
   const bullets = parseBullets(content);
 
-  return `
-    <div style="
-      width: 1920px; height: 1080px;
-      background: linear-gradient(135deg, ${colors.background} 0%, ${colors.backgroundEnd} 50%, ${colors.background} 100%);
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-      position: relative; overflow: hidden;
-    ">
-      <!-- Decorative circles -->
-      <div style="position: absolute; top: -120px; right: -120px; width: 400px; height: 400px; border-radius: 50%; background: ${colors.primary}15;"></div>
-      <div style="position: absolute; bottom: -80px; left: -80px; width: 300px; height: 300px; border-radius: 50%; background: ${colors.accent}10;"></div>
+  return `<div style="${baseSlide(DARK_BG)}display:flex;">
+    <!-- Left: Title area -->
+    <div style="flex:1;padding:100px 60px 100px 120px;display:flex;flex-direction:column;justify-content:center;">
+      <!-- Accent dot -->
+      <div style="width:12px;height:12px;border-radius:50%;background:${colors.primary};margin-bottom:32px;"></div>
 
-      <!-- Accent line -->
-      <div style="width: 120px; height: 6px; background: linear-gradient(90deg, ${colors.primary}, ${colors.accent}); border-radius: 3px; margin-bottom: 40px;"></div>
+      <h2 style="color:${LIGHT_TEXT};font-size:72px;font-weight:800;margin:0;line-height:1.1;letter-spacing:-1.5px;">
+        ${escapeHtml(addPeriod(title))}
+      </h2>
+    </div>
 
-      <h1 style="
-        color: ${colors.text}; font-size: 72px; font-weight: 800;
-        text-align: center; max-width: 1400px; line-height: 1.15;
-        margin: 0 0 30px 0; letter-spacing: -1px;
-        text-shadow: 0 4px 30px ${colors.background}80;
-      ">${escapeHtml(title)}</h1>
-
+    <!-- Right: Content area -->
+    <div style="flex:1;padding:100px 120px 100px 60px;display:flex;flex-direction:column;justify-content:center;">
       ${
         bullets.length > 0
           ? `
-        <div style="display: flex; flex-direction: column; gap: 16px; max-width: 1000px; margin-top: 20px;">
+        <div style="display:flex;flex-direction:column;gap:28px;">
           ${bullets
-            .slice(0, 3)
             .map(
               (b) => `
-            <p style="color: ${colors.textSecondary}; font-size: 32px; text-align: center; margin: 0; line-height: 1.4;">
-              ${escapeHtml(b)}
-            </p>
+            <div style="display:flex;align-items:flex-start;gap:16px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:${colors.primary};margin-top:14px;flex-shrink:0;"></div>
+              <p style="color:${MUTED_LIGHT};font-size:26px;margin:0;line-height:1.6;font-weight:400;">
+                ${escapeHtml(b)}
+              </p>
+            </div>
           `,
             )
             .join("")}
         </div>
       `
-          : ""
+          : `
+        <p style="color:${MUTED_LIGHT};font-size:26px;margin:0;line-height:1.6;">
+          ${escapeHtml(content || "")}
+        </p>
+      `
       }
-
-      <!-- Video title badge -->
-      <div style="
-        position: absolute; bottom: 60px;
-        background: ${colors.primary}20; border: 1px solid ${colors.primary}40;
-        padding: 12px 32px; border-radius: 40px;
-      ">
-        <span style="color: ${colors.textSecondary}; font-size: 20px;">${escapeHtml(videoTitle)}</span>
-      </div>
     </div>
-  `;
+
+    <!-- Bottom line separator -->
+    <div style="position:absolute;bottom:80px;left:120px;right:120px;height:1px;background:#ffffff12;"></div>
+  </div>`;
 }
 
-function getContentSlideHTML(data: SlideTemplateData): string {
-  const { title, content, slideOrder, colors } = data;
+/**
+ * Content B: FULL WIDTH with stats — Light background
+ * Inspired by the "A Glimpse of the product" stats area
+ */
+function getContentStatsLight(data: SlideTemplateData): string {
+  const { title, content, colors } = data;
   const bullets = parseBullets(content);
-  const isEven = slideOrder % 2 === 0;
 
-  return `
-    <div style="
-      width: 1920px; height: 1080px;
-      background: linear-gradient(${isEven ? "150deg" : "210deg"}, ${colors.background} 0%, ${colors.backgroundEnd} 100%);
-      display: flex; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-      position: relative; overflow: hidden;
-    ">
-      <!-- Side accent bar -->
-      <div style="
-        position: absolute; left: 0; top: 0; bottom: 0; width: 8px;
-        background: linear-gradient(180deg, ${colors.primary}, ${colors.accent});
-      "></div>
+  // Try to extract stats-like items (numbers, percentages)
+  const stats = bullets.slice(0, 3);
 
-      <!-- Decorative shape -->
-      <div style="position: absolute; top: -100px; right: -100px; width: 500px; height: 500px; border-radius: 50%; background: ${colors.primary}08;"></div>
-      <div style="position: absolute; bottom: -150px; right: 200px; width: 400px; height: 400px; border-radius: 50%; background: ${colors.accent}06;"></div>
+  return `<div style="${baseSlide(LIGHT_BG)}display:flex;flex-direction:column;padding:100px 120px;">
+    <!-- Category label -->
+    <p style="color:${colors.primary};font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin:0 0 24px 0;">
+      Destaque
+    </p>
 
-      <!-- Content area -->
-      <div style="display: flex; flex-direction: column; justify-content: center; padding: 80px 100px; width: 100%; position: relative; z-index: 1;">
+    <!-- Title -->
+    <h2 style="color:${DARK_TEXT};font-size:64px;font-weight:800;margin:0 0 48px 0;line-height:1.1;letter-spacing:-1px;max-width:1000px;">
+      ${escapeHtml(addPeriod(title))}
+    </h2>
 
-        <!-- Title with accent -->
-        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 50px;">
-          <div style="width: 60px; height: 60px; border-radius: 16px; background: linear-gradient(135deg, ${colors.primary}, ${colors.accent}); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <span style="color: white; font-size: 28px; font-weight: 800;">${slideOrder}</span>
-          </div>
-          <h2 style="
-            color: ${colors.text}; font-size: 56px; font-weight: 700;
-            margin: 0; line-height: 1.2; letter-spacing: -0.5px;
-          ">${escapeHtml(title)}</h2>
-        </div>
+    <!-- Separator -->
+    <div style="width:80px;height:4px;background:${colors.primary};border-radius:2px;margin-bottom:56px;"></div>
 
-        <!-- Bullets -->
-        ${
-          bullets.length > 0
-            ? `
-          <div style="display: flex; flex-direction: column; gap: 24px; padding-left: 80px;">
-            ${bullets
-              .map(
-                (b, i) => `
-              <div style="display: flex; align-items: flex-start; gap: 20px;">
-                <div style="
-                  width: 10px; height: 10px; border-radius: 50%; margin-top: 14px;
-                  background: ${colors.accent}; flex-shrink: 0;
-                  box-shadow: 0 0 12px ${colors.accent}60;
-                "></div>
-                <p style="color: ${colors.textSecondary}; font-size: 34px; margin: 0; line-height: 1.5; max-width: 1500px;">
-                  ${escapeHtml(b)}
-                </p>
-              </div>
-            `,
-              )
-              .join("")}
-          </div>
-        `
-            : `
-          <p style="color: ${colors.textSecondary}; font-size: 34px; padding-left: 80px; line-height: 1.6; max-width: 1500px;">
-            ${escapeHtml(content || "")}
+    <!-- Stats / bullet cards in row -->
+    <div style="display:flex;gap:48px;flex:1;align-items:flex-start;">
+      ${stats
+        .map(
+          (s, i) => `
+        <div style="flex:1;padding:36px 0;${i > 0 ? `border-left:1px solid #e2e8f0;padding-left:48px;` : ""}">
+          <p style="color:${DARK_TEXT};font-size:24px;margin:0;line-height:1.6;font-weight:400;">
+            ${escapeHtml(s)}
           </p>
-        `
-        }
-      </div>
+        </div>
+      `,
+        )
+        .join("")}
     </div>
-  `;
+
+    <!-- Bottom accent -->
+    <div style="position:absolute;bottom:0;left:0;right:0;height:6px;background:${colors.primary};"></div>
+  </div>`;
 }
 
-function getClosingSlideHTML(data: SlideTemplateData): string {
-  const { title, content, colors, videoTitle } = data;
+/**
+ * Content C: SPLIT with accent block right
+ * Dark left, colored right. Inspired by "Building our market." split
+ */
+function getContentSplitAccent(data: SlideTemplateData): string {
+  const { title, content, colors } = data;
   const bullets = parseBullets(content);
 
-  return `
-    <div style="
-      width: 1920px; height: 1080px;
-      background: linear-gradient(135deg, ${colors.background} 0%, ${colors.primary}30 50%, ${colors.backgroundEnd} 100%);
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-      position: relative; overflow: hidden;
-    ">
-      <!-- Large decorative elements -->
-      <div style="position: absolute; top: -200px; left: -200px; width: 600px; height: 600px; border-radius: 50%; background: ${colors.primary}12;"></div>
-      <div style="position: absolute; bottom: -200px; right: -200px; width: 600px; height: 600px; border-radius: 50%; background: ${colors.accent}10;"></div>
+  return `<div style="${baseSlide(DARK_BG)}display:flex;">
+    <!-- Left: Content -->
+    <div style="flex:1;padding:100px 60px 100px 120px;display:flex;flex-direction:column;justify-content:center;">
+      <!-- Small label -->
+      <p style="color:${MUTED_LIGHT};font-size:16px;font-weight:500;letter-spacing:2px;text-transform:uppercase;margin:0 0 28px 0;">
+        Tópico
+      </p>
 
-      <h1 style="
-        color: ${colors.text}; font-size: 80px; font-weight: 800;
-        text-align: center; max-width: 1400px; line-height: 1.15;
-        margin: 0 0 40px 0; letter-spacing: -1px;
-      ">${escapeHtml(title)}</h1>
+      <h2 style="color:${LIGHT_TEXT};font-size:56px;font-weight:800;margin:0 0 40px 0;line-height:1.15;letter-spacing:-1px;">
+        ${escapeHtml(addPeriod(title))}
+      </h2>
 
       ${
         bullets.length > 0
           ? `
-        <div style="display: flex; flex-direction: column; gap: 16px; max-width: 1000px; margin-bottom: 40px;">
+        <div style="display:flex;flex-direction:column;gap:20px;">
           ${bullets
-            .slice(0, 3)
             .map(
               (b) => `
-            <p style="color: ${colors.textSecondary}; font-size: 30px; text-align: center; margin: 0;">
+            <p style="color:${MUTED_LIGHT};font-size:22px;margin:0;line-height:1.6;">
               ${escapeHtml(b)}
             </p>
           `,
@@ -340,30 +431,186 @@ function getClosingSlideHTML(data: SlideTemplateData): string {
             .join("")}
         </div>
       `
-          : ""
+          : `
+        <p style="color:${MUTED_LIGHT};font-size:22px;margin:0;line-height:1.6;max-width:700px;">
+          ${escapeHtml(content || "")}
+        </p>
+      `
       }
-
-      <!-- CTA style decoration -->
-      <div style="
-        margin-top: 20px; padding: 20px 60px; border-radius: 50px;
-        background: linear-gradient(90deg, ${colors.primary}, ${colors.accent});
-        box-shadow: 0 8px 30px ${colors.primary}40;
-      ">
-        <span style="color: white; font-size: 28px; font-weight: 700; letter-spacing: 1px;">
-          INSCREVA-SE NO CANAL
-        </span>
-      </div>
-
-      <!-- Video title -->
-      <p style="
-        position: absolute; bottom: 50px;
-        color: ${colors.textSecondary}60; font-size: 18px;
-      ">${escapeHtml(videoTitle)}</p>
     </div>
-  `;
+
+    <!-- Right: Accent color block -->
+    <div style="width:560px;background:${colors.primary};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:80px;">
+      <h3 style="color:${LIGHT_TEXT};font-size:48px;font-weight:800;text-align:center;margin:0;line-height:1.2;letter-spacing:-0.5px;">
+        ${escapeHtml(addPeriod(getShortTitle(title)))}
+      </h3>
+    </div>
+  </div>`;
 }
 
-// --- Helpers ---
+/**
+ * Content D: FEATURE LIST — Light background
+ * Inspired by "Help your team track and monitor market"
+ */
+function getContentFeatureList(data: SlideTemplateData): string {
+  const { title, content, colors } = data;
+  const bullets = parseBullets(content);
+
+  return `<div style="${baseSlide(LIGHT_BG)}display:flex;flex-direction:column;padding:100px 120px;">
+    <!-- Category label -->
+    <p style="color:${MUTED_DARK};font-size:16px;font-weight:500;letter-spacing:2px;text-transform:uppercase;margin:0 0 20px 0;">
+      Pontos-chave
+    </p>
+
+    <!-- Title -->
+    <h2 style="color:${DARK_TEXT};font-size:56px;font-weight:800;margin:0 0 60px 0;line-height:1.15;letter-spacing:-1px;max-width:1100px;">
+      ${escapeHtml(addPeriod(title))}
+    </h2>
+
+    <!-- Feature items -->
+    <div style="display:flex;flex-direction:column;gap:36px;flex:1;">
+      ${bullets
+        .map(
+          (b, i) => `
+        <div style="display:flex;align-items:flex-start;gap:24px;">
+          <!-- Icon circle -->
+          <div style="width:48px;height:48px;border-radius:12px;background:${colors.primary}15;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="width:10px;height:10px;border-radius:50%;background:${colors.primary};"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <p style="color:${DARK_TEXT};font-size:24px;margin:0;line-height:1.5;font-weight:500;">
+              ${escapeHtml(b)}
+            </p>
+          </div>
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
+
+    <!-- Left accent bar -->
+    <div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:${colors.primary};"></div>
+  </div>`;
+}
+
+/**
+ * Content E: QUOTE / HIGHLIGHT — Dark background, centered large text
+ * Inspired by the quote slide with large italic text
+ */
+function getContentQuote(data: SlideTemplateData): string {
+  const { title, content, colors } = data;
+  const firstBullet = parseBullets(content)[0] || "";
+
+  return `<div style="${baseSlide(DARK_BG)}display:flex;flex-direction:column;justify-content:center;align-items:center;padding:120px 160px;">
+    <!-- Quote mark -->
+    <div style="color:${colors.primary};font-size:120px;font-weight:800;line-height:0.6;margin-bottom:24px;opacity:0.4;">"</div>
+
+    <!-- Quote text (use title as main message) -->
+    <h2 style="color:${LIGHT_TEXT};font-size:52px;font-weight:700;text-align:center;margin:0 0 40px 0;line-height:1.35;letter-spacing:-0.5px;max-width:1400px;">
+      ${escapeHtml(title)}
+    </h2>
+
+    ${
+      firstBullet
+        ? `
+      <p style="color:${MUTED_LIGHT};font-size:22px;text-align:center;margin:0;max-width:900px;line-height:1.6;">
+        ${escapeHtml(firstBullet)}
+      </p>
+    `
+        : ""
+    }
+
+    <!-- Bottom accent line -->
+    <div style="position:absolute;bottom:80px;width:80px;height:4px;background:${colors.primary};border-radius:2px;"></div>
+  </div>`;
+}
+
+/**
+ * Content F: SPLIT with colored LEFT, content RIGHT — inverted split
+ * Inspired by "Things that maters" split slide
+ */
+function getContentSplitInverted(data: SlideTemplateData): string {
+  const { title, content, colors } = data;
+  const bullets = parseBullets(content);
+
+  return `<div style="${baseSlide("#f0f0f0")}display:flex;">
+    <!-- Left: Dark block with title -->
+    <div style="width:640px;background:${DARK_BG};display:flex;flex-direction:column;justify-content:center;padding:100px 80px;">
+      <h2 style="color:${LIGHT_TEXT};font-size:56px;font-weight:800;margin:0;line-height:1.15;letter-spacing:-1px;">
+        ${escapeHtml(addPeriod(title))}
+      </h2>
+      <div style="width:60px;height:4px;background:${colors.primary};border-radius:2px;margin-top:32px;"></div>
+    </div>
+
+    <!-- Right: Feature list on light bg -->
+    <div style="flex:1;background:${LIGHT_BG};padding:100px 80px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="display:flex;flex-direction:column;gap:36px;">
+        ${bullets
+          .map(
+            (b, i) => `
+          <div style="display:flex;align-items:flex-start;gap:20px;${i > 0 ? `padding-top:36px;border-top:1px solid #e2e8f0;` : ""}">
+            <div style="width:40px;height:40px;border-radius:10px;background:${colors.primary};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="color:white;font-size:18px;font-weight:700;">${i + 1}</span>
+            </div>
+            <p style="color:${DARK_TEXT};font-size:24px;margin:0;line-height:1.5;font-weight:400;">
+              ${escapeHtml(b)}
+            </p>
+          </div>
+        `,
+          )
+          .join("")}
+      </div>
+    </div>
+  </div>`;
+}
+
+/**
+ * CLOSING / THANKS slide
+ * Inspired by the "Thanks" slide — minimal, light background
+ */
+function getClosingSlide(data: SlideTemplateData): string {
+  const { title, content, colors, videoTitle } = data;
+  const bullets = parseBullets(content);
+  const subtitle = bullets[0] || "";
+
+  return `<div style="${baseSlide(LIGHT_BG)}display:flex;flex-direction:column;justify-content:center;align-items:center;padding:120px;">
+    <!-- Top line -->
+    <div style="position:absolute;top:0;left:0;right:0;height:6px;background:${colors.primary};"></div>
+
+    <!-- Main title -->
+    <h1 style="color:${colors.primary};font-size:96px;font-weight:800;margin:0 0 32px 0;line-height:1.05;letter-spacing:-2px;">
+      ${escapeHtml(addPeriod(title))}
+    </h1>
+
+    <!-- Separator -->
+    <div style="width:100px;height:2px;background:#e2e8f0;margin-bottom:32px;"></div>
+
+    ${
+      subtitle
+        ? `
+      <p style="color:${MUTED_DARK};font-size:24px;text-align:center;margin:0 0 48px 0;max-width:800px;line-height:1.5;">
+        ${escapeHtml(subtitle)}
+      </p>
+    `
+        : ""
+    }
+
+    <!-- CTA button -->
+    <div style="padding:18px 56px;border-radius:50px;background:${colors.primary};margin-bottom:24px;">
+      <span style="color:white;font-size:22px;font-weight:700;letter-spacing:0.5px;">INSCREVA-SE NO CANAL</span>
+    </div>
+
+    <!-- Brand at bottom -->
+    <div style="position:absolute;bottom:60px;display:flex;align-items:center;gap:16px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:${colors.primary};display:flex;align-items:center;justify-content:center;">
+        <span style="color:white;font-size:16px;font-weight:800;">▶</span>
+      </div>
+      <span style="color:${MUTED_DARK};font-size:18px;font-weight:500;">${escapeHtml(videoTitle)}</span>
+    </div>
+  </div>`;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
 
 function parseBullets(content: string | null): string[] {
   if (!content) return [];
@@ -381,19 +628,66 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-// --- Main export ---
+/** Add period at end of title if not already present */
+function addPeriod(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.endsWith(".") || trimmed.endsWith("!") || trimmed.endsWith("?")) {
+    return trimmed;
+  }
+  return trimmed + ".";
+}
+
+/** Get first 3-4 words for accent block */
+function getShortTitle(title: string): string {
+  const words = title.split(/\s+/);
+  return words.slice(0, Math.min(4, words.length)).join(" ");
+}
+
+// ── Layout cycle ──────────────────────────────────────────────────
+
+/**
+ * Content slide layouts cycle in this order to create visual variety
+ * while alternating between dark and light backgrounds:
+ *
+ * Pattern: dark → light → dark → light → dark → light → dark
+ */
+const CONTENT_LAYOUTS = [
+  getContentSplitDark, // dark - split title/bullets
+  getContentStatsLight, // light - stats/cards
+  getContentSplitAccent, // dark - content + accent block
+  getContentFeatureList, // light - feature list
+  getContentQuote, // dark - quote/highlight
+  getContentSplitInverted, // light - inverted split
+] as const;
+
+// ── Main export ───────────────────────────────────────────────────
 
 export function generateSlideHTML(data: SlideTemplateData): string {
   const { slideOrder, totalSlides } = data;
 
-  // First slide = intro, last slide = closing, rest = content
+  // Slide 1 = Cover
   if (slideOrder === 1) {
-    return getIntroSlideHTML(data);
+    return getCoverSlide(data);
   }
+
+  // Slide 2 = Outline (only if 6+ slides)
+  if (slideOrder === 2 && totalSlides >= 6) {
+    return getOutlineSlide(data);
+  }
+
+  // Last slide = Closing
   if (slideOrder === totalSlides) {
-    return getClosingSlideHTML(data);
+    return getClosingSlide(data);
   }
-  return getContentSlideHTML(data);
+
+  // Content slides: cycle through layouts
+  const contentIndex =
+    totalSlides >= 6
+      ? slideOrder - 3 // skip cover + outline
+      : slideOrder - 2; // skip cover only
+
+  const layoutIndex = Math.max(0, contentIndex) % CONTENT_LAYOUTS.length;
+  return CONTENT_LAYOUTS[layoutIndex](data);
 }
 
 export { DEFAULT_COLORS };
