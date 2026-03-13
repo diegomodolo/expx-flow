@@ -85,8 +85,8 @@ const FUNCTION_DEFAULTS: Record<
     fallback: "openai/gpt-4o-mini",
   },
   "generate-youtube-thumbnail": {
-    primary: "openai/gpt-4o",
-    fallback: "anthropic/claude-3.5-sonnet",
+    primary: "google/gemini-2.5-flash-image-preview",
+    fallback: "google/gemini-2.5-flash-image-preview",
   },
   "generate-presentation-slides": {
     primary: "anthropic/claude-3.5-sonnet",
