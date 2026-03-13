@@ -59,63 +59,82 @@ Deno.serve(async (req) => {
       )
       .join("\n");
 
-    const userPrompt = `Você é um designer de apresentações profissional. Analise o conteúdo abaixo e gere instruções detalhadas de design para cada slide de uma apresentação de vídeo do YouTube.
+    const userPrompt = `Você é um diretor criativo de apresentações premium. Analise o conteúdo abaixo e crie um design ÚNICO e VARIADO para cada slide. Cada slide deve parecer diferente — nunca repita a mesma estrutura visual.
 
 TÍTULO DO VÍDEO: ${script.title}
 TOTAL DE SLIDES: ${slides.length}
 
-CORES EXTRAÍDAS DA THUMBNAIL (usar como identidade visual):
-${JSON.stringify(thumbnailColors || {}, null, 2)}
-
 SLIDES:
 ${slidesContext}
 
-LAYOUTS DISPONÍVEIS (escolha o mais adequado para cada slide):
-- "cover": Slide de capa. Título gigante, subtítulo, marca. Usar no slide 1.
-- "outline": Sumário numerado dos tópicos. Usar no slide 2 se houver 6+ slides.
-- "split-bullets": Título grande à esquerda, bullets à direita. Bom para explicações.
-- "columns": Título no topo + conteúdo dividido em 2-3 colunas. Bom para comparações.
-- "split-accent": Conteúdo à esquerda + bloco colorido à direita com destaque. Bom para conceitos-chave.
-- "feature-list": Itens numerados com ícones. Bom para listas de passos ou benefícios.
-- "quote": Texto centralizado grande estilo citação. Bom para frases de impacto.
-- "split-inverted": Bloco colorido à esquerda com título + lista numerada à direita.
-- "closing": Slide final. CTA, agradecimento.
+LAYOUTS DISPONÍVEIS — 15 opções com estruturas visuais DISTINTAS:
 
-REGRAS DE DESIGN:
-1. Títulos devem ser CURTOS e IMPACTANTES (máx 6 palavras). Reescreva se necessário.
-2. Bullets devem ser CONCISOS (máx 15 palavras cada). Reescreva se necessário.
-3. Máximo 4-5 bullets por slide.
-4. Varie os layouts — nunca use o mesmo layout 2x seguidas.
-5. Escolha o layout que melhor comunica AQUELE conteúdo específico.
-6. Para slides com frase de impacto, use "quote".
-7. Para slides com lista de passos/etapas, use "feature-list".
-8. Para slides com conceito principal + explicação, use "split-bullets" ou "split-accent".
-9. O primeiro slide DEVE ser "cover" e o último "closing".
-10. Adicione um campo "highlight" com a palavra ou frase mais importante do slide para receber destaque visual.
+LAYOUTS DE IMPACTO (poucos elementos, máximo destaque):
+- "cover": Capa. Título enorme + subtítulo + marca. OBRIGATÓRIO no slide 1.
+- "quote": Frase centralizada gigante estilo citação. Para frases marcantes, insight ou provocação.
+- "full-gradient": Título bold centralizado sobre gradiente. Para transições entre seções ou chamadas.
+- "big-number": Número/estatística GIGANTE à esquerda + contexto à direita. Para dados, percentuais, métricas. Campos extras: "bigNumber" (ex: "73%") e "bigNumberLabel" (ex: "dos usuários").
 
-Retorne JSON com este formato exato:
+LAYOUTS ESTRUTURADOS (informação organizada):
+- "feature-list": Itens numerados com badges coloridos. Para passos, etapas, dicas, benefícios.
+- "icon-grid": Grid 2x2 ou 3x2 de cards com badges. Para múltiplos pontos curtos, características, ferramentas.
+- "timeline": Linha do tempo horizontal com etapas conectadas. Para processos, cronologias, evolução.
+- "card-stack": Cards empilhados com offset progressivo. Para listas com hierarquia visual.
+
+LAYOUTS DIVIDIDOS (dois blocos distintos):
+- "split-bullets": Título grande à esquerda, bullets à direita com divisor. Para explicações.
+- "split-accent": Conteúdo à esquerda + bloco colorido grande à direita. Para conceito + destaque.
+- "split-inverted": Bloco colorido à esquerda com título + lista à direita. Inverso do split-accent.
+- "comparison": Dois blocos lado a lado com divisor VS. Para antes/depois, prós/contras. Campo extra: "columnsData" array de {heading, text}.
+- "columns": Título no topo + 2-3 cards lado a lado. Para comparações, categorias. Campo extra: "columnsData" array de {heading, text}.
+
+ENCERRAMENTO:
+- "outline": Sumário numerado dos tópicos com sidebar colorida. Para recapitulação.
+- "closing": Slide final com CTA + botão de inscrição. OBRIGATÓRIO no último slide.
+
+REGRAS CRIATIVAS — LEIA COM ATENÇÃO:
+1. VARIEDADE É A PRIORIDADE #1. Nunca use o mesmo layout em 2 slides. Use no mínimo 6 layouts diferentes em uma apresentação de 10 slides.
+2. Analise o CONTEÚDO de cada slide individualmente. Escolha o layout que MELHOR COMUNICA aquela informação específica.
+3. Se o conteúdo menciona número, porcentagem ou estatística → considere "big-number".
+4. Se o conteúdo tem uma lista de itens curtos → considere "icon-grid" ou "card-stack".
+5. Se o conteúdo descreve um processo ou sequência → considere "timeline".
+6. Se o conteúdo compara dois cenários → considere "comparison".
+7. Se o conteúdo tem uma frase de impacto ou insight → considere "quote" ou "full-gradient".
+8. Se o conteúdo tem conceito + explicação → considere "split-accent" ou "split-bullets".
+9. Títulos devem ser CURTOS e PROVOCANTES (máx 5-6 palavras). Reescreva completamente se necessário.
+10. Bullets devem ser CONCISOS (máx 12 palavras cada). Máximo 4-5 bullets.
+11. O campo "highlight" deve conter a palavra-chave mais importante do slide.
+12. Pense como um designer: crie RITMO VISUAL. Alterne entre slides densos e slides respirados.
+13. Primeiro slide DEVE ser "cover", último DEVE ser "closing".
+
+Retorne JSON com este formato:
 {
   "slides": [
     {
-      "slideId": "id-do-slide",
+      "slideId": "uuid-do-slide",
       "layout": "cover",
-      "title": "Título Reescrito.",
+      "title": "Título Reescrito Curto",
       "subtitle": "Subtítulo opcional",
-      "bullets": ["Bullet 1 conciso", "Bullet 2 conciso"],
-      "highlight": "palavra ou frase destaque",
-      "accentText": "texto curto para bloco de destaque (se layout split-accent)"
+      "bullets": ["Bullet 1", "Bullet 2"],
+      "highlight": "palavra destaque",
+      "accentText": "texto para bloco accent (split-accent)",
+      "bigNumber": "73%",
+      "bigNumberLabel": "dos usuários",
+      "columnsData": [{"heading": "Coluna 1", "text": "conteúdo"}, {"heading": "Coluna 2", "text": "conteúdo"}]
     }
   ]
-}`;
+}
+
+IMPORTANTE: Inclua APENAS os campos relevantes para cada layout. Nem todo slide precisa de todos os campos.`;
 
     const aiResult = await callAI({
       functionName: "generate-slide-design",
       companyId,
       systemPrompt:
-        "Você é um designer de apresentações premium. Retorne apenas JSON válido, sem markdown.",
+        "Você é um diretor criativo de apresentações premium. Sua especialidade é criar apresentações visualmente diversas onde cada slide tem uma estrutura visual diferente. Retorne apenas JSON válido, sem markdown.",
       userPrompt,
-      maxTokens: 3000,
-      temperature: 0.7,
+      maxTokens: 4000,
+      temperature: 0.8,
       responseFormat: { type: "json_object" },
     });
 
