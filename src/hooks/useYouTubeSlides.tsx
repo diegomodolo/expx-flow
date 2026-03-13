@@ -4,10 +4,11 @@ import { toast } from "sonner";
 import PptxGenJS from "pptxgenjs";
 import html2canvas from "html2canvas";
 import {
-  generateSlideHTML,
+  renderSlideHTML,
   extractColorsFromThumbnail,
   DEFAULT_COLORS,
   type SlideColors,
+  type SlideDesign,
 } from "@/components/youtube-content-lab/slideTemplates";
 
 export interface YouTubeSlide {
@@ -127,10 +128,84 @@ export function useYouTubeSlides(scriptId: string | null) {
     [],
   );
 
+  const htmlToImageAndUpload = useCallback(
+    async (html: string, slide: YouTubeSlide): Promise<string> => {
+      const container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.width = "1920px";
+      container.style.height = "1080px";
+      container.style.overflow = "hidden";
+      container.innerHTML = html;
+      document.body.appendChild(container);
+
+      const canvas = await html2canvas(container, {
+        width: 1920,
+        height: 1080,
+        scale: 1,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+
+      document.body.removeChild(container);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Canvas toBlob failed"))),
+          "image/jpeg",
+          0.92,
+        );
+      });
+
+      const fileName = `slides/${slide.script_id}/${slide.id}_${Date.now()}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("ai-generated-images")
+        .upload(fileName, blob, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("ai-generated-images")
+        .getPublicUrl(fileName);
+
+      return `${urlData.publicUrl}?t=${Date.now()}`;
+    },
+    [],
+  );
+
+  const fetchSlideDesigns = useCallback(
+    async (
+      companyId: string,
+      thumbnailColors: SlideColors,
+    ): Promise<SlideDesign[]> => {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-slide-design",
+        {
+          body: { scriptId, companyId, thumbnailColors },
+        },
+      );
+
+      if (error) throw error;
+      if (!data?.success || !data?.design) {
+        throw new Error(data?.error || "Erro ao gerar design dos slides");
+      }
+
+      return data.design as SlideDesign[];
+    },
+    [scriptId],
+  );
+
   const regenerateSlideImageHTML = useCallback(
     async (
       slideId: string,
       videoTitle: string,
+      companyId: string,
       thumbnailUrl?: string | null,
     ) => {
       const slide = slides.find((s) => s.id === slideId);
@@ -153,63 +228,29 @@ export function useYouTubeSlides(scriptId: string | null) {
           }
         }
 
-        const allSlideTitles = slides.map((s) => s.title);
-        const html = generateSlideHTML({
+        // Call LLM to get design instructions
+        const designs = await fetchSlideDesigns(companyId, colors);
+        const design = designs.find((d) => d.slideId === slideId) || {
+          slideId,
+          layout:
+            slide.slide_order === 1
+              ? "cover"
+              : slide.slide_order === slides.length
+                ? "closing"
+                : "split-bullets",
           title: slide.title,
-          content: slide.content,
+          bullets: slide.content?.split("\n").filter(Boolean) || [],
+        };
+
+        const html = renderSlideHTML({
+          design,
           slideOrder: slide.slide_order,
           totalSlides: slides.length,
           videoTitle,
-          thumbnailUrl,
           colors,
-          allSlideTitles,
         });
 
-        const container = document.createElement("div");
-        container.style.position = "fixed";
-        container.style.left = "-9999px";
-        container.style.top = "0";
-        container.style.width = "1920px";
-        container.style.height = "1080px";
-        container.style.overflow = "hidden";
-        container.innerHTML = html;
-        document.body.appendChild(container);
-
-        const canvas = await html2canvas(container, {
-          width: 1920,
-          height: 1080,
-          scale: 1,
-          useCORS: true,
-          backgroundColor: null,
-          logging: false,
-        });
-
-        document.body.removeChild(container);
-
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(
-            (b) => (b ? resolve(b) : reject(new Error("Canvas toBlob failed"))),
-            "image/jpeg",
-            0.92,
-          );
-        });
-
-        const fileName = `slides/${slide.script_id}/${slide.id}_${Date.now()}.jpg`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("ai-generated-images")
-          .upload(fileName, blob, {
-            contentType: "image/jpeg",
-            upsert: true,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from("ai-generated-images")
-          .getPublicUrl(fileName);
-
-        const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+        const publicUrl = await htmlToImageAndUpload(html, slide);
 
         await supabase
           .from("youtube_script_slides")
@@ -246,7 +287,7 @@ export function useYouTubeSlides(scriptId: string | null) {
         });
       }
     },
-    [slides],
+    [slides, fetchSlideDesigns, htmlToImageAndUpload],
   );
 
   const generateSlideImage = useCallback(
@@ -379,7 +420,11 @@ export function useYouTubeSlides(scriptId: string | null) {
   );
 
   const generateAllImagesHTML = useCallback(
-    async (videoTitle: string, thumbnailUrl?: string | null) => {
+    async (
+      videoTitle: string,
+      companyId: string,
+      thumbnailUrl?: string | null,
+    ) => {
       const slidesToGenerate = slides.filter(
         (s) => !s.image_url || s.status === "draft" || s.status === "error",
       );
@@ -388,10 +433,6 @@ export function useYouTubeSlides(scriptId: string | null) {
         toast.info("Todos os slides já possuem imagens");
         return;
       }
-
-      toast.info(
-        `Gerando ${slidesToGenerate.length} imagens da apresentação...`,
-      );
 
       // Extract colors from thumbnail
       let colors: SlideColors = DEFAULT_COLORS;
@@ -416,72 +457,49 @@ export function useYouTubeSlides(scriptId: string | null) {
         ),
       );
 
+      // Call LLM to get design instructions for all slides (1 single call)
+      toast.info("Analisando conteúdo e definindo design dos slides...");
+      let designs: SlideDesign[] = [];
+      try {
+        designs = await fetchSlideDesigns(companyId, colors);
+      } catch (error) {
+        console.error("Error fetching slide designs:", error);
+        toast.error(
+          "Erro ao gerar design dos slides. Usando layout automático.",
+        );
+      }
+
+      toast.info(
+        `Renderizando ${slidesToGenerate.length} imagens da apresentação...`,
+      );
+
       let successCount = 0;
       const totalSlides = slides.length;
 
       for (const slide of slidesToGenerate) {
         try {
-          // Generate HTML
-          const html = generateSlideHTML({
+          // Find design for this slide, or build a fallback
+          const design = designs.find((d) => d.slideId === slide.id) || {
+            slideId: slide.id,
+            layout:
+              slide.slide_order === 1
+                ? "cover"
+                : slide.slide_order === totalSlides
+                  ? "closing"
+                  : "split-bullets",
             title: slide.title,
-            content: slide.content,
+            bullets: slide.content?.split("\n").filter(Boolean) || [],
+          };
+
+          const html = renderSlideHTML({
+            design,
             slideOrder: slide.slide_order,
             totalSlides,
             videoTitle,
-            thumbnailUrl,
             colors,
           });
 
-          // Create offscreen container
-          const container = document.createElement("div");
-          container.style.position = "fixed";
-          container.style.left = "-9999px";
-          container.style.top = "0";
-          container.style.width = "1920px";
-          container.style.height = "1080px";
-          container.style.overflow = "hidden";
-          container.innerHTML = html;
-          document.body.appendChild(container);
-
-          // Render to canvas
-          const canvas = await html2canvas(container, {
-            width: 1920,
-            height: 1080,
-            scale: 1,
-            useCORS: true,
-            backgroundColor: null,
-            logging: false,
-          });
-
-          document.body.removeChild(container);
-
-          // Convert to blob
-          const blob = await new Promise<Blob>((resolve, reject) => {
-            canvas.toBlob(
-              (b) =>
-                b ? resolve(b) : reject(new Error("Canvas toBlob failed")),
-              "image/jpeg",
-              0.92,
-            );
-          });
-
-          // Upload to storage
-          const fileName = `slides/${slide.script_id}/${slide.id}_${Date.now()}.jpg`;
-
-          const { error: uploadError } = await supabase.storage
-            .from("ai-generated-images")
-            .upload(fileName, blob, {
-              contentType: "image/jpeg",
-              upsert: true,
-            });
-
-          if (uploadError) throw uploadError;
-
-          const { data: urlData } = supabase.storage
-            .from("ai-generated-images")
-            .getPublicUrl(fileName);
-
-          const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+          const publicUrl = await htmlToImageAndUpload(html, slide);
 
           // Update DB
           await supabase
@@ -534,7 +552,7 @@ export function useYouTubeSlides(scriptId: string | null) {
         toast.error("Erro ao gerar imagens dos slides");
       }
     },
-    [slides],
+    [slides, fetchSlideDesigns, htmlToImageAndUpload],
   );
 
   const deleteSlide = useCallback(async (slideId: string) => {

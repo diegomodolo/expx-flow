@@ -92,6 +92,10 @@ const FUNCTION_DEFAULTS: Record<
     primary: "anthropic/claude-3.5-sonnet",
     fallback: "google/gemini-2.5-pro",
   },
+  "generate-slide-design": {
+    primary: "google/gemini-2.5-flash",
+    fallback: "openai/gpt-4o-mini",
+  },
   "generate-slide-image": {
     primary: "openai/gpt-4o-mini",
     fallback: "google/gemini-2.5-flash",

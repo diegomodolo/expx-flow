@@ -263,6 +263,13 @@ export const AI_FUNCTIONS: AIFunctionDef[] = [
     defaultFallback: "google/gemini-2.5-pro",
   },
   {
+    functionName: "generate-slide-design",
+    label: "Design de Slides (Texto)",
+    category: "Vídeo & YouTube",
+    defaultPrimary: "google/gemini-2.5-flash",
+    defaultFallback: "openai/gpt-4o-mini",
+  },
+  {
     functionName: "generate-slide-image",
     label: "Imagem de Slide",
     category: "Vídeo & YouTube",

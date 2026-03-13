@@ -84,11 +84,16 @@ export function SlidesSection({
   };
 
   const handleRegenerateImage = async (slideId: string) => {
-    await regenerateSlideImageHTML(slideId, scriptTitle, thumbnailUrl);
+    await regenerateSlideImageHTML(
+      slideId,
+      scriptTitle,
+      companyId,
+      thumbnailUrl,
+    );
   };
 
   const handleGenerateAllImages = async () => {
-    await generateAllImagesHTML(scriptTitle, thumbnailUrl);
+    await generateAllImagesHTML(scriptTitle, companyId, thumbnailUrl);
   };
 
   const handleImageEditorSave = async (newImages: string[]) => {
