@@ -207,6 +207,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       videoTitle: string,
       companyId: string,
       thumbnailUrl?: string | null,
+      customColors?: Partial<SlideColors>,
     ) => {
       const slide = slides.find((s) => s.id === slideId);
       if (!slide) return null;
@@ -226,6 +227,9 @@ export function useYouTubeSlides(scriptId: string | null) {
           } catch {
             // use defaults
           }
+        }
+        if (customColors) {
+          colors = { ...colors, ...customColors };
         }
 
         // Call LLM to get design instructions
@@ -424,6 +428,7 @@ export function useYouTubeSlides(scriptId: string | null) {
       videoTitle: string,
       companyId: string,
       thumbnailUrl?: string | null,
+      customColors?: Partial<SlideColors>,
     ) => {
       const slidesToGenerate = slides.filter(
         (s) => !s.image_url || s.status === "draft" || s.status === "error",
@@ -434,7 +439,7 @@ export function useYouTubeSlides(scriptId: string | null) {
         return;
       }
 
-      // Extract colors from thumbnail
+      // Extract colors from thumbnail, then apply custom overrides
       let colors: SlideColors = DEFAULT_COLORS;
       if (thumbnailUrl) {
         try {
@@ -444,6 +449,9 @@ export function useYouTubeSlides(scriptId: string | null) {
             "Could not extract colors from thumbnail, using defaults",
           );
         }
+      }
+      if (customColors) {
+        colors = { ...colors, ...customColors };
       }
 
       // Mark all as generating
@@ -478,15 +486,34 @@ export function useYouTubeSlides(scriptId: string | null) {
 
       for (const slide of slidesToGenerate) {
         try {
-          // Find design for this slide, or build a fallback
+          // Find design for this slide, or build a varied fallback
+          const fallbackLayouts = [
+            "cover",
+            "split-bullets",
+            "big-number",
+            "icon-grid",
+            "split-accent",
+            "timeline",
+            "feature-list",
+            "quote",
+            "card-stack",
+            "columns",
+            "comparison",
+            "full-gradient",
+            "split-inverted",
+            "closing",
+          ];
+          const fallbackLayout =
+            slide.slide_order === 1
+              ? "cover"
+              : slide.slide_order === totalSlides
+                ? "closing"
+                : fallbackLayouts[
+                    ((slide.slide_order - 1) % (fallbackLayouts.length - 2)) + 1
+                  ];
           const design = designs.find((d) => d.slideId === slide.id) || {
             slideId: slide.id,
-            layout:
-              slide.slide_order === 1
-                ? "cover"
-                : slide.slide_order === totalSlides
-                  ? "closing"
-                  : "split-bullets",
+            layout: fallbackLayout,
             title: slide.title,
             bullets: slide.content?.split("\n").filter(Boolean) || [],
           };
