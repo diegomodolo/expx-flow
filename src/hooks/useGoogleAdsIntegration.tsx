@@ -121,7 +121,7 @@ export function useGoogleAdsIntegration() {
 
       const { data: integrationData, error: integrationError } = await supabase
         .from("google_ads_integrations")
-        .select("*")
+        .select("id, company_id, expires_at, is_active, created_at, user_email")
         .eq("company_id", companyId)
         .eq("is_active", true)
         .maybeSingle();
@@ -133,7 +133,7 @@ export function useGoogleAdsIntegration() {
       if (integrationData) {
         const { data: accountsData, error: accountsError } = await supabase
           .from("google_ads_accounts")
-          .select("*")
+          .select("id, google_customer_id, account_name, currency, time_zone, is_active, is_manager, status, parent_customer_id, client_id")
           .eq("company_id", companyId)
           .eq("is_active", true)
           .order("account_name");

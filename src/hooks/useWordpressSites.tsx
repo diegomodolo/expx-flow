@@ -26,7 +26,7 @@ export function useWordpressSites(companyId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wordpress_sites')
-        .select('*')
+        .select('id, company_id, name, site_url, username, is_active, created_at, updated_at, created_by')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
