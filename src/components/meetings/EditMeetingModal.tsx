@@ -53,13 +53,13 @@ export function EditMeetingModal({ meeting, open, onClose, onSubmit }: EditMeeti
     }
   }, [open, meeting]);
 
-  const { data: { clients = [], teams = [] } = {}, isLoading } = useQuery({
+  const { data: { clients = [], teams = [] } = {} } = useQuery({
     queryKey: ['meeting-modal-data', activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return { clients: [], teams: [] };
       const [clientsRes, teamsRes] = await Promise.all([
-        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
-        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
+        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
+        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
       ]);
 
       if (clientsRes.error) throw clientsRes.error;

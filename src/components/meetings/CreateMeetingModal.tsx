@@ -46,19 +46,20 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
     queryFn: async () => {
       if (!activeCompany?.company_id) return { clients: [], teams: [], employees: [] };
       const [clientsRes, teamsRes, employeesRes] = await Promise.all([
-        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
-        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
-        supabase.from('employees').select('id, name, email').eq('company_id', activeCompany.company_id).eq('status', 'active').order('name'),
+        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
+        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
+        supabase.from('employees').select('id, name, email').eq('company_id', activeCompany.company_id).eq('status', 'active').order('name').limit(100),
       ]);
 
       if (clientsRes.error) throw clientsRes.error;
       if (teamsRes.error) throw teamsRes.error;
       if (employeesRes.error) throw employeesRes.error;
 
+      const employeeData = employeesRes.data || [];
       return {
         clients: clientsRes.data || [],
         teams: teamsRes.data || [],
-        employees: ((employeesRes.data as unknown[]) || []).filter((e: any) => e.email) as { id: string; name: string; email: string }[]
+        employees: employeeData.filter((e) => e.email) as { id: string; name: string; email: string }[]
       };
     },
     enabled: open && !!activeCompany?.company_id,
@@ -69,14 +70,16 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
     queryFn: async () => {
       if (!clientId) return [];
       const { data, error } = await supabase
-        .from('client_contacts' as unknown)
+        .from('client_contacts')
         .select('id, contact_name, email')
         .eq('client_id', clientId)
         .not('email', 'is', null)
-        .order('contact_name');
+        .order('contact_name')
+        .limit(100);
 
       if (error) throw error;
-      return ((data as unknown[]) || []).filter((c: any) => c.email) as { id: string; contact_name: string; email: string }[];
+      const contactsData = data || [];
+      return contactsData.filter((c) => c.email) as { id: string; contact_name: string; email: string }[];
     },
     enabled: open && !!clientId && !!activeCompany?.company_id,
   });
