@@ -74,7 +74,7 @@ export const ApiKeysSettings = () => {
 
       const { data, error } = await supabase
         .from("company_api_keys")
-        .select("*")
+        .select("id, name, is_active, permissions, created_at")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
