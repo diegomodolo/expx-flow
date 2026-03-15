@@ -48,10 +48,13 @@ describe("useAuth", () => {
   it("deve lancar erro quando usado fora do AuthProvider", () => {
     // Escondendo console.error temporariamente para suprimir a msg de erro do React
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => renderHook(() => useAuth())).toThrow(
-      "useAuth must be used within an AuthProvider",
-    );
-    consoleSpy.mockRestore();
+    try {
+      expect(() => renderHook(() => useAuth())).toThrow(
+        "useAuth must be used within an AuthProvider",
+      );
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 
   it("deve inicializar corretamente em rotas privadas", async () => {
