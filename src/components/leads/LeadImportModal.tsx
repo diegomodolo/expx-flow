@@ -396,20 +396,35 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
         
         if (error) {
           console.error("Batch insert error:", error);
-          // Try inserting one by one for this failed batch
-          for (const lead of batch) {
+          // Try inserting in smaller chunks for this failed batch
+          const chunkSize = 10;
+          for (let j = 0; j < batch.length; j += chunkSize) {
+            const chunk = batch.slice(j, j + chunkSize);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { data: single, error: singleError } = await supabase
+            const { data: chunkResult, error: chunkError } = await supabase
               .from('lead_master_pool')
-              .insert(lead as unknown)
-              .select('id')
-              .single();
+              .insert(chunk as unknown)
+              .select('id');
             
-            if (!singleError && single) {
-              insertedLeadIds.push(single.id);
-              imported++;
+            if (!chunkError && chunkResult) {
+              chunkResult.forEach(l => insertedLeadIds.push(l.id));
+              imported += chunkResult.length;
             } else {
-              console.error("Single insert error:", singleError, lead);
+              console.error("Chunk insert error:", chunkError);
+              // Fallback to individual insert only for the failed chunk
+              for (const lead of chunk) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { data: single, error: singleError } = await supabase
+                  .from('lead_master_pool')
+                  .insert(lead as unknown)
+                  .select('id')
+                  .maybeSingle();
+
+                if (!singleError && single) {
+                  insertedLeadIds.push(single.id);
+                  imported++;
+                }
+              }
             }
           }
         } else if (insertedBatch) {
