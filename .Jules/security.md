@@ -24,3 +24,8 @@
 
 **Vulnerability:** Unprotected routes expose administrative pages to unauthorized access.
 **Prevention:** Always wrap non-public routes (e.g., `/super-admin`) in `<ProtectedRoute>` or `<PermissionProtectedRoute>` inside `App.tsx`.
+
+## 2026-03-10 - Multi-tenant Isolation in useCampaigns
+
+**Vulnerability:** The data-fetching hook `useCampaigns.tsx` lacked a `.eq("company_id", activeCompany.company_id)` filter, which could potentially expose campaigns across different tenants, violating the multi-tenant architecture.
+**Prevention:** Always verify that every Supabase query or insertion operation in the frontend explicitly uses the `company_id` filter (e.g., via `useCompany()`), ensuring strict isolation of tenant data.
