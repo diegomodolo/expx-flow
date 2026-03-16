@@ -303,10 +303,6 @@ export default function GoogleProspectingPage() {
 
         if (error) {
           console.error('Error batch upserting to CNAE pool:', error);
-        } else if (cnaePayloads.length > 0) {
-          // Note: In batch operations, it's harder to track exact success count due to ignoreDuplicates
-          // so we log success if there was no error.
-          console.log(`Successfully processed batch upsert for ${cnaePayloads.length} CNAE pool leads.`);
         }
       }
 
