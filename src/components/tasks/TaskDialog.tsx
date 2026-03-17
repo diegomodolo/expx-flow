@@ -71,6 +71,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useTaskCategorias } from "@/hooks/useTaskCategorias";
+import { useAllBoardColumns } from "@/hooks/useAllBoardColumns";
 import { CreativeTaskPanel, CreativeData } from "./CreativeTaskPanel";
 import { TaskClientsTab } from "./TaskClientsTab";
 import { TaskTeamTab } from "./TaskTeamTab";
@@ -316,27 +317,17 @@ export function TaskDialog({
   const canViewOthersBoards =
     isOwner || isManager || hasPermission("ver-quadros-outros");
 
-  // Fetch board columns - always fetch all for the company so we can assign tasks to any employee's board
-  const { data: allColumns = [] } = useQuery({
-    queryKey: ["all-board-columns-flat", companyId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      const { data } = await (supabase
-        .from("task_board_columns" as unknown)
-        .select("id, name, user_id, order_index, color, company_id")
-        .eq("company_id", companyId)
-        .order("order_index", { ascending: true }) as unknown);
-
-      return (data || []) as Array<{
-        id: string;
-        user_id: string;
-        name: string;
-        color: string;
-        order_index: number;
-      }>;
-    },
-    enabled: !!companyId,
-  });
+  // Fetch board columns - reuse the hook that powers the kanban view
+  const { boards } = useAllBoardColumns();
+  const allColumns = boards.flatMap((b) =>
+    b.columns.map((col) => ({
+      id: col.id,
+      user_id: col.user_id,
+      name: col.name,
+      color: col.color,
+      order_index: col.order_index,
+    })),
+  );
 
   // Employees with boards for Quadro selector
   // In roteiro mode, filter by selected responsible's user_id
