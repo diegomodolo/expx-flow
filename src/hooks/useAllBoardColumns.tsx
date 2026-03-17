@@ -61,26 +61,14 @@ export function useAllBoardColumns() {
       );
 
       if (missingUserIds.length > 0) {
-        // Get profiles (which have email) for these auth user_ids
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, email")
+          .select("user_id, full_name")
           .in("user_id", missingUserIds);
 
-        // Build email → employee name map for fallback matching
-        const emailToName = new Map<string, string>();
-        (employees || []).forEach((e: unknown) => {
-          if (e.email) emailToName.set(e.email.toLowerCase(), e.name);
-        });
-
         (profiles || []).forEach((p: unknown) => {
-          // Try matching profile email to employee email
-          const nameFromEmail = p.email
-            ? emailToName.get(p.email.toLowerCase())
-            : null;
-          const name = nameFromEmail || p.full_name;
-          if (name) {
-            employeeMap.set(p.user_id, name);
+          if (p.full_name) {
+            employeeMap.set(p.user_id, p.full_name);
           }
         });
       }
