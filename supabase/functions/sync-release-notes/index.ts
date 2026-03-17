@@ -44,11 +44,13 @@ interface ReleaseEntry {
 }
 
 function sanitizeText(text: string): string {
-  return text
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
-    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
-    .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+  return (
+    text
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+      .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+      .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "")
+  );
 }
 
 function categorize(message: string): { category: string; cleanTitle: string } {

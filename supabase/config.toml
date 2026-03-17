@@ -576,12 +576,14 @@ verify_jwt = false
 [functions.get-openrouter-models]
 verify_jwt = true
 
+[functions._shared]
+verify_jwt = true
 
 [functions.ai-chat]
 verify_jwt = true
 
 [functions.auto-report-error]
-verify_jwt = true
+verify_jwt = false
 
 [functions.check-adset-account-mismatches]
 verify_jwt = true
@@ -638,7 +640,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-weekly-insights]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-youtube-description]
 verify_jwt = true
@@ -677,13 +679,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.process-recovery-triggers]
-verify_jwt = true
+verify_jwt = false
 
 [functions.process-task-review]
 verify_jwt = true
 
 [functions.recalculate-client-statuses]
-verify_jwt = true
+verify_jwt = false
 
 [functions.resend-employee-invite]
 verify_jwt = true

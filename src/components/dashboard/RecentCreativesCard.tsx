@@ -29,68 +29,89 @@ export function RecentCreativesCard() {
       // Get recent image creatives
       const { data: imageCreatives } = await supabase
         .from("creative_generation_queue")
-        .select(`
+        .select(
+          `
           id,
           generated_content,
           client_id
-        `)
+        `,
+        )
         .eq("company_id", activeCompany.company_id)
         .in("status", ["approved", "pending"])
         .order("generated_at", { ascending: false })
         .limit(4);
 
+      // Get recent carousels
+      const { data: carousels } = await supabase
+        .from("carousel_generation_queue")
+        .select(
+          `
+          id,
+          theme,
+          slides,
+          client_id
+        `,
+        )
+        .eq("company_id", activeCompany.company_id)
+        .in("status", ["approved", "pending"])
+        .order("generated_at", { ascending: false })
+        .limit(4);
+
+      const clientIds = new Set<string>();
+      if (imageCreatives) {
+        imageCreatives.forEach((c) => {
+          if (c.client_id) clientIds.add(c.client_id);
+        });
+      }
+      if (carousels) {
+        carousels.forEach((c) => {
+          if (c.client_id) clientIds.add(c.client_id);
+        });
+      }
+
+      const clientMap = new Map<string, string>();
+      if (clientIds.size > 0) {
+        const { data: clients } = await supabase
+          .from("clients")
+          .select("id, name")
+          .in("id", Array.from(clientIds));
+
+        if (clients) {
+          clients.forEach((c) => clientMap.set(c.id, c.name));
+        }
+      }
+
       if (imageCreatives) {
         for (const creative of imageCreatives) {
-          const content = creative.generated_content as unknown;
+          const content = creative.generated_content as any;
           if (content?.image_url) {
-            const { data: client } = await supabase
-              .from("clients")
-              .select("name")
-              .eq("id", creative.client_id)
-              .single();
-
             results.push({
               id: creative.id,
               type: "image",
               image_url: content.image_url,
               title: content.headline || "Criativo",
-              client_name: client?.name || "Cliente",
+              client_name: creative.client_id
+                ? clientMap.get(creative.client_id) || "Cliente"
+                : "Cliente",
             });
           }
         }
       }
 
-      // Get recent carousels
-      const { data: carousels } = await supabase
-        .from("carousel_generation_queue")
-        .select(`
-          id,
-          theme,
-          slides,
-          client_id
-        `)
-        .eq("company_id", activeCompany.company_id)
-        .in("status", ["approved", "pending"])
-        .order("generated_at", { ascending: false })
-        .limit(4);
-
       if (carousels) {
         for (const carousel of carousels) {
-          const slides = carousel.slides as unknown[];
+          const slides = carousel.slides as any[];
           const firstSlide = slides?.[0];
           if (firstSlide?.image_url) {
-            const { data: client } = await supabase
-              .from("clients")
-              .select("name")
-              .eq("id", carousel.client_id)
-              .single();
-
             results.push({
               id: carousel.id,
               type: "carousel",
               image_url: firstSlide.image_url,
-              title: carousel.theme || `Carrossel ${slides?.length || 0} slides`,
-              client_name: client?.name || "Cliente",
+              title:
+                carousel.theme || `Carrossel ${slides?.length || 0} slides`,
+              client_name: carousel.client_id
+                ? clientMap.get(carousel.client_id) || "Cliente"
+                : "Cliente",
             });
           }
         }
