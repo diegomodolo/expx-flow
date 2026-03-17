@@ -324,7 +324,9 @@ export default function RevisaoDiariaCriativos() {
                 <div>
                   <p className="text-sm font-medium mb-1">Hashtags:</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedCreative.generated_content.hashtags.join(" ")}
+                    {Array.isArray(selectedCreative.generated_content.hashtags)
+                      ? selectedCreative.generated_content.hashtags.join(" ")
+                      : selectedCreative.generated_content.hashtags}
                   </p>
                 </div>
               )}

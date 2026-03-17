@@ -7,6 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Loader2,
   Presentation,
   Sparkles,
@@ -15,11 +20,13 @@ import {
   RefreshCw,
   AlertCircle,
   FileUp,
+  Palette,
 } from "lucide-react";
 import { SlideCarousel } from "./SlideCarousel";
 import { SlideStructureEditor } from "./SlideStructureEditor";
 import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { SlideColors } from "./slideTemplates";
 
 interface SlidesSectionProps {
   scriptId: string;
@@ -30,6 +37,19 @@ interface SlidesSectionProps {
   thumbnailUrl?: string | null;
   onGenerateThumbnailFirst?: () => Promise<string | null>;
 }
+
+const COLOR_FIELDS: Array<{
+  key: keyof SlideColors;
+  label: string;
+}> = [
+  { key: "primary", label: "Primária" },
+  { key: "secondary", label: "Secundária" },
+  { key: "accent", label: "Destaque" },
+  { key: "background", label: "Fundo (início)" },
+  { key: "backgroundEnd", label: "Fundo (fim)" },
+  { key: "text", label: "Texto" },
+  { key: "textSecondary", label: "Texto secundário" },
+];
 
 export function SlidesSection({
   scriptId,
@@ -55,7 +75,9 @@ export function SlidesSection({
     generateStructure,
     updateSlide,
     generateSlideImage,
+    regenerateSlideImageHTML,
     generateAllImages,
+    generateAllImagesHTML,
     deleteSlide,
     reorderSlides,
     exportToPpt,
@@ -65,6 +87,7 @@ export function SlidesSection({
   const [activeTab, setActiveTab] = useState<"carousel" | "editor">("carousel");
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [slideToEdit, setSlideToEdit] = useState<YouTubeSlide | null>(null);
+  const [customColors, setCustomColors] = useState<Partial<SlideColors>>({});
 
   useEffect(() => {
     fetchSlides();
@@ -82,11 +105,22 @@ export function SlidesSection({
   };
 
   const handleRegenerateImage = async (slideId: string) => {
-    await generateSlideImage(slideId, companyId, thumbnailUrl);
+    await regenerateSlideImageHTML(
+      slideId,
+      scriptTitle,
+      companyId,
+      thumbnailUrl,
+      Object.keys(customColors).length > 0 ? customColors : undefined,
+    );
   };
 
   const handleGenerateAllImages = async () => {
-    await generateAllImages(companyId, thumbnailUrl, onGenerateThumbnailFirst);
+    await generateAllImagesHTML(
+      scriptTitle,
+      companyId,
+      thumbnailUrl,
+      Object.keys(customColors).length > 0 ? customColors : undefined,
+    );
   };
 
   const handleImageEditorSave = async (newImages: string[]) => {
@@ -101,7 +135,13 @@ export function SlidesSection({
     await exportToPpt(scriptTitle);
   };
 
-  const completedCount = slides.filter(s => s.status === "completed").length;
+  const handleColorChange = (key: keyof SlideColors, value: string) => {
+    setCustomColors((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const hasCustomColors = Object.keys(customColors).length > 0;
+
+  const completedCount = slides.filter((s) => s.status === "completed").length;
   const generatingCount = generatingImages.size;
   const isGenerating = generatingCount > 0 || generatingThumbnailFirst;
 
@@ -124,19 +164,88 @@ export function SlidesSection({
           <div className="flex items-center gap-2">
             {!hasSlides && (
               <div className="flex items-center gap-2">
-                <Label htmlFor="numSlides" className="text-sm text-muted-foreground">
+                <Label
+                  htmlFor="numSlides"
+                  className="text-sm text-muted-foreground"
+                >
                   Qtd:
                 </Label>
                 <Input
                   id="numSlides"
                   type="number"
                   value={numberOfSlides}
-                  onChange={(e) => setNumberOfSlides(parseInt(e.target.value) || 10)}
+                  onChange={(e) =>
+                    setNumberOfSlides(parseInt(e.target.value) || 10)
+                  }
                   min={3}
                   max={20}
                   className="w-16 h-8"
                 />
               </div>
+            )}
+
+            {hasSlides && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={hasCustomColors ? "border-primary" : ""}
+                  >
+                    <Palette className="h-4 w-4 mr-1" />
+                    Cores
+                    {hasCustomColors && (
+                      <span className="ml-1 w-2 h-2 rounded-full bg-primary" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm">Paleta de cores</p>
+                      {hasCustomColors && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs"
+                          onClick={() => setCustomColors({})}
+                        >
+                          Resetar
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Personalize as cores da apresentação. Sem cores
+                      customizadas, serão extraídas da thumbnail.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {COLOR_FIELDS.map(({ key, label }) => (
+                        <div key={key} className="space-y-1">
+                          <Label className="text-xs">{label}</Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={customColors[key] || "#6366f1"}
+                              onChange={(e) =>
+                                handleColorChange(key, e.target.value)
+                              }
+                              className="w-8 h-8 rounded border cursor-pointer p-0"
+                            />
+                            <Input
+                              value={customColors[key] || ""}
+                              onChange={(e) =>
+                                handleColorChange(key, e.target.value)
+                              }
+                              placeholder="auto"
+                              className="h-8 text-xs font-mono"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             )}
 
             {hasSlides && pendingImages > 0 && (
@@ -146,20 +255,15 @@ export function SlidesSection({
                 onClick={handleGenerateAllImages}
                 disabled={isGenerating}
               >
-                {generatingThumbnailFirst ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Gerando thumb...
-                  </>
-                ) : generatingCount > 0 ? (
+                {generatingCount > 0 ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     Gerando {generatingCount}...
                   </>
                 ) : (
                   <>
-                    <Images className="h-4 w-4 mr-1" />
-                    Gerar {pendingImages} imagens
+                    <Presentation className="h-4 w-4 mr-1" />
+                    Gerar Apresentação
                   </>
                 )}
               </Button>
@@ -225,25 +329,32 @@ export function SlidesSection({
               Nenhum slide gerado ainda
             </p>
             <p className="text-sm text-muted-foreground">
-              Clique em "Gerar Slides" para criar a estrutura da apresentação baseada no roteiro
+              Clique em "Gerar Slides" para criar a estrutura da apresentação
+              baseada no roteiro
             </p>
           </div>
         ) : (
           <>
             {/* Info about thumbnail reference */}
-            {!thumbnailUrl && pendingImages > 0 && (
+            {!thumbnailUrl && !hasCustomColors && pendingImages > 0 && (
               <Alert className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Nenhuma thumbnail gerada ainda. Ao gerar as imagens, uma thumbnail será criada primeiro 
-                  para definir o estilo visual de todos os slides.
+                  Gere uma thumbnail ou configure as cores no botão "Cores" para
+                  personalizar o estilo visual dos slides.
                 </AlertDescription>
               </Alert>
             )}
 
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as unknown)}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as unknown)}
+            >
               <TabsList className="mb-4">
-                <TabsTrigger value="carousel" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="carousel"
+                  className="flex items-center gap-1"
+                >
                   <Images className="h-4 w-4" />
                   Visualizar
                 </TabsTrigger>

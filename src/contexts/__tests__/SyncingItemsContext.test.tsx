@@ -65,8 +65,13 @@ describe("SyncingItemsContext", () => {
   });
 
   it("lanca erro quando usado fora do provider", () => {
-    expect(() => {
-      renderHook(() => useSyncingItems());
-    }).toThrow("useSyncingItems must be used within a SyncingItemsProvider");
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(() => {
+        renderHook(() => useSyncingItems());
+      }).toThrow("useSyncingItems must be used within a SyncingItemsProvider");
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 });
