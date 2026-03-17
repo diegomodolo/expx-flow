@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Upload, X, Loader2, Video, Plus, Pencil } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { ImageEditorModal } from '@/components/image-editor/ImageEditorModal';
+import React, { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Upload, X, Loader2, Video, Plus, Pencil } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
 
-type ContentType = 'image' | 'video' | 'carousel' | 'reel';
+type ContentType = "image" | "video" | "carousel" | "reel";
 
 interface MediaUploaderProps {
   contentType: ContentType;
@@ -15,17 +15,22 @@ interface MediaUploaderProps {
   companyId?: string;
 }
 
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (Supabase Storage limit)
 const MAX_CAROUSEL_ITEMS = 10;
 
 export const MediaUploader: React.FC<MediaUploaderProps> = ({
   contentType,
   mediaUrls,
   onMediaChange,
-  clientId = '',
-  companyId = '',
+  clientId = "",
+  companyId = "",
 }) => {
   const [uploading, setUploading] = useState(false);
   const [showImageEditor, setShowImageEditor] = useState(false);
@@ -33,74 +38,80 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
   const getAcceptedTypes = () => {
     switch (contentType) {
-      case 'image':
-        return ACCEPTED_IMAGE_TYPES.join(',');
-      case 'video':
-      case 'reel':
-        return ACCEPTED_VIDEO_TYPES.join(',');
-      case 'carousel':
-        return [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(',');
+      case "image":
+        return ACCEPTED_IMAGE_TYPES.join(",");
+      case "video":
+      case "reel":
+        return ACCEPTED_VIDEO_TYPES.join(",");
+      case "carousel":
+        return [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(",");
       default:
-        return ACCEPTED_IMAGE_TYPES.join(',');
+        return ACCEPTED_IMAGE_TYPES.join(",");
     }
   };
 
   const canAddMore = () => {
-    if (contentType === 'carousel') {
+    if (contentType === "carousel") {
       return mediaUrls.length < MAX_CAROUSEL_ITEMS;
     }
     return mediaUrls.length === 0;
   };
 
-  const isMultiple = contentType === 'carousel';
+  const isMultiple = contentType === "carousel";
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     const filesToUpload = Array.from(files);
-    
+
     // Validar quantidade
-    if (contentType !== 'carousel' && filesToUpload.length > 1) {
+    if (contentType !== "carousel" && filesToUpload.length > 1) {
       toast({
-        title: 'Limite de arquivos',
-        description: 'Apenas 1 arquivo permitido para este tipo de conteúdo',
-        variant: 'destructive',
+        title: "Limite de arquivos",
+        description: "Apenas 1 arquivo permitido para este tipo de conteúdo",
+        variant: "destructive",
       });
       return;
     }
 
-    if (contentType === 'carousel' && mediaUrls.length + filesToUpload.length > MAX_CAROUSEL_ITEMS) {
+    if (
+      contentType === "carousel" &&
+      mediaUrls.length + filesToUpload.length > MAX_CAROUSEL_ITEMS
+    ) {
       toast({
-        title: 'Limite de arquivos',
+        title: "Limite de arquivos",
         description: `Máximo de ${MAX_CAROUSEL_ITEMS} itens no carrossel`,
-        variant: 'destructive',
+        variant: "destructive",
       });
       return;
     }
 
     // Validar tipos
-    const acceptedTypes = contentType === 'carousel' 
-      ? [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES]
-      : contentType === 'image' 
-        ? ACCEPTED_IMAGE_TYPES 
-        : ACCEPTED_VIDEO_TYPES;
+    const acceptedTypes =
+      contentType === "carousel"
+        ? [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES]
+        : contentType === "image"
+          ? ACCEPTED_IMAGE_TYPES
+          : ACCEPTED_VIDEO_TYPES;
 
     for (const file of filesToUpload) {
       if (!acceptedTypes.includes(file.type)) {
         toast({
-          title: 'Tipo de arquivo inválido',
+          title: "Tipo de arquivo inválido",
           description: `O arquivo "${file.name}" não é suportado`,
-          variant: 'destructive',
+          variant: "destructive",
         });
         return;
       }
 
       if (file.size > MAX_FILE_SIZE) {
         toast({
-          title: 'Arquivo muito grande',
-          description: `O arquivo "${file.name}" excede o limite de 100MB`,
-          variant: 'destructive',
+          title: "Arquivo muito grande",
+          description: `O arquivo "${file.name}" excede o limite de 50MB`,
+          variant: "destructive",
         });
         return;
       }
@@ -111,21 +122,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     try {
       for (const file of filesToUpload) {
-        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `posts/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('scheduled-posts-media')
+          .from("scheduled-posts-media")
           .upload(filePath, file, {
             contentType: file.type,
-            cacheControl: '3600',
+            cacheControl: "3600",
           });
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('scheduled-posts-media')
+          .from("scheduled-posts-media")
           .getPublicUrl(filePath);
 
         newUrls.push(urlData.publicUrl);
@@ -133,20 +144,24 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
       onMediaChange([...mediaUrls, ...newUrls]);
       toast({
-        title: 'Upload concluído',
+        title: "Upload concluído",
         description: `${newUrls.length} arquivo(s) enviado(s) com sucesso`,
       });
-    } catch (error) {
-      console.error('Upload error:', error);
+    } catch (error: unknown) {
+      console.error("Upload error:", error);
+      const msg = error instanceof Error ? error.message : String(error);
+      const isSize = msg.includes("exceeded") || msg.includes("size");
       toast({
-        title: 'Erro no upload',
-        description: 'Não foi possível enviar o arquivo. Tente novamente.',
-        variant: 'destructive',
+        title: isSize ? "Arquivo muito grande" : "Erro no upload",
+        description: isSize
+          ? "O arquivo excede o limite de tamanho permitido (50MB). Tente comprimir o arquivo."
+          : "Não foi possível enviar o arquivo. Tente novamente.",
+        variant: "destructive",
       });
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -163,7 +178,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     return url.match(/\.(mp4|webm|mov|quicktime)$/i);
   };
 
-  const hasImages = mediaUrls.some(url => !isVideo(url));
+  const hasImages = mediaUrls.some((url) => !isVideo(url));
 
   const handleEditorSave = (newUrls: string[]) => {
     onMediaChange(newUrls);
@@ -177,15 +192,18 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-2">
             {mediaUrls.map((url, index) => (
-              <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted group">
+              <div
+                key={index}
+                className="relative aspect-square rounded-lg overflow-hidden bg-muted group"
+              >
                 {isVideo(url) ? (
                   <div className="w-full h-full flex items-center justify-center bg-muted">
                     <Video className="h-8 w-8 text-muted-foreground" />
                   </div>
                 ) : (
-                  <img 
-                    src={url} 
-                    alt={`Media ${index + 1}`} 
+                  <img
+                    src={url}
+                    alt={`Media ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 )}
@@ -197,9 +215,9 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 </button>
               </div>
             ))}
-            
+
             {/* Add more button for carousel */}
-            {canAddMore() && contentType === 'carousel' && (
+            {canAddMore() && contentType === "carousel" && (
               <button
                 onClick={triggerFileInput}
                 disabled={uploading}
@@ -230,27 +248,28 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       )}
 
       {/* Upload area */}
-      {canAddMore() && (contentType !== 'carousel' || mediaUrls.length === 0) && (
-        <div
-          onClick={triggerFileInput}
-          className="border-2 border-dashed border-border hover:border-primary/50 rounded-lg p-6 text-center cursor-pointer transition-colors"
-        >
-          {uploading ? (
-            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-muted-foreground" />
-          ) : (
-            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          )}
-          <p className="text-sm text-muted-foreground">
-            {uploading ? 'Enviando...' : 'Clique para fazer upload'}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {contentType === 'image' && 'JPG, PNG, WebP ou GIF'}
-            {contentType === 'video' && 'MP4, WebM ou MOV'}
-            {contentType === 'reel' && 'MP4, WebM ou MOV (vertical)'}
-            {contentType === 'carousel' && 'Imagens ou vídeos (até 10)'}
-          </p>
-        </div>
-      )}
+      {canAddMore() &&
+        (contentType !== "carousel" || mediaUrls.length === 0) && (
+          <div
+            onClick={triggerFileInput}
+            className="border-2 border-dashed border-border hover:border-primary/50 rounded-lg p-6 text-center cursor-pointer transition-colors"
+          >
+            {uploading ? (
+              <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-muted-foreground" />
+            ) : (
+              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            )}
+            <p className="text-sm text-muted-foreground">
+              {uploading ? "Enviando..." : "Clique para fazer upload"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {contentType === "image" && "JPG, PNG, WebP ou GIF"}
+              {contentType === "video" && "MP4, WebM ou MOV"}
+              {contentType === "reel" && "MP4, WebM ou MOV (vertical)"}
+              {contentType === "carousel" && "Imagens ou vídeos (até 10)"}
+            </p>
+          </div>
+        )}
 
       <input
         ref={fileInputRef}
@@ -265,7 +284,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       <ImageEditorModal
         open={showImageEditor}
         onOpenChange={setShowImageEditor}
-        images={mediaUrls.filter(url => !isVideo(url))}
+        images={mediaUrls.filter((url) => !isVideo(url))}
         onSave={handleEditorSave}
         clientId={clientId}
         companyId={companyId}

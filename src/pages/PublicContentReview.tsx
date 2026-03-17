@@ -88,8 +88,18 @@ interface Plan {
 }
 
 const monthNames = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 export default function PublicContentReview() {
@@ -103,19 +113,23 @@ export default function PublicContentReview() {
   const [rejectingPostId, setRejectingPostId] = useState<string | null>(null);
   const [rejectFeedback, setRejectFeedback] = useState("");
   const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
-  const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
-  const [reelsVideoIndexes, setReelsVideoIndexes] = useState<Record<string, number>>({});
+  const [carouselIndexes, setCarouselIndexes] = useState<
+    Record<string, number>
+  >({});
+  const [reelsVideoIndexes, setReelsVideoIndexes] = useState<
+    Record<string, number>
+  >({});
   const [viewingScriptPost, setViewingScriptPost] = useState<Post | null>(null);
   const getCarouselIndex = (postId: string) => carouselIndexes[postId] || 0;
-  
+
   const setCarouselIndex = (postId: string, index: number) => {
-    setCarouselIndexes(prev => ({ ...prev, [postId]: index }));
+    setCarouselIndexes((prev) => ({ ...prev, [postId]: index }));
   };
 
   const getReelsVideoIndex = (postId: string) => reelsVideoIndexes[postId] || 0;
-  
+
   const setReelsVideoIndex = (postId: string, index: number) => {
-    setReelsVideoIndexes(prev => ({ ...prev, [postId]: index }));
+    setReelsVideoIndexes((prev) => ({ ...prev, [postId]: index }));
   };
 
   useEffect(() => {
@@ -131,7 +145,7 @@ export default function PublicContentReview() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-content-review?token=${token}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-content-review?token=${token}`,
       );
 
       const data = await response.json();
@@ -162,7 +176,7 @@ export default function PublicContentReview() {
             reviewStatus: "approved",
             planToken: token,
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -174,9 +188,14 @@ export default function PublicContentReview() {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
-            ? { ...p, review_status: "approved", review_feedback: null, reviewed_at: new Date().toISOString() }
-            : p
-        )
+            ? {
+                ...p,
+                review_status: "approved",
+                review_feedback: null,
+                reviewed_at: new Date().toISOString(),
+              }
+            : p,
+        ),
       );
       toast.success("Post aprovado!");
     } catch (err) {
@@ -205,7 +224,7 @@ export default function PublicContentReview() {
             reviewFeedback: rejectFeedback,
             planToken: token,
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -217,9 +236,14 @@ export default function PublicContentReview() {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === rejectingPostId
-            ? { ...p, review_status: "rejected", review_feedback: rejectFeedback, reviewed_at: new Date().toISOString() }
-            : p
-        )
+            ? {
+                ...p,
+                review_status: "rejected",
+                review_feedback: rejectFeedback,
+                reviewed_at: new Date().toISOString(),
+              }
+            : p,
+        ),
       );
       setRejectingPostId(null);
       setRejectFeedback("");
@@ -257,9 +281,15 @@ export default function PublicContentReview() {
     }
   };
 
-  const approvedCount = posts.filter((p) => p.review_status === "approved").length;
-  const rejectedCount = posts.filter((p) => p.review_status === "rejected").length;
-  const pendingCount = posts.filter((p) => !p.review_status || p.review_status === "pending").length;
+  const approvedCount = posts.filter(
+    (p) => p.review_status === "approved",
+  ).length;
+  const rejectedCount = posts.filter(
+    (p) => p.review_status === "rejected",
+  ).length;
+  const pendingCount = posts.filter(
+    (p) => !p.review_status || p.review_status === "pending",
+  ).length;
 
   if (isLoading) {
     return (
@@ -303,7 +333,9 @@ export default function PublicContentReview() {
                 <span>{plan.clients?.name}</span>
                 <span>•</span>
                 <Calendar className="w-4 h-4" />
-                <span>{monthNames[plan.month - 1]} {plan.year}</span>
+                <span>
+                  {monthNames[plan.month - 1]} {plan.year}
+                </span>
               </div>
             </div>
           </div>
@@ -336,14 +368,17 @@ export default function PublicContentReview() {
                 post.review_status === "approved"
                   ? "ring-2 ring-green-500/30"
                   : post.review_status === "rejected"
-                  ? "ring-2 ring-red-500/30"
-                  : ""
+                    ? "ring-2 ring-red-500/30"
+                    : ""
               }`}
             >
               {/* Image / Carousel / Reels Video */}
-              <div className="aspect-[3/4] bg-muted relative">
+              <div
+                key={`media-${post.id}-${post.post_type}`}
+                className="aspect-[3/4] bg-muted relative"
+              >
                 {/* Reels Video Player */}
-                {post.post_type === 'reels' ? (
+                {post.post_type === "reels" ? (
                   (() => {
                     // Priority: uploaded video > generated scenes
                     if (post.reels_uploaded_video_url) {
@@ -374,8 +409,12 @@ export default function PublicContentReview() {
                       );
                     }
 
-                    const progress = post.reels_generation_progress as ReelsProgress | null;
-                    const completedScenes = progress?.scenes?.filter(s => s.status === 'completed' && s.videoUrl) || [];
+                    const progress =
+                      post.reels_generation_progress as ReelsProgress | null;
+                    const completedScenes =
+                      progress?.scenes?.filter(
+                        (s) => s.status === "completed" && s.videoUrl,
+                      ) || [];
                     const currentIndex = getReelsVideoIndex(post.id);
                     const currentScene = completedScenes[currentIndex];
 
@@ -384,7 +423,9 @@ export default function PublicContentReview() {
                       return (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                           <Film className="w-16 h-16 text-muted-foreground/30" />
-                          <span className="text-sm text-muted-foreground">Vídeo em processamento</span>
+                          <span className="text-sm text-muted-foreground">
+                            Vídeo em processamento
+                          </span>
                         </div>
                       );
                     }
@@ -404,15 +445,30 @@ export default function PublicContentReview() {
                         {completedScenes.length > 1 && (
                           <>
                             <button
-                              onClick={() => setReelsVideoIndex(post.id, Math.max(0, currentIndex - 1))}
+                              onClick={() =>
+                                setReelsVideoIndex(
+                                  post.id,
+                                  Math.max(0, currentIndex - 1),
+                                )
+                              }
                               disabled={currentIndex === 0}
                               className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors z-10"
                             >
                               <ChevronLeft className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => setReelsVideoIndex(post.id, Math.min(completedScenes.length - 1, currentIndex + 1))}
-                              disabled={currentIndex === completedScenes.length - 1}
+                              onClick={() =>
+                                setReelsVideoIndex(
+                                  post.id,
+                                  Math.min(
+                                    completedScenes.length - 1,
+                                    currentIndex + 1,
+                                  ),
+                                )
+                              }
+                              disabled={
+                                currentIndex === completedScenes.length - 1
+                              }
                               className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors z-10"
                             >
                               <ChevronRight className="w-5 h-5" />
@@ -423,11 +479,13 @@ export default function PublicContentReview() {
                               {completedScenes.map((_, idx) => (
                                 <button
                                   key={idx}
-                                  onClick={() => setReelsVideoIndex(post.id, idx)}
+                                  onClick={() =>
+                                    setReelsVideoIndex(post.id, idx)
+                                  }
                                   className={`w-2 h-2 rounded-full transition-colors ${
                                     idx === currentIndex
-                                      ? 'bg-white'
-                                      : 'bg-white/50 hover:bg-white/75'
+                                      ? "bg-white"
+                                      : "bg-white/50 hover:bg-white/75"
                                   }`}
                                 />
                               ))}
@@ -459,13 +517,18 @@ export default function PublicContentReview() {
                       </>
                     );
                   })()
-                ) : post.post_type === 'carrossel' && post.slides && post.slides.length > 0 ? (
+                ) : post.post_type === "carrossel" &&
+                  post.slides &&
+                  post.slides.length > 0 ? (
                   <>
                     {/* Carousel image */}
                     {post.slides[getCarouselIndex(post.id)]?.image_url ? (
                       <img
                         src={post.slides[getCarouselIndex(post.id)].image_url!}
-                        alt={post.slides[getCarouselIndex(post.id)]?.headline || `Slide ${getCarouselIndex(post.id) + 1}`}
+                        alt={
+                          post.slides[getCarouselIndex(post.id)]?.headline ||
+                          `Slide ${getCarouselIndex(post.id) + 1}`
+                        }
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -478,15 +541,30 @@ export default function PublicContentReview() {
                     {post.slides.length > 1 && (
                       <>
                         <button
-                          onClick={() => setCarouselIndex(post.id, Math.max(0, getCarouselIndex(post.id) - 1))}
+                          onClick={() =>
+                            setCarouselIndex(
+                              post.id,
+                              Math.max(0, getCarouselIndex(post.id) - 1),
+                            )
+                          }
                           disabled={getCarouselIndex(post.id) === 0}
                           className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors"
                         >
                           <ChevronLeft className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => setCarouselIndex(post.id, Math.min(post.slides!.length - 1, getCarouselIndex(post.id) + 1))}
-                          disabled={getCarouselIndex(post.id) === post.slides.length - 1}
+                          onClick={() =>
+                            setCarouselIndex(
+                              post.id,
+                              Math.min(
+                                post.slides!.length - 1,
+                                getCarouselIndex(post.id) + 1,
+                              ),
+                            )
+                          }
+                          disabled={
+                            getCarouselIndex(post.id) === post.slides.length - 1
+                          }
                           className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors"
                         >
                           <ChevronRight className="w-5 h-5" />
@@ -500,8 +578,8 @@ export default function PublicContentReview() {
                               onClick={() => setCarouselIndex(post.id, idx)}
                               className={`w-2 h-2 rounded-full transition-colors ${
                                 idx === getCarouselIndex(post.id)
-                                  ? 'bg-white'
-                                  : 'bg-white/50 hover:bg-white/75'
+                                  ? "bg-white"
+                                  : "bg-white/50 hover:bg-white/75"
                               }`}
                             />
                           ))}
@@ -547,7 +625,9 @@ export default function PublicContentReview() {
                   <h3 className="font-semibold text-sm">{post.headline}</h3>
                 )}
                 {post.subheadline && (
-                  <p className="text-sm text-muted-foreground">{post.subheadline}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {post.subheadline}
+                  </p>
                 )}
 
                 {/* Caption */}
@@ -560,15 +640,21 @@ export default function PublicContentReview() {
                 {/* Rejection feedback */}
                 {post.review_status === "rejected" && post.review_feedback && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3">
-                    <p className="text-xs font-medium text-red-600 mb-1">Feedback:</p>
-                    <p className="text-xs text-red-600/80">{post.review_feedback}</p>
+                    <p className="text-xs font-medium text-red-600 mb-1">
+                      Feedback:
+                    </p>
+                    <p className="text-xs text-red-600/80">
+                      {post.review_feedback}
+                    </p>
                   </div>
                 )}
 
                 {/* Action buttons */}
                 <div className="flex gap-2 pt-2">
                   <Button
-                    variant={post.review_status === "approved" ? "default" : "outline"}
+                    variant={
+                      post.review_status === "approved" ? "default" : "outline"
+                    }
                     size="sm"
                     className="flex-1 gap-1"
                     onClick={() => handleApprove(post.id)}
@@ -582,7 +668,11 @@ export default function PublicContentReview() {
                     Aprovar
                   </Button>
                   <Button
-                    variant={post.review_status === "rejected" ? "destructive" : "outline"}
+                    variant={
+                      post.review_status === "rejected"
+                        ? "destructive"
+                        : "outline"
+                    }
                     size="sm"
                     className="flex-1 gap-1"
                     onClick={() => {
@@ -611,12 +701,16 @@ export default function PublicContentReview() {
       </main>
 
       {/* Reject dialog */}
-      <Dialog open={!!rejectingPostId} onOpenChange={() => setRejectingPostId(null)}>
+      <Dialog
+        open={!!rejectingPostId}
+        onOpenChange={() => setRejectingPostId(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reprovar Post</DialogTitle>
             <DialogDescription>
-              Informe o que precisa ser alterado neste post para que seja aprovado.
+              Informe o que precisa ser alterado neste post para que seja
+              aprovado.
             </DialogDescription>
           </DialogHeader>
 
@@ -634,7 +728,9 @@ export default function PublicContentReview() {
             <Button
               variant="destructive"
               onClick={handleReject}
-              disabled={!rejectFeedback.trim() || updatingPostId === rejectingPostId}
+              disabled={
+                !rejectFeedback.trim() || updatingPostId === rejectingPostId
+              }
             >
               {updatingPostId === rejectingPostId ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -646,7 +742,10 @@ export default function PublicContentReview() {
       </Dialog>
 
       {/* Script Modal */}
-      <Dialog open={!!viewingScriptPost} onOpenChange={() => setViewingScriptPost(null)}>
+      <Dialog
+        open={!!viewingScriptPost}
+        onOpenChange={() => setViewingScriptPost(null)}
+      >
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -665,7 +764,10 @@ export default function PublicContentReview() {
             </div>
           </ScrollArea>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewingScriptPost(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setViewingScriptPost(null)}
+            >
               Fechar
             </Button>
           </DialogFooter>

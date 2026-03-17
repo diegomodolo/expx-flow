@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompany } from '@/contexts/CompanyContext';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
+import { toast } from "sonner";
 
 export function useRadarTvDashboardToken() {
   const { activeCompany } = useCompany();
@@ -17,19 +17,19 @@ export function useRadarTvDashboardToken() {
 
   const fetchToken = async () => {
     if (!activeCompany?.company_id) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('companies')
-        .select('radar_tv_dashboard_token')
-        .eq('id', activeCompany.company_id)
-        .single();
+        .from("companies")
+        .select("radar_tv_dashboard_token")
+        .eq("id", activeCompany.company_id)
+        .maybeSingle();
 
       if (error) throw error;
-      setToken((data as unknown)?.radar_tv_dashboard_token || null);
+      setToken((data as any)?.radar_tv_dashboard_token || null);
     } catch (error) {
-      console.error('Error fetching Radar TV dashboard token:', error);
+      console.error("Error fetching Radar TV dashboard token:", error);
     } finally {
       setLoading(false);
     }
@@ -37,38 +37,41 @@ export function useRadarTvDashboardToken() {
 
   const generateToken = async (): Promise<string | null> => {
     if (!activeCompany?.company_id) return null;
-    
+
     setGenerating(true);
-  try {
+    try {
       // Generate token using database function
-      const { data: tokenData, error: tokenError } = await (supabase
-        .rpc as unknown)('generate_radar_tv_dashboard_token');
+      const { data: tokenData, error: tokenError } = await (
+        supabase.rpc as unknown
+      )("generate_radar_tv_dashboard_token");
 
       if (tokenError) {
-        console.error('Error generating token via RPC:', tokenError);
+        console.error("Error generating token via RPC:", tokenError);
         throw tokenError;
       }
 
       const newToken = tokenData as string;
 
       // Use secure RPC to set the token
-      const { error: setError } = await (supabase
-        .rpc as unknown)('set_radar_tv_dashboard_token', {
+      const { error: setError } = await (supabase.rpc as unknown)(
+        "set_radar_tv_dashboard_token",
+        {
           p_company_id: activeCompany.company_id,
-          p_token: newToken
-        });
+          p_token: newToken,
+        },
+      );
 
       if (setError) {
-        console.error('Error setting token via RPC:', setError);
+        console.error("Error setting token via RPC:", setError);
         throw setError;
       }
 
       setToken(newToken);
-      toast.success('Token do Radar TV gerado com sucesso!');
+      toast.success("Token do Radar TV gerado com sucesso!");
       return newToken;
     } catch (error) {
-      console.error('Error generating Radar TV dashboard token:', error);
-      toast.error('Erro ao gerar token do Radar TV');
+      console.error("Error generating Radar TV dashboard token:", error);
+      toast.error("Erro ao gerar token do Radar TV");
       return null;
     } finally {
       setGenerating(false);
@@ -91,6 +94,6 @@ export function useRadarTvDashboardToken() {
     generateToken,
     regenerateToken,
     getPublicUrl,
-    refetch: fetchToken
+    refetch: fetchToken,
   };
 }
