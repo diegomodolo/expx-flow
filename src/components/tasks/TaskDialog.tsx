@@ -318,7 +318,7 @@ export function TaskDialog({
 
   // Fetch board columns - always fetch all for the company so we can assign tasks to any employee's board
   const { data: allColumns = [] } = useQuery({
-    queryKey: ["all-board-columns", companyId],
+    queryKey: ["all-board-columns-flat", companyId],
     queryFn: async () => {
       if (!companyId) return [];
       const { data } = await (supabase
