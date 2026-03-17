@@ -576,9 +576,6 @@ verify_jwt = false
 [functions.get-openrouter-models]
 verify_jwt = true
 
-[functions._shared]
-verify_jwt = true
-
 [functions.ai-chat]
 verify_jwt = true
 
