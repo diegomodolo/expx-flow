@@ -186,7 +186,7 @@ export default function Notificacoes() {
       // Fetch task data then open dialog
       const { data } = await supabase
         .from("tasks")
-        .select("*")
+        .select("id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata")
         .eq("id", item.source_id)
         .single();
       if (data) {
@@ -198,7 +198,7 @@ export default function Notificacoes() {
 
     // For chat notifications with task_id
     if (item._source === "chat" && item.source_id) {
-      const { data } = await supabase.from("tasks").select("*").eq("id", item.source_id).single();
+      const { data } = await supabase.from("tasks").select("id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata").eq("id", item.source_id).single();
       if (data) {
         setSelectedTaskData(data);
         setTaskDialogOpen(true);

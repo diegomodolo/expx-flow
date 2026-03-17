@@ -305,7 +305,9 @@ export function TaskDialog({
     if (!parentTaskInfo) return;
     const { data } = await supabase
       .from("tasks")
-      .select("*")
+      .select(
+        "id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata",
+      )
       .eq("id", parentTaskInfo.id)
       .single();
     if (data) setViewingParentTask(data);
@@ -321,7 +323,7 @@ export function TaskDialog({
       if (!companyId) return [];
       const { data } = await (supabase
         .from("task_board_columns" as unknown)
-        .select("*")
+        .select("id, title, user_id, order_index, color, company_id")
         .eq("company_id", companyId)
         .order("order_index", { ascending: true }) as unknown);
 
