@@ -37,9 +37,17 @@ export function useAllBoardColumns() {
 
       // Resolve column user_ids → employee names via server-side function
       // Handles cases where employee.user_id differs from auth uid by matching via email
-      const { data: ownerNames } = await supabase.rpc(
+      const { data: ownerNames, error: rpcError } = await supabase.rpc(
         "resolve_board_owner_names" as unknown,
         { _company_id: companyId },
+      );
+
+      // DEBUG: remove after fix
+      console.log(
+        "[useAllBoardColumns] RPC error:",
+        rpcError,
+        "ownerNames:",
+        ownerNames,
       );
 
       const employeeMap = new Map<string, string>();
