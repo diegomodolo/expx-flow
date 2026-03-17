@@ -323,7 +323,7 @@ export function TaskDialog({
       if (!companyId) return [];
       const { data } = await (supabase
         .from("task_board_columns" as unknown)
-        .select("id, title, user_id, order_index, color, company_id")
+        .select("id, name, user_id, order_index, color, company_id")
         .eq("company_id", companyId)
         .order("order_index", { ascending: true }) as unknown);
 
