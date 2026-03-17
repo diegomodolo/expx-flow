@@ -1,43 +1,62 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GoogleMeetMeeting } from "@/hooks/useGoogleMeetMeetings";
 import { X, Plus, UserPlus, Mail } from "lucide-react";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 interface Participant {
   email: string;
   name: string;
-  type: 'employee' | 'client_contact' | 'custom';
+  type: "employee" | "client_contact" | "custom";
 }
 
 interface EditMeetingModalProps {
   meeting: GoogleMeetMeeting;
   open: boolean;
   onClose: () => void;
-  onSubmit: (meetingId: string, data: {
-    title?: string;
-    clientId?: string | null;
-    squadId?: string | null;
-    scheduledAt?: string | null;
-  }) => Promise<boolean>;
+  onSubmit: (
+    meetingId: string,
+    data: {
+      title?: string;
+      clientId?: string | null;
+      squadId?: string | null;
+      scheduledAt?: string | null;
+    },
+  ) => Promise<boolean>;
 }
 
-export function EditMeetingModal({ meeting, open, onClose, onSubmit }: EditMeetingModalProps) {
+export function EditMeetingModal({
+  meeting,
+  open,
+  onClose,
+  onSubmit,
+}: EditMeetingModalProps) {
   const { activeCompany } = useCompany();
   const [title, setTitle] = useState(meeting.title);
   const [clientId, setClientId] = useState(meeting.client_id || "");
   const [squadId, setSquadId] = useState(meeting.squad_id || "");
   const [scheduledAt, setScheduledAt] = useState("");
   const [saving, setSaving] = useState(false);
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -54,25 +73,44 @@ export function EditMeetingModal({ meeting, open, onClose, onSubmit }: EditMeeti
     }
   }, [open, meeting]);
 
-  useEffect(() => {
-    if (!open || !activeCompany?.company_id) return;
-    const fetchData = async () => {
+  const { data: { clients = [], teams = [] } = {} } = useQuery({
+    queryKey: ["meeting-modal-data", activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return { clients: [], teams: [] };
       const [clientsRes, teamsRes] = await Promise.all([
-        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
-        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
+        supabase
+          .from("clients")
+          .select("id, name")
+          .eq("company_id", activeCompany.company_id)
+          .order("name")
+          .limit(100),
+        supabase
+          .from("teams")
+          .select("id, name")
+          .eq("company_id", activeCompany.company_id)
+          .order("name")
+          .limit(100),
       ]);
-      setClients(clientsRes.data || []);
-      setTeams(teamsRes.data || []);
-    };
-    fetchData();
-  }, [open, activeCompany?.company_id]);
+
+      if (clientsRes.error) throw clientsRes.error;
+      if (teamsRes.error) throw teamsRes.error;
+
+      return {
+        clients: clientsRes.data || [],
+        teams: teamsRes.data || [],
+      };
+    },
+    enabled: open && !!activeCompany?.company_id,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
 
-    const scheduledAtUTC = scheduledAt ? new Date(scheduledAt).toISOString() : null;
+    const scheduledAtUTC = scheduledAt
+      ? new Date(scheduledAt).toISOString()
+      : null;
 
     const success = await onSubmit(meeting.id, {
       title: title.trim(),
@@ -94,7 +132,12 @@ export function EditMeetingModal({ meeting, open, onClose, onSubmit }: EditMeeti
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="edit-title">Título *</Label>
-            <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Input
+              id="edit-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
           </div>
 
           <div className="space-y-2">
@@ -106,7 +149,9 @@ export function EditMeetingModal({ meeting, open, onClose, onSubmit }: EditMeeti
               <SelectContent>
                 <SelectItem value="none">Nenhum</SelectItem>
                 {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -121,7 +166,9 @@ export function EditMeetingModal({ meeting, open, onClose, onSubmit }: EditMeeti
               <SelectContent>
                 <SelectItem value="none">Nenhum</SelectItem>
                 {teams.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -138,7 +185,9 @@ export function EditMeetingModal({ meeting, open, onClose, onSubmit }: EditMeeti
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
             <Button type="submit" disabled={saving || !title.trim()}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
