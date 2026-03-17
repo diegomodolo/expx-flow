@@ -63,12 +63,10 @@ vi.mock("@/integrations/supabase/client", () => {
     // Para insert mock return single
     if (!columns) {
       return {
-        single: vi
-          .fn()
-          .mockResolvedValue({
-            data: { id: "new-client", name: "Novo Cliente" },
-            error: null,
-          }),
+        single: vi.fn().mockResolvedValue({
+          data: { id: "new-client", name: "Novo Cliente" },
+          error: null,
+        }),
       };
     }
 
@@ -102,12 +100,10 @@ vi.mock("@/integrations/supabase/client", () => {
 
   const insertMock = vi.fn().mockReturnValue({
     select: vi.fn().mockReturnValue({
-      single: vi
-        .fn()
-        .mockResolvedValue({
-          data: { id: "new-client", name: "Novo Cliente" },
-          error: null,
-        }),
+      single: vi.fn().mockResolvedValue({
+        data: { id: "new-client", name: "Novo Cliente" },
+        error: null,
+      }),
     }),
   });
 
@@ -122,12 +118,10 @@ vi.mock("@/integrations/supabase/client", () => {
         };
       }),
       functions: {
-        invoke: vi
-          .fn()
-          .mockResolvedValue({
-            data: { success: true, successCount: 1 },
-            error: null,
-          }),
+        invoke: vi.fn().mockResolvedValue({
+          data: { success: true, successCount: 1 },
+          error: null,
+        }),
       },
     },
   };
