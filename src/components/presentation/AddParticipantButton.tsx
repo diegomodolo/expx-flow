@@ -79,7 +79,7 @@ export function AddParticipantButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
+        <Button aria-label="Adicionar participante"
           variant="ghost"
           size="icon"
           className="text-white/70 hover:text-white hover:bg-white/10"

@@ -259,8 +259,8 @@ export function CRMUsersManager({ workspaceId }: CRMUsersManagerProps) {
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
-                                aria-label="Ação"
+                              <Button aria-label="Mais opções"
+
                                 variant="ghost"
                                 size="icon"
                               >

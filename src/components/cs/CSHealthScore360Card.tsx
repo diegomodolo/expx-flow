@@ -174,8 +174,8 @@ export function CSHealthScore360Card({
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button
-                aria-label="Ação"
+              <Button aria-label="Mais opções"
+
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"

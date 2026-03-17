@@ -169,7 +169,7 @@ export function AdPreviewCard({
         {/* Image Area - 3:4 aspect ratio (1080x1440) */}
         <div className="relative aspect-[3/4] bg-muted overflow-hidden">
           {content?.image_url ? (
-            <img 
+            <img alt="Imagem descritiva"
               src={content.image_url} 
               alt={content?.headline || 'Preview do anúncio'}
               className="w-full h-full object-cover"

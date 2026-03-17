@@ -263,7 +263,7 @@ export function SocialTVPerformanceHighlight({
                   }}
                 >
                   {currentClient.avatar ? (
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={currentClient.avatar} 
                       alt={currentClient.name}
                       className="w-full h-full rounded-2xl object-cover"
@@ -280,7 +280,7 @@ export function SocialTVPerformanceHighlight({
                   </h3>
                   <div className="flex items-center gap-3 mt-3">
                     {currentClient.gestorAvatar ? (
-                      <img 
+                      <img alt="Imagem descritiva"
                         src={currentClient.gestorAvatar} 
                         alt={currentClient.gestorName || 'Gestor'}
                         className="w-8 h-8 rounded-full object-cover border-2 border-border"

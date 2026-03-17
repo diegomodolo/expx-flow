@@ -125,7 +125,7 @@ export const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
                         className="w-full max-h-[400px] object-contain"
                       />
                     ) : (
-                      <img 
+                      <img alt="Imagem descritiva"
                         src={post.media_urls[0]} 
                         alt="Post media" 
                         className="w-full max-h-[400px] object-contain"
@@ -136,7 +136,7 @@ export const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
                   <div className="grid grid-cols-2 gap-2">
                     {post.media_urls.map((url, index) => (
                       <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
-                        <img 
+                        <img alt="Imagem descritiva"
                           src={url} 
                           alt={`Media ${index + 1}`} 
                           className="w-full h-full object-cover"

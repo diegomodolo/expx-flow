@@ -1631,13 +1631,13 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 {/* Conteúdo */}
                 <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-6">
                   {formData.presentation_logo ? (
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={formData.presentation_logo} 
                       alt="Logo" 
                       className="max-h-20 max-w-[200px] object-contain mb-4"
                     />
                   ) : formData.avatar ? (
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={formData.avatar} 
                       alt="Avatar" 
                       className="w-16 h-16 rounded-full object-cover border-2 border-white/30 mb-4"
@@ -1661,7 +1661,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               <div className="flex items-center gap-4">
                 {formData.presentation_logo && (
                   <div className="relative bg-muted rounded-lg p-2">
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={formData.presentation_logo} 
                       alt="Logo" 
                       className="h-16 object-contain"
@@ -1708,7 +1708,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               <div className="flex items-center gap-4">
                 {formData.presentation_bg_image && (
                   <div className="relative">
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={formData.presentation_bg_image} 
                       alt="Background" 
                       className="h-20 w-32 object-cover rounded-lg"
@@ -1816,7 +1816,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 <div className="border-2 border-dashed rounded-lg p-4 text-center min-h-[180px] flex flex-col items-center justify-center bg-muted/30">
                   {formData.ai_reference_image_1 ? (
                     <div className="relative w-full">
-                      <img 
+                      <img alt="Imagem descritiva"
                         src={formData.ai_reference_image_1} 
                         alt="Referência 1" 
                         className="w-full h-40 object-cover rounded-lg"
@@ -1863,7 +1863,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 <div className="border-2 border-dashed rounded-lg p-4 text-center min-h-[180px] flex flex-col items-center justify-center bg-muted/30">
                   {formData.ai_reference_image_2 ? (
                     <div className="relative w-full">
-                      <img 
+                      <img alt="Imagem descritiva"
                         src={formData.ai_reference_image_2} 
                         alt="Referência 2" 
                         className="w-full h-40 object-cover rounded-lg"
@@ -1910,7 +1910,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 <div className="border-2 border-dashed rounded-lg p-4 text-center min-h-[180px] flex flex-col items-center justify-center bg-muted/30">
                   {formData.ai_reference_image_3 ? (
                     <div className="relative w-full">
-                      <img 
+                      <img alt="Imagem descritiva"
                         src={formData.ai_reference_image_3} 
                         alt="Referência 3" 
                         className="w-full h-40 object-cover rounded-lg"

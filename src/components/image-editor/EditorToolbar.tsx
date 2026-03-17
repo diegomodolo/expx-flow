@@ -138,8 +138,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           Ferramentas
         </span>
         <div className="flex gap-1">
-          <Button
-            aria-label="Ação"
+          <Button aria-label="Orientação"
             variant="ghost"
             size="icon"
             onClick={onUndo}
@@ -148,8 +147,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           >
             <Undo2 className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            aria-label="Ação"
+          <Button aria-label="Botão de ação complementar"
+
             variant="ghost"
             size="icon"
             onClick={onRedo}

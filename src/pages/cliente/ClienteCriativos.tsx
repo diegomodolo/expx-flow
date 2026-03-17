@@ -382,7 +382,7 @@ export function ClienteCriativos() {
                     )}
                   </div>
                 ) : ad.image_url ? (
-                  <img 
+                  <img alt="Imagem descritiva"
                     src={ad.image_url} 
                     alt={ad.name} 
                     className="w-full h-full object-cover"

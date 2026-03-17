@@ -684,8 +684,7 @@ export function WhatsAppChatWindow({
               <>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      aria-label="Ação"
+                    <Button aria-label="Abrir cadastro do cliente"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 md:h-9 md:w-9"
@@ -698,8 +697,8 @@ export function WhatsAppChatWindow({
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      aria-label="Ação"
+                    <Button aria-label="Botão de ação complementar"
+
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 md:h-9 md:w-9"
@@ -716,8 +715,8 @@ export function WhatsAppChatWindow({
             {/* Observação - sempre disponível (é por chat, não por cliente) */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  aria-label="Ação"
+                <Button aria-label="Botão de ação complementar"
+
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 md:h-9 md:w-9"
@@ -733,7 +732,7 @@ export function WhatsAppChatWindow({
             {linkedClientId && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
+                  <Button aria-label="Abrir cadastro do cliente"
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 md:h-9 md:w-9"
@@ -790,7 +789,7 @@ export function WhatsAppChatWindow({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  aria-label="Ação"
+                  aria-label="Abrir cadastro do cliente"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 md:h-9 md:w-9"

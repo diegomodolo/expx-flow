@@ -154,11 +154,11 @@ export function EditableCreativeCard({
               </Button>
             </CollapsibleTrigger>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={onDuplicate} title="Duplicar">
+              <Button aria-label="Duplicar" variant="ghost" size="icon" onClick={onDuplicate} title="Duplicar">
                 <Copy className="w-4 h-4" />
               </Button>
               {canRemove && (
-                <Button 
+                <Button aria-label="Remover"
                   variant="ghost" 
                   size="icon" 
                   onClick={onRemove}
@@ -319,7 +319,7 @@ export function EditableCreativeCard({
                     
                     {/* Remove media button when media exists */}
                     {creative.mediaUrls && creative.mediaUrls.length > 0 && (
-                      <Button
+                      <Button aria-label="Remover mídia"
                         variant="destructive"
                         size="icon"
                         className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-80 hover:opacity-100"

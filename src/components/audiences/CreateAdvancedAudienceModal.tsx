@@ -739,7 +739,7 @@ export function CreateAdvancedAudienceModal({
                             >
                               <div className="relative w-16 h-10 bg-muted rounded overflow-hidden flex-shrink-0">
                                 {video.thumbnail_url ? (
-                                  <img 
+                                  <img alt="Imagem descritiva"
                                     src={video.thumbnail_url} 
                                     alt={video.title}
                                     className="w-full h-full object-cover"

@@ -402,8 +402,8 @@ export function PresentationList({
                         asChild
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Button
-                          aria-label="Ação"
+                        <Button aria-label="Mais opções"
+
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"

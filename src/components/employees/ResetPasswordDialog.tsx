@@ -127,7 +127,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
                 className="font-mono"
                 minLength={8}
               />
-              <Button
+              <Button aria-label="Gerar nova senha"
                 type="button"
                 variant="outline"
                 size="icon"
@@ -136,7 +136,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
               >
                 <RefreshCw className="w-4 h-4" />
               </Button>
-              <Button
+              <Button aria-label="Copiar senha"
                 type="button"
                 variant="outline"
                 size="icon"

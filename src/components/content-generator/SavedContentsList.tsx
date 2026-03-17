@@ -120,7 +120,7 @@ export function SavedContentsList() {
               </SelectContent>
             </Select>
 
-            <Button
+            <Button aria-label="Atualizar lista"
               variant="outline"
               size="icon"
               onClick={fetchGenerations}

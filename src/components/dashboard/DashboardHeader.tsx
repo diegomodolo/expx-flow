@@ -145,8 +145,7 @@ export function DashboardHeader() {
           <NotificationCenter />
 
           {/* Workspace Quick Access */}
-          <Button
-            aria-label="Fechar"
+          <Button aria-label="Fechar"
             variant="ghost"
             size="icon"
             onClick={() => navigate("/workspace")}
@@ -172,7 +171,7 @@ export function DashboardHeader() {
 
           {/* Theme Toggle */}
           {mounted && (
-            <Button
+            <Button aria-label="Workspace"
               variant="ghost"
               size="icon"
               onClick={toggleTheme}

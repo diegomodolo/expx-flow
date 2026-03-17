@@ -120,7 +120,7 @@ export default function CarrosseisPublicados() {
               <Card key={carousel.id} className="overflow-hidden">
                 <div className="aspect-square bg-muted relative">
                   {firstSlide?.image_url ? (
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={firstSlide.image_url} 
                       alt="Capa do carrossel"
                       className="w-full h-full object-cover"

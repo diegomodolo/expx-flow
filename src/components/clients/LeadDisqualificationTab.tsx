@@ -211,7 +211,7 @@ export function LeadDisqualificationTab({
                     readOnly
                     className="font-mono text-sm"
                   />
-                  <Button
+                  <Button aria-label="Copiar link"
                     variant="outline"
                     size="icon"
                     onClick={handleCopyUrl}

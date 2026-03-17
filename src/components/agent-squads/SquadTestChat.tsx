@@ -87,7 +87,7 @@ export function SquadTestChat({
               <ChatInput onSendMessage={sendMessage} disabled={loading} />
             </div>
             {loading && (
-              <Button
+              <Button aria-label="Parar execução"
                 variant="destructive"
                 size="icon"
                 className="h-10 w-10 shrink-0"

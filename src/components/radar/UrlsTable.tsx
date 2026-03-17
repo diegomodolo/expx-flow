@@ -344,7 +344,7 @@ export function UrlsTable({
                               className={`h-3 w-3 ${isValidating ? "animate-spin" : ""}`}
                             />
                           </Button>
-                          <Button
+                          <Button aria-label="Abrir URL"
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"

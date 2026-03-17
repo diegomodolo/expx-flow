@@ -239,8 +239,8 @@ export const LeadSavedFiltersTab = ({
                           <Eye className="h-4 w-4 mr-1" />
                           Ver Resultados
                         </Button>
-                        <Button
-                          aria-label="Ação"
+                        <Button aria-label="Botão de ação complementar"
+
                           variant="ghost"
                           size="icon"
                           onClick={() =>

@@ -242,7 +242,7 @@ export function PublishCarouselModal({ carousel, open, onOpenChange, onSuccess }
             {/* Preview do carrossel */}
             <div className="relative aspect-square max-h-48 mx-auto overflow-hidden rounded-lg bg-muted">
               {previewImage ? (
-                <img 
+                <img alt="Imagem descritiva"
                   src={previewImage} 
                   alt="Preview" 
                   className="w-full h-full object-cover"

@@ -182,7 +182,7 @@ export function NotificationCenter() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button aria-label="Notificações"
           variant="ghost"
           size="icon"
           className="relative w-10 h-10 rounded-full hover:bg-muted/60"

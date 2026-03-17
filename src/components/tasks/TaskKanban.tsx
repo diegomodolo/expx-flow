@@ -1039,8 +1039,7 @@ export function TaskKanban({
                           {finalTasks.length}
                         </Badge>
                       </h3>
-                      <Button
-                        aria-label="Ação"
+                      <Button aria-label="Configurações da coluna"
                         variant="ghost"
                         size="icon"
                         className={cn(

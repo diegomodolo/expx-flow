@@ -187,8 +187,7 @@ export function WhatsAppInstanceCard({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
+              <Button variant="outline"
                 size="sm"
                 onClick={() => setShowQRModal(true)}
                 disabled={instance.is_connected}
@@ -227,7 +226,7 @@ export function WhatsAppInstanceCard({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button aria-label="Ação" variant="ghost" size="icon">
+                  <Button aria-label="Testar conexão" variant="ghost" size="icon">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>

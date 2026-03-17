@@ -154,7 +154,7 @@ export const AccountBalanceCard = ({
           Saldo da Conta
         </CardTitle>
         <div className="flex items-center gap-2">
-          <Button
+          <Button aria-label="Atualizar saldo"
             variant="ghost"
             size="icon"
             onClick={handleRefreshBalance}

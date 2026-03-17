@@ -57,7 +57,7 @@ export const CompanySelector = () => {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded flex items-center justify-center overflow-hidden">
                 {activeCompany.company?.logo ? (
-                  <img 
+                  <img alt="Imagem descritiva"
                     src={activeCompany.company.logo} 
                     alt={`${activeCompany.company.name} logo`}
                     className="w-full h-full object-cover"

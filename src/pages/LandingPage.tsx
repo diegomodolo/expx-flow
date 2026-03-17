@@ -23,7 +23,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <img 
+              <img alt="Imagem descritiva"
                 src="https://i.imgur.com/EVjvxxM.png" 
                 alt="Expx Flow" 
                 className="h-8 w-auto"
@@ -119,7 +119,7 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="flex items-center space-x-4 mb-6">
-                <img 
+                <img alt="Imagem descritiva"
                   src="https://i.imgur.com/EVjvxxM.png" 
                   alt="Expx Flow" 
                   className="h-16 w-auto"
@@ -498,7 +498,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-4 mb-4 md:mb-0">
-              <img 
+              <img alt="Imagem descritiva"
                 src="https://i.imgur.com/EVjvxxM.png" 
                 alt="Expx Flow" 
                 className="h-8 w-auto brightness-0 invert"

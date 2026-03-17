@@ -121,7 +121,7 @@ export function YouTubeKnowledgeCard({
                     toggleVideo({ videoId: video.id, isSelected: !!checked })
                   }
                 />
-                <img 
+                <img alt="Imagem descritiva"
                   src={video.thumbnail_url || ''} 
                   alt={video.video_title || ''}
                   className="w-16 h-10 object-cover rounded"

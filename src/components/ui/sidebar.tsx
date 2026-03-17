@@ -272,8 +272,7 @@ const SidebarTrigger = React.forwardRef<
   const { toggleSidebar } = useSidebar();
 
   return (
-    <Button
-      aria-label="Ação"
+    <Button aria-label="Toggle Sidebar"
       ref={ref}
       data-sidebar="trigger"
       variant="ghost"

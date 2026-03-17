@@ -242,8 +242,8 @@ export function WorkspaceSidebar({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                aria-label="Ação"
+              <Button aria-label="Mais opções"
+
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100"
@@ -346,8 +346,8 @@ export function WorkspaceSidebar({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    aria-label="Ação"
+                  <Button aria-label="Mais opções"
+
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 opacity-0 group-hover:opacity-100"

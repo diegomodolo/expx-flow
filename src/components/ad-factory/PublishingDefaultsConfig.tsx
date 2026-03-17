@@ -133,7 +133,7 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
                 className="flex-1"
               />
               {suggestedUrl && !config.default_destination_url && (
-                <Button
+                <Button aria-label="Usar URL sugerida"
                   type="button"
                   variant="outline"
                   size="icon"
@@ -201,7 +201,7 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
                   </SelectContent>
                 </Select>
               )}
-              <Button
+              <Button aria-label="Sincronizar pixels"
                 type="button"
                 variant="outline"
                 size="icon"

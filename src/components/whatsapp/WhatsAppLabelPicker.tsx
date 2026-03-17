@@ -54,7 +54,7 @@ export function WhatsAppLabelPicker({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button aria-label="Gerenciar etiquetas"
           variant="ghost"
           size="icon"
           className="h-8 w-8"

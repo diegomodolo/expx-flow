@@ -189,7 +189,7 @@ export function AISettings() {
 
                       <div className="flex items-center gap-1.5">
                         {hasConfig && (
-                          <Button
+                          <Button aria-label="Excluir"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"

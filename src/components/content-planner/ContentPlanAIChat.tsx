@@ -264,7 +264,7 @@ export function ContentPlanAIChat({
             </div>
           </div>
           {messages.length > 0 && (
-            <Button
+            <Button aria-label="Limpar histórico"
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-destructive"

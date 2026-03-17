@@ -89,7 +89,7 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
             >
               {firstMedia ? (
                 firstMedia.media_type === 'image' ? (
-                  <img 
+                  <img alt="Imagem descritiva"
                     src={firstMedia.media_url} 
                     alt="" 
                     className="w-full h-full object-cover"

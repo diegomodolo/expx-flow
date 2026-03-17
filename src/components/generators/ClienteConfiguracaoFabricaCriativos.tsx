@@ -423,7 +423,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                       onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
                       className="flex-1"
                     />
-                    <Button 
+                    <Button aria-label="Resetar para gerar hoje"
                       variant="outline" 
                       size="icon"
                       onClick={resetGenerationForToday}

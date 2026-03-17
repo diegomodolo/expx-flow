@@ -145,7 +145,7 @@ export function ClientSelectorForCreatives({
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       {client.avatar ? (
-                        <img 
+                        <img alt="Imagem descritiva"
                           src={client.avatar} 
                           alt={client.name}
                           className="w-full h-full rounded-full object-cover"
@@ -212,7 +212,7 @@ export function ClientSelectorForCreatives({
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                       {client.avatar ? (
-                        <img 
+                        <img alt="Imagem descritiva"
                           src={client.avatar} 
                           alt={client.name}
                           className="w-full h-full rounded-full object-cover"

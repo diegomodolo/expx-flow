@@ -561,7 +561,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
         <div className="flex items-center gap-1">
           {/* Hide clear and close buttons when forced */}
           {!forceRealtimeAnalysis && messages.length > 0 && (
-            <Button
+            <Button aria-label="Limpar histórico"
               variant="ghost"
               size="icon"
               onClick={handleClearHistory}

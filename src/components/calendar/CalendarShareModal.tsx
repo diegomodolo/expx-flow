@@ -99,7 +99,7 @@ export function CalendarShareModal({
                       className="flex items-center justify-between bg-muted/50 rounded px-3 py-2"
                     >
                       <span className="text-sm">{emp?.name || "Usuário"}</span>
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive"

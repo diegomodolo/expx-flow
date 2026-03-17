@@ -254,8 +254,8 @@ export function MessageBubble({
         <div className="absolute right-2 top-0 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-card border border-border rounded-lg shadow-sm px-1 py-0.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                aria-label="Ação"
+              <Button aria-label="Mensagem"
+
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7"

@@ -234,7 +234,7 @@ export function YouTubeChannelManager({
                       {categories.length > 0 && (
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button
+                            <Button aria-label="Categorias"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"

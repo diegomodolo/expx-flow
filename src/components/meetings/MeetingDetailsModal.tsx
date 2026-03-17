@@ -72,7 +72,7 @@ export function MeetingDetailsModal({
               <DialogTitle className="text-xl">{meeting.title}</DialogTitle>
             </div>
             {onEdit && (
-              <Button
+              <Button aria-label="Editar reunião"
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}

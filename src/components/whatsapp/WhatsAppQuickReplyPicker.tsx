@@ -131,7 +131,7 @@ export const WhatsAppQuickReplyPicker: React.FC<WhatsAppQuickReplyPickerProps> =
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button aria-label="Respostas rápidas"
           variant="ghost"
           size="icon"
           className="h-8 w-8"

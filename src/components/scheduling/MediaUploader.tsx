@@ -183,7 +183,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                     <Video className="h-8 w-8 text-muted-foreground" />
                   </div>
                 ) : (
-                  <img 
+                  <img alt="Imagem descritiva"
                     src={url} 
                     alt={`Media ${index + 1}`} 
                     className="w-full h-full object-cover"

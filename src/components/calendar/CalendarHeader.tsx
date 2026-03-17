@@ -80,13 +80,13 @@ export function CalendarHeader({
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={navigatePrev}>
+        <Button aria-label="Anterior"  variant="outline" size="icon" onClick={navigatePrev}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-lg font-semibold capitalize min-w-[200px] text-center">
           {getTitle()}
         </h2>
-        <Button variant="outline" size="icon" onClick={navigateNext}>
+        <Button aria-label="Próximo"  variant="outline" size="icon" onClick={navigateNext}>
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button

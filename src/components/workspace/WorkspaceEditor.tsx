@@ -183,8 +183,8 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
             )}
           </Button>
 
-          <Button
-            aria-label="Ação"
+          <Button aria-label="Compartilhar"
+
             variant="ghost"
             size="icon"
             onClick={() => setShareOpen(true)}
@@ -195,8 +195,8 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                aria-label="Ação"
+              <Button aria-label="Mais opções"
+
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"

@@ -196,7 +196,7 @@ export function PublishCreativeModal({ creative, open, onOpenChange, onSuccess }
             {/* Preview da imagem */}
             {creative.image_url && (
               <div className="aspect-[3/4] max-h-48 mx-auto overflow-hidden rounded-lg">
-                <img 
+                <img alt="Imagem descritiva"
                   src={creative.image_url} 
                   alt="Preview" 
                   className="w-full h-full object-cover"

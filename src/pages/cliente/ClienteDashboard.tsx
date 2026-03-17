@@ -273,7 +273,7 @@ export function ClienteDashboard({
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px] flex-shrink-0">
                     <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
                       {client.instagram_account.profile_picture_url ? (
-                        <img 
+                        <img alt="Imagem descritiva"
                           src={client.instagram_account.profile_picture_url} 
                           alt="" 
                           className="w-6 h-6 rounded-full"

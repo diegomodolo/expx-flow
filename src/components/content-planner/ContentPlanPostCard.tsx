@@ -1261,7 +1261,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
                     Aprovado
                   </Badge>
                   {clientId && (
-                    <Button
+                    <Button aria-label="Enviar para Apresentação"
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"

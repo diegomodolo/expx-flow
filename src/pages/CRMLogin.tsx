@@ -91,7 +91,7 @@ export default function CRMLogin() {
         <CardHeader className="text-center space-y-4">
           {workspace?.logo_url && (
             <div className="flex justify-center">
-              <img 
+              <img alt="Imagem descritiva"
                 src={workspace.logo_url} 
                 alt="Logo" 
                 className="h-16 object-contain"

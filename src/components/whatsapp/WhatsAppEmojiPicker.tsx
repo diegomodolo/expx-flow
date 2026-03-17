@@ -106,7 +106,7 @@ export function WhatsAppEmojiPicker({ onEmojiSelect, disabled }: WhatsAppEmojiPi
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button aria-label="Inserir emoji"
           variant="ghost"
           size="icon"
           disabled={disabled}

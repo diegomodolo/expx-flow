@@ -186,7 +186,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                     <div className="relative h-full">
                       {ad.image_url ? (
                         // Se tiver thumbnail, exibe ela
-                        <img 
+                        <img alt="Imagem descritiva"
                           src={ad.image_url} 
                           alt="Thumbnail do vídeo"
                           className="w-full h-full object-cover"
@@ -245,7 +245,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                       </div>
                     </div>
                   ) : ad.creative_type === 'image' && ad.image_url ? (
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={ad.image_url} 
                       alt={ad.creative_title || ad.name}
                       className="w-full h-full object-cover"

@@ -723,8 +723,8 @@ function MemberActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          aria-label="Ação"
+        <Button aria-label="Mais opções"
+
           size="icon"
           variant="ghost"
           className="h-8 w-8"

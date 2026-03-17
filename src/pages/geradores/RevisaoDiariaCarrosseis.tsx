@@ -170,7 +170,7 @@ export default function RevisaoDiariaCarrosseis() {
                   onClick={() => setSelectedCarousel(carousel)}
                 >
                   {firstSlide?.image_url ? (
-                    <img 
+                    <img alt="Imagem descritiva"
                       src={firstSlide.image_url} 
                       alt="Capa do carrossel"
                       className="w-full h-full object-cover"

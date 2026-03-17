@@ -226,7 +226,7 @@ export function ApprovalDestinationDialog({
         {adContent?.headline && (
           <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
             {adContent.image_url && (
-              <img 
+              <img alt="Imagem descritiva"
                 src={adContent.image_url} 
                 alt="Preview" 
                 className="w-16 h-16 object-cover rounded"

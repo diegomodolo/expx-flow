@@ -418,7 +418,7 @@ const RelatorioRHColaboradores = () => {
                         }`} />
                         <div className="flex items-center gap-3">
                           {employee.avatar ? (
-                            <img 
+                            <img alt="Imagem descritiva"
                               src={employee.avatar} 
                               alt={employee.name}
                               className="w-10 h-10 rounded-full"
