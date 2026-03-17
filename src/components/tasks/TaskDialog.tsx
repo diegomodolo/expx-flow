@@ -534,13 +534,14 @@ export function TaskDialog({
       }
     } else {
       // Determine default board for new tasks
-      // Try defaultBoardUserId first, then find a board matching current employee name
-      const currentEmpBoard = currentEmployeeName
-        ? boards.find((b) => b.owner_name === currentEmployeeName)
+      // Use auth user_id to find the current user's board (most reliable match)
+      const authUid = user?.id || "";
+      const currentUserBoard = authUid
+        ? boards.find((b) => b.user_id === authUid)
         : null;
       const defaultQuadroUserId =
         defaultBoardUserId ||
-        currentEmpBoard?.user_id ||
+        currentUserBoard?.user_id ||
         currentEmployeeUserId ||
         "";
       const defaultQuadroColumnId = defaultQuadroUserId

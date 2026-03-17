@@ -22,35 +22,49 @@ export function useAllBoardColumns() {
   const companyId = activeCompany?.company_id;
 
   const { data: boards = [], isLoading } = useQuery({
-    queryKey: ['all-board-columns', companyId],
+    queryKey: ["all-board-columns", companyId],
     queryFn: async () => {
       if (!companyId) return [];
 
       // Fetch all board columns for the company
       const { data: columns, error: colError } = await (supabase
-        .from('task_board_columns' as unknown)
-        .select('*')
-        .eq('company_id', companyId)
-        .order('order_index', { ascending: true }) as unknown);
+        .from("task_board_columns" as unknown)
+        .select("*")
+        .eq("company_id", companyId)
+        .order("order_index", { ascending: true }) as unknown);
 
       if (colError) throw colError;
 
       // Fetch active employees
       const { data: employees, error: empError } = await supabase
-        .from('employees')
-        .select('user_id, name')
-        .eq('company_id', companyId)
-        .eq('status', 'active');
+        .from("employees")
+        .select("user_id, name")
+        .eq("company_id", companyId)
+        .eq("status", "active");
 
       if (empError) throw empError;
 
+      // Also fetch company_members to map auth user_ids that may differ from employee.user_id
+      const { data: members } = await supabase
+        .from("company_members")
+        .select("user_id, profiles:user_id(full_name)")
+        .eq("company_id", companyId);
+
       const employeeMap = new Map<string, string>();
-      (employees || []).forEach((e: unknown) => employeeMap.set(e.user_id, e.name));
+      (employees || []).forEach((e: unknown) =>
+        employeeMap.set(e.user_id, e.name),
+      );
+      // Fill gaps: if a column user_id isn't in employeeMap, try company_members
+      (members || []).forEach((m: unknown) => {
+        if (!employeeMap.has(m.user_id) && m.profiles?.full_name) {
+          employeeMap.set(m.user_id, m.profiles.full_name);
+        }
+      });
 
       // Group by user_id
       const grouped = new Map<string, BoardGroup>();
       (columns || []).forEach((col: unknown) => {
-        const ownerName = employeeMap.get(col.user_id) || 'Desconhecido';
+        const ownerName = employeeMap.get(col.user_id) || "Desconhecido";
         if (!grouped.has(col.user_id)) {
           grouped.set(col.user_id, {
             user_id: col.user_id,
@@ -69,7 +83,7 @@ export function useAllBoardColumns() {
       });
 
       return Array.from(grouped.values()).sort((a, b) =>
-        a.owner_name.localeCompare(b.owner_name, 'pt-BR')
+        a.owner_name.localeCompare(b.owner_name, "pt-BR"),
       );
     },
     enabled: !!companyId,
