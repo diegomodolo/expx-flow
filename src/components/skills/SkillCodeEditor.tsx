@@ -67,7 +67,12 @@ return {
 };
 `;
 
-export function SkillCodeEditor({ code, onChange, edgeFunctionName, skillType = "edge_function" }: Props) {
+export function SkillCodeEditor({
+  code,
+  onChange,
+  edgeFunctionName,
+  skillType = "edge_function",
+}: Props) {
   const isJS = skillType === "javascript";
   const handleCopy = () => {
     navigator.clipboard.writeText(code || "");
@@ -76,19 +81,34 @@ export function SkillCodeEditor({ code, onChange, edgeFunctionName, skillType = 
 
   const handleReset = () => {
     onChange(isJS ? JS_TEMPLATE : DEFAULT_TEMPLATE);
-    toast.info(isJS ? "Template JavaScript restaurado" : "Template padrão restaurado");
+    toast.info(
+      isJS ? "Template JavaScript restaurado" : "Template padrão restaurado",
+    );
   };
 
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle>{isJS ? "Código JavaScript" : "Código da Edge Function"}</CardTitle>
+          <CardTitle>
+            {isJS ? "Código JavaScript" : "Código da Edge Function"}
+          </CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            {isJS 
-              ? <>Tipo: <code className="bg-muted px-1 rounded">JavaScript</code> — executado pelo executor universal. Use <code className="bg-muted px-1 rounded">params</code> para acessar os parâmetros de entrada.</>
-              : <>Function: <code className="bg-muted px-1 rounded">{edgeFunctionName || "não definida"}</code></>
-            }
+            {isJS ? (
+              <>
+                Tipo: <code className="bg-muted px-1 rounded">JavaScript</code>{" "}
+                — executado pelo executor universal. Use{" "}
+                <code className="bg-muted px-1 rounded">params</code> para
+                acessar os parâmetros de entrada.
+              </>
+            ) : (
+              <>
+                Function:{" "}
+                <code className="bg-muted px-1 rounded">
+                  {edgeFunctionName || "não definida"}
+                </code>
+              </>
+            )}
           </p>
         </div>
         <div className="flex gap-2">

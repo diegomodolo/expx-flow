@@ -222,60 +222,75 @@ export default function InstagramProspectingPage() {
     try {
       // Import to CNAE Pool
       if (destinations.cnaePool) {
-        let successCount = 0;
-        for (const lead of selectedLeads) {
-          const cnpjValue = `IG-${lead.instagram_username}-${Date.now()}`;
-          
-          const { error } = await supabase
-            .from('cnae_lead_pool')
-            .upsert({
-              company_id: activeCompany.company_id,
-              cnpj: cnpjValue,
-              cnae_code: "0000-0/00",
-              cnae_description: "Instagram Followers",
-              nome_fantasia: lead.nome_fantasia,
-              razao_social: lead.razao_social,
-              phone: lead.phone,
-              phone_2: lead.phone_2,
-              email: lead.email,
-              source: 'instagram_prospecting',
-            }, { 
-              onConflict: 'cnpj,company_id',
-              ignoreDuplicates: true 
-            });
+        const cnaeLeads = selectedLeads.map(lead => ({
+          company_id: activeCompany.company_id,
+          cnpj: `IG-${lead.instagram_username}-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          cnae_code: "0000-0/00",
+          cnae_description: "Instagram Followers",
+          nome_fantasia: lead.nome_fantasia,
+          razao_social: lead.razao_social,
+          phone: lead.phone,
+          phone_2: lead.phone_2,
+          email: lead.email,
+          source: 'instagram_prospecting',
+        }));
 
-          if (!error) successCount++;
-        }
+        await supabase
+          .from('cnae_lead_pool')
+          .upsert(cnaeLeads, {
+            onConflict: 'cnpj,company_id',
+            ignoreDuplicates: true
+          });
       }
 
       // Import to custom segment
       if (destinations.segmentId) {
-        for (const lead of selectedLeads) {
-          const { data: insertedLead, error: leadError } = await supabase
-            .from('lead_master_pool')
-            .insert({
-              company_id: activeCompany.company_id,
-              full_name: lead.nome_fantasia,
-              email: lead.email,
-              phone: lead.phone,
-              whatsapp: lead.phone,
-              instagram_handle: lead.instagram_username,
-              acquisition_channel: 'instagram_prospecting',
-              source: 'instagram_prospecting',
-            })
-            .select('id')
-            .single();
+        const masterLeads = selectedLeads.map(lead => ({
+          company_id: activeCompany.company_id,
+          full_name: lead.nome_fantasia,
+          email: lead.email,
+          phone: lead.phone,
+          whatsapp: lead.phone,
+          instagram_handle: lead.instagram_username,
+          acquisition_channel: 'instagram_prospecting',
+          source: 'instagram_prospecting',
+        }));
 
-          if (leadError) continue;
+        // Let's use a batch insert and if it fails, fallback to single inserts to mimic old behavior perfectly.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: insertedLeads, error: leadError } = await supabase
+          .from('lead_master_pool')
+          .insert(masterLeads as unknown)
+          .select('id');
 
-          if (insertedLead) {
-            await supabase
-              .from('lead_segment_assignments')
-              .insert({
-                lead_id: insertedLead.id,
-                segment_id: destinations.segmentId,
-              });
+        let leadsToAssign = insertedLeads || [];
+
+        if (leadError) {
+          // Fallback to single inserts if batch fails due to unique constraint
+          leadsToAssign = [];
+          for (const lead of masterLeads) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: singleLead, error: singleError } = await supabase
+              .from('lead_master_pool')
+              .insert(lead as unknown)
+              .select('id')
+              .maybeSingle();
+
+            if (!singleError && singleLead) {
+              leadsToAssign.push(singleLead);
+            }
           }
+        }
+
+        if (leadsToAssign.length > 0) {
+          const segmentAssignments = leadsToAssign.map(insertedLead => ({
+            lead_id: insertedLead.id,
+            segment_id: destinations.segmentId,
+          }));
+
+          await supabase
+            .from('lead_segment_assignments')
+            .insert(segmentAssignments);
         }
       }
 

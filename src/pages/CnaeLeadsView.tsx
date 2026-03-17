@@ -97,7 +97,7 @@ export default function CnaeLeadsView() {
   const buildFilteredQuery = () => {
     let query = supabase
       .from('cnae_lead_pool' as unknown)
-      .select('*')
+      .select('id, capital_social, cnae_code, cnpj, created_at, email, email_hash, municipio, nome_fantasia, phone, phone_2, phone_3, phone_hash, razao_social, uf')
       .eq('company_id', companyId)
       .eq('cnae_code', decodedCnaeCode);
 
