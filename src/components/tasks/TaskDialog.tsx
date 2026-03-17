@@ -305,7 +305,9 @@ export function TaskDialog({
     if (!parentTaskInfo) return;
     const { data } = await supabase
       .from("tasks")
-      .select("id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata")
+      .select(
+        "id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata",
+      )
       .eq("id", parentTaskInfo.id)
       .single();
     if (data) setViewingParentTask(data);
@@ -911,10 +913,10 @@ export function TaskDialog({
       description: formData.description,
       status: formData.status,
       priority: formData.priority,
-      team_id: formData.team_id,
+      team_id: formData.team_id || null,
       responsible_name: formData.responsible_name,
       responsible_avatar: formData.responsible_avatar,
-      user_id: formData.responsible_user_id,
+      user_id: formData.responsible_user_id || null,
       related_client_id: formData.related_client_id || null,
       related_campaign_id: formData.related_campaign_id || null,
       progress: formData.progress,

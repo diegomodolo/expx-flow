@@ -103,15 +103,21 @@ Gere uma imagem realista, profissional e altamente clicável.`;
 
     const aiResult = await callAI({
       functionName: "generate-youtube-thumbnail",
-      companyId: clientId,
+      companyId,
       systemPrompt: "",
       userPrompt: prompt,
       messages,
+      modalities: ["image", "text"],
+      imageConfig: {
+        aspectRatio: "16:9",
+        resolution: "1280x720",
+      },
     });
 
     console.log("AI response received");
 
-    const imageData = aiResult.content;
+    // Image comes from aiResult.images (OpenRouter image generation) or aiResult.content (base64)
+    const imageData = aiResult.images?.[0] || aiResult.content;
 
     if (!imageData) {
       throw new Error("No image was generated");

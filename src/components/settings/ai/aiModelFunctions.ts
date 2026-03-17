@@ -252,8 +252,8 @@ export const AI_FUNCTIONS: AIFunctionDef[] = [
     functionName: "generate-youtube-thumbnail",
     label: "Thumbnail YouTube",
     category: "Vídeo & YouTube",
-    defaultPrimary: "openai/gpt-4o",
-    defaultFallback: "anthropic/claude-3.5-sonnet",
+    defaultPrimary: "google/gemini-2.5-flash-image-preview",
+    defaultFallback: "google/gemini-2.5-flash-image-preview",
   },
   {
     functionName: "generate-presentation-slides",
@@ -261,6 +261,13 @@ export const AI_FUNCTIONS: AIFunctionDef[] = [
     category: "Vídeo & YouTube",
     defaultPrimary: "anthropic/claude-3.5-sonnet",
     defaultFallback: "google/gemini-2.5-pro",
+  },
+  {
+    functionName: "generate-slide-design",
+    label: "Design de Slides (Texto)",
+    category: "Vídeo & YouTube",
+    defaultPrimary: "google/gemini-2.5-flash",
+    defaultFallback: "openai/gpt-4o-mini",
   },
   {
     functionName: "generate-slide-image",
