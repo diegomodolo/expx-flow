@@ -14,7 +14,7 @@ vi.mock("@/integrations/supabase/client", () => ({
           maybeSingle: vi.fn().mockResolvedValue({
             data: { id: "task-1", title: "Nova Tarefa" },
             error: null,
-          })
+          }),
         }),
       }),
     }),
@@ -49,19 +49,25 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/components/dashboard/DashboardLayout", () => ({
-  DashboardLayout: ({ children }: { children: React.ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
+  DashboardLayout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dashboard-layout">{children}</div>
+  ),
 }));
 
 vi.mock("@/components/comm-hub/ChannelSidebar", () => ({
   ChannelSidebar: ({ loading }: any) => {
-    if (loading) return <div data-testid="channel-sidebar-loading">Carregando canais...</div>;
+    if (loading)
+      return (
+        <div data-testid="channel-sidebar-loading">Carregando canais...</div>
+      );
     return <div data-testid="channel-sidebar">Channel Sidebar Mock</div>;
   },
 }));
 
 vi.mock("@/components/comm-hub/ChatFlow", () => ({
   ChatFlow: ({ error }: any) => {
-    if (error) return <div data-testid="chat-flow-error">Erro ao carregar chat</div>;
+    if (error)
+      return <div data-testid="chat-flow-error">Erro ao carregar chat</div>;
     return <div data-testid="chat-flow">Chat Flow Mock</div>;
   },
 }));
@@ -70,9 +76,13 @@ vi.mock("@/components/comm-hub/MyDayPanel", () => ({
   MyDayPanel: ({ onOpenTask }: any) => (
     <div data-testid="my-day-panel">
       My Day Panel Mock
-      <button onClick={() => {
-        if(onOpenTask) onOpenTask("task-1")
-      }}>Acao</button>
+      <button
+        onClick={() => {
+          if (onOpenTask) onOpenTask("task-1");
+        }}
+      >
+        Acao
+      </button>
     </div>
   ),
 }));
@@ -176,7 +186,7 @@ describe("DashboardPage", () => {
       sendMessage: vi.fn(),
       sendingMessage: false,
       getOrCreateDMChannel: vi.fn(),
-      error: "Erro na API"
+      error: "Erro na API",
     } as any);
 
     // Atualizar o ChatFlow pra ler o erro passado ou simular a tela de erro.
@@ -184,7 +194,7 @@ describe("DashboardPage", () => {
     renderWithProviders(<DashboardPage />);
 
     await waitFor(() => {
-       expect(screen.getByTestId("chat-flow")).toBeInTheDocument();
+      expect(screen.getByTestId("chat-flow")).toBeInTheDocument();
     });
   });
 });

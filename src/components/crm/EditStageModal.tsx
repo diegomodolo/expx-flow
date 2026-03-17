@@ -1,9 +1,21 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Workflow, Clock } from "lucide-react";
@@ -40,7 +52,13 @@ const STATUS_OPTIONS = [
   { value: "lost", label: "Perdido" },
 ];
 
-export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: EditStageModalProps) {
+export function EditStageModal({
+  isOpen,
+  onClose,
+  stage,
+  onSave,
+  workspaceId,
+}: EditStageModalProps) {
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#3b82f6");
@@ -48,12 +66,18 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
   const [autoStatusChange, setAutoStatusChange] = useState(false);
   const [targetStatus, setTargetStatus] = useState<string | null>(null);
   const [workflowEnabled, setWorkflowEnabled] = useState(false);
-  const [workflowTargetBoardId, setWorkflowTargetBoardId] = useState<string | null>(null);
-  const [workflowTargetStageId, setWorkflowTargetStageId] = useState<string | null>(null);
+  const [workflowTargetBoardId, setWorkflowTargetBoardId] = useState<
+    string | null
+  >(null);
+  const [workflowTargetStageId, setWorkflowTargetStageId] = useState<
+    string | null
+  >(null);
   const [targetBoardStages, setTargetBoardStages] = useState<CRMStage[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [autoTemperatureChange, setAutoTemperatureChange] = useState(false);
-  const [targetTemperature, setTargetTemperature] = useState<string | null>(null);
+  const [targetTemperature, setTargetTemperature] = useState<string | null>(
+    null,
+  );
   const [maxDays, setMaxDays] = useState<string>("");
 
   const { boards } = useCRMBoards({ workspaceId });
@@ -70,7 +94,11 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
       setWorkflowTargetStageId(stage.workflow_target_stage_id || null);
       setAutoTemperatureChange(stage.auto_temperature_change || false);
       // If auto temperature is enabled but target isn't set, default to "quente"
-      setTargetTemperature(stage.auto_temperature_change ? (stage.target_temperature || "quente") : null);
+      setTargetTemperature(
+        stage.auto_temperature_change
+          ? stage.target_temperature || "quente"
+          : null,
+      );
       setMaxDays(stage.max_days?.toString() || "");
     }
   }, [stage]);
@@ -79,10 +107,12 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
   useEffect(() => {
     if (workflowTargetBoardId) {
       supabase
-        .from('crm_stages')
-        .select('id, board_id, workspace_id, name, color, order_index, is_won_stage, is_lost_stage, event_mapping, set_status_on_enter, set_temperature_on_enter, workflow_enabled, workflow_target_stage_id, workflow_target_board_id, auto_status_change, target_status, auto_temperature_change, target_temperature, max_days, created_at')
-        .eq('board_id', workflowTargetBoardId)
-        .order('order_index')
+        .from("crm_stages")
+        .select(
+          "id, board_id, workspace_id, name, color, order_index, is_won_stage, is_lost_stage, event_mapping, set_status_on_enter, set_temperature_on_enter, workflow_enabled, workflow_target_stage_id, workflow_target_board_id, auto_status_change, target_status, auto_temperature_change, target_temperature, max_days, created_at",
+        )
+        .eq("board_id", workflowTargetBoardId)
+        .order("order_index")
         .then(({ data }) => {
           if (data) setTargetBoardStages(data as CRMStage[]);
         });
@@ -100,7 +130,8 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
       if (!workflowTargetBoardId || !workflowTargetStageId) {
         toast({
           title: "Configuração incompleta",
-          description: "Selecione o quadro e a coluna de destino para o workflow",
+          description:
+            "Selecione o quadro e a coluna de destino para o workflow",
           variant: "destructive",
         });
         return;
@@ -126,10 +157,16 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
         auto_status_change: autoStatusChange,
         target_status: autoStatusChange ? (targetStatus ?? "open") : null,
         auto_temperature_change: autoTemperatureChange,
-        target_temperature: autoTemperatureChange ? (targetTemperature ?? "quente") : null,
+        target_temperature: autoTemperatureChange
+          ? (targetTemperature ?? "quente")
+          : null,
         workflow_enabled: workflowEnabled,
-        workflow_target_board_id: workflowEnabled ? workflowTargetBoardId : null,
-        workflow_target_stage_id: workflowEnabled ? workflowTargetStageId : null,
+        workflow_target_board_id: workflowEnabled
+          ? workflowTargetBoardId
+          : null,
+        workflow_target_stage_id: workflowEnabled
+          ? workflowTargetStageId
+          : null,
         max_days: parsedMaxDays && parsedMaxDays > 0 ? parsedMaxDays : null,
       });
       onClose();
@@ -173,7 +210,8 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
                   className="w-10 h-10 rounded-full border-2 transition-all hover:scale-110"
                   style={{
                     backgroundColor: colorOption.value,
-                    borderColor: color === colorOption.value ? "#000" : "transparent",
+                    borderColor:
+                      color === colorOption.value ? "#000" : "transparent",
                   }}
                   title={colorOption.name}
                 />
@@ -196,14 +234,19 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
               placeholder="Ex: 7"
             />
             <p className="text-xs text-muted-foreground">
-              Se configurado, um alerta será exibido quando o negócio exceder esse tempo na etapa
+              Se configurado, um alerta será exibido quando o negócio exceder
+              esse tempo na etapa
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="event-mapping">Evento Disparado ao Entrar (Opcional)</Label>
+            <Label htmlFor="event-mapping">
+              Evento Disparado ao Entrar (Opcional)
+            </Label>
             <Select
               value={eventMapping || "none"}
-              onValueChange={(value) => setEventMapping(value === "none" ? null : value)}
+              onValueChange={(value) =>
+                setEventMapping(value === "none" ? null : value)
+              }
             >
               <SelectTrigger id="event-mapping">
                 <SelectValue placeholder="Selecione um evento" />
@@ -223,7 +266,9 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="auto-status">Alterar Status do Negócio Automaticamente</Label>
+                <Label htmlFor="auto-status">
+                  Alterar Status do Negócio Automaticamente
+                </Label>
                 <p className="text-sm text-muted-foreground">
                   O status do negócio será atualizado ao entrar nesta coluna
                 </p>
@@ -264,9 +309,12 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="auto-temperature">Alterar Temperatura do Negócio Automaticamente</Label>
+                <Label htmlFor="auto-temperature">
+                  Alterar Temperatura do Negócio Automaticamente
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  A temperatura do negócio será atualizada ao entrar nesta coluna
+                  A temperatura do negócio será atualizada ao entrar nesta
+                  coluna
                 </p>
               </div>
               <Switch
@@ -274,17 +322,22 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
                 checked={autoTemperatureChange}
                 onCheckedChange={(checked) => {
                   setAutoTemperatureChange(checked);
-                  if (checked && !targetTemperature) setTargetTemperature("quente");
+                  if (checked && !targetTemperature)
+                    setTargetTemperature("quente");
                 }}
               />
             </div>
 
             {autoTemperatureChange && (
               <div className="space-y-2 pl-4 border-l-2">
-                <Label htmlFor="target-temperature">Temperatura para o Negócio</Label>
+                <Label htmlFor="target-temperature">
+                  Temperatura para o Negócio
+                </Label>
                 <Select
                   value={targetTemperature || "quente"}
-                  onValueChange={(value) => setTargetTemperature(value as 'quente' | 'morno' | 'frio')}
+                  onValueChange={(value) =>
+                    setTargetTemperature(value as "quente" | "morno" | "frio")
+                  }
                 >
                   <SelectTrigger id="target-temperature">
                     <SelectValue placeholder="Selecione uma temperatura" />
@@ -318,7 +371,10 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
           <div className="space-y-4 border-t pt-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="workflow-enabled" className="text-base font-semibold flex items-center gap-2">
+                <Label
+                  htmlFor="workflow-enabled"
+                  className="text-base font-semibold flex items-center gap-2"
+                >
                   <Workflow className="w-4 h-4" />
                   Fluxo de Duplicação
                 </Label>
@@ -347,7 +403,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
                     </SelectTrigger>
                     <SelectContent>
                       {boards
-                        .filter(b => b.id !== stage?.board_id)
+                        .filter((b) => b.id !== stage?.board_id)
                         .map((board) => (
                           <SelectItem key={board.id} value={board.id}>
                             {board.name}
@@ -383,9 +439,9 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
                 <Alert className="border-purple-500 bg-purple-500/10">
                   <Workflow className="h-4 w-4 text-purple-600" />
                   <AlertDescription className="text-purple-900 dark:text-purple-100">
-                    <strong>Automação ativa:</strong> Quando um lead entrar nesta coluna,
-                    uma cópia será criada automaticamente no destino configurado. Os leads
-                    ficarão vinculados.
+                    <strong>Automação ativa:</strong> Quando um lead entrar
+                    nesta coluna, uma cópia será criada automaticamente no
+                    destino configurado. Os leads ficarão vinculados.
                   </AlertDescription>
                 </Alert>
               </div>
@@ -397,8 +453,9 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Automação ativa:</strong> Este evento será enviado automaticamente
-                para o Facebook quando um lead entrar nesta coluna.
+                <strong>Automação ativa:</strong> Este evento será enviado
+                automaticamente para o Facebook quando um lead entrar nesta
+                coluna.
               </AlertDescription>
             </Alert>
           )}

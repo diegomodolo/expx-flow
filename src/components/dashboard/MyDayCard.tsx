@@ -35,16 +35,20 @@ export function MyDayCard() {
       // Query tasks assigned to user OR created by user if not assigned to anyone
       const { data, error } = await supabase
         .from("tasks")
-        .select(`
+        .select(
+          `
           id,
           title,
           due_date,
           priority,
           status,
           related_client_id
-        `)
+        `,
+        )
         .eq("company_id", activeCompany.company_id)
-        .or(`assigned_user_id.eq.${user.id},and(user_id.eq.${user.id},assigned_user_id.is.null)`)
+        .or(
+          `assigned_user_id.eq.${user.id},and(user_id.eq.${user.id},assigned_user_id.is.null)`,
+        )
         .in("status", ["todo", "progress"])
         .order("due_date", { ascending: true, nullsFirst: false })
         .limit(8);
@@ -54,7 +58,7 @@ export function MyDayCard() {
       // Fetch client names separately
       const clientIds = new Set<string>();
       if (data) {
-        data.forEach(task => {
+        data.forEach((task) => {
           if (task.related_client_id) {
             clientIds.add(task.related_client_id);
           }
@@ -69,7 +73,7 @@ export function MyDayCard() {
           .in("id", Array.from(clientIds));
 
         if (clients) {
-          clients.forEach(c => clientMap.set(c.id, c.name));
+          clients.forEach((c) => clientMap.set(c.id, c.name));
         }
       }
 
@@ -117,33 +121,57 @@ export function MyDayCard() {
   });
 
   const getDueDateInfo = (dueDate: string | null) => {
-    if (!dueDate) return { label: "Sem prazo", color: "text-muted-foreground", isOverdue: false };
-    
+    if (!dueDate)
+      return {
+        label: "Sem prazo",
+        color: "text-muted-foreground",
+        isOverdue: false,
+      };
+
     const date = parseISO(dueDate);
-    
+
     if (isPast(date) && !isToday(date)) {
       return { label: "Atrasada", color: "text-destructive", isOverdue: true };
     }
     if (isToday(date)) {
-      return { label: "Hoje", color: "text-orange-600 dark:text-orange-400", isOverdue: false };
+      return {
+        label: "Hoje",
+        color: "text-orange-600 dark:text-orange-400",
+        isOverdue: false,
+      };
     }
     if (isTomorrow(date)) {
-      return { label: "Amanhã", color: "text-blue-600 dark:text-blue-400", isOverdue: false };
+      return {
+        label: "Amanhã",
+        color: "text-blue-600 dark:text-blue-400",
+        isOverdue: false,
+      };
     }
-    return { 
-      label: format(date, "dd/MM", { locale: ptBR }), 
+    return {
+      label: format(date, "dd/MM", { locale: ptBR }),
       color: "text-muted-foreground",
-      isOverdue: false 
+      isOverdue: false,
     };
   };
 
   const priorityConfig: Record<string, { label: string; color: string }> = {
-    high: { label: "Alta", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-    medium: { label: "Média", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
-    low: { label: "Baixa", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+    high: {
+      label: "Alta",
+      color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    },
+    medium: {
+      label: "Média",
+      color:
+        "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    },
+    low: {
+      label: "Baixa",
+      color:
+        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    },
   };
 
-  const pendingToday = tasks.filter(t => {
+  const pendingToday = tasks.filter((t) => {
     if (!t.due_date) return false;
     return isToday(parseISO(t.due_date));
   }).length;
@@ -157,7 +185,10 @@ export function MyDayCard() {
             <CardTitle className="text-lg">Meu Dia</CardTitle>
           </div>
           {pendingToday > 0 && (
-            <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+            <Badge
+              variant="secondary"
+              className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+            >
               {pendingToday} para hoje
             </Badge>
           )}
@@ -179,9 +210,7 @@ export function MyDayCard() {
         ) : tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <CheckCircle2 className="w-10 h-10 text-green-500 mb-2" />
-            <p className="text-muted-foreground font-medium">
-              Tudo em dia!
-            </p>
+            <p className="text-muted-foreground font-medium">Tudo em dia!</p>
             <p className="text-sm text-muted-foreground/70 mt-1">
               Nenhuma tarefa pendente
             </p>
@@ -191,7 +220,8 @@ export function MyDayCard() {
             <div className="space-y-2">
               {tasks.map((task) => {
                 const dueDateInfo = getDueDateInfo(task.due_date);
-                const priority = priorityConfig[task.priority] || priorityConfig.medium;
+                const priority =
+                  priorityConfig[task.priority] || priorityConfig.medium;
 
                 return (
                   <div
@@ -199,7 +229,8 @@ export function MyDayCard() {
                     className={cn(
                       "flex items-start gap-3 p-3 rounded-lg transition-colors",
                       "hover:bg-muted/50",
-                      dueDateInfo.isOverdue && "bg-red-50/50 dark:bg-red-950/20"
+                      dueDateInfo.isOverdue &&
+                        "bg-red-50/50 dark:bg-red-950/20",
                     )}
                   >
                     <Checkbox
@@ -216,11 +247,21 @@ export function MyDayCard() {
                             {task.client_name}
                           </span>
                         )}
-                        <Badge variant="secondary" className={cn("text-xs h-5", priority.color)}>
+                        <Badge
+                          variant="secondary"
+                          className={cn("text-xs h-5", priority.color)}
+                        >
                           {priority.label}
                         </Badge>
-                        <span className={cn("text-xs flex items-center gap-1", dueDateInfo.color)}>
-                          {dueDateInfo.isOverdue && <AlertTriangle className="w-3 h-3" />}
+                        <span
+                          className={cn(
+                            "text-xs flex items-center gap-1",
+                            dueDateInfo.color,
+                          )}
+                        >
+                          {dueDateInfo.isOverdue && (
+                            <AlertTriangle className="w-3 h-3" />
+                          )}
                           <Clock className="w-3 h-3" />
                           {dueDateInfo.label}
                         </span>

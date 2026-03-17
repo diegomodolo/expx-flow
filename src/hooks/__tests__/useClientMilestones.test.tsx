@@ -43,7 +43,7 @@ vi.mock("@/integrations/supabase/client", () => {
           milestone_order: 2,
           created_at: "2023-01-01T00:00:00.000Z",
           updated_at: "2023-01-01T00:00:00.000Z",
-        }
+        },
       ],
       error: null,
     }),
@@ -137,7 +137,10 @@ describe("useClientMilestones", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    result.current.celebrateMilestone.mutate({ milestoneId: "1", method: "whatsapp" });
+    result.current.celebrateMilestone.mutate({
+      milestoneId: "1",
+      method: "whatsapp",
+    });
 
     await waitFor(() => {
       expect(result.current.celebrateMilestone.isSuccess).toBe(true);
@@ -183,8 +186,8 @@ describe("useClientMilestones", () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: [], error: null })
-        })
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
       }),
       insert: vi.fn().mockResolvedValue({ error: new Error("Erro de banco") }),
     });

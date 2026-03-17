@@ -29,7 +29,9 @@ vi.mock("@/integrations/supabase/client", () => {
       return Promise.resolve({ data: null, error: null });
     });
     chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-    chain.insert = vi.fn().mockImplementation(() => createChain(actualTable, true));
+    chain.insert = vi
+      .fn()
+      .mockImplementation(() => createChain(actualTable, true));
     chain.update = vi.fn().mockReturnValue(chain);
     chain.delete = vi.fn().mockReturnValue(chain);
 
@@ -206,15 +208,21 @@ describe("useEmployees", () => {
     const mockChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { role: "owner" }, error: null }),
+      single: vi
+        .fn()
+        .mockResolvedValue({ data: { role: "owner" }, error: null }),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      insert: vi.fn().mockReturnThis()
+      insert: vi.fn().mockReturnThis(),
     };
 
     // Override the single mock for the different phases
-    mockChain.single = vi.fn()
+    mockChain.single = vi
+      .fn()
       .mockResolvedValueOnce({ data: { role: "owner" }, error: null }) // company_members check
-      .mockResolvedValueOnce({ data: { id: "new-emp-1", name: "Novo Colaborador" }, error: null }) // employees insert return
+      .mockResolvedValueOnce({
+        data: { id: "new-emp-1", name: "Novo Colaborador" },
+        error: null,
+      }) // employees insert return
       .mockResolvedValue({ data: null, error: null });
 
     vi.mocked(supabase.from).mockReturnValue(mockChain as any);

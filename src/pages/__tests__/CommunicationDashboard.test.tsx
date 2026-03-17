@@ -14,7 +14,7 @@ vi.mock("@/integrations/supabase/client", () => ({
           maybeSingle: vi.fn().mockResolvedValue({
             data: { id: "task-1", title: "Nova Tarefa" },
             error: null,
-          })
+          }),
         }),
       }),
     }),
@@ -49,11 +49,15 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/components/dashboard/DashboardLayout", () => ({
-  DashboardLayout: ({ children }: { children: React.ReactNode }) => <div data-testid="dashboard-layout">{children}</div>,
+  DashboardLayout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dashboard-layout">{children}</div>
+  ),
 }));
 
 vi.mock("@/components/comm-hub/ChannelSidebar", () => ({
-  ChannelSidebar: () => <div data-testid="channel-sidebar">Channel Sidebar</div>,
+  ChannelSidebar: () => (
+    <div data-testid="channel-sidebar">Channel Sidebar</div>
+  ),
 }));
 
 vi.mock("@/components/comm-hub/ChatFlow", () => ({
@@ -64,9 +68,13 @@ vi.mock("@/components/comm-hub/MyDayPanel", () => ({
   MyDayPanel: ({ onOpenTask }: any) => (
     <div data-testid="my-day-panel">
       My Day Panel
-      <button onClick={() => {
-        if(onOpenTask) onOpenTask("task-1")
-      }}>Acao Selecionar Tarefa</button>
+      <button
+        onClick={() => {
+          if (onOpenTask) onOpenTask("task-1");
+        }}
+      >
+        Acao Selecionar Tarefa
+      </button>
     </div>
   ),
 }));
@@ -94,7 +102,6 @@ vi.mock("@/components/tasks/TaskDialog", () => ({
     );
   },
 }));
-
 
 describe("CommunicationDashboard", () => {
   beforeEach(() => {
@@ -129,7 +136,9 @@ describe("CommunicationDashboard", () => {
     const user = userEvent.setup();
     renderWithProviders(<CommunicationDashboard />);
 
-    await user.click(screen.getByRole("button", { name: /acao selecionar tarefa/i }));
+    await user.click(
+      screen.getByRole("button", { name: /acao selecionar tarefa/i }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("task-dialog")).toBeInTheDocument();
@@ -173,7 +182,7 @@ describe("CommunicationDashboard", () => {
       sendMessage: vi.fn(),
       sendingMessage: false,
       getOrCreateDMChannel: vi.fn().mockRejectedValue(new Error("Erro de DM")),
-      error: "Erro na api"
+      error: "Erro na api",
     } as any);
 
     renderWithProviders(<CommunicationDashboard />);

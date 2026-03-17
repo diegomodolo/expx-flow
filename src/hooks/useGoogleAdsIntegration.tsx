@@ -133,7 +133,9 @@ export function useGoogleAdsIntegration() {
       if (integrationData) {
         const { data: accountsData, error: accountsError } = await supabase
           .from("google_ads_accounts")
-          .select("id, google_customer_id, account_name, currency, time_zone, is_active, is_manager, status, parent_customer_id, client_id")
+          .select(
+            "id, google_customer_id, account_name, currency, time_zone, is_active, is_manager, status, parent_customer_id, client_id",
+          )
           .eq("company_id", companyId)
           .eq("is_active", true)
           .order("account_name");

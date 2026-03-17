@@ -29,11 +29,13 @@ export function RecentCreativesCard() {
       // Get recent image creatives
       const { data: imageCreatives } = await supabase
         .from("creative_generation_queue")
-        .select(`
+        .select(
+          `
           id,
           generated_content,
           client_id
-        `)
+        `,
+        )
         .eq("company_id", activeCompany.company_id)
         .in("status", ["approved", "pending"])
         .order("generated_at", { ascending: false })
@@ -42,12 +44,14 @@ export function RecentCreativesCard() {
       // Get recent carousels
       const { data: carousels } = await supabase
         .from("carousel_generation_queue")
-        .select(`
+        .select(
+          `
           id,
           theme,
           slides,
           client_id
-        `)
+        `,
+        )
         .eq("company_id", activeCompany.company_id)
         .in("status", ["approved", "pending"])
         .order("generated_at", { ascending: false })
@@ -55,12 +59,12 @@ export function RecentCreativesCard() {
 
       const clientIds = new Set<string>();
       if (imageCreatives) {
-        imageCreatives.forEach(c => {
+        imageCreatives.forEach((c) => {
           if (c.client_id) clientIds.add(c.client_id);
         });
       }
       if (carousels) {
-        carousels.forEach(c => {
+        carousels.forEach((c) => {
           if (c.client_id) clientIds.add(c.client_id);
         });
       }
@@ -73,7 +77,7 @@ export function RecentCreativesCard() {
           .in("id", Array.from(clientIds));
 
         if (clients) {
-          clients.forEach(c => clientMap.set(c.id, c.name));
+          clients.forEach((c) => clientMap.set(c.id, c.name));
         }
       }
 
@@ -86,7 +90,9 @@ export function RecentCreativesCard() {
               type: "image",
               image_url: content.image_url,
               title: content.headline || "Criativo",
-              client_name: creative.client_id ? (clientMap.get(creative.client_id) || "Cliente") : "Cliente",
+              client_name: creative.client_id
+                ? clientMap.get(creative.client_id) || "Cliente"
+                : "Cliente",
             });
           }
         }
@@ -101,8 +107,11 @@ export function RecentCreativesCard() {
               id: carousel.id,
               type: "carousel",
               image_url: firstSlide.image_url,
-              title: carousel.theme || `Carrossel ${slides?.length || 0} slides`,
-              client_name: carousel.client_id ? (clientMap.get(carousel.client_id) || "Cliente") : "Cliente",
+              title:
+                carousel.theme || `Carrossel ${slides?.length || 0} slides`,
+              client_name: carousel.client_id
+                ? clientMap.get(carousel.client_id) || "Cliente"
+                : "Cliente",
             });
           }
         }

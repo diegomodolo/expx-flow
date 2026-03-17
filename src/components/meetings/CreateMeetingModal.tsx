@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 interface Participant {
   email: string;
   name: string;
-  type: 'employee' | 'client_contact' | 'custom';
+  type: "employee" | "client_contact" | "custom";
 }
 
 interface CreateMeetingModalProps {
@@ -30,7 +42,12 @@ interface CreateMeetingModalProps {
   creating: boolean;
 }
 
-export function CreateMeetingModal({ open, onClose, onSubmit, creating }: CreateMeetingModalProps) {
+export function CreateMeetingModal({
+  open,
+  onClose,
+  onSubmit,
+  creating,
+}: CreateMeetingModalProps) {
   const { activeCompany } = useCompany();
   const [title, setTitle] = useState("");
   const [clientId, setClientId] = useState("");
@@ -42,13 +59,30 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
   const [showCustomEmailInput, setShowCustomEmailInput] = useState(false);
 
   const { data: { clients = [], teams = [], employees = [] } = {} } = useQuery({
-    queryKey: ['create-meeting-modal-data', activeCompany?.company_id],
+    queryKey: ["create-meeting-modal-data", activeCompany?.company_id],
     queryFn: async () => {
-      if (!activeCompany?.company_id) return { clients: [], teams: [], employees: [] };
+      if (!activeCompany?.company_id)
+        return { clients: [], teams: [], employees: [] };
       const [clientsRes, teamsRes, employeesRes] = await Promise.all([
-        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
-        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
-        supabase.from('employees').select('id, name, email').eq('company_id', activeCompany.company_id).eq('status', 'active').order('name').limit(100),
+        supabase
+          .from("clients")
+          .select("id, name")
+          .eq("company_id", activeCompany.company_id)
+          .order("name")
+          .limit(100),
+        supabase
+          .from("teams")
+          .select("id, name")
+          .eq("company_id", activeCompany.company_id)
+          .order("name")
+          .limit(100),
+        supabase
+          .from("employees")
+          .select("id, name, email")
+          .eq("company_id", activeCompany.company_id)
+          .eq("status", "active")
+          .order("name")
+          .limit(100),
       ]);
 
       if (clientsRes.error) throw clientsRes.error;
@@ -59,57 +93,82 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
       return {
         clients: clientsRes.data || [],
         teams: teamsRes.data || [],
-        employees: employeeData.filter((e) => e.email) as { id: string; name: string; email: string }[]
+        employees: employeeData.filter((e) => e.email) as {
+          id: string;
+          name: string;
+          email: string;
+        }[],
       };
     },
     enabled: open && !!activeCompany?.company_id,
   });
 
   const { data: clientContacts = [] } = useQuery({
-    queryKey: ['client-contacts', clientId],
+    queryKey: ["client-contacts", clientId],
     queryFn: async () => {
       if (!clientId) return [];
       const { data, error } = await supabase
-        .from('client_contacts')
-        .select('id, contact_name, email')
-        .eq('client_id', clientId)
-        .not('email', 'is', null)
-        .order('contact_name')
+        .from("client_contacts")
+        .select("id, contact_name, email")
+        .eq("client_id", clientId)
+        .not("email", "is", null)
+        .order("contact_name")
         .limit(100);
 
       if (error) throw error;
       const contactsData = data || [];
-      return contactsData.filter((c) => c.email) as { id: string; contact_name: string; email: string }[];
+      return contactsData.filter((c) => c.email) as {
+        id: string;
+        contact_name: string;
+        email: string;
+      }[];
     },
     enabled: open && !!clientId && !!activeCompany?.company_id,
   });
 
   const addEmployeeAsParticipant = (empId: string) => {
-    const emp = employees.find(e => e.id === empId);
-    if (!emp || participants.some(p => p.email === emp.email)) return;
-    setParticipants(prev => [...prev, { email: emp.email, name: emp.name, type: 'employee' }]);
+    const emp = employees.find((e) => e.id === empId);
+    if (!emp || participants.some((p) => p.email === emp.email)) return;
+    setParticipants((prev) => [
+      ...prev,
+      { email: emp.email, name: emp.name, type: "employee" },
+    ]);
   };
 
   const addClientContactAsParticipant = (contactId: string) => {
-    const contact = clientContacts.find(c => c.id === contactId);
-    if (!contact || participants.some(p => p.email === contact.email)) return;
-    setParticipants(prev => [...prev, { email: contact.email, name: contact.contact_name, type: 'client_contact' }]);
+    const contact = clientContacts.find((c) => c.id === contactId);
+    if (!contact || participants.some((p) => p.email === contact.email)) return;
+    setParticipants((prev) => [
+      ...prev,
+      {
+        email: contact.email,
+        name: contact.contact_name,
+        type: "client_contact",
+      },
+    ]);
   };
 
   const addCustomParticipant = () => {
-    if (!customEmail.trim() || participants.some(p => p.email === customEmail.trim())) return;
-    setParticipants(prev => [...prev, { 
-      email: customEmail.trim(), 
-      name: customName.trim() || customEmail.trim(), 
-      type: 'custom' 
-    }]);
+    if (
+      !customEmail.trim() ||
+      participants.some((p) => p.email === customEmail.trim())
+    )
+      return;
+    setParticipants((prev) => [
+      ...prev,
+      {
+        email: customEmail.trim(),
+        name: customName.trim() || customEmail.trim(),
+        type: "custom",
+      },
+    ]);
     setCustomEmail("");
     setCustomName("");
     setShowCustomEmailInput(false);
   };
 
   const removeParticipant = (email: string) => {
-    setParticipants(prev => prev.filter(p => p.email !== email));
+    setParticipants((prev) => prev.filter((p) => p.email !== email));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,15 +198,18 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
   };
 
   const participantTypeLabel: Record<string, string> = {
-    employee: 'Colaborador',
-    client_contact: 'Contato',
-    custom: 'Externo',
+    employee: "Colaborador",
+    client_contact: "Contato",
+    custom: "Externo",
   };
 
   const participantTypeColor: Record<string, string> = {
-    employee: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    client_contact: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    custom: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    employee:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    client_contact:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    custom:
+      "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
   };
 
   return (
@@ -176,7 +238,9 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
               </SelectTrigger>
               <SelectContent>
                 {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -190,7 +254,9 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
               </SelectTrigger>
               <SelectContent>
                 {teams.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -215,14 +281,18 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
 
             {/* Add Employee */}
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Colaboradores</Label>
+              <Label className="text-xs text-muted-foreground">
+                Colaboradores
+              </Label>
               <Select onValueChange={addEmployeeAsParticipant} value="">
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Adicionar colaborador..." />
                 </SelectTrigger>
                 <SelectContent>
                   {employees
-                    .filter(e => !participants.some(p => p.email === e.email))
+                    .filter(
+                      (e) => !participants.some((p) => p.email === e.email),
+                    )
                     .map((e) => (
                       <SelectItem key={e.id} value={e.id}>
                         {e.name} ({e.email})
@@ -235,14 +305,18 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
             {/* Add Client Contact */}
             {clientContacts.length > 0 && (
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Contatos do Cliente</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Contatos do Cliente
+                </Label>
                 <Select onValueChange={addClientContactAsParticipant} value="">
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Adicionar contato do cliente..." />
                   </SelectTrigger>
                   <SelectContent>
                     {clientContacts
-                      .filter(c => !participants.some(p => p.email === c.email))
+                      .filter(
+                        (c) => !participants.some((p) => p.email === c.email),
+                      )
                       .map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.contact_name} ({c.email})
@@ -266,7 +340,9 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
                   />
                 </div>
                 <div className="flex-1 space-y-1">
-                  <Label className="text-xs text-muted-foreground">E-mail</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    E-mail
+                  </Label>
                   <Input
                     value={customEmail}
                     onChange={(e) => setCustomEmail(e.target.value)}
@@ -274,17 +350,29 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
                     type="email"
                     className="h-9"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         e.preventDefault();
                         addCustomParticipant();
                       }
                     }}
                   />
                 </div>
-                <Button type="button" size="sm" variant="outline" onClick={addCustomParticipant} className="h-9">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addCustomParticipant}
+                  className="h-9"
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setShowCustomEmailInput(false)} className="h-9">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowCustomEmailInput(false)}
+                  className="h-9"
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -308,10 +396,12 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
                   <Badge
                     key={p.email}
                     variant="secondary"
-                    className={`gap-1 pr-1 ${participantTypeColor[p.type] || ''}`}
+                    className={`gap-1 pr-1 ${participantTypeColor[p.type] || ""}`}
                   >
                     <span className="text-xs">{p.name}</span>
-                    <span className="text-[10px] opacity-70">({participantTypeLabel[p.type]})</span>
+                    <span className="text-[10px] opacity-70">
+                      ({participantTypeLabel[p.type]})
+                    </span>
                     <button
                       type="button"
                       onClick={() => removeParticipant(p.email)}

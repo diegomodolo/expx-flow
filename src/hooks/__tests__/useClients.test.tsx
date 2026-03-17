@@ -62,10 +62,17 @@ vi.mock("@/integrations/supabase/client", () => {
   const selectMock = vi.fn().mockImplementation((columns) => {
     // Para insert mock return single
     if (!columns) {
-        return { single: vi.fn().mockResolvedValue({ data: { id: "new-client", name: "Novo Cliente" }, error: null }) };
+      return {
+        single: vi
+          .fn()
+          .mockResolvedValue({
+            data: { id: "new-client", name: "Novo Cliente" },
+            error: null,
+          }),
+      };
     }
 
-    if (columns.includes('client_id, spend')) {
+    if (columns.includes("client_id, spend")) {
       // Retornar mocks para campaigns e google_campaigns
       return { eq: vi.fn().mockReturnValue({ in: inMock }) };
     }
@@ -95,7 +102,12 @@ vi.mock("@/integrations/supabase/client", () => {
 
   const insertMock = vi.fn().mockReturnValue({
     select: vi.fn().mockReturnValue({
-      single: vi.fn().mockResolvedValue({ data: { id: "new-client", name: "Novo Cliente" }, error: null }),
+      single: vi
+        .fn()
+        .mockResolvedValue({
+          data: { id: "new-client", name: "Novo Cliente" },
+          error: null,
+        }),
     }),
   });
 
@@ -110,12 +122,16 @@ vi.mock("@/integrations/supabase/client", () => {
         };
       }),
       functions: {
-        invoke: vi.fn().mockResolvedValue({ data: { success: true, successCount: 1 }, error: null }),
+        invoke: vi
+          .fn()
+          .mockResolvedValue({
+            data: { success: true, successCount: 1 },
+            error: null,
+          }),
       },
     },
   };
 });
-
 
 describe("useClients", () => {
   const wrapper = createWrapper();
@@ -163,7 +179,9 @@ describe("useClients", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    await result.current.updateClient("client-1", { name: "Cliente Atualizado" });
+    await result.current.updateClient("client-1", {
+      name: "Cliente Atualizado",
+    });
 
     // Expect supabase.from('clients').update to have been called
     expect(supabase.from).toHaveBeenCalledWith("clients");
@@ -190,7 +208,10 @@ describe("useClients", () => {
 
     const res = await result.current.recalculateAllStatus();
 
-    expect(supabase.functions.invoke).toHaveBeenCalledWith("recalculate-client-statuses", expect.any(Object));
+    expect(supabase.functions.invoke).toHaveBeenCalledWith(
+      "recalculate-client-statuses",
+      expect.any(Object),
+    );
     expect(res.success).toBe(true);
   });
 });

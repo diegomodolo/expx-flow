@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export interface WordpressSite {
   id: string;
@@ -21,14 +21,20 @@ export function useWordpressSites(companyId: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: sites, isLoading, error } = useQuery({
-    queryKey: ['wordpress-sites', companyId],
+  const {
+    data: sites,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["wordpress-sites", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('wordpress_sites')
-        .select('id, company_id, name, site_url, username, is_active, created_at, updated_at, created_by')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
+        .from("wordpress_sites")
+        .select(
+          "id, company_id, name, site_url, username, is_active, created_at, updated_at, created_by",
+        )
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as WordpressSite[];
@@ -44,7 +50,7 @@ export function useWordpressSites(companyId: string) {
       app_password: string;
     }) => {
       const { data, error } = await supabase
-        .from('wordpress_sites')
+        .from("wordpress_sites")
         .insert({
           ...siteData,
           company_id: companyId,
@@ -57,21 +63,26 @@ export function useWordpressSites(companyId: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-sites', companyId] });
-      toast.success('Site WordPress adicionado com sucesso!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-sites", companyId],
+      });
+      toast.success("Site WordPress adicionado com sucesso!");
     },
     onError: (error: unknown) => {
-      console.error('Error adding WordPress site:', error);
-      toast.error('Erro ao adicionar site WordPress');
+      console.error("Error adding WordPress site:", error);
+      toast.error("Erro ao adicionar site WordPress");
     },
   });
 
   const updateSiteMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<WordpressSite> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<WordpressSite> & { id: string }) => {
       const { data, error } = await supabase
-        .from('wordpress_sites')
+        .from("wordpress_sites")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -79,31 +90,35 @@ export function useWordpressSites(companyId: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-sites', companyId] });
-      toast.success('Site WordPress atualizado!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-sites", companyId],
+      });
+      toast.success("Site WordPress atualizado!");
     },
     onError: (error: unknown) => {
-      console.error('Error updating WordPress site:', error);
-      toast.error('Erro ao atualizar site WordPress');
+      console.error("Error updating WordPress site:", error);
+      toast.error("Erro ao atualizar site WordPress");
     },
   });
 
   const deleteSiteMutation = useMutation({
     mutationFn: async (siteId: string) => {
       const { error } = await supabase
-        .from('wordpress_sites')
+        .from("wordpress_sites")
         .delete()
-        .eq('id', siteId);
+        .eq("id", siteId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-sites', companyId] });
-      toast.success('Site WordPress removido!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-sites", companyId],
+      });
+      toast.success("Site WordPress removido!");
     },
     onError: (error: unknown) => {
-      console.error('Error deleting WordPress site:', error);
-      toast.error('Erro ao remover site WordPress');
+      console.error("Error deleting WordPress site:", error);
+      toast.error("Erro ao remover site WordPress");
     },
   });
 
@@ -113,19 +128,22 @@ export function useWordpressSites(companyId: string) {
       username: string;
       appPassword: string;
     }) => {
-      const { data, error } = await supabase.functions.invoke('test-wordpress-connection', {
-        body: credentials,
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "test-wordpress-connection",
+        {
+          body: credentials,
+        },
+      );
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
       return data;
     },
     onSuccess: (data) => {
-      toast.success(data.message || 'Conexão estabelecida!');
+      toast.success(data.message || "Conexão estabelecida!");
     },
     onError: (error: unknown) => {
-      toast.error(error.message || 'Falha na conexão');
+      toast.error(error.message || "Falha na conexão");
     },
   });
 
