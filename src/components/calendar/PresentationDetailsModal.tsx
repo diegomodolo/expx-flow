@@ -10,7 +10,7 @@ import { ExternalLink, Presentation, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PresentationDetails {
@@ -41,14 +41,10 @@ export function PresentationDetailsModal({
   onClose,
 }: PresentationDetailsModalProps) {
   const navigate = useNavigate();
-  const [details, setDetails] = useState<PresentationDetails | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!open || !meetingId) return;
-
-    const fetchDetails = async () => {
-      setLoading(true);
+  const { data: details, isLoading: loading } = useQuery({
+    queryKey: ["presentation-details", meetingId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("presentation_meetings")
         .select(
@@ -57,13 +53,10 @@ export function PresentationDetailsModal({
         .eq("id", meetingId)
         .single();
 
-      if (error || !data) {
-        setLoading(false);
-        return;
-      }
+      if (error || !data) return null;
 
       const pres = (data as any).content_presentations;
-      setDetails({
+      return {
         id: data.id,
         presentation_id: data.presentation_id,
         meeting_date: data.meeting_date,
@@ -75,12 +68,10 @@ export function PresentationDetailsModal({
         presentation_name: pres?.name || "Apresentação",
         client_name: pres?.clients?.name || null,
         public_token: pres?.public_token || null,
-      });
-      setLoading(false);
-    };
-
-    fetchDetails();
-  }, [open, meetingId]);
+      } as PresentationDetails;
+    },
+    enabled: open && !!meetingId,
+  });
 
   const statusLabels: Record<string, string> = {
     in_progress: "Em andamento",
