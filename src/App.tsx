@@ -341,9 +341,9 @@ const App = () => {
                     <Route
                       path="/radar-saude"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="radar-saude">
                           <RadarSaude />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     >
                       <Route index element={<RadarSaudeDashboard />} />
@@ -360,9 +360,9 @@ const App = () => {
                     <Route
                       path="/rotinas"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="rotinas">
                           <Rotinas />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -432,7 +432,7 @@ const App = () => {
                     <Route
                       path="/ia/squads"
                       element={
-                        <PermissionProtectedRoute requiredPermission="agentes-ia">
+                        <PermissionProtectedRoute requiredPermission="squads-ia">
                           <AgentSquads />
                         </PermissionProtectedRoute>
                       }
@@ -440,7 +440,7 @@ const App = () => {
                     <Route
                       path="/ia/squads/:squadId/edit"
                       element={
-                        <PermissionProtectedRoute requiredPermission="agentes-ia">
+                        <PermissionProtectedRoute requiredPermission="squads-ia">
                           <AgentSquadEditor />
                         </PermissionProtectedRoute>
                       }
@@ -520,15 +520,15 @@ const App = () => {
                     <Route
                       path="/calendario"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="calendario">
                           <Calendario />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/squad-dashboard"
                       element={
-                        <PermissionProtectedRoute requiredPermission="squad">
+                        <PermissionProtectedRoute requiredPermission="dashboard-equipe">
                           <SquadDashboard />
                         </PermissionProtectedRoute>
                       }
@@ -568,17 +568,17 @@ const App = () => {
                     <Route
                       path="/tarefas-recorrentes"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="tarefas-recorrentes">
                           <TarefasRecorrentes />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/fluxos"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="fluxos">
                           <TaskFlows />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -592,9 +592,9 @@ const App = () => {
                     <Route
                       path="/mapas-mentais"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="mapas-mentais">
                           <MapasMentais />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -811,7 +811,7 @@ const App = () => {
                     <Route
                       path="/geradores/planejamento-conteudo"
                       element={
-                        <PermissionProtectedRoute requiredPermission="gerador-conteudo">
+                        <PermissionProtectedRoute requiredPermission="planejador-conteudo">
                           <PlanejamentoConteudo />
                         </PermissionProtectedRoute>
                       }
@@ -913,7 +913,7 @@ const App = () => {
                     <Route
                       path="/repositorio-criativos"
                       element={
-                        <PermissionProtectedRoute requiredPermission="gerador-criativos">
+                        <PermissionProtectedRoute requiredPermission="repositorio-criativos">
                           <RepositorioCriativos />
                         </PermissionProtectedRoute>
                       }
@@ -931,7 +931,7 @@ const App = () => {
                     <Route
                       path="/editor-imagens"
                       element={
-                        <PermissionProtectedRoute requiredPermission="geradores">
+                        <PermissionProtectedRoute requiredPermission="editor-imagens">
                           <EditorImagens />
                         </PermissionProtectedRoute>
                       }
@@ -988,9 +988,9 @@ const App = () => {
                     <Route
                       path="/automacoes"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="automacoes">
                           <Automacoes />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -1004,17 +1004,17 @@ const App = () => {
                     <Route
                       path="/agendamento"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="agendamento">
                           <Agendamento />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/automatizadores"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="automatizadores">
                           <AutomatizadoresHub />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -1068,9 +1068,9 @@ const App = () => {
                     <Route
                       path="/lead-intelligence"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="lead-intelligence">
                           <LeadIntelligenceHub />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -1148,9 +1148,9 @@ const App = () => {
                     <Route
                       path="/alertas"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="alertas">
                           <AlertasDoSistema />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -1164,17 +1164,17 @@ const App = () => {
                     <Route
                       path="/workspace"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="workspace">
                           <Workspace />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/roteiros"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="roteiros">
                           <Roteiros />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -1188,49 +1188,49 @@ const App = () => {
                     <Route
                       path="/checklist-templates"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="checklists">
                           <ChecklistTemplates />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/keyword-planner"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="keyword-planner">
                           <KeywordPlannerPage />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/marketing/relatorios"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="relatorios-marketing">
                           <RelatoriosMarketing />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/marketing/relatorios/saldo-pre-pagos"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="relatorios-marketing">
                           <RelatorioSaldoPrePagos />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/parametros-performance"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="parametros-performance">
                           <ParametrosPerformancePage />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/planner-config"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="planner">
                           <PlannerConfigPage />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
@@ -1323,9 +1323,9 @@ const App = () => {
                     <Route
                       path="/tarefas-tv"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="dashboard-equipe">
                           <TaskTvDashboard />
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
 
@@ -1333,21 +1333,21 @@ const App = () => {
                     <Route
                       path="/youtube-content-lab"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="youtube-content-lab">
                           <DashboardLayout>
                             <YouTubeContentLabListPage />
                           </DashboardLayout>
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
                     <Route
                       path="/youtube-content-lab/:labId"
                       element={
-                        <ProtectedRoute>
+                        <PermissionProtectedRoute requiredPermission="youtube-content-lab">
                           <DashboardLayout>
                             <YouTubeContentLabPage />
                           </DashboardLayout>
-                        </ProtectedRoute>
+                        </PermissionProtectedRoute>
                       }
                     />
 
