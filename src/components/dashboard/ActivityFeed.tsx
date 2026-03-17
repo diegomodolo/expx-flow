@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useActivityFeed } from "@/hooks/useActivityFeed";
 import { ActivityFeedItem } from "./ActivityFeedItem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, RefreshCw } from "lucide-react";
 
-export function ActivityFeed() {
+export const ActivityFeed = memo(function ActivityFeed() {
   const { activities, isLoading, refetch } = useActivityFeed(15);
 
   return (
@@ -62,4 +63,4 @@ export function ActivityFeed() {
       </CardContent>
     </Card>
   );
-}
+});

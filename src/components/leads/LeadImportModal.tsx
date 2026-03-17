@@ -67,7 +67,7 @@ export const LeadImportModal = ({
     queryFn: async () => {
       const { data } = await supabase
         .from("lead_segments")
-        .select("*")
+        .select("id, name, description, created_at, company_id")
         .eq("company_id", companyId)
         .order("name");
       return data || [];

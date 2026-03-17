@@ -39,7 +39,7 @@ export function useActivityFeed(limit = 20) {
       // First, get activities from activity_feed table
       const { data: feedActivities, error: feedError } = await supabase
         .from("activity_feed")
-        .select("*")
+        .select("id, company_id, user_id, activity_type, entity_type, entity_id, title, description, metadata, created_at")
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false })
         .limit(limit);
@@ -58,34 +58,6 @@ export function useActivityFeed(limit = 20) {
         .order("generated_at", { ascending: false })
         .limit(5);
 
-      if (creatives) {
-        for (const creative of creatives) {
-          const { data: client } = await supabase
-            .from("clients")
-            .select("name")
-            .eq("id", creative.client_id)
-            .single();
-
-          const content = creative.generated_content as unknown;
-          recentActivities.push({
-            id: `creative-${creative.id}`,
-            company_id: activeCompany.company_id,
-            user_id: null,
-            activity_type: "creative_generated",
-            entity_type: "creative",
-            entity_id: creative.id,
-            title: "Criativo gerado",
-            description: content?.headline || "Novo criativo aprovado",
-            metadata: {
-              image_url: content?.image_url,
-              client_name: client?.name || "Cliente",
-              client_id: creative.client_id,
-            },
-            created_at: creative.generated_at,
-          });
-        }
-      }
-
       // Get recent carousels
       const { data: carousels } = await supabase
         .from("carousel_generation_queue")
@@ -94,35 +66,6 @@ export function useActivityFeed(limit = 20) {
         .in("status", ["approved", "pending"])
         .order("generated_at", { ascending: false })
         .limit(5);
-
-      if (carousels) {
-        for (const carousel of carousels) {
-          const { data: client } = await supabase
-            .from("clients")
-            .select("name")
-            .eq("id", carousel.client_id)
-            .single();
-
-          const slides = carousel.slides as unknown[];
-          const firstSlide = slides?.[0];
-          recentActivities.push({
-            id: `carousel-${carousel.id}`,
-            company_id: activeCompany.company_id,
-            user_id: null,
-            activity_type: "carousel_generated",
-            entity_type: "carousel",
-            entity_id: carousel.id,
-            title: "Carrossel gerado",
-            description: carousel.theme || `${slides?.length || 0} slides`,
-            metadata: {
-              image_url: firstSlide?.image_url,
-              client_name: client?.name || "Cliente",
-              client_id: carousel.client_id,
-            },
-            created_at: carousel.generated_at,
-          });
-        }
-      }
 
       // Get recent completed tasks
       const { data: tasks } = await supabase
@@ -134,29 +77,105 @@ export function useActivityFeed(limit = 20) {
         .order("completed_at", { ascending: false })
         .limit(5);
 
+      // Collect all unique client and user IDs to fetch in batch
+      const clientIdsToFetch = new Set<string>();
+      const userIdsToFetch = new Set<string>();
+
+      if (creatives) {
+        creatives.forEach(c => { if (c.client_id) clientIdsToFetch.add(c.client_id); });
+      }
+      if (carousels) {
+        carousels.forEach(c => { if (c.client_id) clientIdsToFetch.add(c.client_id); });
+      }
+      if (tasks) {
+        tasks.forEach(t => {
+          if (t.related_client_id) clientIdsToFetch.add(t.related_client_id);
+          if (t.assigned_user_id) userIdsToFetch.add(t.assigned_user_id);
+        });
+      }
+
+      // Batch fetch clients
+      const clientsMap = new Map<string, string>();
+      if (clientIdsToFetch.size > 0) {
+        const { data: clients } = await supabase
+          .from("clients")
+          .select("id, name")
+          .in("id", Array.from(clientIdsToFetch));
+
+        if (clients) {
+          clients.forEach(c => clientsMap.set(c.id, c.name));
+        }
+      }
+
+      // Batch fetch employees (users)
+      const employeesMap = new Map<string, string>();
+      if (userIdsToFetch.size > 0) {
+        const { data: employees } = await supabase
+          .from("employees")
+          .select("user_id, name")
+          .in("user_id", Array.from(userIdsToFetch));
+
+        if (employees) {
+          employees.forEach(e => {
+            if (e.user_id) employeesMap.set(e.user_id, e.name);
+          });
+        }
+      }
+
+      if (creatives) {
+        for (const creative of creatives) {
+          const clientName = creative.client_id ? clientsMap.get(creative.client_id) : undefined;
+          const content = creative.generated_content as unknown;
+
+          recentActivities.push({
+            id: `creative-${creative.id}`,
+            company_id: activeCompany.company_id,
+            user_id: null,
+            activity_type: "creative_generated",
+            entity_type: "creative",
+            entity_id: creative.id,
+            title: "Criativo gerado",
+            description: content?.headline || "Novo criativo aprovado",
+            metadata: {
+              image_url: content?.image_url,
+              client_name: clientName || "Cliente",
+              client_id: creative.client_id,
+            },
+            created_at: creative.generated_at,
+          });
+        }
+      }
+
+      if (carousels) {
+        for (const carousel of carousels) {
+          const clientName = carousel.client_id ? clientsMap.get(carousel.client_id) : undefined;
+          const slides = carousel.slides as unknown[];
+          const firstSlide = slides?.[0];
+
+          recentActivities.push({
+            id: `carousel-${carousel.id}`,
+            company_id: activeCompany.company_id,
+            user_id: null,
+            activity_type: "carousel_generated",
+            entity_type: "carousel",
+            entity_id: carousel.id,
+            title: "Carrossel gerado",
+            description: carousel.theme || `${slides?.length || 0} slides`,
+            metadata: {
+              image_url: firstSlide?.image_url,
+              client_name: clientName || "Cliente",
+              client_id: carousel.client_id,
+            },
+            created_at: carousel.generated_at,
+          });
+        }
+      }
+
       if (tasks) {
         for (const task of tasks) {
-          let clientName: string | undefined;
-          let assigneeName: string | undefined;
+          const clientName = task.related_client_id ? clientsMap.get(task.related_client_id) : undefined;
+          const assigneeName = task.assigned_user_id ? employeesMap.get(task.assigned_user_id) : undefined;
           
-          if (task.related_client_id) {
-            const { data: client } = await supabase
-              .from("clients")
-              .select("name")
-              .eq("id", task.related_client_id)
-              .single();
-            clientName = client?.name;
-          }
-
-          if (task.assigned_user_id) {
-            const { data: employee } = await supabase
-              .from("employees")
-              .select("name")
-              .eq("user_id", task.assigned_user_id)
-              .single();
-            assigneeName = employee?.name;
-          }
-
           recentActivities.push({
             id: `task-${task.id}`,
             company_id: activeCompany.company_id,

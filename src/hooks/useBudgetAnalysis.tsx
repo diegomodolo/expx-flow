@@ -74,17 +74,32 @@ export function useBudgetAnalysis(filters?: BudgetFilters) {
         noBudget: 0,
       };
 
-      // Process each client and calculate spend from campaigns
+      // Batch fetch all campaign spends for these clients to prevent N+1 queries
+      const clientIds = (clients || []).map(c => c.id);
+      const spendMap = new Map<string, number>();
+
+      if (clientIds.length > 0) {
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('client_id, spend')
+          .in('client_id', clientIds);
+
+        if (campaigns) {
+          campaigns.forEach(c => {
+            if (c.client_id) {
+              const current = spendMap.get(c.client_id) || 0;
+              spendMap.set(c.client_id, current + (c.spend || 0));
+            }
+          });
+        }
+      }
+
+      // Process each client and calculate spend from pre-fetched data
       for (const client of clients || []) {
         const monthlyBudget = client.monthly_budget || 0;
         
-        // Get total spend from campaigns
-        const { data: campaigns } = await supabase
-          .from('campaigns')
-          .select('spend')
-          .eq('client_id', client.id);
-        
-        const currentSpend = campaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
+        // Get total spend from Map in O(1) time
+        const currentSpend = spendMap.get(client.id) || 0;
         
         // Parse sync period (format: "últimos X dias")
         const syncPeriodMatch = client.last_sync_period?.match(/\d+/);
