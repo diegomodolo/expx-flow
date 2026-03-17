@@ -380,6 +380,24 @@ export function TaskDialog({
     ? allColumns.filter((col) => col.user_id === formData.quadro_user_id)
     : [];
 
+  // DEBUG: remove after fix
+  console.log(
+    "[TaskDialog] boards:",
+    boards.length,
+    "allColumns:",
+    allColumns.length,
+    "quadro_user_id:",
+    formData.quadro_user_id,
+    "filteredColumns:",
+    filteredColumns.length,
+  );
+  if (allColumns.length > 0)
+    console.log("[TaskDialog] sample col user_ids:", [
+      ...new Set(allColumns.map((c) => c.user_id)),
+    ]);
+  if (formData.quadro_user_id)
+    console.log("[TaskDialog] looking for user_id:", formData.quadro_user_id);
+
   // Load user zoom preference
   useEffect(() => {
     const loadUser = async () => {
