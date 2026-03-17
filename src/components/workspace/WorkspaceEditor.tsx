@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWorkspaceDocuments } from "@/hooks/useWorkspaceDocuments";
+import { useAuth } from "@/hooks/useAuth";
 import { WorkspaceShareDialog } from "./WorkspaceShareDialog";
 import type { WorkspaceDocument } from "@/types/workspace";
 
@@ -36,8 +37,10 @@ const EMOJI_OPTIONS = [
 
 export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
   const { updateDocument, toggleFavorite } = useWorkspaceDocuments();
+  const { user } = useAuth();
   const [title, setTitle] = useState(document?.title || "");
   const [shareOpen, setShareOpen] = useState(false);
+  const isOwner = document?.created_by === user?.id;
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Create editor with initial content
@@ -183,15 +186,17 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
             )}
           </Button>
 
-          <Button
-            aria-label="Ação"
-            variant="ghost"
-            size="icon"
-            onClick={() => setShareOpen(true)}
-            className="h-8 w-8"
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
+          {isOwner && (
+            <Button
+              aria-label="Compartilhar"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShareOpen(true)}
+              className="h-8 w-8"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -205,10 +210,12 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShareOpen(true)}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Compartilhar
-              </DropdownMenuItem>
+              {isOwner && (
+                <DropdownMenuItem onClick={() => setShareOpen(true)}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Compartilhar
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

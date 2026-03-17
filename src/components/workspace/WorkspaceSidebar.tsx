@@ -53,6 +53,7 @@ import { WorkspaceShareDialog } from "./WorkspaceShareDialog";
 import type { WorkspaceFolder, WorkspaceDocument } from "@/types/workspace";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface WorkspaceSidebarProps {
   selectedDocumentId: string | null;
@@ -76,6 +77,7 @@ export function WorkspaceSidebar({
     updateDocument,
   } = useWorkspaceDocuments();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(),
@@ -253,18 +255,20 @@ export function WorkspaceSidebar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() =>
-                  setShareResource({
-                    type: "document",
-                    id: doc.id,
-                    name: doc.title,
-                  })
-                }
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Compartilhar
-              </DropdownMenuItem>
+              {doc.created_by === user?.id && (
+                <DropdownMenuItem
+                  onClick={() =>
+                    setShareResource({
+                      type: "document",
+                      id: doc.id,
+                      name: doc.title,
+                    })
+                  }
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Compartilhar
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() =>
                   setDeleteConfirm({
@@ -366,18 +370,20 @@ export function WorkspaceSidebar({
                     <Edit2 className="h-4 w-4 mr-2" />
                     Renomear
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      setShareResource({
-                        type: "folder",
-                        id: folder.id,
-                        name: folder.name,
-                      })
-                    }
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Compartilhar
-                  </DropdownMenuItem>
+                  {folder.created_by === user?.id && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        setShareResource({
+                          type: "folder",
+                          id: folder.id,
+                          name: folder.name,
+                        })
+                      }
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Compartilhar
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={() =>
                       setDeleteConfirm({
