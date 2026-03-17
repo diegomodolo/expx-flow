@@ -53,6 +53,7 @@ function isIgnoredError(message: string): boolean {
     "Load failed",
     "NetworkError",
     "AbortError",
+    "Lock broken",
     "cancelled",
     "net::ERR_",
     "ChunkLoadError",

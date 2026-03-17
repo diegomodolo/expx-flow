@@ -190,9 +190,10 @@ export function ContentPlanAIChat({
     setMessages((prev) => [...prev, userMessage]);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "content-plan-chat",
-        {
+      let data;
+      let lastError;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const result = await supabase.functions.invoke("content-plan-chat", {
           body: {
             messages: [
               ...messages.map((m) => ({ role: m.role, content: m.content })),
@@ -200,10 +201,15 @@ export function ContentPlanAIChat({
             ],
             clientId,
           },
-        },
-      );
-
-      if (error) throw error;
+        });
+        if (!result.error) {
+          data = result.data;
+          break;
+        }
+        lastError = result.error;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+      }
+      if (!data && lastError) throw lastError;
 
       const assistantContent =
         data.content ||
@@ -222,7 +228,12 @@ export function ContentPlanAIChat({
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: unknown) {
-      toast.error("Erro ao comunicar com a IA: " + error.message);
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error(
+        msg.includes("Failed to send")
+          ? "Falha na conexão com a IA. Tente novamente."
+          : "Erro ao comunicar com a IA: " + msg,
+      );
     } finally {
       setIsLoading(false);
     }

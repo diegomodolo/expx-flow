@@ -21,6 +21,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ImageEditorModal } from "@/components/image-editor/ImageEditorModal";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -172,9 +173,16 @@ export function TaskOutputPanel({
     const files = e.target.files;
     if (!files || !taskId || !user?.id) return;
 
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
     setIsUploading(true);
     try {
       for (const file of Array.from(files)) {
+        if (file.size > MAX_FILE_SIZE) {
+          toast.error(`O arquivo "${file.name}" excede o limite de 50MB`);
+          continue;
+        }
+
         const ext = file.name.split(".").pop();
         const path = `${user.id}/${taskId}/${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
@@ -198,6 +206,7 @@ export function TaskOutputPanel({
       }
     } catch (err) {
       console.error("Upload error:", err);
+      toast.error("Erro ao fazer upload do arquivo");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

@@ -80,6 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(sessionData.session);
         setUser(sessionData.session?.user ?? null);
       } catch (err) {
+        if (err instanceof Error && err.message.includes("Lock broken")) {
+          // Lock stealing from concurrent tabs — safe to ignore, will retry automatically
+          console.warn("[auth] Lock broken by concurrent request, ignoring");
+          return;
+        }
         // Refresh token expirado/inválido — limpar sessão silenciosamente
         if (err instanceof Error && err.message.includes("Refresh Token")) {
           await supabase.auth.signOut().catch(() => {});
