@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Plus, UserPlus, Mail } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface Participant {
   email: string;
@@ -35,49 +36,53 @@ export function CreateMeetingModal({ open, onClose, onSubmit, creating }: Create
   const [clientId, setClientId] = useState("");
   const [squadId, setSquadId] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
-  const [employees, setEmployees] = useState<{ id: string; name: string; email: string }[]>([]);
-  const [clientContacts, setClientContacts] = useState<{ id: string; contact_name: string; email: string }[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [customEmail, setCustomEmail] = useState("");
   const [customName, setCustomName] = useState("");
   const [showCustomEmailInput, setShowCustomEmailInput] = useState(false);
 
-  useEffect(() => {
-    if (!open || !activeCompany?.company_id) return;
-    
-    const fetchData = async () => {
+  const { data: { clients = [], teams = [], employees = [] } = {} } = useQuery({
+    queryKey: ['create-meeting-modal-data', activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return { clients: [], teams: [], employees: [] };
       const [clientsRes, teamsRes, employeesRes] = await Promise.all([
-        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
-        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name'),
-        supabase.from('employees').select('id, name, email').eq('company_id', activeCompany.company_id).eq('status', 'active').order('name'),
+        supabase.from('clients').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
+        supabase.from('teams').select('id, name').eq('company_id', activeCompany.company_id).order('name').limit(100),
+        supabase.from('employees').select('id, name, email').eq('company_id', activeCompany.company_id).eq('status', 'active').order('name').limit(100),
       ]);
-      setClients(clientsRes.data || []);
-      setTeams(teamsRes.data || []);
-      setEmployees((employeesRes.data || []).filter(e => e.email));
-    };
-    fetchData();
-  }, [open, activeCompany?.company_id]);
 
-  // Load client contacts when client is selected
-  useEffect(() => {
-    if (!clientId || !activeCompany?.company_id) {
-      setClientContacts([]);
-      return;
-    }
+      if (clientsRes.error) throw clientsRes.error;
+      if (teamsRes.error) throw teamsRes.error;
+      if (employeesRes.error) throw employeesRes.error;
 
-    const fetchContacts = async () => {
-      const { data } = await supabase
-        .from('client_contacts' as unknown)
+      const employeeData = employeesRes.data || [];
+      return {
+        clients: clientsRes.data || [],
+        teams: teamsRes.data || [],
+        employees: employeeData.filter((e) => e.email) as { id: string; name: string; email: string }[]
+      };
+    },
+    enabled: open && !!activeCompany?.company_id,
+  });
+
+  const { data: clientContacts = [] } = useQuery({
+    queryKey: ['client-contacts', clientId],
+    queryFn: async () => {
+      if (!clientId) return [];
+      const { data, error } = await supabase
+        .from('client_contacts')
         .select('id, contact_name, email')
         .eq('client_id', clientId)
         .not('email', 'is', null)
-        .order('contact_name');
-      setClientContacts(((data as unknown[]) || []).filter((c: unknown) => c.email));
-    };
-    fetchContacts();
-  }, [clientId, activeCompany?.company_id]);
+        .order('contact_name')
+        .limit(100);
+
+      if (error) throw error;
+      const contactsData = data || [];
+      return contactsData.filter((c) => c.email) as { id: string; contact_name: string; email: string }[];
+    },
+    enabled: open && !!clientId && !!activeCompany?.company_id,
+  });
 
   const addEmployeeAsParticipant = (empId: string) => {
     const emp = employees.find(e => e.id === empId);
