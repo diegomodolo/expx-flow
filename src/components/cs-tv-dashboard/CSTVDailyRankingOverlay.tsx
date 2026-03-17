@@ -97,9 +97,12 @@ export function CSTVDailyRankingOverlay({
       audio.volume = 0.7;
       audioRef.current = audio;
 
-      audio.play().catch((err) => {
-        console.error("Error playing victory theme:", err);
-      });
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Ignorar erros de autoplay policy ou race condition com pause()
+        });
+      }
     }
 
     return () => {
