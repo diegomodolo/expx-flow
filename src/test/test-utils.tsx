@@ -28,3 +28,14 @@ export function renderWithProviders(
 
   return { ...render(ui, { wrapper: Wrapper, ...options }), queryClient };
 }
+
+export function createWrapper() {
+  const queryClient = createTestQueryClient();
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>{children}</BrowserRouter>
+      </QueryClientProvider>
+    );
+  };
+}

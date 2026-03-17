@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export interface Campaign {
   id: string;
@@ -39,6 +40,7 @@ export function useCampaigns(clientId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { activeCompany } = useCompany();
 
   const fetchCampaigns = async () => {
     if (!user) return;
@@ -51,6 +53,10 @@ export function useCampaigns(clientId?: string) {
           *,
           client:clients(name, avatar)
         `);
+
+      if (activeCompany) {
+        query = query.eq("company_id", activeCompany.company_id);
+      }
 
       // Aplicar filtro de cliente se fornecido
       if (clientId) {
@@ -82,6 +88,7 @@ export function useCampaigns(clientId?: string) {
           {
             ...campaignData,
             user_id: user.id,
+            company_id: activeCompany?.company_id,
           },
         ])
         .select()
