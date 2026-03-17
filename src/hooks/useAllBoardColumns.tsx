@@ -35,24 +35,22 @@ export function useAllBoardColumns() {
 
       if (colError) throw colError;
 
-      // Fetch active employees (has name, but user_id may differ from auth uid)
+      // Fetch active employees
       const { data: employees, error: empError } = await supabase
         .from("employees")
-        .select("user_id, name, email")
+        .select("user_id, name")
         .eq("company_id", companyId)
         .eq("status", "active");
 
       if (empError) throw empError;
 
-      // Build name map: column user_id → employee name
-      // First pass: direct match by employee.user_id
+      // Build name map: column user_id → name
       const employeeMap = new Map<string, string>();
       (employees || []).forEach((e: unknown) =>
         employeeMap.set(e.user_id, e.name),
       );
 
-      // Second pass: for column user_ids not in employeeMap,
-      // fetch profiles and match by email to find the employee name
+      // For column user_ids not matched by employee.user_id, try profiles
       const columnUserIds = [
         ...new Set((columns || []).map((c: unknown) => c.user_id as string)),
       ];
@@ -61,16 +59,20 @@ export function useAllBoardColumns() {
       );
 
       if (missingUserIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", missingUserIds);
+        try {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .in("user_id", missingUserIds);
 
-        (profiles || []).forEach((p: unknown) => {
-          if (p.full_name) {
-            employeeMap.set(p.user_id, p.full_name);
-          }
-        });
+          (profiles || []).forEach((p: unknown) => {
+            if (p.full_name) {
+              employeeMap.set(p.user_id, p.full_name);
+            }
+          });
+        } catch {
+          // Profiles lookup is best-effort, don't block board loading
+        }
       }
 
       // Group by user_id
