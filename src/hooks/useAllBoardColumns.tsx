@@ -35,45 +35,19 @@ export function useAllBoardColumns() {
 
       if (colError) throw colError;
 
-      // Fetch active employees
-      const { data: employees, error: empError } = await supabase
-        .from("employees")
-        .select("user_id, name")
-        .eq("company_id", companyId)
-        .eq("status", "active");
+      // Resolve column user_ids → employee names via server-side function
+      // Handles cases where employee.user_id differs from auth uid by matching via email
+      const { data: ownerNames } = await supabase.rpc(
+        "resolve_board_owner_names" as unknown,
+        { _company_id: companyId },
+      );
 
-      if (empError) throw empError;
-
-      // Build name map: column user_id → name
       const employeeMap = new Map<string, string>();
-      (employees || []).forEach((e: unknown) =>
-        employeeMap.set(e.user_id, e.name),
-      );
-
-      // For column user_ids not matched by employee.user_id, try profiles
-      const columnUserIds = [
-        ...new Set((columns || []).map((c: unknown) => c.user_id as string)),
-      ];
-      const missingUserIds = columnUserIds.filter(
-        (uid) => !employeeMap.has(uid),
-      );
-
-      if (missingUserIds.length > 0) {
-        try {
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("user_id, full_name")
-            .in("user_id", missingUserIds);
-
-          (profiles || []).forEach((p: unknown) => {
-            if (p.full_name) {
-              employeeMap.set(p.user_id, p.full_name);
-            }
-          });
-        } catch {
-          // Profiles lookup is best-effort, don't block board loading
-        }
-      }
+      (
+        (ownerNames || []) as Array<{ auth_uid: string; employee_name: string }>
+      ).forEach((r) => {
+        employeeMap.set(r.auth_uid, r.employee_name);
+      });
 
       // Group by user_id
       const grouped = new Map<string, BoardGroup>();
