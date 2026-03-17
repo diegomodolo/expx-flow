@@ -291,7 +291,7 @@ export default function InstagramProspectingPage() {
         }));
 
         // Let's use a batch insert and if it fails, fallback to single inserts to mimic old behavior perfectly.
-         
+
         const { data: insertedLeads, error: leadError } = await supabase
           .from("lead_master_pool")
           .insert(masterLeads as unknown)
@@ -303,7 +303,6 @@ export default function InstagramProspectingPage() {
           // Fallback to single inserts if batch fails due to unique constraint
           leadsToAssign = [];
           for (const lead of masterLeads) {
-             
             const { data: singleLead, error: singleError } = await supabase
               .from("lead_master_pool")
               .insert(lead as unknown)

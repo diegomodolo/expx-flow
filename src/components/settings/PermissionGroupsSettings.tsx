@@ -269,18 +269,15 @@ export function PermissionGroupsSettings() {
   };
 
   const employeesMap = React.useMemo(() => {
-    return new Map(employeesWithPermissions.map(e => [e.id, e]));
+    return new Map(employeesWithPermissions.map((e) => [e.id, e]));
   }, [employeesWithPermissions]);
 
   const groupsMap = React.useMemo(() => {
-    return new Map(groups.map(g => [g.id, g]));
+    return new Map(groups.map((g) => [g.id, g]));
   }, [groups]);
 
   const getEmployeeName = (employeeId: string) => {
-    return (
-      employeesMap.get(employeeId)?.name ||
-      "Desconhecido"
-    );
+    return employeesMap.get(employeeId)?.name || "Desconhecido";
   };
 
   const getAvailableEmployees = (groupId: string) => {
@@ -724,7 +721,9 @@ export function PermissionGroupsSettings() {
                                 ) : (
                                   <div className="space-y-2">
                                     {group.members.map((member) => {
-                                      const emp = employeesMap.get(member.employee_id);
+                                      const emp = employeesMap.get(
+                                        member.employee_id,
+                                      );
                                       return (
                                         <div
                                           key={member.id}

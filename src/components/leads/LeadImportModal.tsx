@@ -474,7 +474,6 @@ export const LeadImportModal = ({
               "Lead sem nome",
           }));
 
-         
         const { data: insertedBatch, error } = await supabase
           .from("lead_master_pool")
           .insert(batch as unknown)
@@ -486,7 +485,7 @@ export const LeadImportModal = ({
           const chunkSize = 10;
           for (let j = 0; j < batch.length; j += chunkSize) {
             const chunk = batch.slice(j, j + chunkSize);
-             
+
             const { data: chunkResult, error: chunkError } = await supabase
               .from("lead_master_pool")
               .insert(chunk as unknown)
@@ -499,7 +498,6 @@ export const LeadImportModal = ({
               console.error("Chunk insert error:", chunkError);
               // Fallback to individual insert only for the failed chunk
               for (const lead of chunk) {
-                 
                 const { data: single, error: singleError } = await supabase
                   .from("lead_master_pool")
                   .insert(lead as unknown)
