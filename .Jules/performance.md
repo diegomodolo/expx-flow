@@ -14,3 +14,13 @@
 
 **Learning:** The main bundle is ~9.6MB (2.4MB gzipped). Many page components are imported eagerly.
 **Action:** Use `React.lazy()` + `Suspense` for route-level code splitting. Prioritize heavy pages like reports and campaign builders.
+
+## 2026-03-10 - O(1) Lookups + Batch Fetching
+
+**Learning:** When needing relational data inside a list mapping (like mapping a client name inside a list of tasks), `O(N)` individual `.eq("id", ...)` fetches cause N+1 query performance degradation.
+**Action:** Extract unique keys using `new Set()`, fetch in a single `.in("id", [...])` batch, map results using `new Map()`, and retrieve synchronously in `O(1)` time inside the `.map()` loop.
+
+## 2026-03-10 - Component Memoization
+
+**Learning:** Complex layout and wrapper parent components (like Dashboard layouts) trigger frequent re-renders of heavy UI child components (Metrics Cards) receiving objects/arrays.
+**Action:** Always wrap `export const Component = React.memo(...)` for components that accept complex props but do not need to inherently re-render on parent render cycles.

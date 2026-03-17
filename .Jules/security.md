@@ -24,15 +24,4 @@
 
 **Vulnerability:** Unprotected routes expose administrative pages to unauthorized access.
 **Prevention:** Always wrap non-public routes (e.g., `/super-admin`) in `<ProtectedRoute>` or `<PermissionProtectedRoute>` inside `App.tsx`.
-
-## 2026-03-14 - Security Audit Findings
-
-**Learnings:**
-- `SUPABASE_SERVICE_ROLE_KEY` was found in a static code snippet on the frontend `src/components/skills/SkillCodeEditor.tsx`, however, it was only a string literal (`Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")`) and not an actual exposed key.
-- `company_api_keys` was queried with `.select("*")` inside `src/components/settings/ApiKeysSettings.tsx`. This exposed the `api_key_hash`. It was replaced by explicit column selection to restrict the exposure of hashed secrets.
-- Over 40 Edge Functions were completely missing from `supabase/config.toml`, making their JWT verification status ambiguous. They were all added with `verify_jwt = true` (or `false` for webhooks/background jobs).
-- Validated that `dangerouslySetInnerHTML` usages are mostly wrapped with `DOMPurify.sanitize()` where user-input or dynamic content is involved.
-
-**Prevention:**
-- Always ensure new Edge Functions are added to `supabase/config.toml` explicitly with `verify_jwt = true` unless specifically intended for unauthenticated external invocations like webhooks.
-- Avoid `.select("*")` on tables that store credentials, hashes, or sensitive tokens. Always explicitly select required non-sensitive columns.
+\n## 2026-03-10 - select("_") on Integrations\n\n**Vulnerability:** Using `.select("_")`on integration tables (e.g.,`facebook_integrations`, `google_ads_integrations`, `wordpress_sites`) exposes sensitive columns like `access_token`, `refresh_token`, and `app_password`to the frontend.\n**Prevention:** Always specify the exact columns needed (e.g.,`.select("id, company_id, name, is_active, created_at")`) when querying integration or secret tables.
