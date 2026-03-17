@@ -52,16 +52,32 @@ export function MyDayCard() {
       if (error) throw error;
 
       // Fetch client names separately
+      const clientIds = new Set<string>();
+      if (data) {
+        data.forEach(task => {
+          if (task.related_client_id) {
+            clientIds.add(task.related_client_id);
+          }
+        });
+      }
+
+      const clientMap = new Map<string, string>();
+      if (clientIds.size > 0) {
+        const { data: clients } = await supabase
+          .from("clients")
+          .select("id, name")
+          .in("id", Array.from(clientIds));
+
+        if (clients) {
+          clients.forEach(c => clientMap.set(c.id, c.name));
+        }
+      }
+
       const tasksWithClients: Task[] = [];
       for (const task of data || []) {
         let clientName: string | undefined;
         if (task.related_client_id) {
-          const { data: client } = await supabase
-            .from("clients")
-            .select("name")
-            .eq("id", task.related_client_id)
-            .single();
-          clientName = client?.name;
+          clientName = clientMap.get(task.related_client_id);
         }
         tasksWithClients.push({
           id: task.id,

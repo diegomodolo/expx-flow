@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LucideIcon } from "lucide-react";
@@ -17,7 +18,7 @@ interface MetricsCardProps {
   className?: string;
 }
 
-export function MetricsCard({ title, icon: Icon, metrics, className }: MetricsCardProps) {
+export const MetricsCard = memo(function MetricsCard({ title, icon: Icon, metrics, className }: MetricsCardProps) {
   return (
     <Card className={cn("shadow-sm border border-border", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
@@ -52,4 +53,4 @@ export function MetricsCard({ title, icon: Icon, metrics, className }: MetricsCa
       </CardContent>
     </Card>
   );
-}
+});

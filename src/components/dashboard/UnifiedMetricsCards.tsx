@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpIcon, ArrowDownIcon, TrendingUp, DollarSign, MousePointerClick, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,7 +25,7 @@ interface UnifiedMetricsCardsProps {
   isLoading?: boolean;
 }
 
-export function UnifiedMetricsCards({ metrics, isLoading }: UnifiedMetricsCardsProps) {
+export const UnifiedMetricsCards = memo(function UnifiedMetricsCards({ metrics, isLoading }: UnifiedMetricsCardsProps) {
   const cards = [
     {
       title: "Investimento Total",
@@ -111,4 +112,4 @@ export function UnifiedMetricsCards({ metrics, isLoading }: UnifiedMetricsCardsP
       })}
     </div>
   );
-}
+});

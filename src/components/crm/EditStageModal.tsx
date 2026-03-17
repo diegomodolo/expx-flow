@@ -80,7 +80,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
     if (workflowTargetBoardId) {
       supabase
         .from('crm_stages')
-        .select('*')
+        .select('id, board_id, workspace_id, name, color, order_index, is_won_stage, is_lost_stage, event_mapping, set_status_on_enter, set_temperature_on_enter, workflow_enabled, workflow_target_stage_id, workflow_target_board_id, auto_status_change, target_status, auto_temperature_change, target_temperature, max_days, created_at')
         .eq('board_id', workflowTargetBoardId)
         .order('order_index')
         .then(({ data }) => {
