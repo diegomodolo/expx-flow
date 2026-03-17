@@ -24,3 +24,8 @@
 
 **Learning:** Complex layout and wrapper parent components (like Dashboard layouts) trigger frequent re-renders of heavy UI child components (Metrics Cards) receiving objects/arrays.
 **Action:** Always wrap `export const Component = React.memo(...)` for components that accept complex props but do not need to inherently re-render on parent render cycles.
+
+## 2026-03-17 - App Routing and Chunk Size
+
+**Learning:** Single-file entrypoints (`App.tsx`) with heavy page imports cause enormous initial JS chunk sizes (over 8MB).
+**Action:** Use `React.lazy()` to dynamically import non-critical and nested pages, and ensure they fall under a `<Suspense>` boundary to maintain performance and lower load times.
