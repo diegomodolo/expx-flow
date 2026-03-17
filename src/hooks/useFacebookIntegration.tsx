@@ -125,8 +125,8 @@ export const useFacebookIntegration = () => {
         .from("facebook_integrations")
         .select(
           `
-          *,
-          facebook_ad_accounts(*)
+          id, company_id, expires_at, is_active, created_at, updated_at,
+          facebook_ad_accounts(id, account_name, currency, is_active)
         `,
         )
         .eq("company_id", companyId)

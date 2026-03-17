@@ -24,3 +24,4 @@
 
 **Vulnerability:** Unprotected routes expose administrative pages to unauthorized access.
 **Prevention:** Always wrap non-public routes (e.g., `/super-admin`) in `<ProtectedRoute>` or `<PermissionProtectedRoute>` inside `App.tsx`.
+\n## 2026-03-10 - select("*") on Integrations\n\n**Vulnerability:** Using `.select("*")` on integration tables (e.g., `facebook_integrations`, `google_ads_integrations`, `wordpress_sites`) exposes sensitive columns like `access_token`, `refresh_token`, and `app_password` to the frontend.\n**Prevention:** Always specify the exact columns needed (e.g., `.select("id, company_id, name, is_active, created_at")`) when querying integration or secret tables.
