@@ -35,35 +35,52 @@ export function useAllBoardColumns() {
 
       if (colError) throw colError;
 
-      // Fetch active employees
+      // Fetch active employees (has name, but user_id may differ from auth uid)
       const { data: employees, error: empError } = await supabase
         .from("employees")
-        .select("user_id, name")
+        .select("user_id, name, email")
         .eq("company_id", companyId)
         .eq("status", "active");
 
       if (empError) throw empError;
 
+      // Build name map: column user_id → employee name
+      // First pass: direct match by employee.user_id
       const employeeMap = new Map<string, string>();
       (employees || []).forEach((e: unknown) =>
         employeeMap.set(e.user_id, e.name),
       );
 
-      // Find column user_ids not covered by employees and resolve via profiles
+      // Second pass: for column user_ids not in employeeMap,
+      // fetch profiles and match by email to find the employee name
       const columnUserIds = [
         ...new Set((columns || []).map((c: unknown) => c.user_id as string)),
       ];
       const missingUserIds = columnUserIds.filter(
         (uid) => !employeeMap.has(uid),
       );
+
       if (missingUserIds.length > 0) {
+        // Get profiles (which have email) for these auth user_ids
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, email")
           .in("user_id", missingUserIds);
+
+        // Build email → employee name map for fallback matching
+        const emailToName = new Map<string, string>();
+        (employees || []).forEach((e: unknown) => {
+          if (e.email) emailToName.set(e.email.toLowerCase(), e.name);
+        });
+
         (profiles || []).forEach((p: unknown) => {
-          if (p.full_name) {
-            employeeMap.set(p.user_id, p.full_name);
+          // Try matching profile email to employee email
+          const nameFromEmail = p.email
+            ? emailToName.get(p.email.toLowerCase())
+            : null;
+          const name = nameFromEmail || p.full_name;
+          if (name) {
+            employeeMap.set(p.user_id, name);
           }
         });
       }
