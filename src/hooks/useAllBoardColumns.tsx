@@ -44,22 +44,29 @@ export function useAllBoardColumns() {
 
       if (empError) throw empError;
 
-      // Also fetch company_members to map auth user_ids that may differ from employee.user_id
-      const { data: members } = await supabase
-        .from("company_members")
-        .select("user_id, profiles:user_id(full_name)")
-        .eq("company_id", companyId);
-
       const employeeMap = new Map<string, string>();
       (employees || []).forEach((e: unknown) =>
         employeeMap.set(e.user_id, e.name),
       );
-      // Fill gaps: if a column user_id isn't in employeeMap, try company_members
-      (members || []).forEach((m: unknown) => {
-        if (!employeeMap.has(m.user_id) && m.profiles?.full_name) {
-          employeeMap.set(m.user_id, m.profiles.full_name);
-        }
-      });
+
+      // Find column user_ids not covered by employees and resolve via profiles
+      const columnUserIds = [
+        ...new Set((columns || []).map((c: unknown) => c.user_id as string)),
+      ];
+      const missingUserIds = columnUserIds.filter(
+        (uid) => !employeeMap.has(uid),
+      );
+      if (missingUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", missingUserIds);
+        (profiles || []).forEach((p: unknown) => {
+          if (p.full_name) {
+            employeeMap.set(p.user_id, p.full_name);
+          }
+        });
+      }
 
       // Group by user_id
       const grouped = new Map<string, BoardGroup>();
