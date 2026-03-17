@@ -304,7 +304,7 @@ const Automacoes = () => {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
-                                  aria-label="Ação"
+                                  aria-label="Mais opções"
                                   variant="ghost"
                                   size="icon"
                                 >
@@ -454,7 +454,7 @@ const Automacoes = () => {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
-                                  aria-label="Ação"
+                                  aria-label="Mais opções"
                                   variant="ghost"
                                   size="icon"
                                 >

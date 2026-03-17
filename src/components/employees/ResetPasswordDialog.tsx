@@ -22,7 +22,11 @@ interface ResetPasswordDialogProps {
   employee: Employee | null;
 }
 
-export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPasswordDialogProps) {
+export function ResetPasswordDialog({
+  open,
+  onOpenChange,
+  employee,
+}: ResetPasswordDialogProps) {
   const [newPassword, setNewPassword] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -36,7 +40,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
 
   const handleCopyPassword = async () => {
     if (!newPassword) return;
-    
+
     try {
       await navigator.clipboard.writeText(newPassword);
       setCopied(true);
@@ -54,20 +58,25 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
     }
 
     if (!newPassword || newPassword.length < 8) {
-      toast.error("A senha deve ter pelo menos 8 caracteres. Clique em gerar para criar uma senha segura.");
+      toast.error(
+        "A senha deve ter pelo menos 8 caracteres. Clique em gerar para criar uma senha segura.",
+      );
       return;
     }
 
     setIsResetting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("reset-employee-password", {
-        body: {
-          userId: employee.user_id,
-          newPassword: newPassword,
-          employeeName: employee.name,
-          employeeEmail: employee.email,
+      const { data, error } = await supabase.functions.invoke(
+        "reset-employee-password",
+        {
+          body: {
+            userId: employee.user_id,
+            newPassword: newPassword,
+            employeeName: employee.name,
+            employeeEmail: employee.email,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -99,24 +108,26 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
             Gerar Nova Senha
           </DialogTitle>
           <DialogDescription>
-            Gere uma nova senha para <strong>{employee?.name}</strong>. 
-            A senha será atualizada imediatamente.
+            Gere uma nova senha para <strong>{employee?.name}</strong>. A senha
+            será atualizada imediatamente.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="employee-email">Email do Colaborador</Label>
-            <Input 
-              id="employee-email" 
-              value={employee?.email || ""} 
-              disabled 
+            <Input
+              id="employee-email"
+              value={employee?.email || ""}
+              disabled
               className="bg-muted"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="new-password">Nova Senha (mínimo 8 caracteres)</Label>
+            <Label htmlFor="new-password">
+              Nova Senha (mínimo 8 caracteres)
+            </Label>
             <div className="flex gap-2">
               <Input
                 id="new-password"
@@ -128,6 +139,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
                 minLength={8}
               />
               <Button
+                aria-label="Gerar nova senha"
                 type="button"
                 variant="outline"
                 size="icon"
@@ -137,6 +149,7 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
                 <RefreshCw className="w-4 h-4" />
               </Button>
               <Button
+                aria-label="Copiar senha"
                 type="button"
                 variant="outline"
                 size="icon"
@@ -152,7 +165,9 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
               </Button>
             </div>
             {newPassword && newPassword.length < 8 && (
-              <p className="text-sm text-destructive">A senha deve ter pelo menos 8 caracteres</p>
+              <p className="text-sm text-destructive">
+                A senha deve ter pelo menos 8 caracteres
+              </p>
             )}
           </div>
 
@@ -170,8 +185,8 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
           <Button variant="outline" onClick={() => handleClose(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleResetPassword} 
+          <Button
+            onClick={handleResetPassword}
             disabled={!newPassword || newPassword.length < 8 || isResetting}
           >
             {isResetting ? (

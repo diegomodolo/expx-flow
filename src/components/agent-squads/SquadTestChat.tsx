@@ -88,6 +88,7 @@ export function SquadTestChat({
             </div>
             {loading && (
               <Button
+                aria-label="Parar execução"
                 variant="destructive"
                 size="icon"
                 className="h-10 w-10 shrink-0"

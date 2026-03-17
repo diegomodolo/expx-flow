@@ -24,23 +24,23 @@ export const CompanySelector = () => {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'owner':
-        return 'default';
-      case 'admin':
-        return 'secondary';
+      case "owner":
+        return "default";
+      case "admin":
+        return "secondary";
       default:
-        return 'outline';
+        return "outline";
     }
   };
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'owner':
-        return 'Proprietário';
-      case 'admin':
-        return 'Admin';
+      case "owner":
+        return "Proprietário";
+      case "admin":
+        return "Admin";
       default:
-        return 'Membro';
+        return "Membro";
     }
   };
 
@@ -57,8 +57,9 @@ export const CompanySelector = () => {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded flex items-center justify-center overflow-hidden">
                 {activeCompany.company?.logo ? (
-                  <img 
-                    src={activeCompany.company.logo} 
+                  <img
+                    alt="Imagem descritiva"
+                    src={activeCompany.company.logo}
                     alt={`${activeCompany.company.name} logo`}
                     className="w-full h-full object-cover"
                   />
@@ -87,10 +88,14 @@ export const CompanySelector = () => {
               </div>
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-1">
-                  <span className="text-sm font-medium text-foreground">Selecionar empresa</span>
+                  <span className="text-sm font-medium text-foreground">
+                    Selecionar empresa
+                  </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <span className="text-xs text-muted-foreground">Nenhuma selecionada</span>
+                <span className="text-xs text-muted-foreground">
+                  Nenhuma selecionada
+                </span>
               </div>
             </div>
           )}
@@ -114,12 +119,19 @@ export const CompanySelector = () => {
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      activeCompany?.id === companyMember.id ? "opacity-100" : "opacity-0"
+                      activeCompany?.id === companyMember.id
+                        ? "opacity-100"
+                        : "opacity-0",
                     )}
                   />
                   <div className="flex items-center justify-between w-full">
-                    <span className="truncate">{companyMember.company?.name}</span>
-                    <Badge variant={getRoleBadgeVariant(companyMember.role)} className="text-xs ml-2">
+                    <span className="truncate">
+                      {companyMember.company?.name}
+                    </span>
+                    <Badge
+                      variant={getRoleBadgeVariant(companyMember.role)}
+                      className="text-xs ml-2"
+                    >
                       {getRoleLabel(companyMember.role)}
                     </Badge>
                   </div>

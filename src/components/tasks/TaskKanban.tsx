@@ -1040,7 +1040,7 @@ export function TaskKanban({
                         </Badge>
                       </h3>
                       <Button
-                        aria-label="Ação"
+                        aria-label="Configurações da coluna"
                         variant="ghost"
                         size="icon"
                         className={cn(

@@ -827,6 +827,7 @@ export default function GroupOpsGroupsList() {
                     Bot: {group.config_json?.auto_reply_mode ?? "safe"}
                   </Badge>
                   <Button
+                    aria-label="Sincronizar histórico"
                     size="icon"
                     variant="ghost"
                     title="Sincronizar histórico"
@@ -847,7 +848,12 @@ export default function GroupOpsGroupsList() {
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="ghost" title="Excluir grupo">
+                      <Button
+                        aria-label="Excluir grupo"
+                        size="icon"
+                        variant="ghost"
+                        title="Excluir grupo"
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </AlertDialogTrigger>

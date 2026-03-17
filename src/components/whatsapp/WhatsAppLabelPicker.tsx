@@ -7,7 +7,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { WhatsAppLabel, getLabelColor, useWhatsAppLabels } from "@/hooks/useWhatsAppLabels";
+import {
+  WhatsAppLabel,
+  getLabelColor,
+  useWhatsAppLabels,
+} from "@/hooks/useWhatsAppLabels";
 
 interface WhatsAppLabelPickerProps {
   phone: string;
@@ -26,8 +30,9 @@ export function WhatsAppLabelPicker({
 }: WhatsAppLabelPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loadingLabelId, setLoadingLabelId] = useState<string | null>(null);
-  
-  const { labels, isLoading, addLabelToChat, removeLabelFromChat } = useWhatsAppLabels(companyId, instanceId);
+
+  const { labels, isLoading, addLabelToChat, removeLabelFromChat } =
+    useWhatsAppLabels(companyId, instanceId);
 
   const handleToggleLabel = async (label: WhatsAppLabel) => {
     const isSelected = currentLabelIds.includes(label.id);
@@ -38,7 +43,7 @@ export function WhatsAppLabelPicker({
       if (isSelected) {
         success = await removeLabelFromChat(phone, label.id);
         if (success) {
-          onLabelsChange?.(currentLabelIds.filter(id => id !== label.id));
+          onLabelsChange?.(currentLabelIds.filter((id) => id !== label.id));
         }
       } else {
         success = await addLabelToChat(phone, label.id);
@@ -55,6 +60,7 @@ export function WhatsAppLabelPicker({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
+          aria-label="Gerenciar etiquetas"
           variant="ghost"
           size="icon"
           className="h-8 w-8"
@@ -68,7 +74,7 @@ export function WhatsAppLabelPicker({
           <p className="text-xs font-medium text-muted-foreground px-2 py-1">
             Etiquetas
           </p>
-          
+
           {isLoading ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -92,7 +98,7 @@ export function WhatsAppLabelPicker({
                     className={cn(
                       "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                       "hover:bg-muted/50",
-                      isSelected && "bg-muted"
+                      isSelected && "bg-muted",
                     )}
                   >
                     <div
@@ -100,12 +106,20 @@ export function WhatsAppLabelPicker({
                       style={{ backgroundColor: colorInfo.bg }}
                     >
                       {isLoadingThis ? (
-                        <Loader2 className="h-3 w-3 animate-spin" style={{ color: colorInfo.text }} />
+                        <Loader2
+                          className="h-3 w-3 animate-spin"
+                          style={{ color: colorInfo.text }}
+                        />
                       ) : isSelected ? (
-                        <Check className="h-3 w-3" style={{ color: colorInfo.text }} />
+                        <Check
+                          className="h-3 w-3"
+                          style={{ color: colorInfo.text }}
+                        />
                       ) : null}
                     </div>
-                    <span className="flex-1 text-left truncate">{label.name}</span>
+                    <span className="flex-1 text-left truncate">
+                      {label.name}
+                    </span>
                   </button>
                 );
               })}

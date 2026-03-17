@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +15,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type, AlertCircle, RotateCcw, History } from "lucide-react";
+import {
+  Zap,
+  Clock,
+  Target,
+  Save,
+  Loader2,
+  Trash2,
+  Settings,
+  Users,
+  Lightbulb,
+  Sparkles,
+  Type,
+  AlertCircle,
+  RotateCcw,
+  History,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +47,10 @@ import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 import { FabricaAnunciosGerados } from "./FabricaAnunciosGerados";
 import { FabricaConfiguracoesAvancadas } from "./FabricaConfiguracoesAvancadas";
 import { FabricaHistorico } from "./FabricaHistorico";
-import { PublishingDefaultsConfig, PublishingDefaults } from "@/components/ad-factory/PublishingDefaultsConfig";
+import {
+  PublishingDefaultsConfig,
+  PublishingDefaults,
+} from "@/components/ad-factory/PublishingDefaultsConfig";
 
 interface ScheduleConfig {
   id?: string;
@@ -97,14 +121,18 @@ interface Props {
   onDelete?: () => void;
 }
 
-export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props) {
+export function ClienteConfiguracaoFabrica({
+  clientId,
+  onSave,
+  onDelete,
+}: Props) {
   const { activeCompany } = useCompany();
   const [config, setConfig] = useState<ScheduleConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
-  
+
   // Availability states
   const [hasCompetitors, setHasCompetitors] = useState(false);
   const [hasResearchThemes, setHasResearchThemes] = useState(false);
@@ -123,44 +151,44 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
     try {
       // Check for competitors
       const { count: competitorsCount } = await supabase
-        .from('competitors')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('company_id', activeCompany.company_id);
-      
+        .from("competitors")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany.company_id);
+
       setHasCompetitors((competitorsCount || 0) > 0);
 
       // Check for research themes (market_research_insights)
       const { count: themesCount } = await supabase
-        .from('market_research_insights')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('company_id', activeCompany.company_id);
-      
+        .from("market_research_insights")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany.company_id);
+
       setHasResearchThemes((themesCount || 0) > 0);
 
       // Check for campaigns
       const { count: campaignsCount } = await supabase
-        .from('campaigns')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('is_active', true);
-      
+        .from("campaigns")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("is_active", true);
+
       setHasCampaigns((campaignsCount || 0) > 0);
     } catch (error) {
-      console.error('Error checking availability:', error);
+      console.error("Error checking availability:", error);
     }
   };
 
   const loadConfig = async () => {
     if (!clientId) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('ad_generation_schedules')
-        .select('*')
-        .eq('client_id', clientId)
+        .from("ad_generation_schedules")
+        .select("*")
+        .eq("client_id", clientId)
         .maybeSingle();
 
       if (error) throw error;
@@ -168,7 +196,8 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       if (data) {
         const rawMinScore = Number(data.autopilot_min_quality_score ?? 7.5);
         // Compat: versões antigas salvavam 0-1; hoje o autopilot usa 0-10.
-        const normalizedMinScore = rawMinScore <= 1 ? rawMinScore * 10 : rawMinScore;
+        const normalizedMinScore =
+          rawMinScore <= 1 ? rawMinScore * 10 : rawMinScore;
         const minQualityScore = Math.round(normalizedMinScore * 10) / 10;
 
         // Remove o teto de orçamento (não é usado no fluxo do Autopilot)
@@ -177,16 +206,17 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
         if ((needsLegacyFix || needsBudgetClear) && data.id) {
           const updatePayload: Record<string, unknown> = {};
-          if (needsLegacyFix) updatePayload.autopilot_min_quality_score = minQualityScore;
+          if (needsLegacyFix)
+            updatePayload.autopilot_min_quality_score = minQualityScore;
           if (needsBudgetClear) updatePayload.autopilot_max_daily_budget = null;
 
           const { error: fixError } = await supabase
-            .from('ad_generation_schedules')
+            .from("ad_generation_schedules")
             .update(updatePayload)
-            .eq('id', data.id);
+            .eq("id", data.id);
 
           if (fixError) {
-            console.warn('Legacy autopilot fix failed:', fixError);
+            console.warn("Legacy autopilot fix failed:", fixError);
           }
         }
 
@@ -201,7 +231,8 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           autopilot_enabled: data.autopilot_enabled,
           autopilot_min_quality_score: minQualityScore,
           autopilot_max_daily_budget: null,
-          always_include_text_in_images: data.always_include_text_in_images ?? true,
+          always_include_text_in_images:
+            data.always_include_text_in_images ?? true,
           // Advanced config
           target_campaign_id: data.target_campaign_id ?? null,
           target_adset_id: data.target_adset_id ?? null,
@@ -213,7 +244,8 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           reference_image_5: data.reference_image_5 ?? null,
           reference_image_6: data.reference_image_6 ?? null,
           // Publishing defaults
-          default_destination_url: (data as unknown).default_destination_url ?? null,
+          default_destination_url:
+            (data as unknown).default_destination_url ?? null,
           default_primary_text: (data as unknown).default_primary_text ?? null,
           default_headline: (data as unknown).default_headline ?? null,
           default_description: (data as unknown).default_description ?? null,
@@ -226,7 +258,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         setConfig(defaultConfig);
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+      console.error("Error loading config:", error);
       setConfig(defaultConfig);
     } finally {
       setLoading(false);
@@ -249,7 +281,9 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         iteration_percentage: config.iteration_percentage,
         generation_time: config.generation_time,
         autopilot_enabled: config.autopilot_enabled,
-        autopilot_min_quality_score: Number(config.autopilot_min_quality_score.toFixed(1)),
+        autopilot_min_quality_score: Number(
+          config.autopilot_min_quality_score.toFixed(1),
+        ),
         autopilot_max_daily_budget: null,
         always_include_text_in_images: config.always_include_text_in_images,
         // Advanced config
@@ -274,24 +308,24 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
       if (config.id) {
         const { error } = await supabase
-          .from('ad_generation_schedules')
+          .from("ad_generation_schedules")
           .update(configData)
-          .eq('id', config.id);
-        
+          .eq("id", config.id);
+
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('ad_generation_schedules')
+          .from("ad_generation_schedules")
           .insert(configData);
-        
+
         if (error) throw error;
       }
 
-      toast.success('Configurações salvas com sucesso!');
+      toast.success("Configurações salvas com sucesso!");
       onSave?.();
     } catch (error: unknown) {
-      console.error('Error saving config:', error);
-      toast.error('Erro ao salvar configurações: ' + error.message);
+      console.error("Error saving config:", error);
+      toast.error("Erro ao salvar configurações: " + error.message);
     } finally {
       setSaving(false);
     }
@@ -302,65 +336,78 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
     try {
       const { error } = await supabase
-        .from('ad_generation_schedules')
+        .from("ad_generation_schedules")
         .delete()
-        .eq('id', config.id);
-      
+        .eq("id", config.id);
+
       if (error) throw error;
 
-      toast.success('Fábrica removida com sucesso!');
+      toast.success("Fábrica removida com sucesso!");
       onDelete?.();
     } catch (error: unknown) {
-      console.error('Error deleting config:', error);
-      toast.error('Erro ao remover fábrica: ' + error.message);
+      console.error("Error deleting config:", error);
+      toast.error("Erro ao remover fábrica: " + error.message);
     }
   };
 
   const resetGenerationForToday = async () => {
     if (!config.id) {
-      toast.error('Salve a configuração primeiro');
+      toast.error("Salve a configuração primeiro");
       return;
     }
 
     setResetting(true);
     try {
       const { error } = await supabase
-        .from('ad_generation_schedules')
+        .from("ad_generation_schedules")
         .update({ last_generation_at: null })
-        .eq('id', config.id);
+        .eq("id", config.id);
 
       if (error) throw error;
 
-      toast.success('Reset realizado! A geração vai rodar no próximo horário configurado.');
+      toast.success(
+        "Reset realizado! A geração vai rodar no próximo horário configurado.",
+      );
     } catch (error: unknown) {
-      console.error('Error resetting generation:', error);
-      toast.error('Erro ao resetar: ' + error.message);
+      console.error("Error resetting generation:", error);
+      toast.error("Erro ao resetar: " + error.message);
     } finally {
       setResetting(false);
     }
   };
 
-  const updatePercentages = (field: keyof ScheduleConfig, value: number, disabled: boolean = false) => {
+  const updatePercentages = (
+    field: keyof ScheduleConfig,
+    value: number,
+    disabled: boolean = false,
+  ) => {
     if (disabled) return;
-    
+
     const total = 100;
     const newConfig = { ...config, [field]: value };
-    
+
     // Get available fields (only those that are not disabled)
-    const allFields: (keyof ScheduleConfig)[] = ['clone_percentage', 'concept_percentage', 'iteration_percentage'];
-    const availableFields = allFields.filter(f => {
-      if (f === 'clone_percentage') return hasCompetitors;
-      if (f === 'concept_percentage') return hasResearchThemes;
-      if (f === 'iteration_percentage') return hasCampaigns;
+    const allFields: (keyof ScheduleConfig)[] = [
+      "clone_percentage",
+      "concept_percentage",
+      "iteration_percentage",
+    ];
+    const availableFields = allFields.filter((f) => {
+      if (f === "clone_percentage") return hasCompetitors;
+      if (f === "concept_percentage") return hasResearchThemes;
+      if (f === "iteration_percentage") return hasCampaigns;
       return true;
     });
-    
-    const otherFields = availableFields.filter(f => f !== field);
+
+    const otherFields = availableFields.filter((f) => f !== field);
     const remaining = total - value;
-    const currentOtherTotal = otherFields.reduce((sum, f) => sum + (config[f] as number), 0);
-    
+    const currentOtherTotal = otherFields.reduce(
+      (sum, f) => sum + (config[f] as number),
+      0,
+    );
+
     if (currentOtherTotal > 0) {
-      otherFields.forEach(f => {
+      otherFields.forEach((f) => {
         const ratio = (config[f] as number) / currentOtherTotal;
         (newConfig as unknown)[f] = Math.round(remaining * ratio);
       });
@@ -368,17 +415,18 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       // Distribute equally if current total is 0
       const perField = Math.floor(remaining / otherFields.length);
       otherFields.forEach((f, idx) => {
-        (newConfig as unknown)[f] = idx === otherFields.length - 1 
-          ? remaining - perField * (otherFields.length - 1) 
-          : perField;
+        (newConfig as unknown)[f] =
+          idx === otherFields.length - 1
+            ? remaining - perField * (otherFields.length - 1)
+            : perField;
       });
     }
-    
+
     // Ensure disabled fields are always 0
     if (!hasCompetitors) newConfig.clone_percentage = 0;
     if (!hasResearchThemes) newConfig.concept_percentage = 0;
     if (!hasCampaigns) newConfig.iteration_percentage = 0;
-    
+
     setConfig(newConfig);
   };
 
@@ -387,10 +435,10 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
   useEffect(() => {
     // Skip if config was loaded from database - respect saved values
     if (configLoaded) return;
-    
+
     const newConfig = { ...config };
     let changed = false;
-    
+
     if (!hasCompetitors && config.clone_percentage > 0) {
       newConfig.clone_percentage = 0;
       changed = true;
@@ -403,14 +451,18 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       newConfig.iteration_percentage = 0;
       changed = true;
     }
-    
+
     if (changed) {
       // Redistribute to available types
-      const availableCount = [hasCompetitors, hasResearchThemes, hasCampaigns].filter(Boolean).length;
+      const availableCount = [
+        hasCompetitors,
+        hasResearchThemes,
+        hasCampaigns,
+      ].filter(Boolean).length;
       if (availableCount > 0) {
         const perType = Math.floor(100 / availableCount);
         let remaining = 100;
-        
+
         if (hasCompetitors) {
           newConfig.clone_percentage = perType;
           remaining -= perType;
@@ -423,7 +475,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           newConfig.iteration_percentage = remaining;
         }
       }
-      
+
       setConfig(newConfig);
     }
   }, [hasCompetitors, hasResearchThemes, hasCampaigns, configLoaded]);
@@ -451,12 +503,15 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
               <AlertDialogHeader>
                 <AlertDialogTitle>Remover fábrica?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. A fábrica será removida permanentemente.
+                  Esta ação não pode ser desfeita. A fábrica será removida
+                  permanentemente.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={deleteConfig}>Remover</AlertDialogAction>
+                <AlertDialogAction onClick={deleteConfig}>
+                  Remover
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -504,7 +559,9 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                   <Clock className="h-5 w-5" />
                   Geração Diária
                 </CardTitle>
-                <CardDescription>Configure a geração automática de anúncios</CardDescription>
+                <CardDescription>
+                  Configure a geração automática de anúncios
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -512,19 +569,25 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                   <Switch
                     id="is_active"
                     checked={config.is_active}
-                    onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, is_active: checked })
+                    }
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ads_per_day">Anúncios por dia: {config.ads_per_day}</Label>
+                  <Label htmlFor="ads_per_day">
+                    Anúncios por dia: {config.ads_per_day}
+                  </Label>
                   <Slider
                     id="ads_per_day"
                     min={1}
                     max={5}
                     step={1}
                     value={[config.ads_per_day]}
-                    onValueChange={([value]) => setConfig({ ...config, ads_per_day: value })}
+                    onValueChange={([value]) =>
+                      setConfig({ ...config, ads_per_day: value })
+                    }
                   />
                 </div>
 
@@ -535,11 +598,17 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                       id="generation_time"
                       type="time"
                       value={config.generation_time}
-                      onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          generation_time: e.target.value,
+                        })
+                      }
                       className="flex-1"
                     />
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      aria-label="Resetar para gerar hoje"
+                      variant="outline"
                       size="icon"
                       onClick={resetGenerationForToday}
                       disabled={resetting || !config.id}
@@ -553,13 +622,17 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Clique no botão de reset para permitir geração novamente hoje
+                    Clique no botão de reset para permitir geração novamente
+                    hoje
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t">
                   <div className="space-y-0.5">
-                    <Label htmlFor="always_include_text" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="always_include_text"
+                      className="flex items-center gap-2"
+                    >
                       <Type className="h-4 w-4" />
                       Texto nas imagens
                     </Label>
@@ -570,7 +643,12 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                   <Switch
                     id="always_include_text"
                     checked={config.always_include_text_in_images}
-                    onCheckedChange={(checked) => setConfig({ ...config, always_include_text_in_images: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({
+                        ...config,
+                        always_include_text_in_images: checked,
+                      })
+                    }
                   />
                 </div>
               </CardContent>
@@ -583,13 +661,17 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                   <Target className="h-5 w-5" />
                   Distribuição de Tipos
                 </CardTitle>
-                <CardDescription>Define a proporção de cada tipo de anúncio</CardDescription>
+                <CardDescription>
+                  Define a proporção de cada tipo de anúncio
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Clone - Concorrentes */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className={!hasCompetitors ? "text-muted-foreground" : ""}>
+                    <Label
+                      className={!hasCompetitors ? "text-muted-foreground" : ""}
+                    >
                       Clones (concorrentes): {config.clone_percentage}%
                     </Label>
                     {!hasCompetitors && (
@@ -604,13 +686,22 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                     max={100}
                     step={5}
                     value={[config.clone_percentage]}
-                    onValueChange={([value]) => updatePercentages('clone_percentage', value, !hasCompetitors)}
+                    onValueChange={([value]) =>
+                      updatePercentages(
+                        "clone_percentage",
+                        value,
+                        !hasCompetitors,
+                      )
+                    }
                     disabled={!hasCompetitors}
-                    className={!hasCompetitors ? "opacity-50 cursor-not-allowed" : ""}
+                    className={
+                      !hasCompetitors ? "opacity-50 cursor-not-allowed" : ""
+                    }
                   />
                   {!hasCompetitors && (
                     <p className="text-xs text-muted-foreground">
-                      Configure concorrentes na aba "Concorrentes" para ativar este tipo.
+                      Configure concorrentes na aba "Concorrentes" para ativar
+                      este tipo.
                     </p>
                   )}
                 </div>
@@ -618,7 +709,11 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                 {/* Concept - Temas de Pesquisa */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className={!hasResearchThemes ? "text-muted-foreground" : ""}>
+                    <Label
+                      className={
+                        !hasResearchThemes ? "text-muted-foreground" : ""
+                      }
+                    >
                       Conceitos (pesquisa): {config.concept_percentage}%
                     </Label>
                     {!hasResearchThemes && (
@@ -633,13 +728,22 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                     max={100}
                     step={5}
                     value={[config.concept_percentage]}
-                    onValueChange={([value]) => updatePercentages('concept_percentage', value, !hasResearchThemes)}
+                    onValueChange={([value]) =>
+                      updatePercentages(
+                        "concept_percentage",
+                        value,
+                        !hasResearchThemes,
+                      )
+                    }
                     disabled={!hasResearchThemes}
-                    className={!hasResearchThemes ? "opacity-50 cursor-not-allowed" : ""}
+                    className={
+                      !hasResearchThemes ? "opacity-50 cursor-not-allowed" : ""
+                    }
                   />
                   {!hasResearchThemes && (
                     <p className="text-xs text-muted-foreground">
-                      Adicione temas na aba "Temas de Pesquisa" para ativar este tipo.
+                      Adicione temas na aba "Temas de Pesquisa" para ativar este
+                      tipo.
                     </p>
                   )}
                 </div>
@@ -647,7 +751,9 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                 {/* Iteration - Campanhas/Winners */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className={!hasCampaigns ? "text-muted-foreground" : ""}>
+                    <Label
+                      className={!hasCampaigns ? "text-muted-foreground" : ""}
+                    >
                       Iterações (vencedores): {config.iteration_percentage}%
                     </Label>
                     {!hasCampaigns && (
@@ -662,9 +768,17 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                     max={100}
                     step={5}
                     value={[config.iteration_percentage]}
-                    onValueChange={([value]) => updatePercentages('iteration_percentage', value, !hasCampaigns)}
+                    onValueChange={([value]) =>
+                      updatePercentages(
+                        "iteration_percentage",
+                        value,
+                        !hasCampaigns,
+                      )
+                    }
                     disabled={!hasCampaigns}
-                    className={!hasCampaigns ? "opacity-50 cursor-not-allowed" : ""}
+                    className={
+                      !hasCampaigns ? "opacity-50 cursor-not-allowed" : ""
+                    }
                   />
                   {!hasCampaigns && (
                     <p className="text-xs text-muted-foreground">
@@ -674,7 +788,11 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                 </div>
 
                 <div className="text-sm text-muted-foreground">
-                  Total: {config.clone_percentage + config.concept_percentage + config.iteration_percentage}%
+                  Total:{" "}
+                  {config.clone_percentage +
+                    config.concept_percentage +
+                    config.iteration_percentage}
+                  %
                 </div>
               </CardContent>
             </Card>
@@ -687,7 +805,8 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                   Modo Autopilot
                 </CardTitle>
                 <CardDescription>
-                  Publica automaticamente anúncios aprovados com alto score de qualidade
+                  Publica automaticamente anúncios aprovados com alto score de
+                  qualidade
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -695,31 +814,42 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                   <div>
                     <Label htmlFor="autopilot_enabled">Ativar Autopilot</Label>
                     <p className="text-sm text-muted-foreground">
-                      Anúncios com score acima do mínimo serão publicados automaticamente
+                      Anúncios com score acima do mínimo serão publicados
+                      automaticamente
                     </p>
                   </div>
                   <Switch
                     id="autopilot_enabled"
                     checked={config.autopilot_enabled}
-                    onCheckedChange={(checked) => setConfig({ ...config, autopilot_enabled: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, autopilot_enabled: checked })
+                    }
                   />
                 </div>
 
                 {config.autopilot_enabled && (
                   <div className="pt-4 border-t">
                     <div className="space-y-2 max-w-md">
-                      <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score.toFixed(1)}/10</Label>
+                      <Label>
+                        Score mínimo de qualidade:{" "}
+                        {config.autopilot_min_quality_score.toFixed(1)}/10
+                      </Label>
                       <Slider
                         min={0}
                         max={10}
                         step={0.1}
                         value={[config.autopilot_min_quality_score]}
                         onValueChange={([value]) =>
-                          setConfig({ ...config, autopilot_min_quality_score: Math.round(value * 10) / 10 })
+                          setConfig({
+                            ...config,
+                            autopilot_min_quality_score:
+                              Math.round(value * 10) / 10,
+                          })
                         }
                       />
                       <p className="text-xs text-muted-foreground">
-                        Apenas anúncios com score igual ou acima serão publicados automaticamente
+                        Apenas anúncios com score igual ou acima serão
+                        publicados automaticamente
                       </p>
                     </div>
                   </div>
@@ -743,7 +873,9 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
               reference_image_5: config.reference_image_5,
               reference_image_6: config.reference_image_6,
             }}
-            onChange={(advancedConfig) => setConfig({ ...config, ...advancedConfig })}
+            onChange={(advancedConfig) =>
+              setConfig({ ...config, ...advancedConfig })
+            }
           />
 
           {/* Configurações Padrão de Publicação */}
@@ -757,18 +889,26 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
               default_pixel_id: config.default_pixel_id,
               default_url_params: config.default_url_params,
             }}
-            onChange={(publishingConfig) => setConfig({ ...config, ...publishingConfig })}
+            onChange={(publishingConfig) =>
+              setConfig({ ...config, ...publishingConfig })
+            }
             clientId={clientId}
             companyId={activeCompany?.company_id || ""}
           />
         </TabsContent>
 
         <TabsContent value="concorrentes">
-          <FabricaCompetidores clientId={clientId} clonePercentage={config.clone_percentage} />
+          <FabricaCompetidores
+            clientId={clientId}
+            clonePercentage={config.clone_percentage}
+          />
         </TabsContent>
 
         <TabsContent value="temas">
-          <FabricaTemasPesquisa clientId={clientId} conceptPercentage={config.concept_percentage} />
+          <FabricaTemasPesquisa
+            clientId={clientId}
+            conceptPercentage={config.concept_percentage}
+          />
         </TabsContent>
 
         <TabsContent value="anuncios">

@@ -20,7 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Globe, Facebook, Instagram, Video, Play, RefreshCw, Check } from "lucide-react";
+import {
+  Loader2,
+  Globe,
+  Facebook,
+  Instagram,
+  Video,
+  Play,
+  RefreshCw,
+  Check,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -61,13 +70,13 @@ interface CreateAdvancedAudienceModalProps {
     name: string;
     pixelId: string;
     retentionDays: number;
-    ruleType: 'all_visitors' | 'url_contains' | 'url_equals' | 'event';
+    ruleType: "all_visitors" | "url_contains" | "url_equals" | "event";
     urlValue?: string;
     eventName?: string;
   }) => Promise<void>;
   onCreateEngagementAudience: (params: {
     name: string;
-    engagementType: 'page' | 'instagram' | 'video';
+    engagementType: "page" | "instagram" | "video";
     sourceId: string;
     retentionDays: number;
     engagementEvent: string;
@@ -81,37 +90,43 @@ interface CreateAdvancedAudienceModalProps {
 }
 
 const WEBSITE_EVENTS = [
-  { value: 'PageView', label: 'PageView - Visualização de página' },
-  { value: 'ViewContent', label: 'ViewContent - Visualizou conteúdo' },
-  { value: 'AddToCart', label: 'AddToCart - Adicionou ao carrinho' },
-  { value: 'InitiateCheckout', label: 'InitiateCheckout - Iniciou checkout' },
-  { value: 'Purchase', label: 'Purchase - Compra' },
-  { value: 'Lead', label: 'Lead - Lead capturado' },
-  { value: 'CompleteRegistration', label: 'CompleteRegistration - Registro completo' },
-  { value: 'Contact', label: 'Contact - Contato' },
-  { value: 'Search', label: 'Search - Pesquisa' },
+  { value: "PageView", label: "PageView - Visualização de página" },
+  { value: "ViewContent", label: "ViewContent - Visualizou conteúdo" },
+  { value: "AddToCart", label: "AddToCart - Adicionou ao carrinho" },
+  { value: "InitiateCheckout", label: "InitiateCheckout - Iniciou checkout" },
+  { value: "Purchase", label: "Purchase - Compra" },
+  { value: "Lead", label: "Lead - Lead capturado" },
+  {
+    value: "CompleteRegistration",
+    label: "CompleteRegistration - Registro completo",
+  },
+  { value: "Contact", label: "Contact - Contato" },
+  { value: "Search", label: "Search - Pesquisa" },
 ];
 
 const PAGE_EVENTS = [
-  { value: 'page_engaged', label: 'Qualquer engajamento com a página' },
-  { value: 'page_liked', label: 'Curtiu a página' },
-  { value: 'page_visited', label: 'Visitou a página' },
-  { value: 'page_messaged', label: 'Enviou mensagem para a página' },
-  { value: 'page_cta_clicked', label: 'Clicou no CTA da página' },
-  { value: 'page_saved_post', label: 'Salvou post da página' },
+  { value: "page_engaged", label: "Qualquer engajamento com a página" },
+  { value: "page_liked", label: "Curtiu a página" },
+  { value: "page_visited", label: "Visitou a página" },
+  { value: "page_messaged", label: "Enviou mensagem para a página" },
+  { value: "page_cta_clicked", label: "Clicou no CTA da página" },
+  { value: "page_saved_post", label: "Salvou post da página" },
 ];
 
 const INSTAGRAM_EVENTS = [
-  { value: 'ig_business_profile_all', label: 'Qualquer interação com o perfil' },
-  { value: 'ig_business_profile_engaged', label: 'Engajou com conteúdo' },
-  { value: 'ig_business_profile_any', label: 'Visitou perfil ou interagiu' },
+  {
+    value: "ig_business_profile_all",
+    label: "Qualquer interação com o perfil",
+  },
+  { value: "ig_business_profile_engaged", label: "Engajou com conteúdo" },
+  { value: "ig_business_profile_any", label: "Visitou perfil ou interagiu" },
 ];
 
 const VIDEO_PERCENTILES = [
-  { value: 25, label: '25% do vídeo' },
-  { value: 50, label: '50% do vídeo' },
-  { value: 75, label: '75% do vídeo' },
-  { value: 95, label: '95% do vídeo (ThruPlay)' },
+  { value: 25, label: "25% do vídeo" },
+  { value: 50, label: "50% do vídeo" },
+  { value: 75, label: "75% do vídeo" },
+  { value: 95, label: "95% do vídeo (ThruPlay)" },
 ];
 
 export function CreateAdvancedAudienceModal({
@@ -126,30 +141,34 @@ export function CreateAdvancedAudienceModal({
   instagramAccounts,
 }: CreateAdvancedAudienceModalProps) {
   const [activeTab, setActiveTab] = useState("website");
-  
+
   // Website state
   const [websiteName, setWebsiteName] = useState("");
   const [selectedPixel, setSelectedPixel] = useState("");
   const [websiteRetention, setWebsiteRetention] = useState([30]);
-  const [ruleType, setRuleType] = useState<'all_visitors' | 'url_contains' | 'url_equals' | 'event'>('all_visitors');
+  const [ruleType, setRuleType] = useState<
+    "all_visitors" | "url_contains" | "url_equals" | "event"
+  >("all_visitors");
   const [urlValue, setUrlValue] = useState("");
   const [eventName, setEventName] = useState("");
-  
+
   // Facebook Page state
   const [pageName, setPageName] = useState("");
   const [selectedPage, setSelectedPage] = useState("");
   const [pageRetention, setPageRetention] = useState([30]);
   const [pageEvent, setPageEvent] = useState("page_engaged");
-  
+
   // Instagram state
   const [igName, setIgName] = useState("");
   const [selectedInstagram, setSelectedInstagram] = useState("");
   const [igRetention, setIgRetention] = useState([30]);
   const [igEvent, setIgEvent] = useState("ig_business_profile_all");
-  
+
   // Video state
   const [videoName, setVideoName] = useState("");
-  const [videoSource, setVideoSource] = useState<'facebook' | 'instagram'>('facebook');
+  const [videoSource, setVideoSource] = useState<"facebook" | "instagram">(
+    "facebook",
+  );
   const [selectedVideoSourceId, setSelectedVideoSourceId] = useState("");
   const [videoRetention, setVideoRetention] = useState([30]);
   const [videoPercentile, setVideoPercentile] = useState(50);
@@ -160,27 +179,30 @@ export function CreateAdvancedAudienceModal({
 
   // Fetch videos when source changes
   useEffect(() => {
-    if (selectedVideoSourceId && activeTab === 'video') {
+    if (selectedVideoSourceId && activeTab === "video") {
       fetchVideos();
     }
   }, [selectedVideoSourceId, videoSource]);
 
   const fetchVideos = async () => {
     if (!selectedVideoSourceId || !clientId) return;
-    
+
     setLoadingVideos(true);
     setVideos([]);
     setSelectedVideos([]);
-    
+
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-meta-videos', {
-        body: {
-          clientId,
-          source: videoSource,
-          sourceId: selectedVideoSourceId,
-          limit: 50,
+      const { data, error } = await supabase.functions.invoke(
+        "fetch-meta-videos",
+        {
+          body: {
+            clientId,
+            source: videoSource,
+            sourceId: selectedVideoSourceId,
+            limit: 50,
+          },
         },
-      });
+      );
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
@@ -191,7 +213,7 @@ export function CreateAdvancedAudienceModal({
         setSelectedVideos((data.videos || []).map((v: VideoItem) => v.id));
       }
     } catch (error: unknown) {
-      console.error('Error fetching videos:', error);
+      console.error("Error fetching videos:", error);
     } finally {
       setLoadingVideos(false);
     }
@@ -199,17 +221,17 @@ export function CreateAdvancedAudienceModal({
 
   const toggleVideoSelection = (videoId: string) => {
     setSelectAllVideos(false);
-    setSelectedVideos(prev => 
-      prev.includes(videoId) 
-        ? prev.filter(id => id !== videoId)
-        : [...prev, videoId]
+    setSelectedVideos((prev) =>
+      prev.includes(videoId)
+        ? prev.filter((id) => id !== videoId)
+        : [...prev, videoId],
     );
   };
 
   const handleSelectAllVideos = (checked: boolean) => {
     setSelectAllVideos(checked);
     if (checked) {
-      setSelectedVideos(videos.map(v => v.id));
+      setSelectedVideos(videos.map((v) => v.id));
     } else {
       setSelectedVideos([]);
     }
@@ -219,7 +241,7 @@ export function CreateAdvancedAudienceModal({
     setWebsiteName("");
     setSelectedPixel("");
     setWebsiteRetention([30]);
-    setRuleType('all_visitors');
+    setRuleType("all_visitors");
     setUrlValue("");
     setEventName("");
     setPageName("");
@@ -231,7 +253,7 @@ export function CreateAdvancedAudienceModal({
     setIgRetention([30]);
     setIgEvent("ig_business_profile_all");
     setVideoName("");
-    setVideoSource('facebook');
+    setVideoSource("facebook");
     setSelectedVideoSourceId("");
     setVideoRetention([30]);
     setVideoPercentile(50);
@@ -249,7 +271,7 @@ export function CreateAdvancedAudienceModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (activeTab === "website") {
         if (!websiteName.trim() || !selectedPixel) return;
@@ -265,7 +287,7 @@ export function CreateAdvancedAudienceModal({
         if (!pageName.trim() || !selectedPage) return;
         await onCreateEngagementAudience({
           name: pageName.trim(),
-          engagementType: 'page',
+          engagementType: "page",
           sourceId: selectedPage,
           retentionDays: pageRetention[0],
           engagementEvent: pageEvent,
@@ -274,7 +296,7 @@ export function CreateAdvancedAudienceModal({
         if (!igName.trim() || !selectedInstagram) return;
         await onCreateEngagementAudience({
           name: igName.trim(),
-          engagementType: 'instagram',
+          engagementType: "instagram",
           sourceId: selectedInstagram,
           retentionDays: igRetention[0],
           engagementEvent: igEvent,
@@ -283,25 +305,29 @@ export function CreateAdvancedAudienceModal({
         if (!videoName.trim() || !selectedVideoSourceId) return;
         await onCreateEngagementAudience({
           name: videoName.trim(),
-          engagementType: 'video',
+          engagementType: "video",
           sourceId: selectedVideoSourceId,
           retentionDays: videoRetention[0],
-          engagementEvent: 'video_watched',
+          engagementEvent: "video_watched",
           videoPercentile,
           videoIds: selectAllVideos ? undefined : selectedVideos,
         });
       }
       resetForm();
     } catch (error) {
-      console.error('Error creating advanced audience:', error);
+      console.error("Error creating advanced audience:", error);
     }
   };
 
   const isFormValid = () => {
     if (activeTab === "website") {
       if (!websiteName.trim() || !selectedPixel) return false;
-      if ((ruleType === 'url_contains' || ruleType === 'url_equals') && !urlValue.trim()) return false;
-      if (ruleType === 'event' && !eventName) return false;
+      if (
+        (ruleType === "url_contains" || ruleType === "url_equals") &&
+        !urlValue.trim()
+      )
+        return false;
+      if (ruleType === "event" && !eventName) return false;
       return true;
     }
     if (activeTab === "page") {
@@ -319,10 +345,10 @@ export function CreateAdvancedAudienceModal({
   };
 
   const formatVideoLength = (seconds?: number) => {
-    if (!seconds) return '';
+    if (!seconds) return "";
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -331,11 +357,18 @@ export function CreateAdvancedAudienceModal({
         <DialogHeader>
           <DialogTitle>Criar Público Avançado</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="website" className="flex items-center gap-1.5">
+              <TabsTrigger
+                value="website"
+                className="flex items-center gap-1.5"
+              >
                 <Globe className="h-4 w-4" />
                 <span className="hidden sm:inline">Website</span>
               </TabsTrigger>
@@ -343,7 +376,10 @@ export function CreateAdvancedAudienceModal({
                 <Facebook className="h-4 w-4" />
                 <span className="hidden sm:inline">Página</span>
               </TabsTrigger>
-              <TabsTrigger value="instagram" className="flex items-center gap-1.5">
+              <TabsTrigger
+                value="instagram"
+                className="flex items-center gap-1.5"
+              >
                 <Instagram className="h-4 w-4" />
                 <span className="hidden sm:inline">Instagram</span>
               </TabsTrigger>
@@ -368,13 +404,19 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Pixel do Meta *</Label>
-                <Select value={selectedPixel} onValueChange={setSelectedPixel} disabled={loading}>
+                <Select
+                  value={selectedPixel}
+                  onValueChange={setSelectedPixel}
+                  disabled={loading}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um Pixel" />
                   </SelectTrigger>
                   <SelectContent>
                     {pixels.length === 0 ? (
-                      <SelectItem value="none" disabled>Nenhum Pixel disponível</SelectItem>
+                      <SelectItem value="none" disabled>
+                        Nenhum Pixel disponível
+                      </SelectItem>
                     ) : (
                       pixels.map((pixel) => (
                         <SelectItem key={pixel.id} value={pixel.pixel_id}>
@@ -388,12 +430,18 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Tipo de Regra</Label>
-                <Select value={ruleType} onValueChange={(v) => setRuleType(v as unknown)} disabled={loading}>
+                <Select
+                  value={ruleType}
+                  onValueChange={(v) => setRuleType(v as unknown)}
+                  disabled={loading}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all_visitors">Todos os visitantes</SelectItem>
+                    <SelectItem value="all_visitors">
+                      Todos os visitantes
+                    </SelectItem>
                     <SelectItem value="url_contains">URL contém</SelectItem>
                     <SelectItem value="url_equals">URL igual a</SelectItem>
                     <SelectItem value="event">Evento específico</SelectItem>
@@ -401,25 +449,34 @@ export function CreateAdvancedAudienceModal({
                 </Select>
               </div>
 
-              {(ruleType === 'url_contains' || ruleType === 'url_equals') && (
+              {(ruleType === "url_contains" || ruleType === "url_equals") && (
                 <div className="space-y-2">
                   <Label htmlFor="url-value">
-                    {ruleType === 'url_contains' ? 'URL contém' : 'URL igual a'} *
+                    {ruleType === "url_contains" ? "URL contém" : "URL igual a"}{" "}
+                    *
                   </Label>
                   <Input
                     id="url-value"
                     value={urlValue}
                     onChange={(e) => setUrlValue(e.target.value)}
-                    placeholder={ruleType === 'url_contains' ? "Ex: /produtos" : "Ex: https://site.com/checkout"}
+                    placeholder={
+                      ruleType === "url_contains"
+                        ? "Ex: /produtos"
+                        : "Ex: https://site.com/checkout"
+                    }
                     disabled={loading}
                   />
                 </div>
               )}
 
-              {ruleType === 'event' && (
+              {ruleType === "event" && (
                 <div className="space-y-2">
                   <Label>Evento do Pixel *</Label>
-                  <Select value={eventName} onValueChange={setEventName} disabled={loading}>
+                  <Select
+                    value={eventName}
+                    onValueChange={setEventName}
+                    disabled={loading}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um evento" />
                     </SelectTrigger>
@@ -452,8 +509,9 @@ export function CreateAdvancedAudienceModal({
               <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                 <p className="font-medium mb-1">Público de Website</p>
                 <p>
-                  Captura visitantes do seu site baseado no Meta Pixel instalado.
-                  O público será populado automaticamente com dados históricos.
+                  Captura visitantes do seu site baseado no Meta Pixel
+                  instalado. O público será populado automaticamente com dados
+                  históricos.
                 </p>
               </div>
             </TabsContent>
@@ -473,13 +531,19 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Página do Facebook *</Label>
-                <Select value={selectedPage} onValueChange={setSelectedPage} disabled={loading}>
+                <Select
+                  value={selectedPage}
+                  onValueChange={setSelectedPage}
+                  disabled={loading}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma página" />
                   </SelectTrigger>
                   <SelectContent>
                     {pages.length === 0 ? (
-                      <SelectItem value="none" disabled>Nenhuma página vinculada</SelectItem>
+                      <SelectItem value="none" disabled>
+                        Nenhuma página vinculada
+                      </SelectItem>
                     ) : (
                       pages.map((page) => (
                         <SelectItem key={page.id} value={page.page_id}>
@@ -493,7 +557,11 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Tipo de Engajamento</Label>
-                <Select value={pageEvent} onValueChange={setPageEvent} disabled={loading}>
+                <Select
+                  value={pageEvent}
+                  onValueChange={setPageEvent}
+                  disabled={loading}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -546,13 +614,19 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Conta do Instagram *</Label>
-                <Select value={selectedInstagram} onValueChange={setSelectedInstagram} disabled={loading}>
+                <Select
+                  value={selectedInstagram}
+                  onValueChange={setSelectedInstagram}
+                  disabled={loading}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma conta" />
                   </SelectTrigger>
                   <SelectContent>
                     {instagramAccounts.length === 0 ? (
-                      <SelectItem value="none" disabled>Nenhuma conta vinculada</SelectItem>
+                      <SelectItem value="none" disabled>
+                        Nenhuma conta vinculada
+                      </SelectItem>
                     ) : (
                       instagramAccounts.map((ig) => (
                         <SelectItem key={ig.id} value={ig.instagram_id}>
@@ -566,7 +640,11 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Tipo de Interação</Label>
-                <Select value={igEvent} onValueChange={setIgEvent} disabled={loading}>
+                <Select
+                  value={igEvent}
+                  onValueChange={setIgEvent}
+                  disabled={loading}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -598,7 +676,8 @@ export function CreateAdvancedAudienceModal({
               <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                 <p className="font-medium mb-1">Público de Instagram</p>
                 <p>
-                  Captura pessoas que visitaram ou interagiram com seu perfil do Instagram Business.
+                  Captura pessoas que visitaram ou interagiram com seu perfil do
+                  Instagram Business.
                 </p>
               </div>
             </TabsContent>
@@ -619,14 +698,14 @@ export function CreateAdvancedAudienceModal({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Origem dos Vídeos</Label>
-                  <Select 
-                    value={videoSource} 
+                  <Select
+                    value={videoSource}
                     onValueChange={(v) => {
-                      setVideoSource(v as 'facebook' | 'instagram');
+                      setVideoSource(v as "facebook" | "instagram");
                       setSelectedVideoSourceId("");
                       setVideos([]);
                       setSelectedVideos([]);
-                    }} 
+                    }}
                     disabled={loading}
                   >
                     <SelectTrigger>
@@ -650,19 +729,25 @@ export function CreateAdvancedAudienceModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>{videoSource === 'facebook' ? 'Página' : 'Conta'} *</Label>
-                  <Select 
-                    value={selectedVideoSourceId} 
-                    onValueChange={setSelectedVideoSourceId} 
+                  <Label>
+                    {videoSource === "facebook" ? "Página" : "Conta"} *
+                  </Label>
+                  <Select
+                    value={selectedVideoSourceId}
+                    onValueChange={setSelectedVideoSourceId}
                     disabled={loading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={`Selecione ${videoSource === 'facebook' ? 'a página' : 'a conta'}`} />
+                      <SelectValue
+                        placeholder={`Selecione ${videoSource === "facebook" ? "a página" : "a conta"}`}
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {videoSource === 'facebook' ? (
+                      {videoSource === "facebook" ? (
                         pages.length === 0 ? (
-                          <SelectItem value="none" disabled>Nenhuma página vinculada</SelectItem>
+                          <SelectItem value="none" disabled>
+                            Nenhuma página vinculada
+                          </SelectItem>
                         ) : (
                           pages.map((page) => (
                             <SelectItem key={page.id} value={page.page_id}>
@@ -670,16 +755,16 @@ export function CreateAdvancedAudienceModal({
                             </SelectItem>
                           ))
                         )
+                      ) : instagramAccounts.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          Nenhuma conta vinculada
+                        </SelectItem>
                       ) : (
-                        instagramAccounts.length === 0 ? (
-                          <SelectItem value="none" disabled>Nenhuma conta vinculada</SelectItem>
-                        ) : (
-                          instagramAccounts.map((ig) => (
-                            <SelectItem key={ig.id} value={ig.instagram_id}>
-                              @{ig.username}
-                            </SelectItem>
-                          ))
-                        )
+                        instagramAccounts.map((ig) => (
+                          <SelectItem key={ig.id} value={ig.instagram_id}>
+                            @{ig.username}
+                          </SelectItem>
+                        ))
                       )}
                     </SelectContent>
                   </Select>
@@ -690,22 +775,26 @@ export function CreateAdvancedAudienceModal({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Selecionar Vídeos</Label>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={fetchVideos}
                       disabled={loadingVideos}
                     >
-                      <RefreshCw className={`h-4 w-4 mr-1 ${loadingVideos ? 'animate-spin' : ''}`} />
+                      <RefreshCw
+                        className={`h-4 w-4 mr-1 ${loadingVideos ? "animate-spin" : ""}`}
+                      />
                       Atualizar
                     </Button>
                   </div>
-                  
+
                   {loadingVideos ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-muted-foreground">Carregando vídeos...</span>
+                      <span className="ml-2 text-muted-foreground">
+                        Carregando vídeos...
+                      </span>
                     </div>
                   ) : videos.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground border rounded-md">
@@ -720,27 +809,32 @@ export function CreateAdvancedAudienceModal({
                           checked={selectAllVideos}
                           onCheckedChange={handleSelectAllVideos}
                         />
-                        <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="select-all"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Todos os vídeos ({videos.length})
                         </label>
                       </div>
-                      
+
                       <ScrollArea className="h-[200px] border rounded-md">
                         <div className="p-2 space-y-2">
                           {videos.map((video) => (
-                            <div 
+                            <div
                               key={video.id}
                               className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
-                                selectedVideos.includes(video.id) || selectAllVideos
-                                  ? 'bg-primary/10 border border-primary/30' 
-                                  : 'hover:bg-muted border border-transparent'
+                                selectedVideos.includes(video.id) ||
+                                selectAllVideos
+                                  ? "bg-primary/10 border border-primary/30"
+                                  : "hover:bg-muted border border-transparent"
                               }`}
                               onClick={() => toggleVideoSelection(video.id)}
                             >
                               <div className="relative w-16 h-10 bg-muted rounded overflow-hidden flex-shrink-0">
                                 {video.thumbnail_url ? (
-                                  <img 
-                                    src={video.thumbnail_url} 
+                                  <img
+                                    alt="Imagem descritiva"
+                                    src={video.thumbnail_url}
                                     alt={video.title}
                                     className="w-full h-full object-cover"
                                   />
@@ -749,28 +843,45 @@ export function CreateAdvancedAudienceModal({
                                     <Play className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                 )}
-                                {(selectedVideos.includes(video.id) || selectAllVideos) && (
+                                {(selectedVideos.includes(video.id) ||
+                                  selectAllVideos) && (
                                   <div className="absolute inset-0 bg-primary/50 flex items-center justify-center">
                                     <Check className="h-4 w-4 text-primary-foreground" />
                                   </div>
                                 )}
                               </div>
                               <div className="flex-1 min-w-0 overflow-hidden">
-                                <p className="text-sm font-medium truncate">{video.title}</p>
+                                <p className="text-sm font-medium truncate">
+                                  {video.title}
+                                </p>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                                  {video.length && <span>{formatVideoLength(video.length)}</span>}
-                                  {video.views !== undefined && <span>{video.views.toLocaleString()} views</span>}
-                                  <span className="truncate">{formatDistanceToNow(new Date(video.created_time), { addSuffix: true, locale: ptBR })}</span>
+                                  {video.length && (
+                                    <span>
+                                      {formatVideoLength(video.length)}
+                                    </span>
+                                  )}
+                                  {video.views !== undefined && (
+                                    <span>
+                                      {video.views.toLocaleString()} views
+                                    </span>
+                                  )}
+                                  <span className="truncate">
+                                    {formatDistanceToNow(
+                                      new Date(video.created_time),
+                                      { addSuffix: true, locale: ptBR },
+                                    )}
+                                  </span>
                                 </div>
                               </div>
                             </div>
                           ))}
                         </div>
                       </ScrollArea>
-                      
+
                       {!selectAllVideos && (
                         <p className="text-xs text-muted-foreground">
-                          {selectedVideos.length} de {videos.length} vídeos selecionados
+                          {selectedVideos.length} de {videos.length} vídeos
+                          selecionados
                         </p>
                       )}
                     </>
@@ -780,9 +891,9 @@ export function CreateAdvancedAudienceModal({
 
               <div className="space-y-2">
                 <Label>Percentual Mínimo Assistido</Label>
-                <Select 
-                  value={videoPercentile.toString()} 
-                  onValueChange={(v) => setVideoPercentile(parseInt(v))} 
+                <Select
+                  value={videoPercentile.toString()}
+                  onValueChange={(v) => setVideoPercentile(parseInt(v))}
                   disabled={loading}
                 >
                   <SelectTrigger>
@@ -816,8 +927,11 @@ export function CreateAdvancedAudienceModal({
               <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                 <p className="font-medium mb-1">Público de Vídeo</p>
                 <p>
-                  Captura pessoas que assistiram um percentual mínimo dos vídeos selecionados.
-                  {selectAllVideos ? ' Inclui todos os vídeos.' : ` ${selectedVideos.length} vídeo(s) selecionado(s).`}
+                  Captura pessoas que assistiram um percentual mínimo dos vídeos
+                  selecionados.
+                  {selectAllVideos
+                    ? " Inclui todos os vídeos."
+                    : ` ${selectedVideos.length} vídeo(s) selecionado(s).`}
                 </p>
               </div>
             </TabsContent>

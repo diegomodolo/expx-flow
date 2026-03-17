@@ -541,6 +541,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({
                       className="flex-1"
                     />
                     <Button
+                      aria-label="Resetar para gerar hoje"
                       variant="outline"
                       size="icon"
                       onClick={resetGenerationForToday}

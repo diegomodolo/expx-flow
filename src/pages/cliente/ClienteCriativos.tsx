@@ -2,13 +2,13 @@ import { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
   Select,
@@ -18,20 +18,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { 
-  Image, 
-  RefreshCw, 
-  Eye, 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  Grid3x3, 
+import {
+  Image,
+  RefreshCw,
+  Eye,
+  Heart,
+  MessageCircle,
+  Share2,
+  Grid3x3,
   List,
   Play,
   Film,
   TrendingUp,
   FileText,
-  Plus
+  Plus,
 } from "lucide-react";
 import { useUnifiedAdsMetrics, Platform } from "@/hooks/useUnifiedAds";
 import { useUnifiedCampaigns } from "@/hooks/useUnifiedCampaigns";
@@ -46,19 +46,25 @@ import { CreativeBuilderModal } from "@/components/campaigns/CreativeBuilderModa
 // Function to determine creative type priority
 const getCreativeTypePriority = (creativeType?: string): number => {
   if (!creativeType) return 999;
-  
+
   const type = creativeType.toUpperCase();
-  
-  if (type.includes('IMAGE')) return 1;
-  if (type.includes('VIDEO')) return 2;
+
+  if (type.includes("IMAGE")) return 1;
+  if (type.includes("VIDEO")) return 2;
   return 3;
 };
 
 export function ClienteCriativos() {
-  const { client, selectedCampaignId, setSelectedCampaignId, selectedAdSetId, setSelectedAdSetId } = useClientContext();
+  const {
+    client,
+    selectedCampaignId,
+    setSelectedCampaignId,
+    selectedAdSetId,
+    setSelectedAdSetId,
+  } = useClientContext();
   const { activeCompany } = useCompany();
-  
-  const [platformFilter, setPlatformFilter] = useState<Platform>('all');
+
+  const [platformFilter, setPlatformFilter] = useState<Platform>("all");
   const [selectedAd, setSelectedAd] = useState<unknown>(null);
   const [showModal, setShowModal] = useState(false);
   const [showCreativeModal, setShowCreativeModal] = useState(false);
@@ -98,46 +104,48 @@ export function ClienteCriativos() {
   // Filter ads
   const filteredAds = useMemo(() => {
     let filtered = ads;
-    
+
     // Filter by status
     if (statusFilter !== "all") {
-      filtered = filtered.filter(ad => 
-        statusFilter === "active" ? ad.is_active : !ad.is_active
+      filtered = filtered.filter((ad) =>
+        statusFilter === "active" ? ad.is_active : !ad.is_active,
       );
     }
-    
+
     // Filter by type
     if (typeFilter !== "all") {
-      filtered = filtered.filter(ad => ad.creative_type?.toUpperCase() === typeFilter);
+      filtered = filtered.filter(
+        (ad) => ad.creative_type?.toUpperCase() === typeFilter,
+      );
     }
-    
+
     // Sort
     filtered = [...filtered].sort((a, b) => {
       // First sort by creative type priority
       const priorityA = getCreativeTypePriority(a.creative_type);
       const priorityB = getCreativeTypePriority(b.creative_type);
-      
+
       if (priorityA !== priorityB) {
         return priorityA - priorityB;
       }
-      
+
       // Then by selected metric
       const aVal = (a as unknown)[sortBy] || 0;
       const bVal = (b as unknown)[sortBy] || 0;
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
     });
-    
+
     return filtered;
   }, [ads, statusFilter, typeFilter, sortBy, sortOrder]);
 
   // Count by platform
-  const metaCount = ads.filter(ad => ad.platform === 'meta').length;
-  const googleCount = ads.filter(ad => ad.platform === 'google').length;
+  const metaCount = ads.filter((ad) => ad.platform === "meta").length;
+  const googleCount = ads.filter((ad) => ad.platform === "google").length;
 
   // Available ad groups for current campaign
   const availableAdGroups = useMemo(() => {
     if (!selectedCampaignId) return adGroups;
-    return adGroups.filter(ag => ag.campaign_id === selectedCampaignId);
+    return adGroups.filter((ag) => ag.campaign_id === selectedCampaignId);
   }, [adGroups, selectedCampaignId]);
 
   const handleViewDetails = (ad: unknown) => {
@@ -155,19 +163,19 @@ export function ClienteCriativos() {
   };
 
   const getCampaignName = (campaignId: string) => {
-    return campaigns.find(c => c.id === campaignId)?.name || "N/A";
+    return campaigns.find((c) => c.id === campaignId)?.name || "N/A";
   };
 
   const getAdGroupName = (adGroupId: string) => {
-    return adGroups.find(ag => ag.id === adGroupId)?.name || "N/A";
+    return adGroups.find((ag) => ag.id === adGroupId)?.name || "N/A";
   };
 
   const getCreativeIcon = (type?: string, platform?: string) => {
-    if (platform === 'google') return <FileText className="w-4 h-4" />;
+    if (platform === "google") return <FileText className="w-4 h-4" />;
     if (!type) return <Image className="w-4 h-4" />;
     const upperType = type.toUpperCase();
-    if (upperType.includes('VIDEO')) return <Play className="w-4 h-4" />;
-    if (upperType.includes('CAROUSEL')) return <Film className="w-4 h-4" />;
+    if (upperType.includes("VIDEO")) return <Play className="w-4 h-4" />;
+    if (upperType.includes("CAROUSEL")) return <Film className="w-4 h-4" />;
     return <Image className="w-4 h-4" />;
   };
 
@@ -195,11 +203,18 @@ export function ClienteCriativos() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {/* View Toggle */}
-              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as unknown)}>
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(v) => v && setViewMode(v as unknown)}
+              >
                 <ToggleGroupItem value="grid" aria-label="Visualizar em grade">
                   <Grid3x3 className="w-4 h-4" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="table" aria-label="Visualizar em tabela">
+                <ToggleGroupItem
+                  value="table"
+                  aria-label="Visualizar em tabela"
+                >
                   <List className="w-4 h-4" />
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -213,25 +228,32 @@ export function ClienteCriativos() {
               />
 
               {/* Campaign filter */}
-              <Select value={selectedCampaignId || "all"} onValueChange={(v) => {
-                setSelectedCampaignId(v === "all" ? null : v);
-                setSelectedAdSetId(null);
-              }}>
+              <Select
+                value={selectedCampaignId || "all"}
+                onValueChange={(v) => {
+                  setSelectedCampaignId(v === "all" ? null : v);
+                  setSelectedAdSetId(null);
+                }}
+              >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Todas as campanhas" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as campanhas</SelectItem>
-                  {campaigns.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  {campaigns.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               {/* Ad group filter */}
-              <Select 
-                value={selectedAdSetId || "all"} 
-                onValueChange={(v) => setSelectedAdSetId(v === "all" ? null : v)}
+              <Select
+                value={selectedAdSetId || "all"}
+                onValueChange={(v) =>
+                  setSelectedAdSetId(v === "all" ? null : v)
+                }
                 disabled={!selectedCampaignId}
               >
                 <SelectTrigger className="w-[180px]">
@@ -239,8 +261,10 @@ export function ClienteCriativos() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os ad sets</SelectItem>
-                  {availableAdGroups.map(ag => (
-                    <SelectItem key={ag.id} value={ag.id}>{ag.name}</SelectItem>
+                  {availableAdGroups.map((ag) => (
+                    <SelectItem key={ag.id} value={ag.id}>
+                      {ag.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -293,11 +317,21 @@ export function ClienteCriativos() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Criativos Ativos</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Criativos Ativos
+                </p>
                 <p className="text-2xl font-bold">{metrics.active}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Meta: {ads.filter(ad => ad.platform === 'meta' && ad.is_active).length} | 
-                  Google: {ads.filter(ad => ad.platform === 'google' && ad.is_active).length}
+                  Meta:{" "}
+                  {
+                    ads.filter((ad) => ad.platform === "meta" && ad.is_active)
+                      .length
+                  }{" "}
+                  | Google:{" "}
+                  {
+                    ads.filter((ad) => ad.platform === "google" && ad.is_active)
+                      .length
+                  }
                 </p>
               </div>
               <Image className="w-8 h-8 text-primary" />
@@ -309,8 +343,12 @@ export function ClienteCriativos() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Taxa de Engajamento</p>
-                <p className="text-2xl font-bold">{metrics.avgEngagement.toFixed(2)}%</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Taxa de Engajamento
+                </p>
+                <p className="text-2xl font-bold">
+                  {metrics.avgEngagement.toFixed(2)}%
+                </p>
               </div>
               <Heart className="w-8 h-8 text-primary" />
             </div>
@@ -321,8 +359,12 @@ export function ClienteCriativos() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">CTR Médio</p>
-                <p className="text-2xl font-bold">{metrics.avgCTR.toFixed(2)}%</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  CTR Médio
+                </p>
+                <p className="text-2xl font-bold">
+                  {metrics.avgCTR.toFixed(2)}%
+                </p>
               </div>
               <Eye className="w-8 h-8 text-primary" />
             </div>
@@ -333,11 +375,19 @@ export function ClienteCriativos() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Conversões Totais</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Conversões Totais
+                </p>
                 <p className="text-2xl font-bold">{metrics.totalConversions}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Meta: {ads.filter(ad => ad.platform === 'meta').reduce((s, ad) => s + ad.conversions, 0)} | 
-                  Google: {ads.filter(ad => ad.platform === 'google').reduce((s, ad) => s + ad.conversions, 0)}
+                  Meta:{" "}
+                  {ads
+                    .filter((ad) => ad.platform === "meta")
+                    .reduce((s, ad) => s + ad.conversions, 0)}{" "}
+                  | Google:{" "}
+                  {ads
+                    .filter((ad) => ad.platform === "google")
+                    .reduce((s, ad) => s + ad.conversions, 0)}
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-primary" />
@@ -352,7 +402,9 @@ export function ClienteCriativos() {
           <CardContent className="p-12">
             <div className="text-center">
               <Image className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhum criativo encontrado</p>
+              <p className="text-muted-foreground">
+                Nenhum criativo encontrado
+              </p>
               <p className="text-sm text-muted-foreground mt-2">
                 {selectedCampaignId || selectedAdSetId
                   ? "Tente selecionar filtros diferentes"
@@ -365,26 +417,34 @@ export function ClienteCriativos() {
         /* Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAds.map((ad) => (
-            <Card key={ad.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+            <Card
+              key={ad.id}
+              className="overflow-hidden hover:shadow-lg transition-shadow"
+            >
               {/* Creative Preview */}
               <div className="relative h-48 bg-muted">
-                {ad.platform === 'google' ? (
+                {ad.platform === "google" ? (
                   // Google Ads - Text preview
                   <div className="w-full h-full flex flex-col justify-center p-4 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-background">
                     <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 line-clamp-2">
                       {ad.creative_title || ad.name}
                     </p>
                     <p className="text-xs text-muted-foreground line-clamp-3">
-                      {ad.creative_body || ad.creative_description || 'Anúncio de texto do Google Ads'}
+                      {ad.creative_body ||
+                        ad.creative_description ||
+                        "Anúncio de texto do Google Ads"}
                     </p>
                     {ad.link_url && (
-                      <p className="text-xs text-green-600 mt-2 truncate">{ad.link_url}</p>
+                      <p className="text-xs text-green-600 mt-2 truncate">
+                        {ad.link_url}
+                      </p>
                     )}
                   </div>
                 ) : ad.image_url ? (
-                  <img 
-                    src={ad.image_url} 
-                    alt={ad.name} 
+                  <img
+                    alt="Imagem descritiva"
+                    src={ad.image_url}
+                    alt={ad.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -399,7 +459,7 @@ export function ClienteCriativos() {
                     <Image className="w-12 h-12 text-muted-foreground" />
                   </div>
                 )}
-                
+
                 {/* Badges */}
                 <div className="absolute top-2 right-2 flex gap-2">
                   <PlatformBadge platform={ad.platform} showIcon={false} />
@@ -410,12 +470,15 @@ export function ClienteCriativos() {
               </div>
 
               <CardContent className="p-4">
-                <h4 className="font-semibold text-sm mb-2 line-clamp-2" title={ad.name}>
+                <h4
+                  className="font-semibold text-sm mb-2 line-clamp-2"
+                  title={ad.name}
+                >
                   {ad.name}
                 </h4>
-                
+
                 {/* Creative text */}
-                {ad.creative_body && ad.platform === 'meta' && (
+                {ad.creative_body && ad.platform === "meta" && (
                   <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
                     {ad.creative_body}
                   </p>
@@ -437,18 +500,20 @@ export function ClienteCriativos() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">
-                      {ad.platform === 'meta' ? 'Engajamento' : 'Cliques'}
+                      {ad.platform === "meta" ? "Engajamento" : "Cliques"}
                     </p>
                     <p className="text-sm font-bold">
-                      {ad.platform === 'meta' 
-                        ? (ad.likes || 0) + (ad.comments || 0) + (ad.shares || 0)
+                      {ad.platform === "meta"
+                        ? (ad.likes || 0) +
+                          (ad.comments || 0) +
+                          (ad.shares || 0)
                         : ad.clicks}
                     </p>
                   </div>
                 </div>
 
                 {/* Engagement details (Meta only) */}
-                {ad.platform === 'meta' && (
+                {ad.platform === "meta" && (
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 pt-3 border-t">
                     <div className="flex items-center gap-1">
                       <Heart className="w-3 h-3" />
@@ -472,16 +537,19 @@ export function ClienteCriativos() {
                 )}
 
                 {/* CTA */}
-                {ad.call_to_action && ad.call_to_action !== '{}' && (
-                  <Badge variant="outline" className="w-full justify-center mb-3">
+                {ad.call_to_action && ad.call_to_action !== "{}" && (
+                  <Badge
+                    variant="outline"
+                    className="w-full justify-center mb-3"
+                  >
                     {ad.call_to_action}
                   </Badge>
                 )}
 
                 {/* View Details Button */}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="w-full"
                   onClick={() => handleViewDetails(ad)}
                 >
@@ -504,24 +572,29 @@ export function ClienteCriativos() {
                     <TableHead>Plataforma</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead 
-                      className="text-right cursor-pointer hover:text-primary" 
+                    <TableHead
+                      className="text-right cursor-pointer hover:text-primary"
                       onClick={() => handleSort("clicks")}
                     >
-                      Cliques {sortBy === "clicks" && (sortOrder === "desc" ? "↓" : "↑")}
+                      Cliques{" "}
+                      {sortBy === "clicks" &&
+                        (sortOrder === "desc" ? "↓" : "↑")}
                     </TableHead>
-                    <TableHead 
-                      className="text-right cursor-pointer hover:text-primary" 
+                    <TableHead
+                      className="text-right cursor-pointer hover:text-primary"
                       onClick={() => handleSort("ctr")}
                     >
-                      CTR {sortBy === "ctr" && (sortOrder === "desc" ? "↓" : "↑")}
+                      CTR{" "}
+                      {sortBy === "ctr" && (sortOrder === "desc" ? "↓" : "↑")}
                     </TableHead>
                     <TableHead className="text-right">CPC</TableHead>
-                    <TableHead 
-                      className="text-right cursor-pointer hover:text-primary" 
+                    <TableHead
+                      className="text-right cursor-pointer hover:text-primary"
                       onClick={() => handleSort("conversions")}
                     >
-                      Conversões {sortBy === "conversions" && (sortOrder === "desc" ? "↓" : "↑")}
+                      Conversões{" "}
+                      {sortBy === "conversions" &&
+                        (sortOrder === "desc" ? "↓" : "↑")}
                     </TableHead>
                     <TableHead className="text-right">CPA</TableHead>
                     <TableHead>Ações</TableHead>
@@ -530,8 +603,8 @@ export function ClienteCriativos() {
                 <TableBody>
                   {filteredAds.map((ad) => (
                     <TableRow key={ad.id}>
-                      <TableCell 
-                        className="font-medium cursor-pointer hover:text-primary" 
+                      <TableCell
+                        className="font-medium cursor-pointer hover:text-primary"
                         onClick={() => handleViewDetails(ad)}
                       >
                         {ad.name}
@@ -547,7 +620,8 @@ export function ClienteCriativos() {
                       <TableCell>
                         <Badge variant="outline" className="gap-1">
                           {getCreativeIcon(ad.creative_type, ad.platform)}
-                          {ad.creative_type || (ad.platform === 'google' ? 'TEXT' : 'N/A')}
+                          {ad.creative_type ||
+                            (ad.platform === "google" ? "TEXT" : "N/A")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -566,9 +640,9 @@ export function ClienteCriativos() {
                         R$ {ad.cpa.toFixed(2)}
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleViewDetails(ad)}
                         >
                           <Eye className="w-4 h-4 mr-1" />

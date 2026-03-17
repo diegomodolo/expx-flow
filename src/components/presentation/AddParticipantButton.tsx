@@ -42,20 +42,18 @@ export function AddParticipantButton({
       // If we have a meeting ID, save to database
       if (meetingId) {
         const { supabase } = await import("@/integrations/supabase/client");
-        await supabase
-          .from("presentation_meeting_participants")
-          .insert({
-            meeting_id: meetingId,
-            name: name.trim(),
-            role: role.trim(),
-            email: email.trim(),
-          });
+        await supabase.from("presentation_meeting_participants").insert({
+          meeting_id: meetingId,
+          name: name.trim(),
+          role: role.trim(),
+          email: email.trim(),
+        });
       }
 
-      onAddParticipant({ 
-        name: name.trim(), 
-        role: role.trim(), 
-        email: email.trim() 
+      onAddParticipant({
+        name: name.trim(),
+        role: role.trim(),
+        email: email.trim(),
       });
 
       setName("");
@@ -80,6 +78,7 @@ export function AddParticipantButton({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
+          aria-label="Adicionar participante"
           variant="ghost"
           size="icon"
           className="text-white/70 hover:text-white hover:bg-white/10"

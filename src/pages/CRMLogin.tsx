@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCRMAuth } from '@/contexts/CRMAuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useCRMAuth } from "@/contexts/CRMAuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CRMLogin() {
   const { token } = useParams<{ token: string }>();
@@ -15,14 +21,14 @@ export default function CRMLogin() {
   const { login, isAuthenticated } = useCRMAuth();
   const { toast } = useToast();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [workspace, setWorkspace] = useState<unknown>(null);
 
   useEffect(() => {
     if (!token) {
-      navigate('/');
+      navigate("/");
       return;
     }
 
@@ -35,10 +41,10 @@ export default function CRMLogin() {
     // Buscar configurações do workspace
     const fetchWorkspace = async () => {
       const { data } = await supabase
-        .from('crm_workspaces')
-        .select('*')
-        .eq('access_token', token)
-        .eq('is_active', true)
+        .from("crm_workspaces")
+        .select("*")
+        .eq("access_token", token)
+        .eq("is_active", true)
         .single();
 
       if (data) {
@@ -51,7 +57,7 @@ export default function CRMLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!token) return;
 
     setIsLoading(true);
@@ -60,28 +66,30 @@ export default function CRMLogin() {
 
     if (error) {
       toast({
-        title: 'Erro ao fazer login',
-        description: error === 'Invalid credentials' ? 'Email ou senha incorretos' : error,
-        variant: 'destructive',
+        title: "Erro ao fazer login",
+        description:
+          error === "Invalid credentials" ? "Email ou senha incorretos" : error,
+        variant: "destructive",
       });
       setIsLoading(false);
       return;
     }
 
     toast({
-      title: 'Login realizado com sucesso',
-      description: 'Bem-vindo ao CRM',
+      title: "Login realizado com sucesso",
+      description: "Bem-vindo ao CRM",
     });
 
     navigate(`/crm/${token}`);
   };
 
-  const primaryColor = workspace?.login_primary_color || '#3B82F6';
-  const title = workspace?.login_title || 'Bem-vindo ao CRM';
-  const subtitle = workspace?.login_subtitle || 'Faça login para acessar o sistema';
+  const primaryColor = workspace?.login_primary_color || "#3B82F6";
+  const title = workspace?.login_title || "Bem-vindo ao CRM";
+  const subtitle =
+    workspace?.login_subtitle || "Faça login para acessar o sistema";
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4"
       style={{
         background: `linear-gradient(135deg, ${primaryColor}15 0%, ${primaryColor}05 100%)`,
@@ -91,9 +99,10 @@ export default function CRMLogin() {
         <CardHeader className="text-center space-y-4">
           {workspace?.logo_url && (
             <div className="flex justify-center">
-              <img 
-                src={workspace.logo_url} 
-                alt="Logo" 
+              <img
+                alt="Imagem descritiva"
+                src={workspace.logo_url}
+                alt="Logo"
                 className="h-16 object-contain"
               />
             </div>
@@ -145,7 +154,7 @@ export default function CRMLogin() {
                   Entrando...
                 </>
               ) : (
-                'Entrar'
+                "Entrar"
               )}
             </Button>
           </form>

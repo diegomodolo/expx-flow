@@ -562,6 +562,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
           {/* Hide clear and close buttons when forced */}
           {!forceRealtimeAnalysis && messages.length > 0 && (
             <Button
+              aria-label="Limpar histórico"
               variant="ghost"
               size="icon"
               onClick={handleClearHistory}

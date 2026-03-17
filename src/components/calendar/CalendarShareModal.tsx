@@ -100,6 +100,7 @@ export function CalendarShareModal({
                     >
                       <span className="text-sm">{emp?.name || "Usuário"}</span>
                       <Button
+                        aria-label="Excluir"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive"

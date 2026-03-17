@@ -5,7 +5,13 @@ import { ContentHistoryCard } from "./ContentHistoryCard";
 import { ContentPreviewModal } from "./ContentPreviewModal";
 import { useClients } from "@/hooks/useClients";
 import { contentTypes } from "./ContentTypes";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, RefreshCw } from "lucide-react";
@@ -16,10 +22,10 @@ export function SavedContentsList() {
   const [selectedContent, setSelectedContent] = useState<unknown>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [filters, setFilters] = useState({
-    client: 'all',
-    contentType: 'all',
-    status: 'all',
-    search: ''
+    client: "all",
+    contentType: "all",
+    status: "all",
+    search: "",
   });
 
   const handlePreview = (content: unknown) => {
@@ -32,13 +38,29 @@ export function SavedContentsList() {
     setSelectedContent(null);
   };
 
-  const filteredGenerations = generations.filter(gen => {
-    if (filters.client && filters.client !== 'all' && gen.client_id !== filters.client) return false;
-    if (filters.contentType && filters.contentType !== 'all' && gen.content_type !== filters.contentType) return false;
-    if (filters.status && filters.status !== 'all' && gen.status !== filters.status) return false;
+  const filteredGenerations = generations.filter((gen) => {
+    if (
+      filters.client &&
+      filters.client !== "all" &&
+      gen.client_id !== filters.client
+    )
+      return false;
+    if (
+      filters.contentType &&
+      filters.contentType !== "all" &&
+      gen.content_type !== filters.contentType
+    )
+      return false;
+    if (
+      filters.status &&
+      filters.status !== "all" &&
+      gen.status !== filters.status
+    )
+      return false;
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      const contentTypeTitle = contentTypes.find(ct => ct.id === gen.content_type)?.title || '';
+      const contentTypeTitle =
+        contentTypes.find((ct) => ct.id === gen.content_type)?.title || "";
       return (
         gen.generated_content.toLowerCase().includes(searchLower) ||
         gen.theme.toLowerCase().includes(searchLower) ||
@@ -49,13 +71,17 @@ export function SavedContentsList() {
     return true;
   });
 
-  const uniqueContentTypes = Array.from(new Set(generations.map(g => g.content_type)));
+  const uniqueContentTypes = Array.from(
+    new Set(generations.map((g) => g.content_type)),
+  );
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-muted-foreground">Carregando conteúdos...</span>
+        <span className="ml-2 text-muted-foreground">
+          Carregando conteúdos...
+        </span>
       </div>
     );
   }
@@ -70,16 +96,20 @@ export function SavedContentsList() {
             <Input
               placeholder="Buscar conteúdos..."
               value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
               className="flex-1"
             />
           </div>
-          
+
           <div className="flex gap-2">
             <SearchableClientSelect
-              clients={clients.map(c => ({ id: c.id, name: c.name }))}
+              clients={clients.map((c) => ({ id: c.id, name: c.name }))}
               value={filters.client}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, client: value }))}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, client: value }))
+              }
               allLabel="Todos os clientes"
               placeholder="Cliente"
               triggerClassName="w-[180px]"
@@ -87,15 +117,17 @@ export function SavedContentsList() {
 
             <Select
               value={filters.contentType}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, contentType: value }))}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, contentType: value }))
+              }
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Tipo de conteúdo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
-                {uniqueContentTypes.map(type => {
-                  const contentType = contentTypes.find(ct => ct.id === type);
+                {uniqueContentTypes.map((type) => {
+                  const contentType = contentTypes.find((ct) => ct.id === type);
                   return (
                     <SelectItem key={type} value={type}>
                       {contentType?.title || type}
@@ -107,7 +139,9 @@ export function SavedContentsList() {
 
             <Select
               value={filters.status}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, status: value }))
+              }
             >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Status" />
@@ -121,6 +155,7 @@ export function SavedContentsList() {
             </Select>
 
             <Button
+              aria-label="Atualizar lista"
               variant="outline"
               size="icon"
               onClick={fetchGenerations}
@@ -137,9 +172,11 @@ export function SavedContentsList() {
             <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
               <Filter className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium mb-2">Nenhum conteúdo encontrado</h3>
+            <h3 className="text-lg font-medium mb-2">
+              Nenhum conteúdo encontrado
+            </h3>
             <p className="text-muted-foreground">
-              {generations.length === 0 
+              {generations.length === 0
                 ? "Você ainda não gerou nenhum conteúdo. Clique na aba 'Gerar Novo' para começar."
                 : "Nenhum conteúdo corresponde aos filtros aplicados. Tente ajustar os filtros."}
             </p>

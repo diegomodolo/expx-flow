@@ -73,6 +73,7 @@ export function MeetingDetailsModal({
             </div>
             {onEdit && (
               <Button
+                aria-label="Editar reunião"
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}

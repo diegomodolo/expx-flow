@@ -260,6 +260,7 @@ export function TaskOutputPanel({
         </div>
         {onToggleExpand && (
           <Button
+            aria-label="Clique para editar no Editor de Imagens"
             variant="ghost"
             size="icon"
             className="h-7 w-7"

@@ -185,7 +185,7 @@ export function CRMWonLostDealsModal({
               />
             </div>
             <Button
-              aria-label="Ação"
+              aria-label="Botão de ação complementar"
               variant={showFilters ? "default" : "outline"}
               size="icon"
               onClick={() => setShowFilters(!showFilters)}

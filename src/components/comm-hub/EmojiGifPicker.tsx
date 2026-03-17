@@ -278,7 +278,7 @@ export function EmojiGifPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          aria-label="Ação"
+          aria-label="Botão de ação complementar"
           size="icon"
           variant="ghost"
           className="rounded-xl shrink-0 h-10 w-10 text-muted-foreground hover:text-foreground"

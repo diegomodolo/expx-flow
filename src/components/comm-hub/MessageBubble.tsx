@@ -255,7 +255,7 @@ export function MessageBubble({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                aria-label="Ação"
+                aria-label="Mensagem"
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7"

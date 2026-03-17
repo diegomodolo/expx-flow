@@ -4,9 +4,29 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Copy, Trash2, ChevronDown, Link2, Image as ImageIcon, Upload, Sparkles, Instagram, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Copy,
+  Trash2,
+  ChevronDown,
+  Link2,
+  Image as ImageIcon,
+  Upload,
+  Sparkles,
+  Instagram,
+  X,
+} from "lucide-react";
 import { FeedPreview } from "@/components/campaigns/builder/FeedPreview";
 import { EditableCreative, CTA_OPTIONS } from "./types";
 import { cn } from "@/lib/utils";
@@ -43,84 +63,99 @@ export function EditableCreativeCard({
 
   const handleChange = <K extends keyof EditableCreative>(
     key: K,
-    value: EditableCreative[K]
+    value: EditableCreative[K],
   ) => {
     onChange({ ...creative, [key]: value });
   };
 
-  const handleUtmChange = (key: keyof EditableCreative['urlParameters'], value: string) => {
+  const handleUtmChange = (
+    key: keyof EditableCreative["urlParameters"],
+    value: string,
+  ) => {
     onChange({
       ...creative,
       urlParameters: { ...creative.urlParameters, [key]: value },
     });
   };
 
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const handleFileUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
 
-    setIsUploading(true);
-    try {
-      const file = files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `creatives/${clientId}/${fileName}`;
+      setIsUploading(true);
+      try {
+        const file = files[0];
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `creatives/${clientId}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('campaign-assets')
-        .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage
+          .from("campaign-assets")
+          .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('campaign-assets')
-        .getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("campaign-assets").getPublicUrl(filePath);
 
-      handleChange('mediaUrls', [publicUrl]);
-      toast.success('Imagem enviada com sucesso!');
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Erro ao enviar imagem');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [clientId, handleChange]);
+        handleChange("mediaUrls", [publicUrl]);
+        toast.success("Imagem enviada com sucesso!");
+      } catch (error) {
+        console.error("Upload error:", error);
+        toast.error("Erro ao enviar imagem");
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [clientId, handleChange],
+  );
 
   const handleGenerateAI = useCallback(async () => {
     if (!creative.headline && !creative.body) {
-      toast.error('Preencha o título ou texto principal para gerar a imagem');
+      toast.error("Preencha o título ou texto principal para gerar a imagem");
       return;
     }
 
     setIsGeneratingAI(true);
     try {
       const prompt = `Crie uma imagem profissional para anúncio de mídia social. 
-        Título: ${creative.headline || 'Sem título'}
-        Texto: ${creative.body || 'Sem texto'}
-        Descrição: ${creative.description || 'Sem descrição'}
+        Título: ${creative.headline || "Sem título"}
+        Texto: ${creative.body || "Sem texto"}
+        Descrição: ${creative.description || "Sem descrição"}
         Estilo: moderno, profissional, adequado para Instagram e Facebook.`;
 
-      const { data, error } = await supabase.functions.invoke('generate-ai-campaign-image', {
-        body: { prompt, clientId, placement: 'feed' }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "generate-ai-campaign-image",
+        {
+          body: { prompt, clientId, placement: "feed" },
+        },
+      );
 
       if (error) throw error;
       if (data?.success && data?.imageUrl) {
-        handleChange('mediaUrls', [data.imageUrl]);
-        toast.success('Imagem gerada com sucesso!');
+        handleChange("mediaUrls", [data.imageUrl]);
+        toast.success("Imagem gerada com sucesso!");
       } else if (data?.error) {
         throw new Error(data.error);
       }
     } catch (error) {
-      console.error('AI generation error:', error);
-      toast.error('Erro ao gerar imagem com IA');
+      console.error("AI generation error:", error);
+      toast.error("Erro ao gerar imagem com IA");
     } finally {
       setIsGeneratingAI(false);
     }
-  }, [creative.headline, creative.body, creative.description, clientId, handleChange]);
+  }, [
+    creative.headline,
+    creative.body,
+    creative.description,
+    clientId,
+    handleChange,
+  ]);
 
   const handleRemoveMedia = useCallback(() => {
-    handleChange('mediaUrls', []);
+    handleChange("mediaUrls", []);
   }, [handleChange]);
 
   // For FeedPreview compatibility
@@ -142,25 +177,38 @@ export function EditableCreativeCard({
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-0 h-auto hover:bg-transparent"
+              >
                 <CardTitle className="text-sm flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-muted-foreground" />
                   Criativo {index + 1}
-                  <ChevronDown className={cn(
-                    "w-4 h-4 transition-transform",
-                    isExpanded && "rotate-180"
-                  )} />
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 transition-transform",
+                      isExpanded && "rotate-180",
+                    )}
+                  />
                 </CardTitle>
               </Button>
             </CollapsibleTrigger>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={onDuplicate} title="Duplicar">
+              <Button
+                aria-label="Duplicar"
+                variant="ghost"
+                size="icon"
+                onClick={onDuplicate}
+                title="Duplicar"
+              >
                 <Copy className="w-4 h-4" />
               </Button>
               {canRemove && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  aria-label="Remover"
+                  variant="ghost"
+                  size="icon"
                   onClick={onRemove}
                   className="text-destructive hover:text-destructive"
                   title="Remover"
@@ -182,7 +230,7 @@ export function EditableCreativeCard({
                   <Label>Título (Headline)</Label>
                   <Input
                     value={creative.headline}
-                    onChange={(e) => handleChange('headline', e.target.value)}
+                    onChange={(e) => handleChange("headline", e.target.value)}
                     placeholder="Título chamativo do anúncio"
                     maxLength={40}
                   />
@@ -196,7 +244,7 @@ export function EditableCreativeCard({
                   <Label>Texto Principal</Label>
                   <Textarea
                     value={creative.body}
-                    onChange={(e) => handleChange('body', e.target.value)}
+                    onChange={(e) => handleChange("body", e.target.value)}
                     placeholder="Texto que acompanha o anúncio..."
                     className="min-h-[100px]"
                     maxLength={125}
@@ -211,7 +259,9 @@ export function EditableCreativeCard({
                   <Label>Descrição (opcional)</Label>
                   <Input
                     value={creative.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
+                    onChange={(e) =>
+                      handleChange("description", e.target.value)
+                    }
                     placeholder="Descrição adicional..."
                     maxLength={30}
                   />
@@ -225,7 +275,7 @@ export function EditableCreativeCard({
                   </Label>
                   <Input
                     value={creative.linkUrl}
-                    onChange={(e) => handleChange('linkUrl', e.target.value)}
+                    onChange={(e) => handleChange("linkUrl", e.target.value)}
                     placeholder="https://seusite.com.br/pagina"
                     type="url"
                   />
@@ -236,7 +286,9 @@ export function EditableCreativeCard({
                   <Label>Botão de Ação (CTA)</Label>
                   <Select
                     value={creative.callToAction}
-                    onValueChange={(value) => handleChange('callToAction', value)}
+                    onValueChange={(value) =>
+                      handleChange("callToAction", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -254,12 +306,18 @@ export function EditableCreativeCard({
                 {/* UTM Parameters */}
                 <Collapsible open={showUtm} onOpenChange={setShowUtm}>
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="w-full justify-between">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between"
+                    >
                       <span>Parâmetros UTM</span>
-                      <ChevronDown className={cn(
-                        "w-4 h-4 transition-transform",
-                        showUtm && "rotate-180"
-                      )} />
+                      <ChevronDown
+                        className={cn(
+                          "w-4 h-4 transition-transform",
+                          showUtm && "rotate-180",
+                        )}
+                      />
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-3 pt-2">
@@ -267,8 +325,10 @@ export function EditableCreativeCard({
                       <div className="space-y-1">
                         <Label className="text-xs">utm_source</Label>
                         <Input
-                          value={creative.urlParameters.utm_source || ''}
-                          onChange={(e) => handleUtmChange('utm_source', e.target.value)}
+                          value={creative.urlParameters.utm_source || ""}
+                          onChange={(e) =>
+                            handleUtmChange("utm_source", e.target.value)
+                          }
                           placeholder="facebook"
                           className="h-8 text-sm"
                         />
@@ -276,8 +336,10 @@ export function EditableCreativeCard({
                       <div className="space-y-1">
                         <Label className="text-xs">utm_medium</Label>
                         <Input
-                          value={creative.urlParameters.utm_medium || ''}
-                          onChange={(e) => handleUtmChange('utm_medium', e.target.value)}
+                          value={creative.urlParameters.utm_medium || ""}
+                          onChange={(e) =>
+                            handleUtmChange("utm_medium", e.target.value)
+                          }
                           placeholder="cpc"
                           className="h-8 text-sm"
                         />
@@ -285,8 +347,10 @@ export function EditableCreativeCard({
                       <div className="space-y-1">
                         <Label className="text-xs">utm_campaign</Label>
                         <Input
-                          value={creative.urlParameters.utm_campaign || ''}
-                          onChange={(e) => handleUtmChange('utm_campaign', e.target.value)}
+                          value={creative.urlParameters.utm_campaign || ""}
+                          onChange={(e) =>
+                            handleUtmChange("utm_campaign", e.target.value)
+                          }
                           placeholder="nome_campanha"
                           className="h-8 text-sm"
                         />
@@ -294,8 +358,10 @@ export function EditableCreativeCard({
                       <div className="space-y-1">
                         <Label className="text-xs">utm_content</Label>
                         <Input
-                          value={creative.urlParameters.utm_content || ''}
-                          onChange={(e) => handleUtmChange('utm_content', e.target.value)}
+                          value={creative.urlParameters.utm_content || ""}
+                          onChange={(e) =>
+                            handleUtmChange("utm_content", e.target.value)
+                          }
                           placeholder="variante_a"
                           className="h-8 text-sm"
                         />
@@ -316,10 +382,11 @@ export function EditableCreativeCard({
                       clientName={clientName}
                       clientAvatar={clientAvatar}
                     />
-                    
+
                     {/* Remove media button when media exists */}
                     {creative.mediaUrls && creative.mediaUrls.length > 0 && (
                       <Button
+                        aria-label="Remover mídia"
                         variant="destructive"
                         size="icon"
                         className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-80 hover:opacity-100"
@@ -330,7 +397,7 @@ export function EditableCreativeCard({
                       </Button>
                     )}
                   </div>
-                  
+
                   {/* Action buttons */}
                   <div className="p-3 border-t bg-background flex flex-wrap gap-2">
                     {/* Upload button */}
@@ -343,7 +410,7 @@ export function EditableCreativeCard({
                     >
                       <label className="cursor-pointer">
                         <Upload className="w-4 h-4" />
-                        {isUploading ? 'Enviando...' : 'Enviar'}
+                        {isUploading ? "Enviando..." : "Enviar"}
                         <input
                           type="file"
                           accept="image/*,video/*"
@@ -363,7 +430,7 @@ export function EditableCreativeCard({
                       disabled={isGeneratingAI}
                     >
                       <Sparkles className="w-4 h-4" />
-                      {isGeneratingAI ? 'Gerando...' : 'Gerar com IA'}
+                      {isGeneratingAI ? "Gerando..." : "Gerar com IA"}
                     </Button>
                   </div>
                 </div>

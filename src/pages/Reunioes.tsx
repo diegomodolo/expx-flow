@@ -366,7 +366,7 @@ export default function Reunioes() {
                         {meeting.transcript_status === "completed" &&
                           !meeting.ai_summary && (
                             <Button
-                              aria-label="Ação"
+                              aria-label="Gerar resumo IA"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
@@ -392,6 +392,7 @@ export default function Reunioes() {
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
+                              aria-label="Excluir"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"

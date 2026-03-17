@@ -203,7 +203,7 @@ function ClientCard({ client }: ClientCardProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button
-                aria-label="Ação"
+                aria-label="Mais opções"
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"

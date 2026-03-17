@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +15,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, Type, RotateCcw, History, Image, Upload, X, Wand2, Copy, Instagram } from "lucide-react";
+import {
+  Clock,
+  Save,
+  Loader2,
+  Trash2,
+  Settings,
+  Lightbulb,
+  Sparkles,
+  Type,
+  RotateCcw,
+  History,
+  Image,
+  Upload,
+  X,
+  Wand2,
+  Copy,
+  Instagram,
+} from "lucide-react";
 import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -29,7 +52,6 @@ import {
 import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 import { FabricaCriativosGerados } from "./FabricaCriativosGerados";
 import { FabricaCriativosHistorico } from "./FabricaCriativosHistorico";
-
 
 interface ScheduleConfig {
   id?: string;
@@ -70,7 +92,11 @@ interface Props {
   onDelete?: () => void;
 }
 
-export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete }: Props) {
+export function ClienteConfiguracaoFabricaCriativos({
+  clientId,
+  onSave,
+  onDelete,
+}: Props) {
   const { activeCompany } = useCompany();
   const [config, setConfig] = useState<ScheduleConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
@@ -78,7 +104,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
   const [resetting, setResetting] = useState(false);
   const [uploading, setUploading] = useState<number | null>(null);
   const [showReferenceDialog, setShowReferenceDialog] = useState(false);
-  
+
   const [hasResearchThemes, setHasResearchThemes] = useState(false);
   const [hasPreviousCreatives, setHasPreviousCreatives] = useState(false);
 
@@ -94,34 +120,34 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
     try {
       const { count: themesCount } = await supabase
-        .from('market_research_insights')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('company_id', activeCompany.company_id);
-      
+        .from("market_research_insights")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany.company_id);
+
       setHasResearchThemes((themesCount || 0) > 0);
 
       const { count: creativesCount } = await supabase
-        .from('creative_generation_queue')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .in('status', ['approved', 'published']);
-      
+        .from("creative_generation_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .in("status", ["approved", "published"]);
+
       setHasPreviousCreatives((creativesCount || 0) > 0);
     } catch (error) {
-      console.error('Error checking availability:', error);
+      console.error("Error checking availability:", error);
     }
   };
 
   const loadConfig = async () => {
     if (!clientId) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('creative_generation_schedules')
-        .select('*')
-        .eq('client_id', clientId)
+        .from("creative_generation_schedules")
+        .select("*")
+        .eq("client_id", clientId)
         .maybeSingle();
 
       if (error) throw error;
@@ -134,7 +160,8 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
           concept_percentage: data.concept_percentage,
           iteration_percentage: data.iteration_percentage,
           generation_time: data.generation_time,
-          always_include_text_in_images: data.always_include_text_in_images ?? true,
+          always_include_text_in_images:
+            data.always_include_text_in_images ?? true,
           custom_image_prompt: data.custom_image_prompt ?? null,
           reference_image_1: data.reference_image_1 ?? null,
           reference_image_2: data.reference_image_2 ?? null,
@@ -147,7 +174,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
         setConfig(defaultConfig);
       }
     } catch (error) {
-      console.error('Error loading config:', error);
+      console.error("Error loading config:", error);
       setConfig(defaultConfig);
     } finally {
       setLoading(false);
@@ -179,25 +206,25 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
       if (config.id) {
         const { error } = await supabase
-          .from('creative_generation_schedules')
+          .from("creative_generation_schedules")
           .update(configData)
-          .eq('id', config.id);
-        
+          .eq("id", config.id);
+
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('creative_generation_schedules')
+          .from("creative_generation_schedules")
           .insert(configData);
-        
+
         if (error) throw error;
       }
 
-      toast.success('Configurações salvas!');
+      toast.success("Configurações salvas!");
       onSave?.();
       loadConfig();
     } catch (error: unknown) {
-      console.error('Error saving config:', error);
-      toast.error('Erro ao salvar: ' + error.message);
+      console.error("Error saving config:", error);
+      toast.error("Erro ao salvar: " + error.message);
     } finally {
       setSaving(false);
     }
@@ -208,39 +235,39 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
     try {
       const { error } = await supabase
-        .from('creative_generation_schedules')
+        .from("creative_generation_schedules")
         .delete()
-        .eq('id', config.id);
-      
+        .eq("id", config.id);
+
       if (error) throw error;
 
-      toast.success('Fábrica removida!');
+      toast.success("Fábrica removida!");
       onDelete?.();
     } catch (error: unknown) {
-      console.error('Error deleting config:', error);
-      toast.error('Erro ao remover: ' + error.message);
+      console.error("Error deleting config:", error);
+      toast.error("Erro ao remover: " + error.message);
     }
   };
 
   const resetGenerationForToday = async () => {
     if (!config.id) {
-      toast.error('Salve a configuração primeiro');
+      toast.error("Salve a configuração primeiro");
       return;
     }
 
     setResetting(true);
     try {
       const { error } = await supabase
-        .from('creative_generation_schedules')
+        .from("creative_generation_schedules")
         .update({ last_generation_at: null })
-        .eq('id', config.id);
+        .eq("id", config.id);
 
       if (error) throw error;
 
-      toast.success('Reset realizado!');
+      toast.success("Reset realizado!");
     } catch (error: unknown) {
-      console.error('Error resetting:', error);
-      toast.error('Erro ao resetar: ' + error.message);
+      console.error("Error resetting:", error);
+      toast.error("Erro ao resetar: " + error.message);
     } finally {
       setResetting(false);
     }
@@ -249,25 +276,25 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
   const handleImageUpload = async (file: File, index: number) => {
     setUploading(index);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${clientId}/${Date.now()}-ref-${index}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
-        .from('visual-creatives')
+        .from("visual-creatives")
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('visual-creatives')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("visual-creatives").getPublicUrl(fileName);
 
       const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
-      setConfig(prev => ({ ...prev, [fieldName]: publicUrl }));
-      toast.success('Imagem enviada!');
+      setConfig((prev) => ({ ...prev, [fieldName]: publicUrl }));
+      toast.success("Imagem enviada!");
     } catch (error: unknown) {
-      console.error('Error uploading image:', error);
-      toast.error('Erro ao enviar imagem');
+      console.error("Error uploading image:", error);
+      toast.error("Erro ao enviar imagem");
     } finally {
       setUploading(null);
     }
@@ -275,18 +302,19 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
   const handleRemoveImage = (index: number) => {
     const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
-    setConfig(prev => ({ ...prev, [fieldName]: null }));
+    setConfig((prev) => ({ ...prev, [fieldName]: null }));
   };
 
   const handleImportReferences = (urls: string[]) => {
     // Find empty slots and fill them with imported URLs
-    const currentImages = [1, 2, 3, 4, 5, 6].map(i => 
-      config[`reference_image_${i}` as keyof ScheduleConfig] as string | null
+    const currentImages = [1, 2, 3, 4, 5, 6].map(
+      (i) =>
+        config[`reference_image_${i}` as keyof ScheduleConfig] as string | null,
     );
-    
+
     let urlIndex = 0;
     const newConfig = { ...config };
-    
+
     for (let i = 1; i <= 6 && urlIndex < urls.length; i++) {
       const fieldName = `reference_image_${i}` as keyof ScheduleConfig;
       if (!currentImages[i - 1]) {
@@ -294,26 +322,31 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
         urlIndex++;
       }
     }
-    
+
     setConfig(newConfig);
     toast.success(`${urlIndex} imagem(ns) importada(s)!`);
   };
 
-  const referenceImages = [1, 2, 3, 4, 5, 6].map(i => ({
+  const referenceImages = [1, 2, 3, 4, 5, 6].map((i) => ({
     index: i,
-    url: config[`reference_image_${i}` as keyof ScheduleConfig] as string | null,
+    url: config[`reference_image_${i}` as keyof ScheduleConfig] as
+      | string
+      | null,
   }));
 
-  const updatePercentages = (field: 'concept_percentage' | 'iteration_percentage', value: number) => {
+  const updatePercentages = (
+    field: "concept_percentage" | "iteration_percentage",
+    value: number,
+  ) => {
     const newConfig = { ...config };
     newConfig[field] = value;
-    
-    if (field === 'concept_percentage') {
+
+    if (field === "concept_percentage") {
       newConfig.iteration_percentage = 100 - value;
     } else {
       newConfig.concept_percentage = 100 - value;
     }
-    
+
     setConfig(newConfig);
   };
 
@@ -345,7 +378,9 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={deleteConfig}>Remover</AlertDialogAction>
+                <AlertDialogAction onClick={deleteConfig}>
+                  Remover
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -389,7 +424,9 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                   <Clock className="h-5 w-5" />
                   Geração Diária
                 </CardTitle>
-                <CardDescription>Configure a geração automática de criativos</CardDescription>
+                <CardDescription>
+                  Configure a geração automática de criativos
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -397,19 +434,25 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                   <Switch
                     id="is_active"
                     checked={config.is_active}
-                    onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({ ...config, is_active: checked })
+                    }
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="creatives_per_day">Criativos por dia: {config.creatives_per_day}</Label>
+                  <Label htmlFor="creatives_per_day">
+                    Criativos por dia: {config.creatives_per_day}
+                  </Label>
                   <Slider
                     id="creatives_per_day"
                     min={1}
                     max={20}
                     step={1}
                     value={[config.creatives_per_day]}
-                    onValueChange={([value]) => setConfig({ ...config, creatives_per_day: value })}
+                    onValueChange={([value]) =>
+                      setConfig({ ...config, creatives_per_day: value })
+                    }
                   />
                 </div>
 
@@ -420,11 +463,17 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                       id="generation_time"
                       type="time"
                       value={config.generation_time}
-                      onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          generation_time: e.target.value,
+                        })
+                      }
                       className="flex-1"
                     />
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      aria-label="Resetar para gerar hoje"
+                      variant="outline"
                       size="icon"
                       onClick={resetGenerationForToday}
                       disabled={resetting || !config.id}
@@ -438,13 +487,17 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Clique no botão de reset para permitir geração novamente hoje
+                    Clique no botão de reset para permitir geração novamente
+                    hoje
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t">
                   <div className="space-y-0.5">
-                    <Label htmlFor="always_include_text" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="always_include_text"
+                      className="flex items-center gap-2"
+                    >
                       <Type className="h-4 w-4" />
                       Texto nas imagens
                     </Label>
@@ -455,7 +508,12 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                   <Switch
                     id="always_include_text"
                     checked={config.always_include_text_in_images}
-                    onCheckedChange={(checked) => setConfig({ ...config, always_include_text_in_images: checked })}
+                    onCheckedChange={(checked) =>
+                      setConfig({
+                        ...config,
+                        always_include_text_in_images: checked,
+                      })
+                    }
                   />
                 </div>
               </CardContent>
@@ -478,11 +536,15 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                       <Lightbulb className="h-4 w-4 text-yellow-500" />
                       <Label>Pesquisa (Conceito)</Label>
                     </div>
-                    <span className="text-lg font-semibold">{config.concept_percentage}%</span>
+                    <span className="text-lg font-semibold">
+                      {config.concept_percentage}%
+                    </span>
                   </div>
                   <Slider
                     value={[config.concept_percentage]}
-                    onValueChange={([value]) => updatePercentages('concept_percentage', value)}
+                    onValueChange={([value]) =>
+                      updatePercentages("concept_percentage", value)
+                    }
                     min={0}
                     max={100}
                     step={5}
@@ -501,11 +563,15 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                       <RotateCcw className="h-4 w-4 text-blue-500" />
                       <Label>Iterações</Label>
                     </div>
-                    <span className="text-lg font-semibold">{config.iteration_percentage}%</span>
+                    <span className="text-lg font-semibold">
+                      {config.iteration_percentage}%
+                    </span>
                   </div>
                   <Slider
                     value={[config.iteration_percentage]}
-                    onValueChange={([value]) => updatePercentages('iteration_percentage', value)}
+                    onValueChange={([value]) =>
+                      updatePercentages("iteration_percentage", value)
+                    }
                     min={0}
                     max={100}
                     step={5}
@@ -520,10 +586,12 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
                 <div className="p-3 rounded-lg bg-muted">
                   <p className="text-sm">
-                    <strong>Pesquisa:</strong> Criativos baseados em temas de pesquisa de mercado
+                    <strong>Pesquisa:</strong> Criativos baseados em temas de
+                    pesquisa de mercado
                   </p>
                   <p className="text-sm mt-1">
-                    <strong>Iterações:</strong> Variações de criativos aprovados anteriormente
+                    <strong>Iterações:</strong> Variações de criativos aprovados
+                    anteriormente
                   </p>
                 </div>
               </CardContent>
@@ -538,7 +606,8 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                 Prompt Personalizado para Imagens
               </CardTitle>
               <CardDescription>
-                Instruções adicionais para a IA ao gerar as imagens dos criativos
+                Instruções adicionais para a IA ao gerar as imagens dos
+                criativos
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -547,7 +616,9 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                 <Lightbulb className="h-4 w-4 text-amber-500" />
                 <AlertDescription className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <p className="font-medium text-sm mb-1">Sugestão de prompt:</p>
+                    <p className="font-medium text-sm mb-1">
+                      Sugestão de prompt:
+                    </p>
                     <p className="text-xs text-muted-foreground italic">
                       "{SUGGESTED_PROMPT}"
                     </p>
@@ -556,7 +627,10 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      setConfig({ ...config, custom_image_prompt: SUGGESTED_PROMPT });
+                      setConfig({
+                        ...config,
+                        custom_image_prompt: SUGGESTED_PROMPT,
+                      });
                       toast.success("Prompt sugerido aplicado!");
                     }}
                     className="shrink-0"
@@ -569,12 +643,19 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
               <Textarea
                 placeholder="Ex: Usar cores vibrantes e modernas, foco em pessoas sorrindo, estilo minimalista, incluir o produto em destaque..."
-                value={config.custom_image_prompt || ''}
-                onChange={(e) => setConfig({ ...config, custom_image_prompt: e.target.value || null })}
+                value={config.custom_image_prompt || ""}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    custom_image_prompt: e.target.value || null,
+                  })
+                }
                 rows={4}
               />
               <p className="text-sm text-muted-foreground">
-                Este prompt será somado ao prompt padrão de geração de imagens. Use para definir estilos visuais específicos, direções criativas ou elementos que devem aparecer em todos os criativos.
+                Este prompt será somado ao prompt padrão de geração de imagens.
+                Use para definir estilos visuais específicos, direções criativas
+                ou elementos que devem aparecer em todos os criativos.
               </p>
             </CardContent>
           </Card>
@@ -591,8 +672,8 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                   Até 6 imagens para a IA usar como referência visual
                 </CardDescription>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setShowReferenceDialog(true)}
                 className="shrink-0"
@@ -632,7 +713,9 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                         ) : (
                           <>
                             <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                            <span className="text-xs text-muted-foreground">Upload</span>
+                            <span className="text-xs text-muted-foreground">
+                              Upload
+                            </span>
                           </>
                         )}
                         <input
@@ -651,16 +734,20 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
                 ))}
               </div>
               <p className="text-sm text-muted-foreground">
-                Estas imagens serão usadas como referência visual para gerar os criativos. Se não configuradas, a IA usará as imagens de referência do cadastro do cliente.
+                Estas imagens serão usadas como referência visual para gerar os
+                criativos. Se não configuradas, a IA usará as imagens de
+                referência do cadastro do cliente.
               </p>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="temas">
-          <FabricaTemasPesquisa clientId={clientId} conceptPercentage={config.concept_percentage} />
+          <FabricaTemasPesquisa
+            clientId={clientId}
+            conceptPercentage={config.concept_percentage}
+          />
         </TabsContent>
-
 
         <TabsContent value="criativos">
           <FabricaCriativosGerados clientId={clientId} />
@@ -679,7 +766,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
           clientId={clientId}
           companyId={activeCompany.company_id}
           onSelect={handleImportReferences}
-          maxSelections={6 - referenceImages.filter(r => r.url).length}
+          maxSelections={6 - referenceImages.filter((r) => r.url).length}
         />
       )}
     </div>

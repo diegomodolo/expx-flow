@@ -338,7 +338,7 @@ export function TaskList({
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
-                                aria-label="Ação"
+                                aria-label="Mais opções"
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7"

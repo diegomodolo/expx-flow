@@ -240,7 +240,7 @@ export const LeadSavedFiltersTab = ({
                           Ver Resultados
                         </Button>
                         <Button
-                          aria-label="Ação"
+                          aria-label="Botão de ação complementar"
                           variant="ghost"
                           size="icon"
                           onClick={() =>

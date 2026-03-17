@@ -6,7 +6,9 @@ interface PresentationPreviewProps {
   presentationId: string;
 }
 
-export function PresentationPreview({ presentationId }: PresentationPreviewProps) {
+export function PresentationPreview({
+  presentationId,
+}: PresentationPreviewProps) {
   const { data, isLoading } = usePresentationDetails(presentationId);
 
   if (isLoading) {
@@ -14,7 +16,7 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
       <div className="space-y-4">
         <Skeleton className="aspect-video w-full" />
         <div className="flex gap-2">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="w-20 h-14" />
           ))}
         </div>
@@ -36,21 +38,27 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground mb-4">
-        A apresentação terá aproximadamente <strong>{totalSlides} slides</strong>:
-        capa, resumo, separador e {creatives.length} criativos.
+        A apresentação terá aproximadamente{" "}
+        <strong>{totalSlides} slides</strong>: capa, resumo, separador e{" "}
+        {creatives.length} criativos.
       </div>
 
       {/* Preview iframe */}
       <Card className="overflow-hidden">
-        <div 
+        <div
           className="aspect-video relative flex items-center justify-center"
           style={{ backgroundColor: data.primary_color }}
         >
           <div className="text-center text-white p-8">
-            <h1 className="text-4xl font-bold mb-2">{data.clients?.company || data.clients?.name}</h1>
+            <h1 className="text-4xl font-bold mb-2">
+              {data.clients?.company || data.clients?.name}
+            </h1>
             <p className="text-xl opacity-90">Planejamento de Conteúdo</p>
             <p className="text-lg opacity-75 mt-4">
-              {new Date(data.year, data.month - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              {new Date(data.year, data.month - 1).toLocaleDateString("pt-BR", {
+                month: "long",
+                year: "numeric",
+              })}
             </p>
           </div>
         </div>
@@ -59,7 +67,7 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
       {/* Thumbnail strip */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {/* Cover */}
-        <div 
+        <div
           className="w-24 h-16 rounded flex-shrink-0 flex items-center justify-center text-white text-xs"
           style={{ backgroundColor: data.primary_color }}
         >
@@ -72,7 +80,7 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
         </div>
 
         {/* Separator */}
-        <div 
+        <div
           className="w-24 h-16 rounded flex-shrink-0 flex items-center justify-center text-white text-xs"
           style={{ backgroundColor: data.primary_color }}
         >
@@ -83,20 +91,21 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
         {creatives.map((creative, index) => {
           const firstMedia = creative.creative_media?.[0];
           return (
-            <div 
+            <div
               key={creative.id}
               className="w-24 h-16 rounded flex-shrink-0 overflow-hidden bg-muted relative"
             >
               {firstMedia ? (
-                firstMedia.media_type === 'image' ? (
-                  <img 
-                    src={firstMedia.media_url} 
-                    alt="" 
+                firstMedia.media_type === "image" ? (
+                  <img
+                    alt="Imagem descritiva"
+                    src={firstMedia.media_url}
+                    alt=""
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <video 
-                    src={firstMedia.media_url} 
+                  <video
+                    src={firstMedia.media_url}
                     className="w-full h-full object-cover"
                   />
                 )
@@ -113,7 +122,7 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
         })}
 
         {/* Thank you */}
-        <div 
+        <div
           className="w-24 h-16 rounded flex-shrink-0 flex items-center justify-center text-white text-xs"
           style={{ backgroundColor: data.primary_color }}
         >
@@ -122,7 +131,8 @@ export function PresentationPreview({ presentationId }: PresentationPreviewProps
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Clique em "Publicar" para gerar o link público da apresentação que pode ser compartilhado com o cliente.
+        Clique em "Publicar" para gerar o link público da apresentação que pode
+        ser compartilhado com o cliente.
       </p>
     </div>
   );

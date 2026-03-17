@@ -160,7 +160,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
             <Button
-              aria-label="Ação"
+              aria-label="Mais opções"
               variant="ghost"
               size="icon"
               className="h-6 w-6"
@@ -304,7 +304,7 @@ export const PostCard: React.FC<PostCardProps> = ({
               {/* Actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button aria-label="Ação" variant="ghost" size="icon">
+                  <Button aria-label="Mais opções" variant="ghost" size="icon">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>

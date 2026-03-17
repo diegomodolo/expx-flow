@@ -1,22 +1,32 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useYouTubeKnowledge } from '@/hooks/useYouTubeKnowledge';
-import { 
-  Youtube, 
-  ChevronDown, 
-  Loader2, 
-  Plus, 
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useYouTubeKnowledge } from "@/hooks/useYouTubeKnowledge";
+import {
+  Youtube,
+  ChevronDown,
+  Loader2,
+  Plus,
   Trash2,
   FileText,
-  ExternalLink
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+  ExternalLink,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface YouTubeKnowledgeCardProps {
   configId: string;
@@ -25,14 +35,14 @@ interface YouTubeKnowledgeCardProps {
   isStandalone?: boolean;
 }
 
-export function YouTubeKnowledgeCard({ 
-  configId, 
+export function YouTubeKnowledgeCard({
+  configId,
   open,
   onOpenChange,
-  isStandalone = false
+  isStandalone = false,
 }: YouTubeKnowledgeCardProps) {
-  const [videoUrl, setVideoUrl] = useState('');
-  
+  const [videoUrl, setVideoUrl] = useState("");
+
   const {
     savedVideos,
     selectedCount,
@@ -43,22 +53,22 @@ export function YouTubeKnowledgeCard({
     removeVideo,
     isRemovingVideo,
     transcribeVideo,
-    isTranscribing
+    isTranscribing,
   } = useYouTubeKnowledge(configId);
 
   const handleAddVideo = async () => {
     if (!videoUrl.trim()) return;
-    
+
     try {
       await addVideoByUrl(videoUrl);
-      setVideoUrl('');
+      setVideoUrl("");
     } catch {
       // Error handled by mutation
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !isAddingVideo) {
+    if (e.key === "Enter" && !isAddingVideo) {
       handleAddVideo();
     }
   };
@@ -79,7 +89,7 @@ export function YouTubeKnowledgeCard({
             className="flex-1"
             disabled={isAddingVideo}
           />
-          <Button 
+          <Button
             onClick={handleAddVideo}
             disabled={isAddingVideo || !videoUrl.trim()}
           >
@@ -94,7 +104,8 @@ export function YouTubeKnowledgeCard({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Cole a URL de um vídeo do YouTube. A transcrição será feita automaticamente.
+          Cole a URL de um vídeo do YouTube. A transcrição será feita
+          automaticamente.
         </p>
       </div>
 
@@ -108,26 +119,31 @@ export function YouTubeKnowledgeCard({
           <p className="text-sm font-medium">Vídeos na Base de Conhecimento</p>
           <div className="space-y-2">
             {savedVideos.map((video) => (
-              <div 
+              <div
                 key={video.id}
                 className={cn(
                   "flex items-center gap-3 p-3 rounded-lg border",
-                  video.is_selected ? "bg-primary/5 border-primary/20" : "bg-muted/30"
+                  video.is_selected
+                    ? "bg-primary/5 border-primary/20"
+                    : "bg-muted/30",
                 )}
               >
                 <Checkbox
                   checked={video.is_selected}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     toggleVideo({ videoId: video.id, isSelected: !!checked })
                   }
                 />
-                <img 
-                  src={video.thumbnail_url || ''} 
-                  alt={video.video_title || ''}
+                <img
+                  alt="Imagem descritiva"
+                  src={video.thumbnail_url || ""}
+                  alt={video.video_title || ""}
                   className="w-16 h-10 object-cover rounded"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{video.video_title}</p>
+                  <p className="text-sm font-medium truncate">
+                    {video.video_title}
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     {video.transcription ? (
                       <Badge variant="secondary" className="text-xs">
@@ -140,11 +156,13 @@ export function YouTubeKnowledgeCard({
                         variant="ghost"
                         className="h-6 text-xs"
                         disabled={isTranscribing}
-                        onClick={() => transcribeVideo({ 
-                          knowledgeVideoId: video.id, 
-                          videoId: video.video_id,
-                          videoTitle: video.video_title || ''
-                        })}
+                        onClick={() =>
+                          transcribeVideo({
+                            knowledgeVideoId: video.id,
+                            videoId: video.video_id,
+                            videoTitle: video.video_title || "",
+                          })
+                        }
                       >
                         {isTranscribing ? (
                           <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -154,9 +172,9 @@ export function YouTubeKnowledgeCard({
                         Transcrever
                       </Button>
                     )}
-                    <a 
-                      href={video.video_url} 
-                      target="_blank" 
+                    <a
+                      href={video.video_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-muted-foreground hover:text-foreground"
                     >
@@ -179,7 +197,8 @@ export function YouTubeKnowledgeCard({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground text-center py-4">
-          Nenhum vídeo adicionado ainda. Cole a URL de um vídeo do YouTube acima.
+          Nenhum vídeo adicionado ainda. Cole a URL de um vídeo do YouTube
+          acima.
         </p>
       )}
     </CardContent>
@@ -196,12 +215,14 @@ export function YouTubeKnowledgeCard({
                 Vídeos do YouTube
               </CardTitle>
               <CardDescription>
-                {selectedCount > 0 ? `${selectedCount} vídeo(s) selecionado(s)` : 'Adicione vídeos como base de conhecimento'}
+                {selectedCount > 0
+                  ? `${selectedCount} vídeo(s) selecionado(s)`
+                  : "Adicione vídeos como base de conhecimento"}
               </CardDescription>
             </div>
             {selectedCount > 0 && (
               <Badge variant="secondary">
-                {selectedCount} selecionado{selectedCount !== 1 ? 's' : ''}
+                {selectedCount} selecionado{selectedCount !== 1 ? "s" : ""}
               </Badge>
             )}
           </div>
@@ -221,23 +242,28 @@ export function YouTubeKnowledgeCard({
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Youtube className="w-5 h-5 text-red-500" />
                   Vídeos do YouTube
-                  <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 transition-transform",
+                      open && "rotate-180",
+                    )}
+                  />
                 </CardTitle>
                 <CardDescription>
-                  {selectedCount > 0 ? `${selectedCount} vídeo(s) selecionado(s)` : 'Adicione vídeos como base de conhecimento'}
+                  {selectedCount > 0
+                    ? `${selectedCount} vídeo(s) selecionado(s)`
+                    : "Adicione vídeos como base de conhecimento"}
                 </CardDescription>
               </div>
               {selectedCount > 0 && (
                 <Badge variant="secondary" onClick={(e) => e.stopPropagation()}>
-                  {selectedCount} selecionado{selectedCount !== 1 ? 's' : ''}
+                  {selectedCount} selecionado{selectedCount !== 1 ? "s" : ""}
                 </Badge>
               )}
             </div>
           </CardHeader>
         </CollapsibleTrigger>
-        <CollapsibleContent>
-          {cardContent}
-        </CollapsibleContent>
+        <CollapsibleContent>{cardContent}</CollapsibleContent>
       </Card>
     </Collapsible>
   );

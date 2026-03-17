@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,11 +16,11 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { signIn, user } = useAuth();
   const { toast } = useToast();
 
@@ -26,24 +32,24 @@ export default function AuthPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     const { error } = await signIn(email, password);
-    
+
     if (error) {
       setError(error.message);
       toast({
         variant: "destructive",
         title: "Erro no login",
-        description: error.message
+        description: error.message,
       });
     } else {
       toast({
         title: "Login realizado com sucesso!",
-        description: "Redirecionando para o dashboard..."
+        description: "Redirecionando para o dashboard...",
       });
     }
-    
+
     setLoading(false);
   };
 
@@ -52,14 +58,18 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center text-green-600 hover:text-green-800 mb-4">
+          <Link
+            to="/"
+            className="inline-flex items-center text-green-600 hover:text-green-800 mb-4"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar ao site
           </Link>
           <div className="flex items-center justify-center space-x-4 mb-4">
-            <img 
-              src="https://i.imgur.com/EVjvxxM.png" 
-              alt="Expx Flow" 
+            <img
+              alt="Imagem descritiva"
+              src="https://i.imgur.com/EVjvxxM.png"
+              alt="Expx Flow"
               className="h-10 w-auto"
             />
             <h1 className="text-2xl font-bold text-gray-900">Expx Flow</h1>
@@ -69,7 +79,9 @@ export default function AuthPage() {
 
         <Card className="shadow-lg border-green-100">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl text-center">Entrar no Sistema</CardTitle>
+            <CardTitle className="text-2xl text-center">
+              Entrar no Sistema
+            </CardTitle>
             <CardDescription className="text-center">
               Digite suas credenciais para acessar
             </CardDescription>

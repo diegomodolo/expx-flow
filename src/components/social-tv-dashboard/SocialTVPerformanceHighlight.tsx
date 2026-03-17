@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Target, DollarSign, TrendingUp, Star, Crown, Trophy, MousePointer } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Target,
+  DollarSign,
+  TrendingUp,
+  Star,
+  Crown,
+  Trophy,
+  MousePointer,
+} from "lucide-react";
 
 interface PerformanceMetrics {
   totalLeads: number;
@@ -17,7 +25,13 @@ interface FeaturedClient {
   gestorAvatar: string | null;
   teamName: string | null;
   teamColor: string | null;
-  status: 'excelente' | 'atencao' | 'emergencial' | 'inativo' | 'sem_fundos' | string;
+  status:
+    | "excelente"
+    | "atencao"
+    | "emergencial"
+    | "inativo"
+    | "sem_fundos"
+    | string;
   totalSpend: number;
   avgCtr: number;
   totalAds: number;
@@ -60,48 +74,48 @@ function formatNumber(value: number): string {
 
 function getStatusColor(status: string): string {
   switch (status) {
-    case 'excelente':
-      return 'bg-green-500';
-    case 'atencao':
-      return 'bg-yellow-500';
-    case 'emergencial':
-      return 'bg-red-500';
-    case 'inativo':
-    case 'sem_fundos':
-      return 'bg-gray-500';
+    case "excelente":
+      return "bg-green-500";
+    case "atencao":
+      return "bg-yellow-500";
+    case "emergencial":
+      return "bg-red-500";
+    case "inativo":
+    case "sem_fundos":
+      return "bg-gray-500";
     default:
-      return 'bg-blue-500';
+      return "bg-blue-500";
   }
 }
 
 function getStatusLabel(status: string): string {
   switch (status) {
-    case 'excelente':
-      return 'Excelente';
-    case 'atencao':
-      return 'Atenção';
-    case 'emergencial':
-      return 'Emergencial';
-    case 'inativo':
-      return 'Inativo';
-    case 'sem_fundos':
-      return 'Sem Fundos';
+    case "excelente":
+      return "Excelente";
+    case "atencao":
+      return "Atenção";
+    case "emergencial":
+      return "Emergencial";
+    case "inativo":
+      return "Inativo";
+    case "sem_fundos":
+      return "Sem Fundos";
     default:
-      return 'Ativo';
+      return "Ativo";
   }
 }
 
 function getHighlightIcon(iconName?: string) {
   switch (iconName) {
-    case 'trophy':
+    case "trophy":
       return <Trophy className="w-4 h-4 text-white" />;
-    case 'trending-up':
+    case "trending-up":
       return <TrendingUp className="w-4 h-4 text-white" />;
-    case 'target':
+    case "target":
       return <Target className="w-4 h-4 text-white" />;
-    case 'dollar-sign':
+    case "dollar-sign":
       return <DollarSign className="w-4 h-4 text-white" />;
-    case 'mouse-pointer':
+    case "mouse-pointer":
       return <MousePointer className="w-4 h-4 text-white" />;
     default:
       return <Crown className="w-4 h-4 text-white" />;
@@ -110,23 +124,23 @@ function getHighlightIcon(iconName?: string) {
 
 function getHighlightBgColor(metric?: string): string {
   switch (metric) {
-    case 'conversions':
-      return 'bg-gradient-to-r from-yellow-500 to-amber-600';
-    case 'ctr':
-      return 'bg-gradient-to-r from-green-500 to-emerald-600';
-    case 'cpa':
-      return 'bg-gradient-to-r from-purple-500 to-violet-600';
-    case 'spend':
-      return 'bg-gradient-to-r from-blue-500 to-indigo-600';
-    case 'clicks':
-      return 'bg-gradient-to-r from-orange-500 to-red-500';
+    case "conversions":
+      return "bg-gradient-to-r from-yellow-500 to-amber-600";
+    case "ctr":
+      return "bg-gradient-to-r from-green-500 to-emerald-600";
+    case "cpa":
+      return "bg-gradient-to-r from-purple-500 to-violet-600";
+    case "spend":
+      return "bg-gradient-to-r from-blue-500 to-indigo-600";
+    case "clicks":
+      return "bg-gradient-to-r from-orange-500 to-red-500";
     default:
-      return 'bg-yellow-500';
+      return "bg-yellow-500";
   }
 }
 
-export function SocialTVPerformanceHighlight({ 
-  performanceMetrics, 
+export function SocialTVPerformanceHighlight({
+  performanceMetrics,
   featuredClient,
   featuredClients = [],
   rotationInterval = 8000,
@@ -136,14 +150,17 @@ export function SocialTVPerformanceHighlight({
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Usar featuredClients se disponível, senão usar featuredClient único
-  const clientsToRotate = featuredClients.length > 0 
-    ? featuredClients 
-    : (featuredClient ? [featuredClient] : []);
+  const clientsToRotate =
+    featuredClients.length > 0
+      ? featuredClients
+      : featuredClient
+        ? [featuredClient]
+        : [];
 
   // Rotação automática
   useEffect(() => {
     if (clientsToRotate.length <= 1) return;
-    
+
     const interval = setInterval(() => {
       setIsTransitioning(true);
       setTimeout(() => {
@@ -151,7 +168,7 @@ export function SocialTVPerformanceHighlight({
         setIsTransitioning(false);
       }, 300);
     }, rotationInterval);
-    
+
     return () => clearInterval(interval);
   }, [clientsToRotate.length, rotationInterval]);
 
@@ -160,22 +177,22 @@ export function SocialTVPerformanceHighlight({
   const metrics = [
     {
       icon: Target,
-      label: 'Conversões',
+      label: "Conversões",
       value: formatNumber(performanceMetrics.totalLeads),
     },
     {
       icon: DollarSign,
-      label: 'Investimento',
+      label: "Investimento",
       value: formatCurrency(performanceMetrics.totalSpend),
     },
     {
       icon: TrendingUp,
-      label: 'CTR Médio',
+      label: "CTR Médio",
       value: `${performanceMetrics.avgCtr.toFixed(2)}%`,
     },
     {
       icon: MousePointer,
-      label: 'Cliques',
+      label: "Cliques",
       value: formatNumber(totalClicks),
     },
   ];
@@ -198,8 +215,12 @@ export function SocialTVPerformanceHighlight({
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                   <metric.icon className="w-5 h-5 text-primary" />
                 </div>
-                <p className="text-2xl font-bold text-foreground">{metric.value}</p>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">{metric.label}</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {metric.value}
+                </p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  {metric.label}
+                </p>
               </div>
             </div>
           ))}
@@ -217,34 +238,38 @@ export function SocialTVPerformanceHighlight({
             </span>
           )}
         </h2>
-        
+
         {currentClient ? (
-          <div 
+          <div
             className={`relative overflow-hidden rounded-xl bg-card border border-border h-full min-h-[280px] transition-all duration-300 ${
-              isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+              isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"
             }`}
           >
             {/* Background gradient based on team color */}
-            <div 
+            <div
               className="absolute inset-0 opacity-10"
-              style={{ 
-                background: currentClient.teamColor 
+              style={{
+                background: currentClient.teamColor
                   ? `linear-gradient(135deg, ${currentClient.teamColor}40, transparent)`
-                  : 'linear-gradient(135deg, hsl(var(--primary) / 0.4), transparent)'
+                  : "linear-gradient(135deg, hsl(var(--primary) / 0.4), transparent)",
               }}
             />
-            
+
             {/* Badge Dinâmico - Motivo do Destaque */}
-            <div className={`absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg ${getHighlightBgColor(currentClient.highlightMetric)}`}>
+            <div
+              className={`absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg ${getHighlightBgColor(currentClient.highlightMetric)}`}
+            >
               {getHighlightIcon(currentClient.highlightIcon)}
               <span className="text-sm font-bold text-white">
-                {currentClient.highlightLabel || 'DESTAQUE'}
+                {currentClient.highlightLabel || "DESTAQUE"}
               </span>
             </div>
 
             {/* Valor em Destaque */}
             {currentClient.highlightValue && (
-              <div className={`absolute top-4 left-4 px-4 py-2 rounded-xl shadow-lg ${getHighlightBgColor(currentClient.highlightMetric)}`}>
+              <div
+                className={`absolute top-4 left-4 px-4 py-2 rounded-xl shadow-lg ${getHighlightBgColor(currentClient.highlightMetric)}`}
+              >
                 <span className="text-2xl font-bold text-white">
                   {currentClient.highlightValue}
                 </span>
@@ -255,16 +280,18 @@ export function SocialTVPerformanceHighlight({
               {/* Client Info - Larger and more prominent */}
               <div className="flex items-center gap-8 mb-8">
                 {/* Avatar - Bigger */}
-                <div 
+                <div
                   className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold text-white shadow-xl flex-shrink-0"
-                  style={{ 
-                    backgroundColor: currentClient.teamColor || 'hsl(var(--primary))',
-                    border: '4px solid hsl(var(--border))'
+                  style={{
+                    backgroundColor:
+                      currentClient.teamColor || "hsl(var(--primary))",
+                    border: "4px solid hsl(var(--border))",
                   }}
                 >
                   {currentClient.avatar ? (
-                    <img 
-                      src={currentClient.avatar} 
+                    <img
+                      alt="Imagem descritiva"
+                      src={currentClient.avatar}
                       alt={currentClient.name}
                       className="w-full h-full rounded-2xl object-cover"
                     />
@@ -280,29 +307,38 @@ export function SocialTVPerformanceHighlight({
                   </h3>
                   <div className="flex items-center gap-3 mt-3">
                     {currentClient.gestorAvatar ? (
-                      <img 
-                        src={currentClient.gestorAvatar} 
-                        alt={currentClient.gestorName || 'Gestor'}
+                      <img
+                        alt="Imagem descritiva"
+                        src={currentClient.gestorAvatar}
+                        alt={currentClient.gestorName || "Gestor"}
                         className="w-8 h-8 rounded-full object-cover border-2 border-border"
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center border-2 border-border">
                         <span className="text-sm font-bold text-primary-foreground">
-                          {(currentClient.gestorName || 'G').charAt(0)}
+                          {(currentClient.gestorName || "G").charAt(0)}
                         </span>
                       </div>
                     )}
                     <span className="text-lg text-muted-foreground">
-                      Gestor: <span className="font-semibold text-foreground">{currentClient.gestorName || 'Não atribuído'}</span>
+                      Gestor:{" "}
+                      <span className="font-semibold text-foreground">
+                        {currentClient.gestorName || "Não atribuído"}
+                      </span>
                     </span>
                   </div>
                   {currentClient.teamName && (
                     <div className="flex items-center gap-3 mt-3">
-                      <div 
+                      <div
                         className="w-5 h-5 rounded-full"
-                        style={{ backgroundColor: currentClient.teamColor || 'hsl(var(--primary))' }}
+                        style={{
+                          backgroundColor:
+                            currentClient.teamColor || "hsl(var(--primary))",
+                        }}
                       />
-                      <span className="text-lg text-muted-foreground">{currentClient.teamName}</span>
+                      <span className="text-lg text-muted-foreground">
+                        {currentClient.teamName}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -311,22 +347,40 @@ export function SocialTVPerformanceHighlight({
               {/* Mini Metrics */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-foreground">{formatNumber(currentClient.totalConversions || 0)}</p>
-                  <p className="text-xs text-muted-foreground uppercase mt-1">Conversões</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {formatNumber(currentClient.totalConversions || 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">
+                    Conversões
+                  </p>
                 </div>
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-foreground">{currentClient.avgCtr.toFixed(2)}%</p>
-                  <p className="text-xs text-muted-foreground uppercase mt-1">CTR</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {currentClient.avgCtr.toFixed(2)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">
+                    CTR
+                  </p>
                 </div>
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-foreground">{currentClient.totalCampaigns || 0}</p>
-                  <p className="text-xs text-muted-foreground uppercase mt-1">Campanhas</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {currentClient.totalCampaigns || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">
+                    Campanhas
+                  </p>
                 </div>
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <div className={`inline-block px-3 py-1 rounded-full ${getStatusColor(currentClient.status)}`}>
-                    <p className="text-sm font-bold text-white">{getStatusLabel(currentClient.status)}</p>
+                  <div
+                    className={`inline-block px-3 py-1 rounded-full ${getStatusColor(currentClient.status)}`}
+                  >
+                    <p className="text-sm font-bold text-white">
+                      {getStatusLabel(currentClient.status)}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground uppercase mt-1">Status</p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">
+                    Status
+                  </p>
                 </div>
               </div>
             </div>
@@ -335,12 +389,12 @@ export function SocialTVPerformanceHighlight({
             {clientsToRotate.length > 1 && (
               <div className="absolute bottom-4 right-4 flex gap-1.5">
                 {clientsToRotate.map((_, idx) => (
-                  <div 
+                  <div
                     key={idx}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      idx === currentIndex 
-                        ? 'bg-primary scale-125' 
-                        : 'bg-muted-foreground/30'
+                      idx === currentIndex
+                        ? "bg-primary scale-125"
+                        : "bg-muted-foreground/30"
                     }`}
                   />
                 ))}

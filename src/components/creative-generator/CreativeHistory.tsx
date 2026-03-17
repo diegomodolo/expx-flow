@@ -125,7 +125,11 @@ export function CreativeHistory() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button aria-label="Ação" variant="ghost" size="icon">
+                      <Button
+                        aria-label="Mais opções"
+                        variant="ghost"
+                        size="icon"
+                      >
                         <MoreHorizontal className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>

@@ -167,7 +167,7 @@ export default function MapasMentais() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Button
-                              aria-label="Ação"
+                              aria-label="Mais opções"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"

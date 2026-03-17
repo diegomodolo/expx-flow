@@ -201,7 +201,7 @@ export function WorkspaceEditor({ document }: WorkspaceEditorProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                aria-label="Ação"
+                aria-label="Mais opções"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"

@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,7 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link, MousePointer, Activity, Settings2, RefreshCw, Lightbulb } from "lucide-react";
+import {
+  Link,
+  MousePointer,
+  Activity,
+  Settings2,
+  RefreshCw,
+  Lightbulb,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useMetaPixels, MetaPixel } from "@/hooks/useMetaPixels";
@@ -32,7 +45,8 @@ const CTA_OPTIONS = [
   { value: "NO_BUTTON", label: "Sem Botão" },
 ];
 
-const DEFAULT_URL_PARAMS = "utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}";
+const DEFAULT_URL_PARAMS =
+  "utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}";
 
 export interface PublishingDefaults {
   default_destination_url: string | null;
@@ -52,16 +66,28 @@ interface Props {
   compact?: boolean;
 }
 
-export function PublishingDefaultsConfig({ config, onChange, clientId, companyId, compact = false }: Props) {
+export function PublishingDefaultsConfig({
+  config,
+  onChange,
+  clientId,
+  companyId,
+  compact = false,
+}: Props) {
   const [suggestedUrl, setSuggestedUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
-  const { pixels, loading: loadingPixels, fetchPixels, syncPixels, syncing } = useMetaPixels(clientId, companyId);
+  const {
+    pixels,
+    loading: loadingPixels,
+    fetchPixels,
+    syncPixels,
+    syncing,
+  } = useMetaPixels(clientId, companyId);
 
   // Fetch suggested URL from active campaigns
   useEffect(() => {
     const fetchSuggestedUrl = async () => {
       if (!clientId) return;
-      
+
       setLoadingUrl(true);
       try {
         // Get URL from ads of active campaigns
@@ -72,7 +98,7 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
           .eq("is_active", true)
           .not("link_url", "is", null)
           .limit(1);
-        
+
         if (data && data.length > 0 && data[0].link_url) {
           // Clean up URL - remove existing utm params
           try {
@@ -113,14 +139,17 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
     }
   };
 
-  const primaryPixel = pixels.find(p => p.is_primary);
+  const primaryPixel = pixels.find((p) => p.is_primary);
 
   if (compact) {
     return (
       <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="destination_url" className="flex items-center gap-2 text-sm">
+            <Label
+              htmlFor="destination_url"
+              className="flex items-center gap-2 text-sm"
+            >
               <Link className="h-3.5 w-3.5" />
               URL de Destino
             </Label>
@@ -129,11 +158,14 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
                 id="destination_url"
                 placeholder="https://seusite.com/pagina"
                 value={config.default_destination_url || ""}
-                onChange={(e) => onChange({ default_destination_url: e.target.value || null })}
+                onChange={(e) =>
+                  onChange({ default_destination_url: e.target.value || null })
+                }
                 className="flex-1"
               />
               {suggestedUrl && !config.default_destination_url && (
                 <Button
+                  aria-label="Usar URL sugerida"
                   type="button"
                   variant="outline"
                   size="icon"
@@ -176,7 +208,10 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="pixel_id" className="flex items-center gap-2 text-sm">
+            <Label
+              htmlFor="pixel_id"
+              className="flex items-center gap-2 text-sm"
+            >
               <Activity className="h-3.5 w-3.5" />
               Pixel
             </Label>
@@ -186,7 +221,11 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
               ) : (
                 <Select
                   value={config.default_pixel_id || "none"}
-                  onValueChange={(value) => onChange({ default_pixel_id: value === "none" ? null : value })}
+                  onValueChange={(value) =>
+                    onChange({
+                      default_pixel_id: value === "none" ? null : value,
+                    })
+                  }
                 >
                   <SelectTrigger id="pixel_id" className="flex-1">
                     <SelectValue placeholder="Selecione um Pixel" />
@@ -202,6 +241,7 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
                 </Select>
               )}
               <Button
+                aria-label="Sincronizar pixels"
                 type="button"
                 variant="outline"
                 size="icon"
@@ -209,13 +249,18 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
                 disabled={syncing}
                 title="Sincronizar pixels"
               >
-                <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`}
+                />
               </Button>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="url_params" className="flex items-center gap-2 text-sm">
+            <Label
+              htmlFor="url_params"
+              className="flex items-center gap-2 text-sm"
+            >
               <Settings2 className="h-3.5 w-3.5" />
               Parâmetros URL
             </Label>
@@ -223,7 +268,9 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
               id="url_params"
               placeholder="utm_source={{site_source_name}}&utm_medium=paid"
               value={config.default_url_params || ""}
-              onChange={(e) => onChange({ default_url_params: e.target.value || null })}
+              onChange={(e) =>
+                onChange({ default_url_params: e.target.value || null })
+              }
             />
           </div>
         </div>
@@ -253,7 +300,9 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
               id="destination_url"
               placeholder="https://seusite.com/pagina"
               value={config.default_destination_url || ""}
-              onChange={(e) => onChange({ default_destination_url: e.target.value || null })}
+              onChange={(e) =>
+                onChange({ default_destination_url: e.target.value || null })
+              }
               className="flex-1"
             />
             {suggestedUrl && !config.default_destination_url && (
@@ -273,7 +322,8 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
           ) : suggestedUrl && !config.default_destination_url ? (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Lightbulb className="h-3 w-3" />
-              Sugestão baseada em campanhas ativas: <span className="font-medium">{suggestedUrl}</span>
+              Sugestão baseada em campanhas ativas:{" "}
+              <span className="font-medium">{suggestedUrl}</span>
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
@@ -318,7 +368,11 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
             ) : (
               <Select
                 value={config.default_pixel_id || "none"}
-                onValueChange={(value) => onChange({ default_pixel_id: value === "none" ? null : value })}
+                onValueChange={(value) =>
+                  onChange({
+                    default_pixel_id: value === "none" ? null : value,
+                  })
+                }
               >
                 <SelectTrigger id="pixel_id" className="flex-1">
                   <SelectValue placeholder="Selecione um Pixel" />
@@ -342,15 +396,16 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
               disabled={syncing}
               className="shrink-0"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`}
+              />
               Sincronizar
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            {pixels.length > 0 
+            {pixels.length > 0
               ? `${pixels.length} pixel(s) disponível(is)${primaryPixel ? ` • Principal: ${primaryPixel.pixel_name}` : ""}`
-              : "Clique em Sincronizar para buscar os pixels da conta"
-            }
+              : "Clique em Sincronizar para buscar os pixels da conta"}
           </p>
         </div>
 
@@ -363,15 +418,37 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
             id="url_params"
             placeholder="utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}"
             value={config.default_url_params || ""}
-            onChange={(e) => onChange({ default_url_params: e.target.value || null })}
+            onChange={(e) =>
+              onChange({ default_url_params: e.target.value || null })
+            }
           />
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>Parâmetros adicionados à URL de destino. Use variáveis dinâmicas:</p>
+            <p>
+              Parâmetros adicionados à URL de destino. Use variáveis dinâmicas:
+            </p>
             <ul className="list-disc list-inside ml-2 space-y-0.5">
-              <li><code className="bg-muted px-1 rounded">{"{{campaign.name}}"}</code> - Nome da campanha</li>
-              <li><code className="bg-muted px-1 rounded">{"{{adset.name}}"}</code> - Nome do conjunto</li>
-              <li><code className="bg-muted px-1 rounded">{"{{ad.name}}"}</code> - Nome do anúncio</li>
-              <li><code className="bg-muted px-1 rounded">{"{{site_source_name}}"}</code> - Plataforma (fb/ig)</li>
+              <li>
+                <code className="bg-muted px-1 rounded">
+                  {"{{campaign.name}}"}
+                </code>{" "}
+                - Nome da campanha
+              </li>
+              <li>
+                <code className="bg-muted px-1 rounded">
+                  {"{{adset.name}}"}
+                </code>{" "}
+                - Nome do conjunto
+              </li>
+              <li>
+                <code className="bg-muted px-1 rounded">{"{{ad.name}}"}</code> -
+                Nome do anúncio
+              </li>
+              <li>
+                <code className="bg-muted px-1 rounded">
+                  {"{{site_source_name}}"}
+                </code>{" "}
+                - Plataforma (fb/ig)
+              </li>
             </ul>
           </div>
         </div>

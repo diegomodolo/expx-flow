@@ -1,14 +1,31 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CheckCheck, MessageSquare, AlertTriangle, Sparkles, ClipboardList, Megaphone, User, Zap } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  MessageSquare,
+  AlertTriangle,
+  Sparkles,
+  ClipboardList,
+  Megaphone,
+  User,
+  Zap,
+} from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useUserNotifications, UserNotification } from "@/hooks/useUserNotifications";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  useUserNotifications,
+  UserNotification,
+} from "@/hooks/useUserNotifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -62,21 +79,33 @@ function NotificationItem({ notification, onRead }: NotificationItemProps) {
       onClick={() => onRead(notification.id, notification.action_url)}
       className={cn(
         "w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-accent/50 transition-colors",
-        !notification.is_read && "bg-primary/5"
+        !notification.is_read && "bg-primary/5",
       )}
     >
-      <div className={cn("mt-0.5 shrink-0 p-1.5 rounded-full bg-muted", iconColor)}>
+      <div
+        className={cn("mt-0.5 shrink-0 p-1.5 rounded-full bg-muted", iconColor)}
+      >
         <Icon className="w-3.5 h-3.5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn("text-sm line-clamp-1", !notification.is_read && "font-semibold text-foreground")}>
+        <p
+          className={cn(
+            "text-sm line-clamp-1",
+            !notification.is_read && "font-semibold text-foreground",
+          )}
+        >
           {notification.title}
         </p>
         {notification.body && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notification.body}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+            {notification.body}
+          </p>
         )}
         <span className="text-[10px] text-muted-foreground mt-1 block">
-          {formatDistanceToNow(parseISO(notification.created_at), { addSuffix: true, locale: ptBR })}
+          {formatDistanceToNow(parseISO(notification.created_at), {
+            addSuffix: true,
+            locale: ptBR,
+          })}
         </span>
       </div>
       {!notification.is_read && (
@@ -91,7 +120,10 @@ interface ChatNotificationItemProps {
   onRead: (id: string) => void;
 }
 
-function ChatNotificationItem({ notification, onRead }: ChatNotificationItemProps) {
+function ChatNotificationItem({
+  notification,
+  onRead,
+}: ChatNotificationItemProps) {
   return (
     <button
       onClick={() => onRead(notification.id)}
@@ -101,12 +133,19 @@ function ChatNotificationItem({ notification, onRead }: ChatNotificationItemProp
         <MessageSquare className="w-3.5 h-3.5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm line-clamp-1 font-semibold text-foreground">{notification.title}</p>
+        <p className="text-sm line-clamp-1 font-semibold text-foreground">
+          {notification.title}
+        </p>
         {notification.body && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notification.body}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+            {notification.body}
+          </p>
         )}
         <span className="text-[10px] text-muted-foreground mt-1 block">
-          {formatDistanceToNow(parseISO(notification.created_at), { addSuffix: true, locale: ptBR })}
+          {formatDistanceToNow(parseISO(notification.created_at), {
+            addSuffix: true,
+            locale: ptBR,
+          })}
         </span>
       </div>
       <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
@@ -137,7 +176,9 @@ export function NotificationCenter() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["internal-notifications-unified", user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["internal-notifications-unified", user?.id],
+      });
     },
   });
 
@@ -152,7 +193,9 @@ export function NotificationCenter() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["internal-notifications-unified", user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["internal-notifications-unified", user?.id],
+      });
     },
   });
 
@@ -177,12 +220,16 @@ export function NotificationCenter() {
   const allItems = [
     ...notifications.map((n) => ({ ...n, _source: "user" as const })),
     ...chatNotifications.map((n) => ({ ...n, _source: "chat" as const })),
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  ].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          aria-label="Notificações"
           variant="ghost"
           size="icon"
           className="relative w-10 h-10 rounded-full hover:bg-muted/60"
@@ -196,13 +243,21 @@ export function NotificationCenter() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[380px] p-0 shadow-lg" sideOffset={8}>
+      <PopoverContent
+        align="end"
+        className="w-[380px] p-0 shadow-lg"
+        sideOffset={8}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div>
-            <h4 className="text-sm font-semibold text-foreground">Notificações</h4>
+            <h4 className="text-sm font-semibold text-foreground">
+              Notificações
+            </h4>
             {totalUnreadCount > 0 && (
-              <p className="text-xs text-muted-foreground">{totalUnreadCount} não lida{totalUnreadCount !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-muted-foreground">
+                {totalUnreadCount} não lida{totalUnreadCount !== 1 ? "s" : ""}
+              </p>
             )}
           </div>
           {totalUnreadCount > 0 && (
@@ -239,7 +294,7 @@ export function NotificationCenter() {
                     notification={item}
                     onRead={handleReadChatNotification}
                   />
-                )
+                ),
               )}
             </div>
           )}

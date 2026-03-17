@@ -1,11 +1,27 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, X, Eye, Layers, Loader2, BookOpen, Users, Sparkles, LayoutGrid } from "lucide-react";
+import {
+  Check,
+  X,
+  Eye,
+  Layers,
+  Loader2,
+  BookOpen,
+  Users,
+  Sparkles,
+  LayoutGrid,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CarouselPreviewModal } from "@/components/generators/CarouselPreviewModal";
@@ -57,16 +73,19 @@ const typeColors: Record<string, string> = {
 export default function RevisaoDiariaCarrosseis() {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
-  const [selectedCarousel, setSelectedCarousel] = useState<Carousel | null>(null);
+  const [selectedCarousel, setSelectedCarousel] = useState<Carousel | null>(
+    null,
+  );
 
   const { data: carousels, isLoading } = useQuery({
-    queryKey: ['pending-carousels', activeCompany?.company_id],
+    queryKey: ["pending-carousels", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
 
       const { data, error } = await supabase
-        .from('carousel_generation_queue')
-        .select(`
+        .from("carousel_generation_queue")
+        .select(
+          `
           id,
           carousel_type,
           slides,
@@ -77,16 +96,17 @@ export default function RevisaoDiariaCarrosseis() {
           generated_at,
           client_id,
           clients (name)
-        `)
-        .eq('company_id', activeCompany.company_id)
-        .eq('status', 'pending')
-        .order('generated_at', { ascending: false });
+        `,
+        )
+        .eq("company_id", activeCompany.company_id)
+        .eq("status", "pending")
+        .order("generated_at", { ascending: false });
 
       if (error) throw error;
-      
-      return (data || []).map(item => ({
+
+      return (data || []).map((item) => ({
         ...item,
-        slides: (item.slides as unknown as Slide[]) || []
+        slides: (item.slides as unknown as Slide[]) || [],
       })) as Carousel[];
     },
     enabled: !!activeCompany?.company_id,
@@ -95,21 +115,23 @@ export default function RevisaoDiariaCarrosseis() {
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
-        .from('carousel_generation_queue')
-        .update({ 
-          status, 
-          reviewed_at: new Date().toISOString() 
+        .from("carousel_generation_queue")
+        .update({
+          status,
+          reviewed_at: new Date().toISOString(),
         })
-        .eq('id', id);
-      
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: ['pending-carousels'] });
-      toast.success(status === 'approved' ? 'Carrossel aprovado!' : 'Carrossel rejeitado');
+      queryClient.invalidateQueries({ queryKey: ["pending-carousels"] });
+      toast.success(
+        status === "approved" ? "Carrossel aprovado!" : "Carrossel rejeitado",
+      );
     },
     onError: (error: unknown) => {
-      toast.error('Erro ao atualizar: ' + error.message);
+      toast.error("Erro ao atualizar: " + error.message);
     },
   });
 
@@ -118,10 +140,12 @@ export default function RevisaoDiariaCarrosseis() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Revisão Diária</h1>
-          <p className="text-muted-foreground">Revise e aprove os carrosseis gerados</p>
+          <p className="text-muted-foreground">
+            Revise e aprove os carrosseis gerados
+          </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <Skeleton className="h-48 w-full mb-4" />
@@ -140,7 +164,9 @@ export default function RevisaoDiariaCarrosseis() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Revisão Diária</h1>
-          <p className="text-muted-foreground">Revise e aprove os carrosseis gerados</p>
+          <p className="text-muted-foreground">
+            Revise e aprove os carrosseis gerados
+          </p>
         </div>
         <Badge variant="outline" className="text-lg px-4 py-2">
           {carousels?.length || 0} pendentes
@@ -162,16 +188,17 @@ export default function RevisaoDiariaCarrosseis() {
           {carousels?.map((carousel) => {
             const TypeIcon = typeIcons[carousel.carousel_type] || Layers;
             const firstSlide = carousel.slides[0];
-            
+
             return (
               <Card key={carousel.id} className="overflow-hidden">
-                <div 
+                <div
                   className="aspect-square bg-muted relative cursor-pointer group"
                   onClick={() => setSelectedCarousel(carousel)}
                 >
                   {firstSlide?.image_url ? (
-                    <img 
-                      src={firstSlide.image_url} 
+                    <img
+                      alt="Imagem descritiva"
+                      src={firstSlide.image_url}
                       alt="Capa do carrossel"
                       className="w-full h-full object-cover"
                     />
@@ -183,7 +210,9 @@ export default function RevisaoDiariaCarrosseis() {
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Eye className="h-8 w-8 text-white" />
                   </div>
-                  <Badge className={`absolute top-2 left-2 ${typeColors[carousel.carousel_type]}`}>
+                  <Badge
+                    className={`absolute top-2 left-2 ${typeColors[carousel.carousel_type]}`}
+                  >
                     <TypeIcon className="h-3 w-3 mr-1" />
                     {typeLabels[carousel.carousel_type]}
                   </Badge>
@@ -191,21 +220,26 @@ export default function RevisaoDiariaCarrosseis() {
                     {carousel.slides.length} slides
                   </Badge>
                 </div>
-                
+
                 <CardContent className="p-4">
                   <p className="font-medium text-sm mb-1 truncate">
-                    {carousel.clients?.name || 'Cliente'}
+                    {carousel.clients?.name || "Cliente"}
                   </p>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                    {firstSlide?.headline || carousel.theme || 'Sem título'}
+                    {firstSlide?.headline || carousel.theme || "Sem título"}
                   </p>
-                  
+
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="flex-1"
-                      onClick={() => updateStatus.mutate({ id: carousel.id, status: 'rejected' })}
+                      onClick={() =>
+                        updateStatus.mutate({
+                          id: carousel.id,
+                          status: "rejected",
+                        })
+                      }
                       disabled={updateStatus.isPending}
                     >
                       {updateStatus.isPending ? (
@@ -217,10 +251,15 @@ export default function RevisaoDiariaCarrosseis() {
                         </>
                       )}
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="flex-1"
-                      onClick={() => updateStatus.mutate({ id: carousel.id, status: 'approved' })}
+                      onClick={() =>
+                        updateStatus.mutate({
+                          id: carousel.id,
+                          status: "approved",
+                        })
+                      }
                       disabled={updateStatus.isPending}
                     >
                       {updateStatus.isPending ? (
@@ -246,17 +285,23 @@ export default function RevisaoDiariaCarrosseis() {
           open={!!selectedCarousel}
           onOpenChange={(open) => !open && setSelectedCarousel(null)}
           onApprove={() => {
-            updateStatus.mutate({ id: selectedCarousel.id, status: 'approved' });
+            updateStatus.mutate({
+              id: selectedCarousel.id,
+              status: "approved",
+            });
             setSelectedCarousel(null);
           }}
           onReject={() => {
-            updateStatus.mutate({ id: selectedCarousel.id, status: 'rejected' });
+            updateStatus.mutate({
+              id: selectedCarousel.id,
+              status: "rejected",
+            });
             setSelectedCarousel(null);
           }}
           clientId={selectedCarousel.client_id}
           companyId={activeCompany?.id}
           onCarouselUpdated={() => {
-            queryClient.invalidateQueries({ queryKey: ['daily-carousels'] });
+            queryClient.invalidateQueries({ queryKey: ["daily-carousels"] });
           }}
         />
       )}

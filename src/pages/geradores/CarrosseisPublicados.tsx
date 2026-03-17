@@ -1,9 +1,23 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Rocket, Layers, BookOpen, Users, Sparkles, LayoutGrid, ExternalLink } from "lucide-react";
+import {
+  Rocket,
+  Layers,
+  BookOpen,
+  Users,
+  Sparkles,
+  LayoutGrid,
+  ExternalLink,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -42,13 +56,14 @@ export default function CarrosseisPublicados() {
   const { activeCompany } = useCompany();
 
   const { data: carousels, isLoading } = useQuery({
-    queryKey: ['published-carousels', activeCompany?.company_id],
+    queryKey: ["published-carousels", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
 
       const { data, error } = await supabase
-        .from('carousel_generation_queue')
-        .select(`
+        .from("carousel_generation_queue")
+        .select(
+          `
           id,
           carousel_type,
           slides,
@@ -57,16 +72,17 @@ export default function CarrosseisPublicados() {
           status,
           published_at,
           clients (name)
-        `)
-        .eq('company_id', activeCompany.company_id)
-        .in('status', ['approved', 'published'])
-        .order('published_at', { ascending: false, nullsFirst: false })
+        `,
+        )
+        .eq("company_id", activeCompany.company_id)
+        .in("status", ["approved", "published"])
+        .order("published_at", { ascending: false, nullsFirst: false })
         .limit(50);
 
       if (error) throw error;
-      return data.map(item => ({
+      return data.map((item) => ({
         ...item,
-        slides: (item.slides as unknown as Slide[]) || []
+        slides: (item.slides as unknown as Slide[]) || [],
       }));
     },
     enabled: !!activeCompany?.company_id,
@@ -77,10 +93,12 @@ export default function CarrosseisPublicados() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Carrosseis Publicados</h1>
-          <p className="text-muted-foreground">Carrosseis aprovados e prontos para publicação</p>
+          <p className="text-muted-foreground">
+            Carrosseis aprovados e prontos para publicação
+          </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <Skeleton className="h-48 w-full mb-4" />
@@ -97,7 +115,9 @@ export default function CarrosseisPublicados() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Carrosseis Publicados</h1>
-        <p className="text-muted-foreground">Carrosseis aprovados e prontos para publicação</p>
+        <p className="text-muted-foreground">
+          Carrosseis aprovados e prontos para publicação
+        </p>
       </div>
 
       {carousels && carousels.length === 0 ? (
@@ -115,13 +135,14 @@ export default function CarrosseisPublicados() {
           {carousels?.map((carousel) => {
             const TypeIcon = typeIcons[carousel.carousel_type] || Layers;
             const firstSlide = carousel.slides[0];
-            
+
             return (
               <Card key={carousel.id} className="overflow-hidden">
                 <div className="aspect-square bg-muted relative">
                   {firstSlide?.image_url ? (
-                    <img 
-                      src={firstSlide.image_url} 
+                    <img
+                      alt="Imagem descritiva"
+                      src={firstSlide.image_url}
                       alt="Capa do carrossel"
                       className="w-full h-full object-cover"
                     />
@@ -130,25 +151,32 @@ export default function CarrosseisPublicados() {
                       <Layers className="h-16 w-16 text-violet-500/50" />
                     </div>
                   )}
-                  <Badge className={`absolute top-2 left-2 ${typeColors[carousel.carousel_type]}`}>
+                  <Badge
+                    className={`absolute top-2 left-2 ${typeColors[carousel.carousel_type]}`}
+                  >
                     <TypeIcon className="h-3 w-3 mr-1" />
                     {typeLabels[carousel.carousel_type]}
                   </Badge>
                   <Badge className="absolute top-2 right-2 bg-green-100 text-green-700">
-                    {carousel.status === 'published' ? 'Publicado' : 'Aprovado'}
+                    {carousel.status === "published" ? "Publicado" : "Aprovado"}
                   </Badge>
                 </div>
-                
+
                 <CardContent className="p-4">
                   <p className="font-medium text-sm mb-1">
-                    {carousel.clients?.name || 'Cliente'}
+                    {carousel.clients?.name || "Cliente"}
                   </p>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                    {firstSlide?.headline || carousel.theme || 'Sem título'}
+                    {firstSlide?.headline || carousel.theme || "Sem título"}
                   </p>
                   {carousel.published_at && (
                     <p className="text-xs text-muted-foreground">
-                      Publicado em {format(new Date(carousel.published_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      Publicado em{" "}
+                      {format(
+                        new Date(carousel.published_at),
+                        "dd/MM/yyyy 'às' HH:mm",
+                        { locale: ptBR },
+                      )}
                     </p>
                   )}
                 </CardContent>

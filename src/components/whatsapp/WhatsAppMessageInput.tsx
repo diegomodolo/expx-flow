@@ -450,7 +450,7 @@ export function WhatsAppMessageInput({
 
           {/* Stop/Send button */}
           <Button
-            aria-label="Ação"
+            aria-label="Gravar mensagem de voz"
             size="icon"
             onClick={stopRecording}
             className="shrink-0"
@@ -642,6 +642,7 @@ export function WhatsAppMessageInput({
         {/* Show mic button when no text, otherwise show send */}
         {showMicButton ? (
           <Button
+            aria-label="Gravar mensagem de voz"
             size="icon"
             onClick={startRecording}
             disabled={isSending}

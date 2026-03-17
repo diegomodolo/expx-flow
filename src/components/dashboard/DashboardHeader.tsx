@@ -173,6 +173,7 @@ export function DashboardHeader() {
           {/* Theme Toggle */}
           {mounted && (
             <Button
+              aria-label="Workspace"
               variant="ghost"
               size="icon"
               onClick={toggleTheme}

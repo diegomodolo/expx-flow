@@ -13,9 +13,9 @@ interface ClientSelectorForCreativesProps {
   onClientSelect: (clientId: string) => void;
 }
 
-export function ClientSelectorForCreatives({ 
-  selectedClientId, 
-  onClientSelect 
+export function ClientSelectorForCreatives({
+  selectedClientId,
+  onClientSelect,
 }: ClientSelectorForCreativesProps) {
   const { clients, loading } = useClients();
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,18 +23,21 @@ export function ClientSelectorForCreatives({
   // Filter clients based on search term
   const filteredClients = useMemo(() => {
     if (!clients || !searchTerm.trim()) return clients;
-    
+
     const search = searchTerm.toLowerCase().trim();
-    return clients.filter(client => 
-      client.name.toLowerCase().includes(search) ||
-      client.company.toLowerCase().includes(search) ||
-      client.sector.toLowerCase().includes(search) ||
-      client.email.toLowerCase().includes(search)
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(search) ||
+        client.company.toLowerCase().includes(search) ||
+        client.sector.toLowerCase().includes(search) ||
+        client.email.toLowerCase().includes(search),
     );
   }, [clients, searchTerm]);
 
-  const clientsWithBriefing = filteredClients?.filter(client => client.ai_briefing) || [];
-  const clientsWithoutBriefing = filteredClients?.filter(client => !client.ai_briefing) || [];
+  const clientsWithBriefing =
+    filteredClients?.filter((client) => client.ai_briefing) || [];
+  const clientsWithoutBriefing =
+    filteredClients?.filter((client) => !client.ai_briefing) || [];
 
   if (loading) {
     return (
@@ -45,7 +48,7 @@ export function ClientSelectorForCreatives({
             Escolha o cliente para carregar o briefing e diretrizes visuais
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
@@ -64,7 +67,6 @@ export function ClientSelectorForCreatives({
       </div>
     );
   }
-
 
   return (
     <div className="space-y-6">
@@ -90,7 +92,8 @@ export function ClientSelectorForCreatives({
       {searchTerm && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {(clientsWithBriefing.length + clientsWithoutBriefing.length)} resultado(s) encontrado(s)
+            {clientsWithBriefing.length + clientsWithoutBriefing.length}{" "}
+            resultado(s) encontrado(s)
           </p>
           <button
             onClick={() => setSearchTerm("")}
@@ -102,23 +105,25 @@ export function ClientSelectorForCreatives({
       )}
 
       {/* No results message */}
-      {searchTerm && clientsWithBriefing.length === 0 && clientsWithoutBriefing.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-            <Search className="w-8 h-8 text-muted-foreground" />
+      {searchTerm &&
+        clientsWithBriefing.length === 0 &&
+        clientsWithoutBriefing.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h4 className="font-medium mb-2">Nenhum cliente encontrado</h4>
+            <p className="text-muted-foreground mb-4">
+              Tente ajustar sua busca ou{" "}
+              <button
+                onClick={() => setSearchTerm("")}
+                className="text-primary hover:underline"
+              >
+                ver todos os clientes
+              </button>
+            </p>
           </div>
-          <h4 className="font-medium mb-2">Nenhum cliente encontrado</h4>
-          <p className="text-muted-foreground mb-4">
-            Tente ajustar sua busca ou{" "}
-            <button
-              onClick={() => setSearchTerm("")}
-              className="text-primary hover:underline"
-            >
-              ver todos os clientes
-            </button>
-          </p>
-        </div>
-      )}
+        )}
 
       {/* Clients with briefing */}
       {clientsWithBriefing.length > 0 && (
@@ -128,7 +133,7 @@ export function ClientSelectorForCreatives({
             <h4 className="font-medium">Clientes com Briefing Completo</h4>
             <Badge variant="secondary">{clientsWithBriefing.length}</Badge>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {clientsWithBriefing.map((client) => (
               <Card
@@ -137,7 +142,7 @@ export function ClientSelectorForCreatives({
                   "cursor-pointer transition-all duration-200 hover:shadow-md border-2",
                   selectedClientId === client.id
                     ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border hover:border-primary/50"
+                    : "border-border hover:border-primary/50",
                 )}
                 onClick={() => onClientSelect(client.id)}
               >
@@ -145,8 +150,9 @@ export function ClientSelectorForCreatives({
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       {client.avatar ? (
-                        <img 
-                          src={client.avatar} 
+                        <img
+                          alt="Imagem descritiva"
+                          src={client.avatar}
                           alt={client.name}
                           className="w-full h-full rounded-full object-cover"
                         />
@@ -154,33 +160,43 @@ export function ClientSelectorForCreatives({
                         <Building2 className="w-5 h-5 text-primary" />
                       )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm truncate">{client.name}</h4>
+                        <h4 className="font-medium text-sm truncate">
+                          {client.name}
+                        </h4>
                         {selectedClientId === client.id && (
                           <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
                         )}
                       </div>
-                      
+
                       <p className="text-xs text-muted-foreground mb-2 truncate">
                         {client.company}
                       </p>
-                      
+
                       <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-1.5 py-0.5"
+                        >
                           {client.sector}
                         </Badge>
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs px-1.5 py-0.5"
+                        >
                           <Palette className="w-3 h-3 mr-1" />
                           Briefing IA
                         </Badge>
                       </div>
-                      
+
                       {client.target_audience && (
                         <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                           <Target className="w-3 h-3" />
-                          <span className="truncate">{client.target_audience}</span>
+                          <span className="truncate">
+                            {client.target_audience}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -196,24 +212,25 @@ export function ClientSelectorForCreatives({
       {clientsWithoutBriefing.length > 0 && (
         <div className="space-y-4">
           <div>
-            <h4 className="font-medium text-muted-foreground">Clientes sem Briefing Completo</h4>
+            <h4 className="font-medium text-muted-foreground">
+              Clientes sem Briefing Completo
+            </h4>
             <p className="text-sm text-muted-foreground">
-              Estes clientes precisam de um briefing completo para gerar criativos de qualidade
+              Estes clientes precisam de um briefing completo para gerar
+              criativos de qualidade
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {clientsWithoutBriefing.map((client) => (
-              <Card
-                key={client.id}
-                className="opacity-60 border-dashed"
-              >
+              <Card key={client.id} className="opacity-60 border-dashed">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                       {client.avatar ? (
-                        <img 
-                          src={client.avatar} 
+                        <img
+                          alt="Imagem descritiva"
+                          src={client.avatar}
                           alt={client.name}
                           className="w-full h-full rounded-full object-cover"
                         />
@@ -221,29 +238,37 @@ export function ClientSelectorForCreatives({
                         <Building2 className="w-5 h-5 text-muted-foreground" />
                       )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{client.name}</h4>
+                      <h4 className="font-medium text-sm truncate">
+                        {client.name}
+                      </h4>
                       <p className="text-xs text-muted-foreground mb-2 truncate">
                         {client.company}
                       </p>
-                      
+
                       <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-1.5 py-0.5"
+                        >
                           {client.sector}
                         </Badge>
-                        <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                        <Badge
+                          variant="destructive"
+                          className="text-xs px-1.5 py-0.5"
+                        >
                           Sem Briefing
                         </Badge>
                       </div>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="mt-2 text-xs h-7"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(`/clientes/${client.id}`, '_blank');
+                          window.open(`/clientes/${client.id}`, "_blank");
                         }}
                       >
                         Completar Briefing
@@ -263,7 +288,8 @@ export function ClientSelectorForCreatives({
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-primary" />
             <span className="font-medium">
-              Cliente selecionado: {clients?.find(c => c.id === selectedClientId)?.name}
+              Cliente selecionado:{" "}
+              {clients?.find((c) => c.id === selectedClientId)?.name}
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -278,11 +304,14 @@ export function ClientSelectorForCreatives({
           <CardContent className="py-12">
             <div className="text-center">
               <Building2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">Nenhum cliente encontrado</h3>
+              <h3 className="text-lg font-medium mb-2">
+                Nenhum cliente encontrado
+              </h3>
               <p className="text-muted-foreground mb-4">
-                Você precisa ter pelo menos um cliente cadastrado para gerar criativos.
+                Você precisa ter pelo menos um cliente cadastrado para gerar
+                criativos.
               </p>
-              <Button onClick={() => window.open('/clientes', '_blank')}>
+              <Button onClick={() => window.open("/clientes", "_blank")}>
                 Cadastrar Cliente
               </Button>
             </div>

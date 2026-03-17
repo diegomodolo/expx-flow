@@ -72,6 +72,7 @@ export function TaskApprovalIndicator({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          aria-label="Tarefas aguardando sua aprovação"
           variant="ghost"
           size="icon"
           className="relative w-10 h-10 rounded-full hover:bg-muted/60"

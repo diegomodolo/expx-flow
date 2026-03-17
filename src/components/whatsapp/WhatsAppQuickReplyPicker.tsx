@@ -1,9 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Zap, FileText, Image, Video, Mic, File } from 'lucide-react';
-import { QuickReply } from '@/hooks/useWhatsAppQuickReplies';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Zap, FileText, Image, Video, Mic, File } from "lucide-react";
+import { QuickReply } from "@/hooks/useWhatsAppQuickReplies";
 
 interface WhatsAppQuickReplyPickerProps {
   quickReplies: QuickReply[];
@@ -14,50 +25,60 @@ interface WhatsAppQuickReplyPickerProps {
   onClose?: () => void;
 }
 
-const getTypeIcon = (type: QuickReply['type']) => {
+const getTypeIcon = (type: QuickReply["type"]) => {
   switch (type) {
-    case 'text':
+    case "text":
       return <FileText className="h-4 w-4 text-muted-foreground" />;
-    case 'image':
+    case "image":
       return <Image className="h-4 w-4 text-blue-500" />;
-    case 'video':
+    case "video":
       return <Video className="h-4 w-4 text-purple-500" />;
-    case 'audio':
-    case 'myaudio':
-    case 'ptt':
+    case "audio":
+    case "myaudio":
+    case "ptt":
       return <Mic className="h-4 w-4 text-green-500" />;
-    case 'document':
+    case "document":
       return <File className="h-4 w-4 text-orange-500" />;
     default:
       return <FileText className="h-4 w-4 text-muted-foreground" />;
   }
 };
 
-const getTypeLabel = (type: QuickReply['type']) => {
+const getTypeLabel = (type: QuickReply["type"]) => {
   switch (type) {
-    case 'text': return 'Texto';
-    case 'image': return 'Imagem';
-    case 'video': return 'Vídeo';
-    case 'audio': return 'Áudio';
-    case 'myaudio': return 'Áudio';
-    case 'ptt': return 'Áudio';
-    case 'document': return 'Documento';
-    default: return type;
+    case "text":
+      return "Texto";
+    case "image":
+      return "Imagem";
+    case "video":
+      return "Vídeo";
+    case "audio":
+      return "Áudio";
+    case "myaudio":
+      return "Áudio";
+    case "ptt":
+      return "Áudio";
+    case "document":
+      return "Documento";
+    default:
+      return type;
   }
 };
 
-export const WhatsAppQuickReplyPicker: React.FC<WhatsAppQuickReplyPickerProps> = ({
+export const WhatsAppQuickReplyPicker: React.FC<
+  WhatsAppQuickReplyPickerProps
+> = ({
   quickReplies,
   isLoading,
   onSelect,
-  searchTerm = '',
+  searchTerm = "",
   showAsPopover = true,
-  onClose
+  onClose,
 }) => {
   const [open, setOpen] = useState(false);
-  const [internalSearch, setInternalSearch] = useState('');
+  const [internalSearch, setInternalSearch] = useState("");
 
-  const filteredReplies = quickReplies.filter(qr => {
+  const filteredReplies = quickReplies.filter((qr) => {
     const search = (searchTerm || internalSearch).toLowerCase();
     if (!search) return true;
     return (
@@ -74,14 +95,14 @@ export const WhatsAppQuickReplyPicker: React.FC<WhatsAppQuickReplyPickerProps> =
 
   const commandContent = (
     <Command className="rounded-lg border shadow-md">
-      <CommandInput 
-        placeholder="Buscar atalho..." 
+      <CommandInput
+        placeholder="Buscar atalho..."
         value={searchTerm || internalSearch}
         onValueChange={setInternalSearch}
       />
       <CommandList>
         <CommandEmpty>
-          {isLoading ? 'Carregando...' : 'Nenhuma resposta rápida encontrada'}
+          {isLoading ? "Carregando..." : "Nenhuma resposta rápida encontrada"}
         </CommandEmpty>
         <CommandGroup heading="Respostas Rápidas">
           {filteredReplies.map((qr) => (
@@ -91,9 +112,7 @@ export const WhatsAppQuickReplyPicker: React.FC<WhatsAppQuickReplyPickerProps> =
               onSelect={() => handleSelect(qr)}
               className="flex items-start gap-3 p-3 cursor-pointer"
             >
-              <div className="flex-shrink-0 mt-0.5">
-                {getTypeIcon(qr.type)}
-              </div>
+              <div className="flex-shrink-0 mt-0.5">{getTypeIcon(qr.type)}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">/{qr.shortCut}</span>
@@ -111,7 +130,7 @@ export const WhatsAppQuickReplyPicker: React.FC<WhatsAppQuickReplyPickerProps> =
                     {qr.text}
                   </p>
                 )}
-                {qr.type !== 'text' && qr.docName && (
+                {qr.type !== "text" && qr.docName && (
                   <p className="text-xs text-muted-foreground mt-1">
                     📎 {qr.docName}
                   </p>
@@ -132,6 +151,7 @@ export const WhatsAppQuickReplyPicker: React.FC<WhatsAppQuickReplyPickerProps> =
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          aria-label="Respostas rápidas"
           variant="ghost"
           size="icon"
           className="h-8 w-8"

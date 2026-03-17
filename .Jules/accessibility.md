@@ -14,3 +14,8 @@
 
 **Learning:** Some status badges use light colors on white backgrounds with insufficient contrast ratio.
 **Action:** Ensure all text meets WCAG AA minimum contrast ratio of 4.5:1 for normal text.
+
+## 2026-03-10 - Generic alt and aria-label handling
+
+**Learning:** When addressing accessibility issues across many files for `<img/>` and `<Button size="icon">` components, it is crucial to at least ensure generic placeholders (`alt="Imagem descritiva"`, `aria-label="Ação"`) exist.
+**Action:** Enforce generic accessibility fallbacks when no explicit description can be auto-inferred. This acts as a foundation that can be manually improved over time.

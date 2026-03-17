@@ -383,7 +383,7 @@ export function WhatsAppMessageBubble({
             {/* Reply button */}
             {onReply && (
               <Button
-                aria-label="Ação"
+                aria-label="Responder"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -473,7 +473,7 @@ export function WhatsAppMessageBubble({
             {/* Reply button */}
             {onReply && (
               <Button
-                aria-label="Ação"
+                aria-label="Responder"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
