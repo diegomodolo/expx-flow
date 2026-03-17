@@ -1,6 +1,9 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useUserNotifications, UserNotification } from "@/hooks/useUserNotifications";
+import {
+  useUserNotifications,
+  UserNotification,
+} from "@/hooks/useUserNotifications";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,8 +11,19 @@ import { useNavigate } from "react-router-dom";
 import { useTasks } from "@/hooks/useTasks";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import {
-  Bell, CheckCheck, MessageSquare, AlertTriangle, Sparkles,
-  ClipboardList, Megaphone, User, Zap, Search, Filter, X, CircleCheck
+  Bell,
+  CheckCheck,
+  MessageSquare,
+  AlertTriangle,
+  Sparkles,
+  ClipboardList,
+  Megaphone,
+  User,
+  Zap,
+  Search,
+  Filter,
+  X,
+  CircleCheck,
 } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,14 +32,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 // ─── Type maps ────────────────────────────────────────────────────────────────
@@ -94,7 +120,14 @@ export default function Notificacoes() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { notifications, chatNotifications, totalUnreadCount, unreadCount, markAsRead, markAllAsRead } = useUserNotifications();
+  const {
+    notifications,
+    chatNotifications,
+    totalUnreadCount,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+  } = useUserNotifications();
   const { updateTask } = useTasks();
 
   // Task dialog state
@@ -110,17 +143,30 @@ export default function Notificacoes() {
   // ── Chat mark read mutation ────────────────────────────────────────────────
   const markChatRead = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("internal_notifications" as unknown).update({ is_read: true }).eq("id", id);
+      await supabase
+        .from("internal_notifications" as unknown)
+        .update({ is_read: true })
+        .eq("id", id);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["internal-notifications-unified", user?.id] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["internal-notifications-unified", user?.id],
+      }),
   });
 
   const markAllChatRead = useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
-      await supabase.from("internal_notifications" as unknown).update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+      await supabase
+        .from("internal_notifications" as unknown)
+        .update({ is_read: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["internal-notifications-unified", user?.id] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["internal-notifications-unified", user?.id],
+      }),
   });
 
   // ── Merged & sorted list ───────────────────────────────────────────────────
@@ -147,7 +193,10 @@ export default function Notificacoes() {
       source_id: n.task_id || n.channel_id || null,
       _source: "chat" as const,
     }));
-    return [...u, ...c].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return [...u, ...c].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
   }, [notifications, chatNotifications]);
 
   // ── Filtered list ──────────────────────────────────────────────────────────
@@ -158,7 +207,11 @@ export default function Notificacoes() {
       if (readFilter === "read" && !n.is_read) return false;
       if (search) {
         const q = search.toLowerCase();
-        if (!n.title.toLowerCase().includes(q) && !(n.body || "").toLowerCase().includes(q)) return false;
+        if (
+          !n.title.toLowerCase().includes(q) &&
+          !(n.body || "").toLowerCase().includes(q)
+        )
+          return false;
       }
       return true;
     });
@@ -186,7 +239,9 @@ export default function Notificacoes() {
       // Fetch task data then open dialog
       const { data } = await supabase
         .from("tasks")
-        .select("*")
+        .select(
+          "id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata",
+        )
         .eq("id", item.source_id)
         .single();
       if (data) {
@@ -198,7 +253,13 @@ export default function Notificacoes() {
 
     // For chat notifications with task_id
     if (item._source === "chat" && item.source_id) {
-      const { data } = await supabase.from("tasks").select("*").eq("id", item.source_id).single();
+      const { data } = await supabase
+        .from("tasks")
+        .select(
+          "id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata",
+        )
+        .eq("id", item.source_id)
+        .single();
       if (data) {
         setSelectedTaskData(data);
         setTaskDialogOpen(true);
@@ -238,7 +299,9 @@ export default function Notificacoes() {
   };
 
   const markSelectedRead = () => {
-    filtered.filter((n) => selected.has(n.id) && !n.is_read).forEach((n) => markRead(n));
+    filtered
+      .filter((n) => selected.has(n.id) && !n.is_read)
+      .forEach((n) => markRead(n));
     setSelected(new Set());
   };
 
@@ -253,12 +316,13 @@ export default function Notificacoes() {
     <DashboardLayout>
       {/* Full-height flex column */}
       <div className="flex flex-col h-full -m-8 min-h-0">
-
         {/* ─ Top bar ─────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-8 py-4 border-b border-border bg-card shrink-0">
           <div className="flex items-center gap-3">
             <Bell className="w-5 h-5 text-muted-foreground" />
-            <h1 className="text-lg font-semibold text-foreground">Notificações</h1>
+            <h1 className="text-lg font-semibold text-foreground">
+              Notificações
+            </h1>
             {totalUnreadCount > 0 && (
               <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive text-xs">
                 {totalUnreadCount} não lida{totalUnreadCount !== 1 ? "s" : ""}
@@ -267,13 +331,23 @@ export default function Notificacoes() {
           </div>
           <div className="flex items-center gap-2">
             {selected.size > 0 && (
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={markSelectedRead}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={markSelectedRead}
+              >
                 <CircleCheck className="w-3.5 h-3.5" />
                 Marcar {selected.size} como lida{selected.size !== 1 ? "s" : ""}
               </Button>
             )}
             {totalUnreadCount > 0 && (
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleMarkAll}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={handleMarkAll}
+              >
                 <CheckCheck className="w-3.5 h-3.5" />
                 Marcar todas como lidas
               </Button>
@@ -292,7 +366,10 @@ export default function Notificacoes() {
               className="pl-9 h-8 text-sm"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -316,7 +393,9 @@ export default function Notificacoes() {
             <SelectContent>
               <SelectItem value="all">Todos os tipos</SelectItem>
               {availableTypes.map((t) => (
-                <SelectItem key={t} value={t}>{typeLabelMap[t] || t}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {typeLabelMap[t] || t}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -326,7 +405,11 @@ export default function Notificacoes() {
               variant="ghost"
               size="sm"
               className="h-8 text-xs text-muted-foreground gap-1"
-              onClick={() => { setSearch(""); setTypeFilter("all"); setReadFilter("all"); }}
+              onClick={() => {
+                setSearch("");
+                setTypeFilter("all");
+                setReadFilter("all");
+              }}
             >
               <X className="w-3 h-3" /> Limpar filtros
             </Button>
@@ -334,7 +417,8 @@ export default function Notificacoes() {
 
           <span className="ml-auto text-xs text-muted-foreground">
             {filtered.length} notificaç{filtered.length !== 1 ? "ões" : "ão"}
-            {unreadCount_filtered > 0 && ` · ${unreadCount_filtered} não lida${unreadCount_filtered !== 1 ? "s" : ""}`}
+            {unreadCount_filtered > 0 &&
+              ` · ${unreadCount_filtered} não lida${unreadCount_filtered !== 1 ? "s" : ""}`}
           </span>
         </div>
 
@@ -345,7 +429,15 @@ export default function Notificacoes() {
               <Bell className="w-12 h-12 opacity-20" />
               <p className="text-sm">Nenhuma notificação encontrada</p>
               {(search || typeFilter !== "all" || readFilter !== "all") && (
-                <Button variant="outline" size="sm" onClick={() => { setSearch(""); setTypeFilter("all"); setReadFilter("all"); }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearch("");
+                    setTypeFilter("all");
+                    setReadFilter("all");
+                  }}
+                >
                   Limpar filtros
                 </Button>
               )}
@@ -356,7 +448,9 @@ export default function Notificacoes() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-10 pl-8">
                     <Checkbox
-                      checked={selected.size === filtered.length && filtered.length > 0}
+                      checked={
+                        selected.size === filtered.length && filtered.length > 0
+                      }
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
@@ -369,19 +463,23 @@ export default function Notificacoes() {
               <TableBody>
                 {filtered.map((item) => {
                   const Icon = typeIconMap[item.type] || Bell;
-                  const colorClass = typeColorMap[item.type] || "text-muted-foreground bg-muted";
+                  const colorClass =
+                    typeColorMap[item.type] || "text-muted-foreground bg-muted";
                   const label = typeLabelMap[item.type] || "Sistema";
                   return (
                     <TableRow
                       key={`${item._source}-${item.id}`}
                       className={cn(
                         "cursor-pointer group",
-                        !item.is_read && "bg-primary/[0.03]"
+                        !item.is_read && "bg-primary/[0.03]",
                       )}
                       onClick={() => handleClick(item)}
                     >
                       {/* Checkbox */}
-                      <TableCell className="pl-8 w-10" onClick={(e) => e.stopPropagation()}>
+                      <TableCell
+                        className="pl-8 w-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Checkbox
                           checked={selected.has(item.id)}
                           onCheckedChange={() => toggleSelect(item.id)}
@@ -398,18 +496,29 @@ export default function Notificacoes() {
                       {/* Content */}
                       <TableCell>
                         <div className="flex items-start gap-3">
-                          <div className={cn("shrink-0 p-1.5 rounded-md mt-0.5", colorClass)}>
+                          <div
+                            className={cn(
+                              "shrink-0 p-1.5 rounded-md mt-0.5",
+                              colorClass,
+                            )}
+                          >
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           <div className="min-w-0">
-                            <p className={cn(
-                              "text-sm leading-snug truncate",
-                              !item.is_read ? "font-semibold text-foreground" : "text-foreground/80"
-                            )}>
+                            <p
+                              className={cn(
+                                "text-sm leading-snug truncate",
+                                !item.is_read
+                                  ? "font-semibold text-foreground"
+                                  : "text-foreground/80",
+                              )}
+                            >
                               {item.title}
                             </p>
                             {item.body && (
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.body}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                {item.body}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -417,14 +526,20 @@ export default function Notificacoes() {
 
                       {/* Type */}
                       <TableCell>
-                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] h-5 px-1.5 font-normal"
+                        >
                           {label}
                         </Badge>
                       </TableCell>
 
                       {/* Time */}
                       <TableCell className="text-xs text-muted-foreground text-right pr-8 whitespace-nowrap">
-                        {formatDistanceToNow(parseISO(item.created_at), { addSuffix: true, locale: ptBR })}
+                        {formatDistanceToNow(parseISO(item.created_at), {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
                       </TableCell>
                     </TableRow>
                   );

@@ -153,14 +153,24 @@ export const useEmployees = () => {
         .eq("company_id", activeCompany.company_id)
         .single();
 
-      if (
-        roleError ||
-        !userRole ||
-        !["owner", "admin"].includes(userRole.role)
-      ) {
-        throw new Error(
-          "Você não tem permissão para criar colaboradores. Apenas owners e admins podem realizar esta ação.",
-        );
+      const isOwnerOrAdmin =
+        !roleError && userRole && ["owner", "admin"].includes(userRole.role);
+
+      if (!isOwnerOrAdmin) {
+        // Verificar se tem permissão específica de 'colaboradores'
+        const { data: permData } = await supabase
+          .from("employee_permissions")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("company_id", activeCompany.company_id)
+          .eq("menu_item", "colaboradores" as any)
+          .maybeSingle();
+
+        if (!permData) {
+          throw new Error(
+            "Você não tem permissão para criar colaboradores. Apenas owners, admins ou usuários com permissão de colaboradores podem realizar esta ação.",
+          );
+        }
       }
 
       // 1. Verificar se o colaborador já existe na empresa atual
@@ -350,14 +360,24 @@ export const useEmployees = () => {
         .eq("company_id", activeCompany.company_id)
         .single();
 
-      if (
-        roleError ||
-        !userRole ||
-        !["owner", "admin"].includes(userRole.role)
-      ) {
-        throw new Error(
-          "Você não tem permissão para atualizar colaboradores. Apenas owners e admins podem realizar esta ação.",
-        );
+      const isOwnerOrAdmin =
+        !roleError && userRole && ["owner", "admin"].includes(userRole.role);
+
+      if (!isOwnerOrAdmin) {
+        // Verificar se tem permissão específica de 'colaboradores'
+        const { data: permData } = await supabase
+          .from("employee_permissions")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("company_id", activeCompany.company_id)
+          .eq("menu_item", "colaboradores" as any)
+          .maybeSingle();
+
+        if (!permData) {
+          throw new Error(
+            "Você não tem permissão para atualizar colaboradores. Apenas owners, admins ou usuários com permissão de colaboradores podem realizar esta ação.",
+          );
+        }
       }
 
       const { data, error } = await supabase

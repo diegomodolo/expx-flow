@@ -1,29 +1,42 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { LeadIntelligenceLayout } from "@/components/leads/LeadIntelligenceLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  Instagram, 
-  Download, 
-  Phone, 
-  Mail, 
-  Globe, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  Instagram,
+  Download,
+  Phone,
+  Mail,
+  Globe,
+  Loader2,
+  CheckCircle2,
   AlertTriangle,
   ExternalLink,
   BadgeCheck,
-  Building2
+  Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -55,20 +68,24 @@ const COOKIES_EXAMPLE = `[
 export default function InstagramProspectingPage() {
   const { toast } = useToast();
   const { activeCompany } = useCompany();
-  
+
   const [targetUsername, setTargetUsername] = useState("");
   const [quantity, setQuantity] = useState([50]);
   const [instagramCookies, setInstagramCookies] = useState("");
-  
+
   // Filters
   const [requirePhone, setRequirePhone] = useState(false);
   const [requireEmail, setRequireEmail] = useState(false);
-  
+
   const [isSearching, setIsSearching] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showDestinationModal, setShowDestinationModal] = useState(false);
   const [leads, setLeads] = useState<InstagramLead[]>([]);
-  const [searchProgress, setSearchProgress] = useState({ step: 0, message: "", detail: "" });
+  const [searchProgress, setSearchProgress] = useState({
+    step: 0,
+    message: "",
+    detail: "",
+  });
   const [progressMessages, setProgressMessages] = useState<string[]>([]);
   const [foundCount, setFoundCount] = useState(0);
 
@@ -111,12 +128,13 @@ export default function InstagramProspectingPage() {
     setSearchProgress({
       step: 1,
       message: "Iniciando prospecção...",
-      detail: `Buscando seguidores de @${targetUsername.replace('@', '')}`,
+      detail: `Buscando seguidores de @${targetUsername.replace("@", "")}`,
     });
 
     let messageIndex = 0;
     const intervalId = window.setInterval(() => {
-      const newMessage = animationMessages[messageIndex % animationMessages.length];
+      const newMessage =
+        animationMessages[messageIndex % animationMessages.length];
       setProgressMessages((prev) => [...prev.slice(-4), newMessage]);
       setSearchProgress((prev) => ({
         ...prev,
@@ -134,29 +152,38 @@ export default function InstagramProspectingPage() {
     }, 3000);
 
     try {
-      const { data, error } = await supabase.functions.invoke("prospect-instagram-followers", {
-        body: {
-          targetUsername: targetUsername.replace('@', ''),
-          maxResults: quantity[0],
-          extractContacts: true,
-          requireEmail,
-          requirePhone,
-          instagramCookies,
+      const { data, error } = await supabase.functions.invoke(
+        "prospect-instagram-followers",
+        {
+          body: {
+            targetUsername: targetUsername.replace("@", ""),
+            maxResults: quantity[0],
+            extractContacts: true,
+            requireEmail,
+            requirePhone,
+            instagramCookies,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
-      setSearchProgress({ step: 4, message: "Finalizando...", detail: "Preparando resultados" });
+      setSearchProgress({
+        step: 4,
+        message: "Finalizando...",
+        detail: "Preparando resultados",
+      });
 
       if (!data?.success) {
         throw new Error(data?.error || "Erro na busca");
       }
 
-      const leadsWithSelection = (data.leads || []).map((lead: InstagramLead) => ({
-        ...lead,
-        selected: true,
-      }));
+      const leadsWithSelection = (data.leads || []).map(
+        (lead: InstagramLead) => ({
+          ...lead,
+          selected: true,
+        }),
+      );
 
       setLeads(leadsWithSelection);
       setFoundCount(leadsWithSelection.length);
@@ -165,12 +192,14 @@ export default function InstagramProspectingPage() {
         title: "Busca concluída",
         description: `${leadsWithSelection.length} leads encontrados de ${data.totalFound} seguidores`,
       });
-
     } catch (error) {
       console.error("Search error:", error);
       toast({
         title: "Erro na busca",
-        description: error instanceof Error ? error.message : "Falha ao prospectar seguidores",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Falha ao prospectar seguidores",
         variant: "destructive",
       });
     } finally {
@@ -181,18 +210,22 @@ export default function InstagramProspectingPage() {
   };
 
   const toggleLeadSelection = (index: number) => {
-    setLeads(prev => prev.map((lead, i) => 
-      i === index ? { ...lead, selected: !lead.selected } : lead
-    ));
+    setLeads((prev) =>
+      prev.map((lead, i) =>
+        i === index ? { ...lead, selected: !lead.selected } : lead,
+      ),
+    );
   };
 
   const toggleAllSelection = () => {
-    const allSelected = leads.every(l => l.selected);
-    setLeads(prev => prev.map(lead => ({ ...lead, selected: !allSelected })));
+    const allSelected = leads.every((l) => l.selected);
+    setLeads((prev) =>
+      prev.map((lead) => ({ ...lead, selected: !allSelected })),
+    );
   };
 
   const handleImportClick = () => {
-    const selectedLeads = leads.filter(l => l.selected);
+    const selectedLeads = leads.filter((l) => l.selected);
     if (selectedLeads.length === 0) {
       toast({
         title: "Nenhum lead selecionado",
@@ -204,7 +237,10 @@ export default function InstagramProspectingPage() {
     setShowDestinationModal(true);
   };
 
-  const handleImport = async (destinations: { cnaePool: boolean; segmentId: string | null }) => {
+  const handleImport = async (destinations: {
+    cnaePool: boolean;
+    segmentId: string | null;
+  }) => {
     if (!activeCompany) {
       toast({
         title: "Empresa não selecionada",
@@ -214,7 +250,7 @@ export default function InstagramProspectingPage() {
       return;
     }
 
-    const selectedLeads = leads.filter(l => l.selected);
+    const selectedLeads = leads.filter((l) => l.selected);
     if (selectedLeads.length === 0) return;
 
     setIsImporting(true);
@@ -222,60 +258,72 @@ export default function InstagramProspectingPage() {
     try {
       // Import to CNAE Pool
       if (destinations.cnaePool) {
-        let successCount = 0;
-        for (const lead of selectedLeads) {
-          const cnpjValue = `IG-${lead.instagram_username}-${Date.now()}`;
-          
-          const { error } = await supabase
-            .from('cnae_lead_pool')
-            .upsert({
-              company_id: activeCompany.company_id,
-              cnpj: cnpjValue,
-              cnae_code: "0000-0/00",
-              cnae_description: "Instagram Followers",
-              nome_fantasia: lead.nome_fantasia,
-              razao_social: lead.razao_social,
-              phone: lead.phone,
-              phone_2: lead.phone_2,
-              email: lead.email,
-              source: 'instagram_prospecting',
-            }, { 
-              onConflict: 'cnpj,company_id',
-              ignoreDuplicates: true 
-            });
+        const cnaeLeads = selectedLeads.map((lead) => ({
+          company_id: activeCompany.company_id,
+          cnpj: `IG-${lead.instagram_username}-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          cnae_code: "0000-0/00",
+          cnae_description: "Instagram Followers",
+          nome_fantasia: lead.nome_fantasia,
+          razao_social: lead.razao_social,
+          phone: lead.phone,
+          phone_2: lead.phone_2,
+          email: lead.email,
+          source: "instagram_prospecting",
+        }));
 
-          if (!error) successCount++;
-        }
+        await supabase.from("cnae_lead_pool").upsert(cnaeLeads, {
+          onConflict: "cnpj,company_id",
+          ignoreDuplicates: true,
+        });
       }
 
       // Import to custom segment
       if (destinations.segmentId) {
-        for (const lead of selectedLeads) {
-          const { data: insertedLead, error: leadError } = await supabase
-            .from('lead_master_pool')
-            .insert({
-              company_id: activeCompany.company_id,
-              full_name: lead.nome_fantasia,
-              email: lead.email,
-              phone: lead.phone,
-              whatsapp: lead.phone,
-              instagram_handle: lead.instagram_username,
-              acquisition_channel: 'instagram_prospecting',
-              source: 'instagram_prospecting',
-            })
-            .select('id')
-            .single();
+        const masterLeads = selectedLeads.map((lead) => ({
+          company_id: activeCompany.company_id,
+          full_name: lead.nome_fantasia,
+          email: lead.email,
+          phone: lead.phone,
+          whatsapp: lead.phone,
+          instagram_handle: lead.instagram_username,
+          acquisition_channel: "instagram_prospecting",
+          source: "instagram_prospecting",
+        }));
 
-          if (leadError) continue;
+        // Let's use a batch insert and if it fails, fallback to single inserts to mimic old behavior perfectly.
 
-          if (insertedLead) {
-            await supabase
-              .from('lead_segment_assignments')
-              .insert({
-                lead_id: insertedLead.id,
-                segment_id: destinations.segmentId,
-              });
+        const { data: insertedLeads, error: leadError } = await supabase
+          .from("lead_master_pool")
+          .insert(masterLeads as unknown)
+          .select("id");
+
+        let leadsToAssign = insertedLeads || [];
+
+        if (leadError) {
+          // Fallback to single inserts if batch fails due to unique constraint
+          leadsToAssign = [];
+          for (const lead of masterLeads) {
+            const { data: singleLead, error: singleError } = await supabase
+              .from("lead_master_pool")
+              .insert(lead as unknown)
+              .select("id")
+              .maybeSingle();
+
+            if (!singleError && singleLead) {
+              leadsToAssign.push(singleLead);
+            }
           }
+        }
+
+        if (leadsToAssign.length > 0) {
+          const segmentAssignments = leadsToAssign.map((insertedLead) => ({
+            lead_id: insertedLead.id,
+            segment_id: destinations.segmentId,
+          }));
+
+          await supabase
+            .from("lead_segment_assignments")
+            .insert(segmentAssignments);
         }
       }
 
@@ -289,12 +337,13 @@ export default function InstagramProspectingPage() {
       });
 
       setShowDestinationModal(false);
-      setLeads(prev => prev.filter(l => !l.selected));
+      setLeads((prev) => prev.filter((l) => !l.selected));
     } catch (error) {
-      console.error('Import error:', error);
+      console.error("Import error:", error);
       toast({
         title: "Erro na importação",
-        description: error instanceof Error ? error.message : "Falha ao importar leads",
+        description:
+          error instanceof Error ? error.message : "Falha ao importar leads",
         variant: "destructive",
       });
     } finally {
@@ -302,31 +351,43 @@ export default function InstagramProspectingPage() {
     }
   };
 
-  const selectedCount = leads.filter(l => l.selected).length;
-  const businessCount = leads.filter(l => l.is_business).length;
-  const withEmailCount = leads.filter(l => l.email).length;
-  const withPhoneCount = leads.filter(l => l.phone).length;
+  const selectedCount = leads.filter((l) => l.selected).length;
+  const businessCount = leads.filter((l) => l.is_business).length;
+  const withEmailCount = leads.filter((l) => l.email).length;
+  const withPhoneCount = leads.filter((l) => l.phone).length;
 
   return (
     <DashboardLayout>
       <LeadIntelligenceLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Prospecção Instagram</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Prospecção Instagram
+            </h1>
             <p className="text-muted-foreground">
               Extraia leads a partir dos seguidores de um perfil do Instagram
             </p>
           </div>
 
           {/* Warning Alert */}
-          <Alert variant="destructive" className="border-amber-500/50 bg-amber-500/10">
+          <Alert
+            variant="destructive"
+            className="border-amber-500/50 bg-amber-500/10"
+          >
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <AlertTitle className="text-amber-500">Atenção: Riscos e Limitações</AlertTitle>
+            <AlertTitle className="text-amber-500">
+              Atenção: Riscos e Limitações
+            </AlertTitle>
             <AlertDescription className="text-muted-foreground">
               <ul className="list-disc list-inside space-y-1 mt-2">
-                <li>Esta funcionalidade viola os Termos de Serviço do Instagram</li>
+                <li>
+                  Esta funcionalidade viola os Termos de Serviço do Instagram
+                </li>
                 <li>A conta usada para autenticação pode ser bloqueada</li>
-                <li>Taxa de sucesso para contatos: 5-15% (só perfis que expõem email/telefone)</li>
+                <li>
+                  Taxa de sucesso para contatos: 5-15% (só perfis que expõem
+                  email/telefone)
+                </li>
                 <li>Custo estimado: ~$2.50 por 1.000 seguidores</li>
               </ul>
             </AlertDescription>
@@ -347,7 +408,7 @@ export default function InstagramProspectingPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Username do Perfil Alvo</Label>
-                  <Input 
+                  <Input
                     placeholder="@restaurante_exemplo"
                     value={targetUsername}
                     onChange={(e) => setTargetUsername(e.target.value)}
@@ -383,39 +444,52 @@ export default function InstagramProspectingPage() {
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Extraia os cookies da sua sessão do Instagram (sessionid, csrftoken, ds_user_id)
+                  Extraia os cookies da sua sessão do Instagram (sessionid,
+                  csrftoken, ds_user_id)
                 </p>
               </div>
 
               {/* Filters */}
               <div className="pt-4 border-t">
-                <Label className="text-sm font-medium mb-3 block">Filtros (só trazer leads que tenham):</Label>
+                <Label className="text-sm font-medium mb-3 block">
+                  Filtros (só trazer leads que tenham):
+                </Label>
                 <div className="flex flex-wrap gap-4">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="requirePhone" 
-                      checked={requirePhone} 
-                      onCheckedChange={(checked) => setRequirePhone(checked === true)} 
+                    <Checkbox
+                      id="requirePhone"
+                      checked={requirePhone}
+                      onCheckedChange={(checked) =>
+                        setRequirePhone(checked === true)
+                      }
                     />
-                    <Label htmlFor="requirePhone" className="text-sm flex items-center gap-1">
+                    <Label
+                      htmlFor="requirePhone"
+                      className="text-sm flex items-center gap-1"
+                    >
                       <Phone className="h-3.5 w-3.5" /> Telefone
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="requireEmail" 
-                      checked={requireEmail} 
-                      onCheckedChange={(checked) => setRequireEmail(checked === true)} 
+                    <Checkbox
+                      id="requireEmail"
+                      checked={requireEmail}
+                      onCheckedChange={(checked) =>
+                        setRequireEmail(checked === true)
+                      }
                     />
-                    <Label htmlFor="requireEmail" className="text-sm flex items-center gap-1">
+                    <Label
+                      htmlFor="requireEmail"
+                      className="text-sm flex items-center gap-1"
+                    >
                       <Mail className="h-3.5 w-3.5" /> Email
                     </Label>
                   </div>
                 </div>
               </div>
 
-              <Button 
-                onClick={handleSearch} 
+              <Button
+                onClick={handleSearch}
                 disabled={isSearching}
                 className="w-full"
               >
@@ -440,13 +514,20 @@ export default function InstagramProspectingPage() {
               <CardContent className="py-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{searchProgress.message}</span>
-                    <span className="text-sm text-muted-foreground">{foundCount} encontrados</span>
+                    <span className="text-sm font-medium">
+                      {searchProgress.message}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {foundCount} encontrados
+                    </span>
                   </div>
                   <Progress value={(searchProgress.step / 4) * 100} />
                   <div className="space-y-1">
                     {progressMessages.map((msg, i) => (
-                      <p key={i} className="text-xs text-muted-foreground flex items-center gap-2">
+                      <p
+                        key={i}
+                        className="text-xs text-muted-foreground flex items-center gap-2"
+                      >
                         <CheckCircle2 className="h-3 w-3 text-green-500" />
                         {msg}
                       </p>
@@ -465,10 +546,14 @@ export default function InstagramProspectingPage() {
                   <div>
                     <CardTitle>Seguidores Encontrados</CardTitle>
                     <CardDescription>
-                      {leads.length} leads • {businessCount} contas comerciais • {withEmailCount} com email • {withPhoneCount} com telefone
+                      {leads.length} leads • {businessCount} contas comerciais •{" "}
+                      {withEmailCount} com email • {withPhoneCount} com telefone
                     </CardDescription>
                   </div>
-                  <Button onClick={handleImportClick} disabled={selectedCount === 0 || isImporting}>
+                  <Button
+                    onClick={handleImportClick}
+                    disabled={selectedCount === 0 || isImporting}
+                  >
                     {isImporting ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -483,8 +568,8 @@ export default function InstagramProspectingPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[50px]">
-                        <Checkbox 
-                          checked={leads.every(l => l.selected)}
+                        <Checkbox
+                          checked={leads.every((l) => l.selected)}
                           onCheckedChange={toggleAllSelection}
                         />
                       </TableHead>
@@ -498,16 +583,16 @@ export default function InstagramProspectingPage() {
                     {leads.map((lead, index) => (
                       <TableRow key={index}>
                         <TableCell>
-                          <Checkbox 
+                          <Checkbox
                             checked={lead.selected}
                             onCheckedChange={() => toggleLeadSelection(index)}
                           />
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <a 
-                              href={lead.profile_url} 
-                              target="_blank" 
+                            <a
+                              href={lead.profile_url}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="text-primary hover:underline flex items-center gap-1"
                             >
@@ -541,7 +626,9 @@ export default function InstagramProspectingPage() {
                               </Badge>
                             )}
                             {!lead.email && !lead.phone && !lead.website && (
-                              <span className="text-xs text-muted-foreground">Sem contato público</span>
+                              <span className="text-xs text-muted-foreground">
+                                Sem contato público
+                              </span>
                             )}
                           </div>
                         </TableCell>

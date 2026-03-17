@@ -268,15 +268,20 @@ export function PermissionGroupsSettings() {
     setSelectedEmployeeIds([]);
   };
 
+  const employeesMap = React.useMemo(() => {
+    return new Map(employeesWithPermissions.map((e) => [e.id, e]));
+  }, [employeesWithPermissions]);
+
+  const groupsMap = React.useMemo(() => {
+    return new Map(groups.map((g) => [g.id, g]));
+  }, [groups]);
+
   const getEmployeeName = (employeeId: string) => {
-    return (
-      employeesWithPermissions.find((e) => e.id === employeeId)?.name ||
-      "Desconhecido"
-    );
+    return employeesMap.get(employeeId)?.name || "Desconhecido";
   };
 
   const getAvailableEmployees = (groupId: string) => {
-    const group = groups.find((g) => g.id === groupId);
+    const group = groupsMap.get(groupId);
     const memberIds = group?.members.map((m) => m.employee_id) || [];
     return employeesWithPermissions
       .filter((e) => !memberIds.includes(e.id))
@@ -643,10 +648,7 @@ export function PermissionGroupsSettings() {
                                         </span>
                                       )}
                                       {selectedEmployeeIds.map((empId) => {
-                                        const emp =
-                                          employeesWithPermissions.find(
-                                            (e) => e.id === empId,
-                                          );
+                                        const emp = employeesMap.get(empId);
                                         return (
                                           <Badge
                                             key={empId}
@@ -719,8 +721,8 @@ export function PermissionGroupsSettings() {
                                 ) : (
                                   <div className="space-y-2">
                                     {group.members.map((member) => {
-                                      const emp = employeesWithPermissions.find(
-                                        (e) => e.id === member.employee_id,
+                                      const emp = employeesMap.get(
+                                        member.employee_id,
                                       );
                                       return (
                                         <div
