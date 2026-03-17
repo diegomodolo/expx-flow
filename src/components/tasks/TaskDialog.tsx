@@ -329,74 +329,15 @@ export function TaskDialog({
     })),
   );
 
-  // Employees with boards for Quadro selector
-  // In roteiro mode, filter by selected responsible's user_id
-  // In kanban mode, filter by selected responsible's user_id
-  const selectedResponsibleUserId = (() => {
-    if (isRoteiro && formData.responsible_employee_id) {
-      const emp = employees?.find(
-        (e) => e.id === formData.responsible_employee_id,
-      );
-      return emp?.user_id || null;
-    }
-    if (!isRoteiro && formData.responsible_user_id) {
-      return formData.responsible_user_id || null;
-    }
-    return null;
-  })();
-
-  const employeesWithBoards = (() => {
-    // If a responsible is selected, always show them as a board option
-    if (selectedResponsibleUserId) {
-      const responsibleEmp =
-        employees?.filter((emp) => emp.user_id === selectedResponsibleUserId) ||
-        [];
-      if (responsibleEmp.length > 0) {
-        // Deduplicate by user_id
-        const seen = new Set<string>();
-        return responsibleEmp.filter((emp) => {
-          if (seen.has(emp.user_id)) return false;
-          seen.add(emp.user_id);
-          return true;
-        });
-      }
-    }
-    // Fallback: show all employees that have board columns
-    const all =
-      employees?.filter(
-        (emp) =>
-          emp.user_id && allColumns.some((col) => col.user_id === emp.user_id),
-      ) || [];
-    // Deduplicate by user_id
-    const seen = new Set<string>();
-    return all.filter((emp) => {
-      if (seen.has(emp.user_id)) return false;
-      seen.add(emp.user_id);
-      return true;
-    });
-  })();
+  // Board options for Quadro selector - use boards directly (correct user_ids)
+  const boardOptions = boards.map((b) => ({
+    user_id: b.user_id,
+    name: b.owner_name,
+  }));
 
   const filteredColumns = formData.quadro_user_id
     ? allColumns.filter((col) => col.user_id === formData.quadro_user_id)
     : [];
-
-  // DEBUG: remove after fix
-  console.log(
-    "[TaskDialog] boards:",
-    boards.length,
-    "allColumns:",
-    allColumns.length,
-    "quadro_user_id:",
-    formData.quadro_user_id,
-    "filteredColumns:",
-    filteredColumns.length,
-  );
-  if (allColumns.length > 0)
-    console.log("[TaskDialog] sample col user_ids:", [
-      ...new Set(allColumns.map((c) => c.user_id)),
-    ]);
-  if (formData.quadro_user_id)
-    console.log("[TaskDialog] looking for user_id:", formData.quadro_user_id);
 
   // Load user zoom preference
   useEffect(() => {
@@ -593,8 +534,15 @@ export function TaskDialog({
       }
     } else {
       // Determine default board for new tasks
+      // Try defaultBoardUserId first, then find a board matching current employee name
+      const currentEmpBoard = currentEmployeeName
+        ? boards.find((b) => b.owner_name === currentEmployeeName)
+        : null;
       const defaultQuadroUserId =
-        defaultBoardUserId || currentEmployeeUserId || "";
+        defaultBoardUserId ||
+        currentEmpBoard?.user_id ||
+        currentEmployeeUserId ||
+        "";
       const defaultQuadroColumnId = defaultQuadroUserId
         ? parsedColumns.find((c) => c.user_id === defaultQuadroUserId)?.id || ""
         : "";
@@ -744,10 +692,10 @@ export function TaskDialog({
       // Quadro
       if (formData.quadro_user_id !== (task.quadro_user_id || "")) {
         const oldBoard =
-          employeesWithBoards.find((e) => e.user_id === task.quadro_user_id)
-            ?.name || "Nenhum";
+          boardOptions.find((e) => e.user_id === task.quadro_user_id)?.name ||
+          "Nenhum";
         const newBoard =
-          employeesWithBoards.find((e) => e.user_id === formData.quadro_user_id)
+          boardOptions.find((e) => e.user_id === formData.quadro_user_id)
             ?.name || "Nenhum";
         if (oldBoard !== newBoard) {
           await logAutomatic(
@@ -1706,11 +1654,17 @@ export function TaskDialog({
                               value={formData.responsible_employee_id}
                               onValueChange={(v) => {
                                 const emp = employees?.find((e) => e.id === v);
-                                const empUserId = emp?.user_id || "";
+                                const empName = emp?.name || "";
+                                // Match board by owner_name since employee.user_id may differ from board user_id
+                                const matchedBoard = boards.find(
+                                  (b) => b.owner_name === empName,
+                                );
+                                const boardUserId =
+                                  matchedBoard?.user_id || emp?.user_id || "";
                                 setFormData((prev) => ({
                                   ...prev,
                                   responsible_employee_id: v,
-                                  quadro_user_id: empUserId,
+                                  quadro_user_id: boardUserId,
                                   quadro_column_id: "",
                                 }));
                               }}
@@ -1745,7 +1699,7 @@ export function TaskDialog({
                                 <SelectValue placeholder="Selecione..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {employeesWithBoards.map((e) => (
+                                {boardOptions.map((e) => (
                                   <SelectItem
                                     key={e.user_id}
                                     value={e.user_id!}
@@ -1903,8 +1857,16 @@ export function TaskDialog({
                                             )}
                                             onMouseDown={(e) => {
                                               e.preventDefault();
-                                              const empUserId =
-                                                employee.user_id || "";
+                                              // Match board by owner_name since employee.user_id may differ from board user_id
+                                              const matchedBoard = boards.find(
+                                                (b) =>
+                                                  b.owner_name ===
+                                                  employee.name,
+                                              );
+                                              const boardUserId =
+                                                matchedBoard?.user_id ||
+                                                employee.user_id ||
+                                                "";
                                               setFormData((prev) => ({
                                                 ...prev,
                                                 responsible_name: employee.name,
@@ -1912,8 +1874,9 @@ export function TaskDialog({
                                                   employee.avatar ||
                                                   employee.profile_avatar_url ||
                                                   "",
-                                                responsible_user_id: empUserId,
-                                                quadro_user_id: empUserId,
+                                                responsible_user_id:
+                                                  employee.user_id || "",
+                                                quadro_user_id: boardUserId,
                                                 quadro_column_id: "",
                                               }));
                                               setResponsibleSearch("");
@@ -1950,7 +1913,7 @@ export function TaskDialog({
                                   <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {employeesWithBoards.map((e) => (
+                                  {boardOptions.map((e) => (
                                     <SelectItem
                                       key={e.user_id}
                                       value={e.user_id!}
