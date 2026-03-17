@@ -329,15 +329,63 @@ export function TaskDialog({
     })),
   );
 
-  // Board options for Quadro selector - use boards directly (correct user_ids)
-  const boardOptions = boards.map((b) => ({
-    user_id: b.user_id,
-    name: b.owner_name,
-  }));
+  // Default columns for users without custom board columns (same as kanban fallback)
+  const DEFAULT_ETAPAS = [
+    { id: "default-todo", name: "Pendente", color: "#6B7280", order_index: 0 },
+    {
+      id: "default-progress",
+      name: "Em Andamento",
+      color: "#3B82F6",
+      order_index: 1,
+    },
+    {
+      id: "default-review",
+      name: "Em Revisão",
+      color: "#8B5CF6",
+      order_index: 2,
+    },
+    { id: "default-done", name: "Concluída", color: "#22C55E", order_index: 3 },
+  ];
 
-  const filteredColumns = formData.quadro_user_id
-    ? allColumns.filter((col) => col.user_id === formData.quadro_user_id)
-    : [];
+  // Board options: all boards from DB + ensure current user + all employees with boards
+  const authUid = user?.id || "";
+  const boardOptions = (() => {
+    const opts = boards.map((b) => ({
+      user_id: b.user_id,
+      name: b.owner_name,
+    }));
+    // Ensure every active employee appears as a board option
+    (employees || []).forEach((emp) => {
+      if (emp.user_id && !opts.some((o) => o.user_id === emp.user_id)) {
+        opts.push({ user_id: emp.user_id, name: emp.name });
+      }
+    });
+    // Ensure current auth user appears (in case employee.user_id differs)
+    if (authUid && !opts.some((o) => o.user_id === authUid)) {
+      const currentEmpName =
+        employees?.find((e) => e.user_id === authUid)?.name ||
+        boards.find((b) => b.user_id === authUid)?.owner_name ||
+        user?.user_metadata?.full_name ||
+        "Meu Quadro";
+      opts.push({ user_id: authUid, name: currentEmpName });
+    }
+    return opts.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  })();
+
+  const filteredColumns = (() => {
+    if (!formData.quadro_user_id) return [];
+    const cols = allColumns.filter(
+      (col) => col.user_id === formData.quadro_user_id,
+    );
+    // If user has no custom columns, return default etapas
+    if (cols.length === 0) {
+      return DEFAULT_ETAPAS.map((d) => ({
+        ...d,
+        user_id: formData.quadro_user_id,
+      }));
+    }
+    return cols;
+  })();
 
   // Load user zoom preference
   useEffect(() => {
