@@ -12,60 +12,126 @@ import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import IAChat from "./pages/IAChat";
 import Configuracoes from "./pages/Configuracoes";
-const ParametrosPerformancePage = React.lazy(() => import("./pages/ParametrosPerformancePage"));
+const ParametrosPerformancePage = React.lazy(
+  () => import("./pages/ParametrosPerformancePage"),
+);
 import PlannerConfigPage from "./pages/PlannerConfigPage";
 import Perfil from "./pages/Perfil";
 const Clientes = React.lazy(() => import("./pages/Clientes"));
 const ClienteDetalhes = React.lazy(() => import("./pages/ClienteDetalhes"));
 const Campanhas = React.lazy(() => import("./pages/Campanhas"));
-const CampanhasUnificadas = React.lazy(() => import("./pages/CampanhasUnificadas"));
+const CampanhasUnificadas = React.lazy(
+  () => import("./pages/CampanhasUnificadas"),
+);
 const CampanhaDetalhes = React.lazy(() => import("./pages/CampanhaDetalhes"));
 import Colaboradores from "./pages/Colaboradores";
 import WorkSchedules from "./pages/WorkSchedules";
 import Squad from "./pages/Squad";
 const SquadDashboard = React.lazy(() => import("./pages/SquadDashboard"));
-const SquadCommandCenter = React.lazy(() => import("./pages/SquadCommandCenter"));
-const BacklogCommandCenter = React.lazy(() => import("./pages/BacklogCommandCenter"));
+const SquadCommandCenter = React.lazy(
+  () => import("./pages/SquadCommandCenter"),
+);
+const BacklogCommandCenter = React.lazy(
+  () => import("./pages/BacklogCommandCenter"),
+);
 import Historias from "./pages/Historias";
 const AgentSquads = React.lazy(() => import("./pages/AgentSquads"));
 const AgentSquadEditor = React.lazy(() => import("./pages/AgentSquadEditor"));
 const Tarefas = React.lazy(() => import("./pages/Tarefas"));
 import TarefasRecorrentes from "./pages/TarefasRecorrentes";
 const Relatorios = React.lazy(() => import("./pages/Relatorios"));
-const RelatorioExecutivo = React.lazy(() => import("./pages/reports/RelatorioExecutivo"));
-const RelatorioFunil = React.lazy(() => import("./pages/reports/RelatorioFunil"));
-const RelatorioAnaliseCompetitiva = React.lazy(() => import("./pages/reports/RelatorioAnaliseCompetitiva"));
-const RelatorioClientesZonaCritica = React.lazy(() => import("./pages/reports/RelatorioClientesZonaCritica"));
-const RelatorioCriativosBaixoDesempenho = React.lazy(() => import("./pages/reports/RelatorioCriativosBaixoDesempenho"));
-const RelatorioCampanhasIneficientes = React.lazy(() => import("./pages/reports/RelatorioCampanhasIneficientes"));
-const RelatorioOrcamentoMalDistribuido = React.lazy(() => import("./pages/reports/RelatorioOrcamentoMalDistribuido"));
-const RelatorioOportunidades = React.lazy(() => import("./pages/reports/RelatorioOportunidades"));
-const RelatorioPerformanceCliente = React.lazy(() => import("./pages/reports/RelatorioPerformanceCliente"));
-const RelatorioCampanhas = React.lazy(() => import("./pages/reports/RelatorioCampanhas"));
-const RelatorioTarefasPlanner = React.lazy(() => import("./pages/reports/RelatorioTarefasPlanner"));
-const RelatorioProdutividadeSquads = React.lazy(() => import("./pages/reports/RelatorioProdutividadeSquads"));
-const RelatorioRHColaboradores = React.lazy(() => import("./pages/reports/RelatorioRHColaboradores"));
-const RelatorioAlertasCriticos = React.lazy(() => import("./pages/reports/RelatorioAlertasCriticos"));
-const RelatorioSnapshotsPerformance = React.lazy(() => import("./pages/reports/RelatorioSnapshotsPerformance"));
-const RelatorioSaldoPrePagos = React.lazy(() => import("./pages/reports/RelatorioSaldoPrePagos"));
-const RelatoriosMarketing = React.lazy(() => import("./pages/marketing/RelatoriosMarketing"));
+const RelatorioExecutivo = React.lazy(
+  () => import("./pages/reports/RelatorioExecutivo"),
+);
+const RelatorioFunil = React.lazy(
+  () => import("./pages/reports/RelatorioFunil"),
+);
+const RelatorioAnaliseCompetitiva = React.lazy(
+  () => import("./pages/reports/RelatorioAnaliseCompetitiva"),
+);
+const RelatorioClientesZonaCritica = React.lazy(
+  () => import("./pages/reports/RelatorioClientesZonaCritica"),
+);
+const RelatorioCriativosBaixoDesempenho = React.lazy(
+  () => import("./pages/reports/RelatorioCriativosBaixoDesempenho"),
+);
+const RelatorioCampanhasIneficientes = React.lazy(
+  () => import("./pages/reports/RelatorioCampanhasIneficientes"),
+);
+const RelatorioOrcamentoMalDistribuido = React.lazy(
+  () => import("./pages/reports/RelatorioOrcamentoMalDistribuido"),
+);
+const RelatorioOportunidades = React.lazy(
+  () => import("./pages/reports/RelatorioOportunidades"),
+);
+const RelatorioPerformanceCliente = React.lazy(
+  () => import("./pages/reports/RelatorioPerformanceCliente"),
+);
+const RelatorioCampanhas = React.lazy(
+  () => import("./pages/reports/RelatorioCampanhas"),
+);
+const RelatorioTarefasPlanner = React.lazy(
+  () => import("./pages/reports/RelatorioTarefasPlanner"),
+);
+const RelatorioProdutividadeSquads = React.lazy(
+  () => import("./pages/reports/RelatorioProdutividadeSquads"),
+);
+const RelatorioRHColaboradores = React.lazy(
+  () => import("./pages/reports/RelatorioRHColaboradores"),
+);
+const RelatorioAlertasCriticos = React.lazy(
+  () => import("./pages/reports/RelatorioAlertasCriticos"),
+);
+const RelatorioSnapshotsPerformance = React.lazy(
+  () => import("./pages/reports/RelatorioSnapshotsPerformance"),
+);
+const RelatorioSaldoPrePagos = React.lazy(
+  () => import("./pages/reports/RelatorioSaldoPrePagos"),
+);
+const RelatoriosMarketing = React.lazy(
+  () => import("./pages/marketing/RelatoriosMarketing"),
+);
 const GeradorCampanhas = React.lazy(() => import("./pages/GeradorCampanhas"));
 const GeradorConteudo = React.lazy(() => import("./pages/GeradorConteudo"));
 const GeradorCriativos = React.lazy(() => import("./pages/GeradorCriativos"));
 const EditorImagens = React.lazy(() => import("./pages/EditorImagens"));
-const GeradorApresentacoes = React.lazy(() => import("./pages/GeradorApresentacoes"));
-const ApresentacaoDetalhes = React.lazy(() => import("./pages/ApresentacaoDetalhes"));
+const GeradorApresentacoes = React.lazy(
+  () => import("./pages/GeradorApresentacoes"),
+);
+const ApresentacaoDetalhes = React.lazy(
+  () => import("./pages/ApresentacaoDetalhes"),
+);
 const Geradores = React.lazy(() => import("./pages/Geradores"));
-const RevisaoDiaria = React.lazy(() => import("./pages/geradores/RevisaoDiaria"));
-const ConfiguracaoFabrica = React.lazy(() => import("./pages/geradores/ConfiguracaoFabrica"));
-const AnunciosVencedores = React.lazy(() => import("./pages/geradores/AnunciosVencedores"));
-const DashboardFabrica = React.lazy(() => import("./pages/geradores/DashboardFabrica"));
-const HistoricoGeracoes = React.lazy(() => import("./pages/geradores/HistoricoGeracoes"));
-const HistoricoPublicacoesAutopilot = React.lazy(() => import("./pages/geradores/HistoricoPublicacoesAutopilot"));
-const FabricaAnuncios = React.lazy(() => import("./pages/geradores/FabricaAnuncios"));
-const FabricaCriativos = React.lazy(() => import("./pages/geradores/FabricaCriativos"));
-const DashboardFabricaCriativos = React.lazy(() => import("./pages/geradores/DashboardFabricaCriativos"));
-const RevisaoDiariaCriativos = React.lazy(() => import("./pages/geradores/RevisaoDiariaCriativos"));
+const RevisaoDiaria = React.lazy(
+  () => import("./pages/geradores/RevisaoDiaria"),
+);
+const ConfiguracaoFabrica = React.lazy(
+  () => import("./pages/geradores/ConfiguracaoFabrica"),
+);
+const AnunciosVencedores = React.lazy(
+  () => import("./pages/geradores/AnunciosVencedores"),
+);
+const DashboardFabrica = React.lazy(
+  () => import("./pages/geradores/DashboardFabrica"),
+);
+const HistoricoGeracoes = React.lazy(
+  () => import("./pages/geradores/HistoricoGeracoes"),
+);
+const HistoricoPublicacoesAutopilot = React.lazy(
+  () => import("./pages/geradores/HistoricoPublicacoesAutopilot"),
+);
+const FabricaAnuncios = React.lazy(
+  () => import("./pages/geradores/FabricaAnuncios"),
+);
+const FabricaCriativos = React.lazy(
+  () => import("./pages/geradores/FabricaCriativos"),
+);
+const DashboardFabricaCriativos = React.lazy(
+  () => import("./pages/geradores/DashboardFabricaCriativos"),
+);
+const RevisaoDiariaCriativos = React.lazy(
+  () => import("./pages/geradores/RevisaoDiariaCriativos"),
+);
 import ConfiguracaoFabricaCriativos from "./pages/geradores/ConfiguracaoFabricaCriativos";
 import TemasFabricaCriativos from "./pages/geradores/TemasFabricaCriativos";
 import HistoricoGeracoesCriativos from "./pages/geradores/HistoricoGeracoesCriativos";
@@ -446,7 +512,7 @@ const App = () => {
                     <Route
                       path="/reunioes"
                       element={
-                        <PermissionProtectedRoute requiredPermission="squad">
+                        <PermissionProtectedRoute requiredPermission="reunioes">
                           <Reunioes />
                         </PermissionProtectedRoute>
                       }
