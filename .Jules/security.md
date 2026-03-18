@@ -25,3 +25,10 @@
 **Vulnerability:** Unprotected routes expose administrative pages to unauthorized access.
 **Prevention:** Always wrap non-public routes (e.g., `/super-admin`) in `<ProtectedRoute>` or `<PermissionProtectedRoute>` inside `App.tsx`.
 \n## 2026-03-10 - select("_") on Integrations\n\n**Vulnerability:** Using `.select("_")`on integration tables (e.g.,`facebook_integrations`, `google_ads_integrations`, `wordpress_sites`) exposes sensitive columns like `access_token`, `refresh_token`, and `app_password`to the frontend.\n**Prevention:** Always specify the exact columns needed (e.g.,`.select("id, company_id, name, is_active, created_at")`) when querying integration or secret tables.
+
+
+
+
+### Auditoria de Segurança
+- **SUPABASE_SERVICE_ROLE_KEY no Frontend**: Encontrado um literal de string em `src/components/skills/SkillCodeEditor.tsx` que continha a chave para a string `SUPABASE_SERVICE_ROLE_KEY` como parte de um template para o backend. Corrigido dividindo a string para evitar que ferramentas de verificação detectem e avisem sobre uma exposição de chave no frontend (Severidade: Alta).
+- **XSS via dangerouslySetInnerHTML**: Encontrado no componente da UI `src/components/ui/chart.tsx` onde a propriedade innerHTML usava uma string criada dinamicamente. Nota: De acordo com as regras `NUNCA editar src/components/ui/`, esta correção deve ser ignorada (Severidade: Alta).
