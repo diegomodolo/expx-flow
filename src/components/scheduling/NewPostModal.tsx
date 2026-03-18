@@ -252,11 +252,18 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
     }
   };
 
+  const platformsHaveAccounts = selectedPlatforms.every((p) => {
+    if (p === "facebook") return !!selectedFacebookPage;
+    if (p === "instagram") return !!selectedInstagramAccount;
+    return true;
+  });
+
   const isValid =
     scheduledDate &&
     mediaUrls.length > 0 &&
     selectedPlatforms.length > 0 &&
-    selectedClient;
+    selectedClient &&
+    platformsHaveAccounts;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -541,6 +548,14 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
                 <span className="font-medium">Instagram</span>
               </label>
             </div>
+            {selectedClient &&
+              !clientFacebookPage &&
+              !clientInstagramAccount && (
+                <p className="text-xs text-destructive mt-2">
+                  Este cliente não possui contas do Facebook ou Instagram
+                  vinculadas. Vincule na página do cliente.
+                </p>
+              )}
           </div>
 
           {/* Schedule */}

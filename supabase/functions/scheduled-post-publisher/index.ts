@@ -19,13 +19,11 @@ serve(async (req) => {
 
     console.log("Checking for scheduled posts to publish...");
 
-    // Find posts that are scheduled and due (exclude 'publishing' to avoid race conditions)
+    // Find posts that are scheduled and due
     const { data: postsToPublish, error: fetchError } = await supabase
       .from("scheduled_posts")
-      .select("id, scheduled_at, company_id")
+      .select("id, scheduled_at, company_id, retry_count")
       .eq("status", "scheduled")
-      .neq("status", "publishing") // Exclude posts already being processed
-      .neq("status", "published") // Exclude already published posts
       .lte("scheduled_at", new Date().toISOString())
       .order("scheduled_at", { ascending: true })
       .limit(10); // Process max 10 posts per run
@@ -98,7 +96,7 @@ serve(async (req) => {
           .update({
             status: "failed",
             error_message: postError.message,
-            retry_count: (post as unknown).retry_count + 1,
+            retry_count: (post.retry_count || 0) + 1,
           })
           .eq("id", post.id);
       }

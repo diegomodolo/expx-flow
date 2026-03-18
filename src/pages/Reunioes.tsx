@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -43,11 +44,17 @@ import {
   Trash2,
   Pencil,
   Film,
+  Link2,
 } from "lucide-react";
 import {
   useGoogleMeetMeetings,
   GoogleMeetMeeting,
 } from "@/hooks/useGoogleMeetMeetings";
+import { useGoogleMeetIntegration } from "@/hooks/useGoogleMeetIntegration";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { CreateMeetingModal } from "@/components/meetings/CreateMeetingModal";
 import { EditMeetingModal } from "@/components/meetings/EditMeetingModal";
 import { MeetingDetailsModal } from "@/components/meetings/MeetingDetailsModal";
@@ -80,6 +87,9 @@ const transcriptStatusLabels: Record<string, string> = {
 };
 
 export default function Reunioes() {
+  const { user } = useAuth();
+  const { activeCompany } = useCompany();
+  const { connectGoogle } = useGoogleMeetIntegration(user?.id);
   const {
     meetings,
     loading,
@@ -90,6 +100,21 @@ export default function Reunioes() {
     checkTranscript,
     processSummary,
   } = useGoogleMeetMeetings();
+
+  // Check if ANY Google Meet integration exists (user or company level)
+  const { data: hasIntegration, isLoading: checkingIntegration } = useQuery({
+    queryKey: ["google-meet-has-integration", activeCompany?.company_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("google_meet_integrations" as unknown as string)
+        .select("id")
+        .eq("company_id", activeCompany!.company_id)
+        .eq("is_active", true)
+        .limit(1);
+      return (data ?? []).length > 0;
+    },
+    enabled: !!activeCompany?.company_id,
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] =
     useState<GoogleMeetMeeting | null>(null);
@@ -167,6 +192,25 @@ export default function Reunioes() {
             Nova Reunião
           </Button>
         </div>
+
+        {/* Integration Banner */}
+        {!checkingIntegration && hasIntegration === false && (
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50">
+            <Link2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="flex items-center justify-between gap-4">
+              <span className="text-amber-800 dark:text-amber-200">
+                Para criar reuniões, conecte sua conta Google ao Google Meet.
+              </span>
+              <Button
+                size="sm"
+                onClick={() => connectGoogle("reunioes")}
+                className="shrink-0"
+              >
+                Conectar Google Meet
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Filters */}
         <Card className="p-4">

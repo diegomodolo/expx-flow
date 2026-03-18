@@ -575,15 +575,17 @@ serve(async (req) => {
       }
     }
 
-    // Determine overall status
-    const anySuccess = results.facebook?.success || results.instagram?.success;
-    const noPlatformProcessed = !results.facebook && !results.instagram;
+    // Determine overall status based on selected platforms
+    const platformResults: boolean[] = [];
+    if (post.platforms.includes("facebook")) {
+      platformResults.push(results.facebook?.success ?? false);
+    }
+    if (post.platforms.includes("instagram")) {
+      platformResults.push(results.instagram?.success ?? false);
+    }
+    const anySuccess = platformResults.some((r) => r);
     const allFailed =
-      noPlatformProcessed ||
-      (post.platforms.includes("facebook") &&
-        !results.facebook?.success &&
-        post.platforms.includes("instagram") &&
-        !results.instagram?.success);
+      platformResults.length === 0 || platformResults.every((r) => !r);
 
     const finalStatus = allFailed ? "failed" : "published";
     const errorMessages: string[] = [];

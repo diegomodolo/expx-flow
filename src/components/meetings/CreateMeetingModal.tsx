@@ -108,8 +108,9 @@ export function CreateMeetingModal({
     queryFn: async () => {
       if (!clientId) return [];
       const { data, error } = await supabase
-        .from("client_contacts")
+        .from("whatsapp_client_contacts")
         .select("id, contact_name, email")
+        .eq("company_id", activeCompany!.company_id)
         .eq("client_id", clientId)
         .not("email", "is", null)
         .order("contact_name")

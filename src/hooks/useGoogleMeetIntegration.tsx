@@ -21,7 +21,7 @@ export function useGoogleMeetIntegration(userId?: string) {
   );
   const processingCodeRef = useRef<string | null>(null);
 
-  const getAuthUrl = () => {
+  const getAuthUrl = (from?: string) => {
     const clientId = import.meta.env.VITE_GOOGLE_MEET_CLIENT_ID;
     const redirectUri = `${window.location.origin}/google-meet/callback`;
     const scopes = [
@@ -32,7 +32,11 @@ export function useGoogleMeetIntegration(userId?: string) {
       "https://www.googleapis.com/auth/calendar.events",
     ].join(" ");
 
-    const state = userId ? JSON.stringify({ userId, from: "profile" }) : "";
+    const resolvedFrom = from || (userId ? "profile" : "settings");
+    const state = JSON.stringify({
+      ...(userId ? { userId } : {}),
+      from: resolvedFrom,
+    });
 
     return (
       `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -42,12 +46,12 @@ export function useGoogleMeetIntegration(userId?: string) {
       `&scope=${encodeURIComponent(scopes)}` +
       `&access_type=offline` +
       `&prompt=consent` +
-      (state ? `&state=${encodeURIComponent(state)}` : "")
+      `&state=${encodeURIComponent(state)}`
     );
   };
 
-  const connectGoogle = () => {
-    window.location.href = getAuthUrl();
+  const connectGoogle = (from?: string) => {
+    window.location.href = getAuthUrl(from);
   };
 
   const handleCallback = async (

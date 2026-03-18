@@ -26,20 +26,23 @@ export default function GoogleMeetCallback() {
   // Parse state to get userId and origin
   const stateParam = searchParams.get("state");
   let stateUserId: string | undefined;
-  let fromProfile = false;
+  let stateFrom = "settings";
   if (stateParam) {
     try {
       const parsed = JSON.parse(decodeURIComponent(stateParam));
       stateUserId = parsed.userId;
-      fromProfile = parsed.from === "profile";
+      stateFrom = parsed.from || "settings";
     } catch {
       /* ignore invalid state */
     }
   }
 
-  const redirectTo = fromProfile
-    ? "/perfil/integracoes"
-    : "/configuracoes/integracao-google-meet";
+  const redirectMap: Record<string, string> = {
+    profile: "/perfil/integracoes",
+    settings: "/configuracoes/integracao-google-meet",
+    reunioes: "/reunioes",
+  };
+  const redirectTo = redirectMap[stateFrom] || redirectMap.settings;
 
   useEffect(() => {
     if (!activeCompany) return;
@@ -105,19 +108,14 @@ export default function GoogleMeetCallback() {
           </CardTitle>
           <CardDescription>
             {status === "loading" && "Processando autorização..."}
-            {status === "success" &&
-              (fromProfile
-                ? "Redirecionando para o perfil..."
-                : "Redirecionando para as configurações...")}
+            {status === "success" && "Redirecionando..."}
             {status === "error" && error}
           </CardDescription>
         </CardHeader>
         {status === "error" && (
           <CardContent>
             <Button onClick={() => navigate(redirectTo)} className="w-full">
-              {fromProfile
-                ? "Voltar para o Perfil"
-                : "Voltar para Configurações"}
+              Voltar
             </Button>
           </CardContent>
         )}
