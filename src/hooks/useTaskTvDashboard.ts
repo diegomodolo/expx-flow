@@ -584,20 +584,6 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         user_id: t.user_id || null,
       }));
 
-      // All tasks as TaskItem for modal lookup (includes all statuses)
-      const allTasks: TaskItem[] = tasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        status: t.status,
-        priority: t.priority,
-        deadline: t.deadline,
-        due_date: t.due_date,
-        responsible_name: t.responsible_name,
-        responsible_avatar: t.responsible_avatar,
-        assigned_user_id: t.assigned_user_id,
-        user_id: t.user_id,
-      }));
-
       return {
         openTasks,
         overdueTasks,
@@ -619,7 +605,6 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         overdueTasksList,
         completedTodayList,
         reviewTasksList,
-        allTasks,
       };
     },
     enabled: !!activeCompany?.company_id,

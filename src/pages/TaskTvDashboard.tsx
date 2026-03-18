@@ -9,6 +9,8 @@ import {
   HourlyTrendPoint,
 } from "@/hooks/useTaskTvDashboard";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2,
   Clock,
@@ -969,6 +971,22 @@ export default function TaskTvDashboard() {
   const [listModal, setListModal] = useState<ModalKind>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
+  // Fetch full task data by ID when modal opens
+  const { data: editingTask } = useQuery({
+    queryKey: ["task-tv-edit", editingTaskId],
+    queryFn: async () => {
+      const { data: task, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("id", editingTaskId!)
+        .single();
+      if (error) throw error;
+      return task;
+    },
+    enabled: !!editingTaskId,
+    staleTime: 0,
+  });
+
   // --- Alert states ---
   const [celebrationTask, setCelebrationTask] = useState<TaskItem | null>(null);
   const [criticalAlert, setCriticalAlert] = useState<TaskItem | null>(null);
@@ -1068,10 +1086,6 @@ export default function TaskTvDashboard() {
           : listModal === "review"
             ? data.reviewTasksList
             : [];
-
-  const editingTask = editingTaskId
-    ? data.allTasks.find((t) => t.id === editingTaskId)
-    : null;
 
   const isRotated = rotation === 90 || rotation === 270;
 
@@ -1401,22 +1415,7 @@ export default function TaskTvDashboard() {
                 onOpenChange={(open) => {
                   if (!open) setEditingTaskId(null);
                 }}
-                task={
-                  editingTask
-                    ? ({
-                        id: editingTask.id,
-                        title: editingTask.title,
-                        status: editingTask.status as unknown,
-                        priority: editingTask.priority as unknown,
-                        deadline: editingTask.deadline,
-                        due_date: editingTask.due_date,
-                        responsible_name: editingTask.responsible_name,
-                        responsible_avatar: editingTask.responsible_avatar,
-                        assigned_user_id: editingTask.assigned_user_id,
-                        user_id: editingTask.user_id,
-                      } as unknown)
-                    : undefined
-                }
+                task={editingTask ?? undefined}
                 onSave={() => {
                   setEditingTaskId(null);
                   refetch();
