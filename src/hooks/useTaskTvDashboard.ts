@@ -66,6 +66,7 @@ export interface CompletionTrendDay {
 export interface HourlyTrendPoint {
   hour: string; // "HH:00"
   count: number;
+  avg: number; // average from last week's weekdays at same hour
   isCurrent: boolean;
 }
 
@@ -85,6 +86,7 @@ export interface TaskTvData {
   squadRankings: SquadTvRanking[];
   completionTrend: CompletionTrendDay[];
   hourlyTrend: HourlyTrendPoint[];
+  weekOverWeekPct: number; // % difference this week vs last week (same period)
   lastSync: Date;
   // Lists for modal drill-down
   openTasksList: TaskItem[];
@@ -247,10 +249,12 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         };
       });
 
-      // --- Hourly trend (today, hour by hour up to current hour) ---
+      // --- Hourly trend (today 08h+, with last week weekday averages) ---
       const currentHour = now.getHours();
+      const startHour = 8;
       const hourlyMap = new Map<number, number>();
-      for (let h = 0; h <= currentHour; h++) hourlyMap.set(h, 0);
+      for (let h = startHour; h <= Math.max(currentHour, startHour); h++)
+        hourlyMap.set(h, 0);
 
       (completedTodayRes.data || []).forEach((t: unknown) => {
         if (t.updated_at) {
@@ -259,13 +263,124 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         }
       });
 
+      // Calculate last week weekday (Mon-Fri) hourly averages
+      const lastWeekStart = new Date(now);
+      lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+      const lastWeekEnd = new Date(now);
+      lastWeekEnd.setDate(
+        lastWeekEnd.getDate() -
+          (now.getDay() === 0 ? 2 : now.getDay() === 6 ? 1 : 0),
+      );
+
+      // Filter completedLast14 to last week's weekdays only
+      const lastWeekWeekdayTasks = completedLast14.filter((t) => {
+        if (!t.updated_at) return false;
+        const d = new Date(t.updated_at);
+        const day = d.getDay();
+        if (day === 0 || day === 6) return false; // skip weekends
+        // Must be from last week (7-13 days ago from today start)
+        const todayDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
+        const taskDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const daysAgo = Math.floor(
+          (todayDate.getTime() - taskDate.getTime()) / (24 * 60 * 60 * 1000),
+        );
+        return daysAgo >= 1 && daysAgo <= 7;
+      });
+
+      // Count weekdays in last week that are within the 7-day window
+      const weekdayCount = (() => {
+        let count = 0;
+        for (let i = 1; i <= 7; i++) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          const day = d.getDay();
+          if (day !== 0 && day !== 6) count++;
+        }
+        return count;
+      })();
+
+      const lastWeekHourlyMap = new Map<number, number>();
+      lastWeekWeekdayTasks.forEach((t) => {
+        const h = new Date(t.updated_at!).getHours();
+        lastWeekHourlyMap.set(h, (lastWeekHourlyMap.get(h) || 0) + 1);
+      });
+
       const hourlyTrend: HourlyTrendPoint[] = Array.from(
         hourlyMap.entries(),
       ).map(([h, count]) => ({
         hour: `${String(h).padStart(2, "0")}h`,
         count,
+        avg:
+          weekdayCount > 0
+            ? Math.round(
+                ((lastWeekHourlyMap.get(h) || 0) / weekdayCount) * 10,
+              ) / 10
+            : 0,
         isCurrent: h === currentHour,
       }));
+
+      // --- Week-over-week KPI (same period comparison) ---
+      // This week: from Monday 00:00 to now
+      const todayDow = now.getDay(); // 0=Sun
+      const daysSinceMonday = todayDow === 0 ? 6 : todayDow - 1;
+      const thisWeekMonday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - daysSinceMonday,
+      );
+      const lastWeekMonday = new Date(thisWeekMonday);
+      lastWeekMonday.setDate(lastWeekMonday.getDate() - 7);
+      // Equivalent point last week = lastWeekMonday + daysSinceMonday days + currentHour hours
+      const lastWeekCutoff = new Date(lastWeekMonday);
+      lastWeekCutoff.setDate(lastWeekCutoff.getDate() + daysSinceMonday);
+      lastWeekCutoff.setHours(currentHour, now.getMinutes(), 0, 0);
+
+      // Count completed tasks this week up to now
+      const thisWeekCount =
+        completedLast14.filter((t) => {
+          if (!t.updated_at) return false;
+          const d = new Date(t.updated_at);
+          return d >= thisWeekMonday && d <= now;
+        }).length +
+        (completedTodayRes.data || []).filter((t: unknown) => {
+          if (!t.updated_at) return false;
+          const d = new Date(t.updated_at);
+          return d >= thisWeekMonday && d <= now;
+        }).length;
+
+      // Deduplicate: completedLast14 may include today's tasks too
+      const thisWeekIds = new Set<string>();
+      completedLast14.forEach((t) => {
+        if (!t.updated_at) return;
+        const d = new Date(t.updated_at);
+        if (d >= thisWeekMonday && d <= now) thisWeekIds.add(t.id);
+      });
+      (completedTodayRes.data || []).forEach((t: unknown) => {
+        if (!t.updated_at) return;
+        const d = new Date(t.updated_at);
+        if (d >= thisWeekMonday && d <= now) thisWeekIds.add(t.id);
+      });
+      const thisWeekTotal = thisWeekIds.size;
+
+      // Count completed tasks last week same period
+      const lastWeekIds = new Set<string>();
+      completedLast14.forEach((t) => {
+        if (!t.updated_at) return;
+        const d = new Date(t.updated_at);
+        if (d >= lastWeekMonday && d <= lastWeekCutoff) lastWeekIds.add(t.id);
+      });
+      const lastWeekTotal = lastWeekIds.size;
+
+      const weekOverWeekPct =
+        lastWeekTotal > 0
+          ? Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100)
+          : thisWeekTotal > 0
+            ? 100
+            : 0;
 
       // --- Indicators ---
       const onTime = tasks.filter((t) => {
@@ -600,6 +715,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
         squadRankings,
         completionTrend,
         hourlyTrend,
+        weekOverWeekPct,
         lastSync: new Date(),
         openTasksList,
         overdueTasksList,

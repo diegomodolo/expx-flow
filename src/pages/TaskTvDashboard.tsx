@@ -610,7 +610,6 @@ function CompletionTrendChart({ data }: { data: CompletionTrendDay[] }) {
 
 // ---- Hourly Trend Chart (today) ----
 function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
-  const maxVal = Math.max(...data.map((d) => d.count), 1);
   const totalToday = data.reduce((s, d) => s + d.count, 0);
   const currentHourData = data.find((d) => d.isCurrent);
 
@@ -622,7 +621,9 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-300">
             Ritmo por Hora
           </h3>
-          <span className="text-xs text-gray-600">· hoje</span>
+          <span className="text-xs text-gray-600">
+            · hoje vs média semana anterior
+          </span>
         </div>
         <div className="flex items-center gap-3">
           {currentHourData && (
@@ -633,18 +634,23 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
           <span className="text-xs text-gray-500">Total: {totalToday}</span>
         </div>
       </div>
+      {/* Legend */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+          <span className="text-[10px] text-gray-400">Hoje</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-sm bg-gray-500/50" />
+          <span className="text-[10px] text-gray-400">Média sem. anterior</span>
+        </div>
+      </div>
       <div className="h-28">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             margin={{ top: 0, right: 0, left: -28, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="hourBarGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#a3a3a3" stopOpacity={0.9} />
-                <stop offset="95%" stopColor="#737373" stopOpacity={0.6} />
-              </linearGradient>
-            </defs>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="rgba(255,255,255,0.05)"
@@ -671,20 +677,28 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
                 fontSize: 12,
               }}
               labelStyle={{ color: "#9ca3af" }}
-              itemStyle={{ color: "#d4d4d4" }}
-              formatter={(v: unknown) => [`${v} tarefas`, "Concluídas"]}
+              formatter={(v: unknown, name: string) => [
+                `${v} tarefas`,
+                name === "count" ? "Hoje" : "Média sem. anterior",
+              ]}
             />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={28}>
+            <Bar
+              dataKey="avg"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={16}
+              fill="rgba(107,114,128,0.35)"
+              name="avg"
+            />
+            <Bar
+              dataKey="count"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={16}
+              name="count"
+            >
               {data.map((entry, idx) => (
                 <Cell
                   key={idx}
-                  fill={
-                    entry.isCurrent
-                      ? "#ffffff"
-                      : entry.count === maxVal && maxVal > 0
-                        ? "#a3a3a3"
-                        : "url(#hourBarGrad)"
-                  }
+                  fill={entry.isCurrent ? "#34d399" : "#10b981"}
                   opacity={entry.count === 0 ? 0.15 : 1}
                 />
               ))}
@@ -702,11 +716,12 @@ function HourlyTrendChart({ data }: { data: HourlyTrendPoint[] }) {
                 key={d.hour}
                 className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                   d.isCurrent
-                    ? "bg-white/20 text-white ring-1 ring-white/30"
+                    ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30"
                     : "bg-white/5 text-gray-400"
                 }`}
               >
                 {d.hour}: {d.count}
+                {d.avg > 0 ? ` (média ${d.avg})` : ""}
               </span>
             ))}
         </div>
@@ -1162,8 +1177,8 @@ export default function TaskTvDashboard() {
             </div>
           </div>
 
-          {/* ---- KPI ROW — 6 cards ---- */}
-          <div className="grid grid-cols-6 gap-4">
+          {/* ---- KPI ROW — 7 cards ---- */}
+          <div className="grid grid-cols-7 gap-4">
             <KpiCard
               label="Em Aberto"
               value={data.openTasks}
@@ -1209,6 +1224,19 @@ export default function TaskTvDashboard() {
               icon={Timer}
               color="text-gray-300"
               sublabel={`Média ${data.avgHoursPerCollaborator}h/colaborador`}
+            />
+            <KpiCard
+              label="Sem. vs Anterior"
+              value={`${data.weekOverWeekPct >= 0 ? "+" : ""}${data.weekOverWeekPct}%`}
+              icon={TrendingUp}
+              color={
+                data.weekOverWeekPct > 0
+                  ? "text-emerald-400"
+                  : data.weekOverWeekPct < 0
+                    ? "text-red-400"
+                    : "text-gray-300"
+              }
+              sublabel="Entregas vs mesmo período"
             />
           </div>
 
