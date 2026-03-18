@@ -195,7 +195,7 @@ export function useTaskTvDashboard(refreshMs = 30_000) {
       const completedTodayRes = await supabase
         .from("tasks")
         .select(
-          "id, title, status, priority, deadline, due_date, responsible_name, responsible_avatar, assigned_user_id, user_id",
+          "id, title, status, priority, deadline, due_date, responsible_name, responsible_avatar, assigned_user_id, user_id, updated_at",
         )
         .eq("company_id", companyId)
         .eq("status", "done")
