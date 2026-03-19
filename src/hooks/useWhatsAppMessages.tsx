@@ -219,15 +219,6 @@ export function useWhatsAppMessages(
     }) => {
       if (!companyId || !conversationId) return;
 
-      console.log(
-        "[sendMessage] phone:",
-        phone,
-        "companyId:",
-        companyId,
-        "instanceId:",
-        instanceId,
-      );
-
       const now = new Date().toISOString();
 
       // First, save to DB to get the real ID
@@ -334,12 +325,9 @@ export function useWhatsAppMessages(
               reply_to_message_id: replyExternalId, // Send external_id to API, not the UUID
             },
           });
-        } catch (err) {
-          console.error("[sendMessage] Edge Function error:", err);
+        } catch {
           sendError = true;
         }
-
-        console.log("[sendMessage] Result:", { data, sendError });
 
         // Update message status based on result
         const newStatus = sendError || !data?.success ? "failed" : "sent";

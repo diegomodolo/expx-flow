@@ -413,11 +413,17 @@ serve(async (req) => {
       console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl);
 
       const isGroupMessage = formattedPhone.includes("@g.us");
-      const uazapiBody: unknown = {
+      const uazapiBody: Record<string, unknown> = {
         number: formattedPhone,
         text: message,
-        ...(isGroupMessage && { async: true }),
       };
+
+      if (isGroupMessage) {
+        uazapiBody.async = true;
+        console.log(
+          "[send-whatsapp-notification] Group detected, using async mode",
+        );
+      }
 
       // Add reply context if provided (UazapiGO uses replyid field)
       if (reply_to_message_id) {
