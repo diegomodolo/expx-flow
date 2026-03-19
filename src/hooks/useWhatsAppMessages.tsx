@@ -822,6 +822,17 @@ export function useWhatsAppMessages(
       const results = [];
       const fileUrl = message.media_url || message.cached_media_url;
 
+      console.log(
+        "[forwardMessage] type:",
+        message.message_type,
+        "media_url:",
+        message.media_url,
+        "cached_media_url:",
+        message.cached_media_url,
+        "fileUrl:",
+        fileUrl,
+      );
+
       for (const target of targetConversations) {
         try {
           if (message.message_type === "text") {
