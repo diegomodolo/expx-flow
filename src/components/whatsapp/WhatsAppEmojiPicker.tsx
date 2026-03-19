@@ -28,6 +28,7 @@ const EMOJI_CATEGORIES = [
       "👍",
       "❤️",
       "🔥",
+      "🚀",
       "✨",
       "😎",
       "🤣",
@@ -216,6 +217,7 @@ const EMOJI_CATEGORIES = [
     name: "Objetos",
     icon: "🎉",
     emojis: [
+      "🚀",
       "🎉",
       "🎊",
       "🎈",
