@@ -95,10 +95,14 @@ serve(async (req) => {
       );
     }
 
-    // Format phone number (ensure 55 prefix for Brazil)
-    let formattedPhone = recipient_phone.replace(/\D/g, "");
-    if (!formattedPhone.startsWith("55")) {
-      formattedPhone = "55" + formattedPhone;
+    // Format phone number — preserve group JIDs (@g.us) as-is
+    const isGroup = recipient_phone.includes("@g.us");
+    let formattedPhone = recipient_phone;
+    if (!isGroup) {
+      formattedPhone = recipient_phone.replace(/\D/g, "");
+      if (!formattedPhone.startsWith("55")) {
+        formattedPhone = "55" + formattedPhone;
+      }
     }
 
     // For UazapiGO v2, find the instance to use and get its token
