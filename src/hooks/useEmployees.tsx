@@ -157,14 +157,25 @@ export const useEmployees = () => {
         !roleError && userRole && ["owner", "admin"].includes(userRole.role);
 
       if (!isOwnerOrAdmin) {
-        // Verificar se tem permissão específica de 'colaboradores'
-        const { data: permData } = await supabase
-          .from("employee_permissions")
+        // Buscar employee_id do usuário atual para checar permissões
+        const { data: currentEmp } = await supabase
+          .from("employees")
           .select("id")
           .eq("user_id", user.id)
           .eq("company_id", activeCompany.company_id)
-          .eq("menu_item", "colaboradores" as any)
+          .eq("status", "active")
           .maybeSingle();
+
+        const { data: permData } = currentEmp
+          ? await supabase
+              .from("employee_permissions")
+              .select("id")
+              .eq("employee_id", currentEmp.id)
+              .eq("company_id", activeCompany.company_id)
+              .eq("menu_item", "colaboradores" as any)
+              .eq("is_enabled", true)
+              .maybeSingle()
+          : { data: null };
 
         if (!permData) {
           throw new Error(
@@ -364,14 +375,25 @@ export const useEmployees = () => {
         !roleError && userRole && ["owner", "admin"].includes(userRole.role);
 
       if (!isOwnerOrAdmin) {
-        // Verificar se tem permissão específica de 'colaboradores'
-        const { data: permData } = await supabase
-          .from("employee_permissions")
+        // Buscar employee_id do usuário atual para checar permissões
+        const { data: currentEmp } = await supabase
+          .from("employees")
           .select("id")
           .eq("user_id", user.id)
           .eq("company_id", activeCompany.company_id)
-          .eq("menu_item", "colaboradores" as any)
+          .eq("status", "active")
           .maybeSingle();
+
+        const { data: permData } = currentEmp
+          ? await supabase
+              .from("employee_permissions")
+              .select("id")
+              .eq("employee_id", currentEmp.id)
+              .eq("company_id", activeCompany.company_id)
+              .eq("menu_item", "colaboradores" as any)
+              .eq("is_enabled", true)
+              .maybeSingle()
+          : { data: null };
 
         if (!permData) {
           throw new Error(
