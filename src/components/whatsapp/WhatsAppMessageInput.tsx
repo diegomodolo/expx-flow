@@ -18,6 +18,7 @@ import {
   X,
   Square,
   Trash2,
+  BarChart3,
 } from "lucide-react";
 import { WhatsAppEmojiPicker } from "./WhatsAppEmojiPicker";
 import {
@@ -31,6 +32,7 @@ import { toast } from "sonner";
 import { QuickReply } from "@/hooks/useWhatsAppQuickReplies";
 import { WhatsAppQuickReplyPicker } from "./WhatsAppQuickReplyPicker";
 import { WhatsAppReplyPreview } from "./WhatsAppReplyPreview";
+import { WhatsAppPollDialog } from "./WhatsAppPollDialog";
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 
 export interface MediaAttachment {
@@ -42,6 +44,11 @@ export interface MediaAttachment {
 interface WhatsAppMessageInputProps {
   onSend: (message: string, replyToMessageId?: string) => void;
   onSendMedia?: (media: MediaAttachment, caption: string) => void;
+  onSendPoll?: (
+    question: string,
+    options: string[],
+    allowMultiple: boolean,
+  ) => void;
   isSending: boolean;
   quickReplies?: QuickReply[];
   quickRepliesLoading?: boolean;
@@ -53,6 +60,7 @@ interface WhatsAppMessageInputProps {
 export function WhatsAppMessageInput({
   onSend,
   onSendMedia,
+  onSendPoll,
   isSending,
   quickReplies = [],
   quickRepliesLoading = false,
@@ -64,6 +72,7 @@ export function WhatsAppMessageInput({
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [quickReplySearch, setQuickReplySearch] = useState("");
   const [attachment, setAttachment] = useState<MediaAttachment | null>(null);
+  const [pollDialogOpen, setPollDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [acceptTypes, setAcceptTypes] = useState<string>("");
@@ -621,6 +630,10 @@ export function WhatsAppMessageInput({
               <Mic className="h-4 w-4 mr-2" />
               Áudio
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setPollDialogOpen(true)}>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Enquete
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -673,6 +686,16 @@ export function WhatsAppMessageInput({
           </Button>
         )}
       </div>
+
+      <WhatsAppPollDialog
+        open={pollDialogOpen}
+        onOpenChange={setPollDialogOpen}
+        onSend={(question, options, allowMultiple) => {
+          onSendPoll?.(question, options, allowMultiple);
+          setPollDialogOpen(false);
+        }}
+        isSending={isSending}
+      />
     </div>
   );
 }

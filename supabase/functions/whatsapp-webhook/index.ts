@@ -47,6 +47,70 @@ serve(async (req) => {
       return await handleMessageEditEvent(supabase, payload);
     }
 
+    // Check for poll vote event (UazapiGO)
+    const message = payload.message || payload.data || {};
+    const isPollVote =
+      payload.EventType === "pollVoteMessage" ||
+      (message && message.type === "pollVoteMessage") ||
+      (message && message.pollMessageId);
+
+    if (isUazapi && isPollVote) {
+      console.log("[whatsapp-webhook] Processing poll vote event");
+
+      const pollMessageId =
+        message.pollMessageId || message.msgId || message.key?.id || "";
+      const voterPhone = (message.voter || message.sender || message.from || "")
+        .replace(/[^0-9]/g, "")
+        .replace(/@.*/, "");
+      const selectedOptions =
+        message.selectedOptions || message.vote?.selectedOptions || [];
+
+      if (pollMessageId && voterPhone) {
+        const { data: pollMsg } = await supabase
+          .from("whatsapp_messages")
+          .select("id, poll_votes")
+          .eq("external_id", pollMessageId)
+          .maybeSingle();
+
+        if (pollMsg) {
+          const currentVotes: Record<string, string[]> =
+            pollMsg.poll_votes || {};
+
+          // Remove previous votes from this voter
+          for (const opt of Object.keys(currentVotes)) {
+            currentVotes[opt] = (currentVotes[opt] || []).filter(
+              (p: string) => p !== voterPhone,
+            );
+            if (currentVotes[opt].length === 0) delete currentVotes[opt];
+          }
+
+          // Add new votes
+          for (const opt of selectedOptions) {
+            if (!currentVotes[opt]) currentVotes[opt] = [];
+            if (!currentVotes[opt].includes(voterPhone)) {
+              currentVotes[opt].push(voterPhone);
+            }
+          }
+
+          await supabase
+            .from("whatsapp_messages")
+            .update({ poll_votes: currentVotes })
+            .eq("id", pollMsg.id);
+
+          console.log("[whatsapp-webhook] Poll vote updated:", {
+            pollMessageId,
+            voterPhone,
+            selectedOptions,
+          });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, type: "poll_vote" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     let phone: string | null = null;
     let content: string | null = null;
     let contactName: string | null = null;

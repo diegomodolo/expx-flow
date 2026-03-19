@@ -16,6 +16,7 @@ import {
   Pencil,
   Sparkles,
   Reply,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -674,10 +675,87 @@ export function WhatsAppMessageBubble({
               </div>
             )}
 
+            {/* Poll/Enquete rendering */}
+            {message.message_type === "poll" &&
+              (() => {
+                let pollData: {
+                  question: string;
+                  options: string[];
+                  allow_multiple?: boolean;
+                };
+                try {
+                  pollData = JSON.parse(message.content);
+                } catch {
+                  pollData = { question: message.content, options: [] };
+                }
+
+                const votes: Record<string, string[]> =
+                  (message as any).poll_votes || {};
+                const totalVotes = Object.values(votes).reduce(
+                  (sum, voters) => sum + (voters?.length || 0),
+                  0,
+                );
+
+                return (
+                  <div className="space-y-2 min-w-[200px]">
+                    <div className="flex items-center gap-2 font-medium text-sm">
+                      <BarChart3 className="h-4 w-4 shrink-0" />
+                      <span>{pollData.question}</span>
+                    </div>
+                    {pollData.allow_multiple && (
+                      <p className="text-xs opacity-60">Múltiplas respostas</p>
+                    )}
+                    <div className="space-y-1.5">
+                      {(pollData.options || []).map((option, idx) => {
+                        const optionVotes = (votes[option] || []).length;
+                        const percentage =
+                          totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
+                        return (
+                          <div key={idx} className="space-y-0.5">
+                            <div className="flex justify-between text-xs">
+                              <span className="break-words [overflow-wrap:anywhere]">
+                                {option}
+                              </span>
+                              <span className="opacity-70 ml-2 shrink-0">
+                                {optionVotes}
+                              </span>
+                            </div>
+                            <div
+                              className={cn(
+                                "h-1.5 rounded-full",
+                                isOutgoing
+                                  ? "bg-primary-foreground/20"
+                                  : "bg-muted-foreground/20",
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-300",
+                                  isOutgoing
+                                    ? "bg-primary-foreground/60"
+                                    : "bg-primary/60",
+                                )}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {totalVotes > 0 && (
+                      <p className="text-xs opacity-60">
+                        {totalVotes} voto{totalVotes !== 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
             {/* Text content - hide for media types that already have their own UI */}
-            {/* Hide for: audio (has player), image/video/sticker/gif with media_url, or placeholder content */}
+            {/* Hide for: audio (has player), image/video/sticker/gif with media_url, placeholder content, or polls */}
             {!isAudioMessage &&
               !isStickerOrGif &&
+              message.message_type !== "poll" &&
               !(
                 isMediaType &&
                 (hasMedia || message.external_id) &&

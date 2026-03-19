@@ -113,6 +113,7 @@ export function WhatsAppChatWindow({
     isSendingMedia,
     sendMessage,
     sendMedia,
+    sendPoll,
     fetchMessagesFromApi,
   } = useWhatsAppMessages(conversation.id, companyId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1082,6 +1083,15 @@ export function WhatsAppChatWindow({
           <WhatsAppMessageInput
             onSend={handleSend}
             onSendMedia={handleSendMedia}
+            onSendPoll={(question, options, allowMultiple) => {
+              sendPoll({
+                phone: conversation.phone,
+                question,
+                options,
+                allowMultiple,
+                instanceId: instanceId ?? null,
+              });
+            }}
             isSending={isSendingMedia}
             quickReplies={quickReplies}
             quickRepliesLoading={quickRepliesLoading}

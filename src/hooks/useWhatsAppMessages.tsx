@@ -624,6 +624,184 @@ export function useWhatsAppMessages(
     [companyId, conversationId, queryClient, toast],
   );
 
+  // Send poll with optimistic UI
+  const sendPoll = useCallback(
+    async ({
+      phone,
+      question,
+      options,
+      allowMultiple = false,
+      instanceId,
+    }: {
+      phone: string;
+      question: string;
+      options: string[];
+      allowMultiple?: boolean;
+      instanceId?: string | null;
+    }) => {
+      if (!companyId || !conversationId) return;
+
+      const now = new Date().toISOString();
+      const pollData = { question, options, allow_multiple: allowMultiple };
+
+      let savedMessageId: string | null = null;
+
+      try {
+        // Save to DB first
+        const { data: savedMessage, error: saveError } = await supabase
+          .from("whatsapp_messages")
+          .insert({
+            conversation_id: conversationId,
+            company_id: companyId,
+            direction: "outgoing",
+            content: JSON.stringify(pollData),
+            message_type: "poll",
+            status: "sending",
+            sent_at: now,
+          })
+          .select("id")
+          .single();
+
+        if (saveError) throw saveError;
+        savedMessageId = savedMessage.id;
+
+        // Add to cache immediately
+        const optimisticMessage: WhatsAppMessage = {
+          id: savedMessage.id,
+          conversation_id: conversationId,
+          company_id: companyId,
+          direction: "outgoing",
+          content: JSON.stringify(pollData),
+          message_type: "poll",
+          media_url: null,
+          cached_media_url: null,
+          status: "sending",
+          external_id: null,
+          sent_at: now,
+          reaction: null,
+          is_edited: null,
+          edited_at: null,
+        };
+
+        queryClient.setQueryData<WhatsAppMessage[]>(
+          ["whatsapp-messages", conversationId],
+          (old) => {
+            if (!old) return [optimisticMessage];
+            if (old.some((m) => m.id === savedMessage.id)) return old;
+            return [...old, optimisticMessage];
+          },
+        );
+
+        // Update conversation preview
+        const preview = `📊 Enquete: ${question}`;
+        queryClient.setQueryData(
+          ["whatsapp-conversations", companyId],
+          (old: unknown) => {
+            if (!old) return old;
+            return old.map((conv: unknown) =>
+              conv.id === conversationId
+                ? {
+                    ...conv,
+                    last_message_at: now,
+                    last_message_preview: preview.substring(0, 100),
+                  }
+                : conv,
+            );
+          },
+        );
+
+        await supabase
+          .from("whatsapp_conversations")
+          .update({
+            last_message_at: now,
+            last_message_preview: preview.substring(0, 100),
+          })
+          .eq("id", conversationId);
+
+        // Send via API
+        let data: unknown = null;
+        let sendError = false;
+        try {
+          data = await invokeWithRetry(supabase, "send-whatsapp-poll", {
+            body: {
+              company_id: companyId,
+              recipient_phone: phone,
+              question,
+              options,
+              allow_multiple: allowMultiple,
+              instance_id: instanceId ?? undefined,
+            },
+          });
+        } catch {
+          sendError = true;
+        }
+
+        const newStatus = sendError || !data?.success ? "failed" : "sent";
+        const externalIdFromProvider: string | null = data?.message_id || null;
+
+        await supabase
+          .from("whatsapp_messages")
+          .update({
+            status: newStatus,
+            ...(externalIdFromProvider
+              ? { external_id: externalIdFromProvider }
+              : {}),
+          })
+          .eq("id", savedMessage.id);
+
+        queryClient.setQueryData<WhatsAppMessage[]>(
+          ["whatsapp-messages", conversationId],
+          (old) => {
+            if (!old) return old;
+            return old.map((msg) =>
+              msg.id === savedMessage.id
+                ? {
+                    ...msg,
+                    status: newStatus,
+                    ...(externalIdFromProvider
+                      ? { external_id: externalIdFromProvider }
+                      : {}),
+                  }
+                : msg,
+            );
+          },
+        );
+
+        if (sendError || !data?.success) {
+          toast({
+            title: "Erro ao enviar enquete",
+            description: data?.error || "Falha no envio",
+            variant: "destructive",
+          });
+        }
+      } catch (err: unknown) {
+        if (savedMessageId) {
+          await supabase
+            .from("whatsapp_messages")
+            .update({ status: "failed" })
+            .eq("id", savedMessageId);
+
+          queryClient.setQueryData<WhatsAppMessage[]>(
+            ["whatsapp-messages", conversationId],
+            (old) => {
+              if (!old) return old;
+              return old.map((msg) =>
+                msg.id === savedMessageId ? { ...msg, status: "failed" } : msg,
+              );
+            },
+          );
+        }
+
+        toast({
+          title: "Erro ao enviar enquete",
+          description: getEdgeFunctionErrorMessage(err),
+          variant: "destructive",
+        });
+      }
+    },
+    [companyId, conversationId, queryClient, toast],
+  );
+
   // Only show loading skeleton if we have NO cached messages AND we're loading from DB
   // This implements "stale-while-revalidate" - show cached data immediately
   const hasCachedMessages = (messages?.length ?? 0) > 0;
@@ -638,6 +816,7 @@ export function useWhatsAppMessages(
     error,
     sendMessage,
     sendMedia,
+    sendPoll,
     fetchMessagesFromApi,
     isSending: false,
   };
