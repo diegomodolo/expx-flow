@@ -60,6 +60,10 @@ function isIgnoredError(message: string): boolean {
     "Refresh Token",
     "AuthApiError",
     "AuthRetryableFetchError",
+    "Failed to execute 'insertBefore'",
+    "Failed to execute 'removeChild'",
+    "The node before which the new node is to be inserted",
+    "The node to be removed is not a child",
   ];
   return ignored.some((pattern) => message.includes(pattern));
 }
