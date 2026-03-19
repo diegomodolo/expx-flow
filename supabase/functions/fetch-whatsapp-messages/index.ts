@@ -130,9 +130,11 @@ serve(async (req) => {
     );
 
     // 4. Buscar mensagens da API UazapiGO
-    // Formatar número para o formato correto
-    const formattedPhone = targetPhone.replace(/\D/g, "");
-    const chatId = `${formattedPhone}@s.whatsapp.net`;
+    // Formatar chatId — preservar @g.us para grupos
+    const isGroup = targetPhone.includes("@g.us");
+    const chatId = isGroup
+      ? targetPhone // Já é o JID completo do grupo
+      : `${targetPhone.replace(/\D/g, "")}@s.whatsapp.net`;
 
     let messages: unknown[] = [];
     const attemptLogs: string[] = [];
