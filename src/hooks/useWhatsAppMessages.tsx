@@ -2,6 +2,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCallback, useState, useEffect } from "react";
+import {
+  invokeWithRetry,
+  getEdgeFunctionErrorMessage,
+} from "@/lib/invokeWithRetry";
 
 export interface WhatsAppMessage {
   id: string;
@@ -129,7 +133,8 @@ export function useWhatsAppMessages(
       setIsFetchingFromApi(true);
 
       try {
-        const { data, error } = await supabase.functions.invoke(
+        const data = await invokeWithRetry(
+          supabase,
           "fetch-whatsapp-messages",
           {
             body: {
@@ -139,23 +144,7 @@ export function useWhatsAppMessages(
           },
         );
 
-        if (error) {
-          console.error(
-            "[useWhatsAppMessages] Erro ao buscar mensagens da API:",
-            error,
-          );
-          // Silencia erros de rede/timeout — nao exibe toast para FunctionsFetchError
-          const isNetworkError =
-            error.message?.includes("Failed to send") ||
-            error.name === "FunctionsFetchError";
-          if (!isNetworkError) {
-            toast({
-              title: "Erro ao buscar mensagens",
-              description: error.message || "Falha ao carregar mensagens",
-              variant: "destructive",
-            });
-          }
-        } else if (data?.success) {
+        if (data?.success) {
           // Invalidate to reload from DB with new messages
           queryClient.invalidateQueries({
             queryKey: ["whatsapp-messages", conversationId],
@@ -173,17 +162,11 @@ export function useWhatsAppMessages(
           "[useWhatsAppMessages] Exceção ao buscar mensagens:",
           err,
         );
-        // Silencia erros de rede/timeout
-        const errMsg = (err as Error)?.message || "";
-        const isNetworkError =
-          errMsg.includes("Failed to send") || errMsg.includes("fetch");
-        if (!isNetworkError) {
-          toast({
-            title: "Erro ao buscar mensagens",
-            description: errMsg || "Erro inesperado",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Erro ao buscar mensagens",
+          description: getEdgeFunctionErrorMessage(err),
+          variant: "destructive",
+        });
       } finally {
         setIsFetchingFromApi(false);
         setHasFetchedFromApi(true);
@@ -329,9 +312,10 @@ export function useWhatsAppMessages(
         }
 
         // Send via API (background)
-        const { data, error } = await supabase.functions.invoke(
-          "send-whatsapp-notification",
-          {
+        let data: unknown = null;
+        let sendError = false;
+        try {
+          data = await invokeWithRetry(supabase, "send-whatsapp-notification", {
             body: {
               company_id: companyId,
               recipient_phone: phone,
@@ -340,11 +324,13 @@ export function useWhatsAppMessages(
               instance_id: instanceId ?? undefined,
               reply_to_message_id: replyExternalId, // Send external_id to API, not the UUID
             },
-          },
-        );
+          });
+        } catch {
+          sendError = true;
+        }
 
         // Update message status based on result
-        const newStatus = error || !data?.success ? "failed" : "sent";
+        const newStatus = sendError || !data?.success ? "failed" : "sent";
 
         // If provider returned the message id, persist it so we can delete/react later
         const externalIdFromProvider: string | null = data?.message_id || null;
@@ -378,10 +364,10 @@ export function useWhatsAppMessages(
           },
         );
 
-        if (error || !data?.success) {
+        if (sendError || !data?.success) {
           toast({
             title: "Erro ao enviar mensagem",
-            description: data?.error || error?.message || "Falha no envio",
+            description: data?.error || "Falha no envio",
             variant: "destructive",
           });
         }
@@ -406,7 +392,7 @@ export function useWhatsAppMessages(
 
         toast({
           title: "Erro ao enviar mensagem",
-          description: err.message,
+          description: getEdgeFunctionErrorMessage(err),
           variant: "destructive",
         });
       }
@@ -552,9 +538,10 @@ export function useWhatsAppMessages(
           .eq("id", conversationId);
 
         // Send via API
-        const { data, error } = await supabase.functions.invoke(
-          "send-whatsapp-media",
-          {
+        let data: unknown = null;
+        let sendError = false;
+        try {
+          data = await invokeWithRetry(supabase, "send-whatsapp-media", {
             body: {
               company_id: companyId,
               recipient_phone: phone,
@@ -564,10 +551,12 @@ export function useWhatsAppMessages(
               doc_name: media.type === "document" ? media.file.name : undefined,
               instance_id: instanceId ?? undefined,
             },
-          },
-        );
+          });
+        } catch {
+          sendError = true;
+        }
 
-        const newStatus = error || !data?.success ? "failed" : "sent";
+        const newStatus = sendError || !data?.success ? "failed" : "sent";
         const externalIdFromProvider: string | null = data?.message_id || null;
 
         await supabase
@@ -598,10 +587,10 @@ export function useWhatsAppMessages(
           },
         );
 
-        if (error || !data?.success) {
+        if (sendError || !data?.success) {
           toast({
             title: "Erro ao enviar mídia",
-            description: data?.error || error?.message || "Falha no envio",
+            description: data?.error || "Falha no envio",
             variant: "destructive",
           });
         }
@@ -625,7 +614,7 @@ export function useWhatsAppMessages(
 
         toast({
           title: "Erro ao enviar mídia",
-          description: err.message,
+          description: getEdgeFunctionErrorMessage(err),
           variant: "destructive",
         });
       } finally {

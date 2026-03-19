@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  invokeWithRetry,
+  getEdgeFunctionErrorMessage,
+} from "@/lib/invokeWithRetry";
 
 interface Conversation {
   id: string;
@@ -18,17 +22,18 @@ interface Conversation {
 interface Message {
   id: string;
   conversation_id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   created_at: string;
 }
 
 export function useAIChat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [currentConversation, setCurrentConversation] =
+    useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   const { user } = useAuth();
   const { activeCompany } = useCompany();
   const { toast } = useToast();
@@ -39,8 +44,9 @@ export function useAIChat() {
 
     try {
       const { data, error } = await supabase
-        .from('ai_chat_conversations')
-        .select(`
+        .from("ai_chat_conversations")
+        .select(
+          `
           id,
           client_id,
           company_id,
@@ -49,24 +55,26 @@ export function useAIChat() {
           created_at,
           updated_at,
           clients(name)
-        `)
-        .eq('company_id', activeCompany.company_id)
-        .order('updated_at', { ascending: false });
+        `,
+        )
+        .eq("company_id", activeCompany.company_id)
+        .order("updated_at", { ascending: false });
 
       if (error) {
-        console.error('Error fetching conversations with clients:', error);
+        console.error("Error fetching conversations with clients:", error);
         throw error;
       }
-      
+
       // Transform data to include client_name
-      const conversationsWithClientNames = data?.map((conv: unknown) => ({
-        ...conv,
-        client_name: conv.clients?.name || 'Cliente não encontrado'
-      })) || [];
-      
+      const conversationsWithClientNames =
+        data?.map((conv: unknown) => ({
+          ...conv,
+          client_name: conv.clients?.name || "Cliente não encontrado",
+        })) || [];
+
       setConversations(conversationsWithClientNames);
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      console.error("Error fetching conversations:", error);
       toast({
         title: "Erro ao carregar conversas",
         description: "Não foi possível carregar as conversas.",
@@ -79,15 +87,15 @@ export function useAIChat() {
   const fetchMessages = async (conversationId: string) => {
     try {
       const { data, error } = await supabase
-        .from('ai_chat_messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .from("ai_chat_messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       setMessages((data || []) as Message[]);
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error("Error fetching messages:", error);
       toast({
         title: "Erro ao carregar mensagens",
         description: "Não foi possível carregar as mensagens.",
@@ -102,12 +110,12 @@ export function useAIChat() {
 
     try {
       const { data, error } = await supabase
-        .from('ai_chat_conversations')
+        .from("ai_chat_conversations")
         .insert({
           client_id: clientId,
           company_id: activeCompany.company_id,
           user_id: user.id,
-          title: 'Nova conversa'
+          title: "Nova conversa",
         })
         .select()
         .single();
@@ -123,7 +131,7 @@ export function useAIChat() {
         description: "Você pode começar a conversar com a IA agora.",
       });
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      console.error("Error creating conversation:", error);
       toast({
         title: "Erro ao criar conversa",
         description: "Não foi possível criar uma nova conversa.",
@@ -139,30 +147,27 @@ export function useAIChat() {
     setLoading(true);
     try {
       // Call the Edge Function
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
+      const data = await invokeWithRetry(supabase, "ai-chat", {
         body: {
           conversationId: currentConversation.id,
           message,
           clientId: currentConversation.client_id,
-          companyId: activeCompany.company_id
-        }
+          companyId: activeCompany.company_id,
+        },
       });
 
-      if (error) throw error;
-
       if (!data.success) {
-        throw new Error(data.error || 'Erro desconhecido');
+        throw new Error(data.error || "Erro desconhecido");
       }
 
       // Refresh messages
       await fetchMessages(currentConversation.id);
       await fetchConversations(); // Update conversations list to reflect updated_at
-
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
         title: "Erro ao enviar mensagem",
-        description: "Não foi possível enviar a mensagem. Tente novamente.",
+        description: getEdgeFunctionErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -172,7 +177,7 @@ export function useAIChat() {
 
   // Load conversation
   const loadConversation = async (conversationId: string) => {
-    const conversation = conversations.find(c => c.id === conversationId);
+    const conversation = conversations.find((c) => c.id === conversationId);
     if (conversation) {
       setCurrentConversation(conversation);
       await fetchMessages(conversationId);
@@ -185,14 +190,14 @@ export function useAIChat() {
   const deleteConversation = async (conversationId: string) => {
     try {
       const { error } = await supabase
-        .from('ai_chat_conversations')
+        .from("ai_chat_conversations")
         .delete()
-        .eq('id', conversationId);
+        .eq("id", conversationId);
 
       if (error) throw error;
 
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-      
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+
       if (currentConversation?.id === conversationId) {
         setCurrentConversation(null);
         setMessages([]);
@@ -203,7 +208,7 @@ export function useAIChat() {
         description: "A conversa foi excluída com sucesso.",
       });
     } catch (error) {
-      console.error('Error deleting conversation:', error);
+      console.error("Error deleting conversation:", error);
       toast({
         title: "Erro ao excluir conversa",
         description: "Não foi possível excluir a conversa.",
@@ -226,6 +231,6 @@ export function useAIChat() {
     sendMessage,
     loadConversation,
     deleteConversation,
-    fetchConversations
+    fetchConversations,
   };
 }

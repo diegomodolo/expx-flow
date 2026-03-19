@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  invokeWithRetry,
+  getEdgeFunctionErrorMessage,
+} from "@/lib/invokeWithRetry";
 
 export function useSyncWhatsAppChats(companyId: string | undefined) {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -16,21 +20,12 @@ export function useSyncWhatsAppChats(companyId: string | undefined) {
     setIsSyncing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "sync-whatsapp-chats",
-        {
-          body: {
-            company_id: companyId,
-            instance_id: instanceId,
-          },
+      const data = await invokeWithRetry(supabase, "sync-whatsapp-chats", {
+        body: {
+          company_id: companyId,
+          instance_id: instanceId,
         },
-      );
-
-      if (error) {
-        console.error("[useSyncWhatsAppChats] Erro ao sincronizar:", error);
-        toast.error("Erro ao sincronizar conversas");
-        return { success: false, synced: 0 };
-      }
+      });
 
       if (data?.success) {
         // Invalidar cache para recarregar conversas
@@ -58,7 +53,7 @@ export function useSyncWhatsAppChats(companyId: string | undefined) {
       }
     } catch (err) {
       console.error("[useSyncWhatsAppChats] Exceção:", err);
-      toast.error("Erro ao sincronizar conversas");
+      toast.error(getEdgeFunctionErrorMessage(err));
       return { success: false, synced: 0 };
     } finally {
       setIsSyncing(false);
@@ -73,23 +68,11 @@ export function useSyncWhatsAppChats(companyId: string | undefined) {
     setIsConfiguringWebhook(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "configure-uazapi-webhook",
-        {
-          body: {
-            instance_id: instanceId,
-          },
+      const data = await invokeWithRetry(supabase, "configure-uazapi-webhook", {
+        body: {
+          instance_id: instanceId,
         },
-      );
-
-      if (error) {
-        console.error(
-          "[useSyncWhatsAppChats] Erro ao configurar webhook:",
-          error,
-        );
-        toast.error("Erro ao configurar webhook");
-        return { success: false };
-      }
+      });
 
       if (data?.success) {
         toast.success("Webhook configurado com sucesso!");
@@ -106,7 +89,7 @@ export function useSyncWhatsAppChats(companyId: string | undefined) {
       }
     } catch (err) {
       console.error("[useSyncWhatsAppChats] Exceção webhook:", err);
-      toast.error("Erro ao configurar webhook");
+      toast.error(getEdgeFunctionErrorMessage(err));
       return { success: false };
     } finally {
       setIsConfiguringWebhook(false);
