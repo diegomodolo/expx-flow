@@ -815,10 +815,12 @@ export function useWhatsAppMessages(
         content: string;
         message_type: string;
         media_url?: string | null;
+        cached_media_url?: string | null;
       };
       instanceId?: string | null;
     }) => {
       const results = [];
+      const fileUrl = message.media_url || message.cached_media_url;
 
       for (const target of targetConversations) {
         try {
@@ -833,13 +835,28 @@ export function useWhatsAppMessages(
                 forward: true,
               },
             });
-          } else if (message.media_url) {
+          } else if (fileUrl) {
             await invokeWithRetry(supabase, "send-whatsapp-media", {
               body: {
                 company_id: companyId,
                 recipient_phone: target.phone,
-                type: message.message_type,
-                file: message.media_url,
+                type:
+                  message.message_type === "ptt"
+                    ? "audio"
+                    : message.message_type,
+                file: fileUrl,
+                instance_id: instanceId ?? undefined,
+                forward: true,
+              },
+            });
+          } else {
+            // Fallback: forward content as text if no media URL
+            await invokeWithRetry(supabase, "send-whatsapp-notification", {
+              body: {
+                company_id: companyId,
+                recipient_phone: target.phone,
+                message: message.content,
+                notification_type: "chat",
                 instance_id: instanceId ?? undefined,
                 forward: true,
               },
