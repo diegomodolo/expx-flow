@@ -498,7 +498,7 @@ export function WhatsAppMessageBubble({
           </div>
         )}
 
-        <div className="relative max-w-[75%]">
+        <div className="relative max-w-[75%] min-w-0">
           <div
             className={cn(
               "rounded-lg px-3 py-2 shadow-sm overflow-hidden",
@@ -683,7 +683,7 @@ export function WhatsAppMessageBubble({
                 (hasMedia || message.external_id) &&
                 isPlaceholderContent
               ) && (
-                <p className="text-sm whitespace-pre-wrap break-words">
+                <p className="text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                   {parseWhatsAppFormatting(displayContent)}
                 </p>
               )}
@@ -695,7 +695,9 @@ export function WhatsAppMessageBubble({
               !message.external_id && (
                 <div className="flex items-center gap-2 text-sm opacity-80">
                   {getMediaIcon()}
-                  <span>{message.content}</span>
+                  <span className="break-words [overflow-wrap:anywhere]">
+                    {message.content}
+                  </span>
                 </div>
               )}
 
