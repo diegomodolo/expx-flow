@@ -265,7 +265,7 @@ function KanbanLiveTimer({ startedAt }: { startedAt: string }) {
 // Default columns as fallback
 const DEFAULT_COLUMNS: TaskBoardColumn[] = [
   {
-    id: "default-todo",
+    id: "00000000-0000-0000-0000-000000000001",
     name: "Pendente",
     status: "todo",
     color: "#6B7280",
@@ -276,7 +276,7 @@ const DEFAULT_COLUMNS: TaskBoardColumn[] = [
     updated_at: "",
   },
   {
-    id: "default-progress",
+    id: "00000000-0000-0000-0000-000000000002",
     name: "Em Andamento",
     status: "progress",
     color: "#3B82F6",
@@ -287,7 +287,7 @@ const DEFAULT_COLUMNS: TaskBoardColumn[] = [
     updated_at: "",
   },
   {
-    id: "default-review",
+    id: "00000000-0000-0000-0000-000000000003",
     name: "Em Revisão",
     status: "review",
     color: "#8B5CF6",
@@ -298,7 +298,7 @@ const DEFAULT_COLUMNS: TaskBoardColumn[] = [
     updated_at: "",
   },
   {
-    id: "default-done",
+    id: "00000000-0000-0000-0000-000000000004",
     name: "Concluída",
     status: "done",
     color: "#22C55E",
@@ -511,7 +511,14 @@ export function TaskKanban({
       (draggedTask.status !== targetStatus ||
         draggedTask.quadro_column_id !== columnId)
     ) {
-      onUpdateTaskStatus(draggedTask.id, targetStatus, columnId, columnName);
+      const isDefaultColumn = columnId?.startsWith("00000000-");
+      const safeColumnId = isDefaultColumn ? undefined : columnId;
+      onUpdateTaskStatus(
+        draggedTask.id,
+        targetStatus,
+        safeColumnId,
+        columnName,
+      );
     }
     setDraggedTask(null);
     setDragOverColumn(null);
@@ -528,7 +535,7 @@ export function TaskKanban({
     if (
       selectedColumn &&
       selectedColumn.id &&
-      !selectedColumn.id.startsWith("default-")
+      !selectedColumn.id.startsWith("00000000-")
     ) {
       updateColumn({ columnId: selectedColumn.id, updates: data });
     } else {
@@ -541,7 +548,7 @@ export function TaskKanban({
     if (
       selectedColumn &&
       selectedColumn.id &&
-      !selectedColumn.id.startsWith("default-")
+      !selectedColumn.id.startsWith("00000000-")
     ) {
       deleteColumn(selectedColumn.id);
     }
@@ -1079,7 +1086,7 @@ export function TaskKanban({
                     handleDrop(
                       e,
                       column.status,
-                      column.id.startsWith("default-") ? undefined : column.id,
+                      column.id.startsWith("00000000-") ? undefined : column.id,
                       column.name,
                     )
                   }
@@ -1198,7 +1205,7 @@ export function TaskKanban({
         onSave={handleSaveColumn}
         onDelete={handleDeleteColumn}
         isEditing={
-          !!selectedColumn && !selectedColumn.id.startsWith("default-")
+          !!selectedColumn && !selectedColumn.id.startsWith("00000000-")
         }
       />
 

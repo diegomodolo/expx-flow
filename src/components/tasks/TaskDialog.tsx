@@ -331,20 +331,30 @@ export function TaskDialog({
 
   // Default columns for users without custom board columns (same as kanban fallback)
   const DEFAULT_ETAPAS = [
-    { id: "default-todo", name: "Pendente", color: "#6B7280", order_index: 0 },
     {
-      id: "default-progress",
+      id: "00000000-0000-0000-0000-000000000001",
+      name: "Pendente",
+      color: "#6B7280",
+      order_index: 0,
+    },
+    {
+      id: "00000000-0000-0000-0000-000000000002",
       name: "Em Andamento",
       color: "#3B82F6",
       order_index: 1,
     },
     {
-      id: "default-review",
+      id: "00000000-0000-0000-0000-000000000003",
       name: "Em Revisão",
       color: "#8B5CF6",
       order_index: 2,
     },
-    { id: "default-done", name: "Concluída", color: "#22C55E", order_index: 3 },
+    {
+      id: "00000000-0000-0000-0000-000000000004",
+      name: "Concluída",
+      color: "#22C55E",
+      order_index: 3,
+    },
   ];
 
   // Board options: all boards from DB + ensure current user + all employees with boards
@@ -865,7 +875,9 @@ export function TaskDialog({
         inicio_apos_dias: formData.inicio_apos_dias,
         duracao_dias: formData.duracao_dias,
         responsavel_id: formData.responsible_employee_id || null,
-        quadro_column_id: formData.quadro_column_id || null,
+        quadro_column_id: formData.quadro_column_id?.startsWith("00000000-")
+          ? null
+          : formData.quadro_column_id || null,
         etapa: selectedCol?.name || null,
         fluxo: formData.fluxo || null,
         descricao: formData.description || null,
@@ -927,7 +939,10 @@ export function TaskDialog({
       related_campaign_id: formData.related_campaign_id || null,
       progress: formData.progress,
       checklist: JSON.stringify(formData.checklist),
-      quadro_column_id: formData.quadro_column_id || null,
+      // If quadro_column_id is a placeholder (starts with "00000000-"), set to null so DB doesn't reject it
+      quadro_column_id: formData.quadro_column_id?.startsWith("00000000-")
+        ? null
+        : formData.quadro_column_id || null,
       etapa: selectedCol?.name || null,
       autorizador_id: formData.autorizador_id || null,
       categoria_id: formData.categoria_id || null,
