@@ -79,11 +79,18 @@ serve(async (req) => {
       );
     }
 
-    // Format phone number — preserve group JIDs (@g.us) as-is
-    const isGroup = recipient_phone.includes("@g.us");
+    // Format phone number — preserve/restore group JIDs (@g.us)
+    const hasGroupSuffix = recipient_phone.includes("@g.us");
+    const digitsOnly = recipient_phone.replace(/\D/g, "");
+    const looksLikeGroup =
+      digitsOnly.startsWith("120363") || recipient_phone.includes("@g.us");
     let formattedPhone = recipient_phone;
-    if (!isGroup) {
-      formattedPhone = recipient_phone.replace(/\D/g, "");
+    if (hasGroupSuffix) {
+      formattedPhone = recipient_phone;
+    } else if (looksLikeGroup) {
+      formattedPhone = digitsOnly + "@g.us";
+    } else {
+      formattedPhone = digitsOnly;
       if (!formattedPhone.startsWith("55")) {
         formattedPhone = "55" + formattedPhone;
       }

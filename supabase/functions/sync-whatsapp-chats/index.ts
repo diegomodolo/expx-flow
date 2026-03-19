@@ -355,9 +355,12 @@ serve(async (req) => {
           continue;
         }
 
-        // Extrair número de telefone
+        // Extrair número de telefone — preservar @g.us para grupos
         let phone = "";
-        if (rawId) {
+        if (isGroupOrBroadcast && rawId.includes("@g.us")) {
+          // Manter o JID completo do grupo (ex: 120363xxxx@g.us)
+          phone = rawId;
+        } else if (rawId) {
           phone = rawId
             .replace("@s.whatsapp.net", "")
             .replace("@c.us", "")
