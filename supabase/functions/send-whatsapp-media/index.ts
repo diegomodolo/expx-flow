@@ -15,6 +15,7 @@ interface MediaPayload {
   caption?: string;
   doc_name?: string;
   instance_id?: string;
+  forward?: boolean;
 }
 
 serve(async (req) => {
@@ -36,6 +37,7 @@ serve(async (req) => {
       caption,
       doc_name,
       instance_id,
+      forward,
     } = payload;
 
     console.log("[send-whatsapp-media] Sending media for company:", company_id);
@@ -374,6 +376,10 @@ serve(async (req) => {
 
       if (doc_name && type === "document") {
         body.docName = doc_name;
+      }
+
+      if (forward) {
+        body.forward = true;
       }
 
       apiResponse = await fetch(uazapiUrl, {

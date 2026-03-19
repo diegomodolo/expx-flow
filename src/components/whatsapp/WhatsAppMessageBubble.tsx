@@ -17,6 +17,7 @@ import {
   Sparkles,
   Reply,
   BarChart3,
+  Forward,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ interface WhatsAppMessageBubbleProps {
   onMessageEdited?: (messageId: string, newContent: string) => void;
   onOpenAIAssistant?: (message: string) => void;
   onReply?: (message: WhatsAppMessage) => void;
+  onForward?: (message: WhatsAppMessage) => void;
 }
 
 export function WhatsAppMessageBubble({
@@ -70,6 +72,7 @@ export function WhatsAppMessageBubble({
   onMessageEdited,
   onOpenAIAssistant,
   onReply,
+  onForward,
 }: WhatsAppMessageBubbleProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -395,6 +398,20 @@ export function WhatsAppMessageBubble({
               </Button>
             )}
 
+            {/* Forward button - not for polls */}
+            {onForward && message.message_type !== "poll" && (
+              <Button
+                aria-label="Encaminhar"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => onForward(message)}
+                title="Encaminhar"
+              >
+                <Forward className="h-4 w-4" />
+              </Button>
+            )}
+
             {/* Delete button */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -482,6 +499,20 @@ export function WhatsAppMessageBubble({
                 title="Responder"
               >
                 <Reply className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Forward button - not for polls */}
+            {onForward && message.message_type !== "poll" && (
+              <Button
+                aria-label="Encaminhar"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => onForward(message)}
+                title="Encaminhar"
+              >
+                <Forward className="h-4 w-4" />
               </Button>
             )}
 

@@ -1,8 +1,12 @@
 import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { WhatsAppConversation } from "@/hooks/useWhatsAppConversations";
+import {
+  WhatsAppConversation,
+  useWhatsAppConversations,
+} from "@/hooks/useWhatsAppConversations";
 import {
   useWhatsAppMessages,
+  WhatsAppMessage,
   MediaAttachment,
 } from "@/hooks/useWhatsAppMessages";
 import { WhatsAppMessageBubble } from "./WhatsAppMessageBubble";
@@ -86,6 +90,7 @@ import { WhatsAppReminderModal } from "./WhatsAppReminderModal";
 import { WhatsAppQuickTaskModal } from "./WhatsAppQuickTaskModal";
 import { WhatsAppChatNoteModal } from "./WhatsAppChatNoteModal";
 import { WhatsAppChatNotes } from "./WhatsAppChatNotes";
+import { WhatsAppForwardDialog } from "./WhatsAppForwardDialog";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -114,6 +119,7 @@ export function WhatsAppChatWindow({
     sendMessage,
     sendMedia,
     sendPoll,
+    forwardMessage: forwardMessageFn,
     fetchMessagesFromApi,
   } = useWhatsAppMessages(conversation.id, companyId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -171,9 +177,20 @@ export function WhatsAppChatWindow({
   const [noteModalOpen, setNoteModalOpen] = useState(false);
 
   // Reply to message state
-  const [replyToMessage, setReplyToMessage] = useState<
-    import("@/hooks/useWhatsAppMessages").WhatsAppMessage | null
-  >(null);
+  const [replyToMessage, setReplyToMessage] = useState<WhatsAppMessage | null>(
+    null,
+  );
+
+  // Forward message state
+  const [forwardMessage, setForwardMessage] = useState<WhatsAppMessage | null>(
+    null,
+  );
+
+  // Conversations for forward dialog (same instance)
+  const { conversations: allConversations } = useWhatsAppConversations(
+    companyId,
+    instanceId,
+  );
 
   const { labels } = useWhatsAppLabels(companyId, instanceId ?? null);
   const { quickReplies, isLoading: quickRepliesLoading } =
@@ -1071,6 +1088,7 @@ export function WhatsAppChatWindow({
                       remoteJid={`${conversation.phone}@s.whatsapp.net`}
                       onOpenAIAssistant={handleOpenAIAssistant}
                       onReply={setReplyToMessage}
+                      onForward={(msg) => setForwardMessage(msg)}
                     />
                   </div>
                 ))}
@@ -1171,6 +1189,39 @@ export function WhatsAppChatWindow({
           />
         </>
       )}
+
+      {/* Forward message dialog */}
+      <WhatsAppForwardDialog
+        open={!!forwardMessage}
+        onOpenChange={(open) => {
+          if (!open) setForwardMessage(null);
+        }}
+        message={forwardMessage}
+        conversations={(allConversations || []).filter(
+          (c) => c.id !== conversation.id,
+        )}
+        onForward={(conversationIds) => {
+          const targets = conversationIds
+            .map((id) => {
+              const conv = allConversations?.find((c) => c.id === id);
+              return { id, phone: conv?.phone || "" };
+            })
+            .filter((t) => t.phone);
+          if (forwardMessage) {
+            forwardMessageFn({
+              targetConversations: targets,
+              message: {
+                content: forwardMessage.content,
+                message_type: forwardMessage.message_type,
+                media_url: forwardMessage.media_url,
+              },
+              instanceId,
+            });
+          }
+          setForwardMessage(null);
+        }}
+        isForwarding={false}
+      />
     </ResizablePanelGroup>
   );
 }

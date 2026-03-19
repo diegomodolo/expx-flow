@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { useCallback, useState, useEffect } from "react";
 import {
   invokeWithRetry,
@@ -802,6 +803,69 @@ export function useWhatsAppMessages(
     [companyId, conversationId, queryClient, toast],
   );
 
+  // Forward message to other conversations
+  const forwardMessage = useCallback(
+    async ({
+      targetConversations,
+      message,
+      instanceId,
+    }: {
+      targetConversations: Array<{ id: string; phone: string }>;
+      message: {
+        content: string;
+        message_type: string;
+        media_url?: string | null;
+      };
+      instanceId?: string | null;
+    }) => {
+      const results = [];
+
+      for (const target of targetConversations) {
+        try {
+          if (message.message_type === "text") {
+            await invokeWithRetry(supabase, "send-whatsapp-notification", {
+              body: {
+                company_id: companyId,
+                recipient_phone: target.phone,
+                message: message.content,
+                notification_type: "chat",
+                instance_id: instanceId ?? undefined,
+                forward: true,
+              },
+            });
+          } else if (message.media_url) {
+            await invokeWithRetry(supabase, "send-whatsapp-media", {
+              body: {
+                company_id: companyId,
+                recipient_phone: target.phone,
+                type: message.message_type,
+                file: message.media_url,
+                instance_id: instanceId ?? undefined,
+                forward: true,
+              },
+            });
+          }
+          results.push({ id: target.id, success: true });
+        } catch (err) {
+          results.push({ id: target.id, success: false });
+        }
+      }
+
+      const successCount = results.filter((r) => r.success).length;
+      if (successCount > 0) {
+        sonnerToast.success(
+          `Mensagem encaminhada para ${successCount} conversa${successCount > 1 ? "s" : ""}`,
+        );
+      }
+      if (successCount < results.length) {
+        sonnerToast.error(
+          `Falha ao encaminhar para ${results.length - successCount} conversa${results.length - successCount > 1 ? "s" : ""}`,
+        );
+      }
+    },
+    [companyId],
+  );
+
   // Only show loading skeleton if we have NO cached messages AND we're loading from DB
   // This implements "stale-while-revalidate" - show cached data immediately
   const hasCachedMessages = (messages?.length ?? 0) > 0;
@@ -817,6 +881,7 @@ export function useWhatsAppMessages(
     sendMessage,
     sendMedia,
     sendPoll,
+    forwardMessage,
     fetchMessagesFromApi,
     isSending: false,
   };

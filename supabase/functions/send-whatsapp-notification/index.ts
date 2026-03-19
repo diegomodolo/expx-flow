@@ -16,6 +16,7 @@ interface NotificationPayload {
   related_entity_id?: string;
   instance_id?: string; // Optional: specific instance to use
   reply_to_message_id?: string; // Optional: message ID to reply to (quoted message)
+  forward?: boolean; // Optional: forward the message
 }
 
 serve(async (req) => {
@@ -39,6 +40,7 @@ serve(async (req) => {
       related_entity_id,
       instance_id,
       reply_to_message_id,
+      forward,
     } = payload;
 
     console.log(
@@ -432,6 +434,10 @@ serve(async (req) => {
           "[send-whatsapp-notification] Replying to message:",
           reply_to_message_id,
         );
+      }
+
+      if (forward) {
+        uazapiBody.forward = true;
       }
 
       apiResponse = await fetch(uazapiUrl, {
