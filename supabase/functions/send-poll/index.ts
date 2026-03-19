@@ -208,12 +208,14 @@ serve(async (req) => {
     const uazapiUrl = `${cleanEndpoint}/send/menu`;
     console.log("[send-whatsapp-poll] Calling UazapiGO:", uazapiUrl);
 
+    const isGroupMessage = formattedPhone.includes("@g.us");
     const uazapiBody = {
       number: formattedPhone,
       type: "poll",
       text: question,
       choices: options,
       selectableCount: allow_multiple ? 0 : 1,
+      ...(isGroupMessage && { async: true }),
     };
 
     const apiResponse = await fetch(uazapiUrl, {

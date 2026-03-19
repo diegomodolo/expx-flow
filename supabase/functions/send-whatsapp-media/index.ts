@@ -360,10 +360,12 @@ serve(async (req) => {
       const uazapiUrl = `${cleanEndpoint}/send/media`;
       console.log("[send-whatsapp-media] Calling UazapiGO:", uazapiUrl);
 
+      const isGroupMessage = formattedPhone.includes("@g.us");
       const body: unknown = {
         number: formattedPhone,
         type: type,
         file: file,
+        ...(isGroupMessage && { async: true }),
       };
 
       if (caption) {

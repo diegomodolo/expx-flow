@@ -412,9 +412,11 @@ serve(async (req) => {
       const uazapiUrl = `${cleanEndpoint}/send/text`;
       console.log("[send-whatsapp-notification] Calling UazapiGO:", uazapiUrl);
 
+      const isGroupMessage = formattedPhone.includes("@g.us");
       const uazapiBody: unknown = {
         number: formattedPhone,
         text: message,
+        ...(isGroupMessage && { async: true }),
       };
 
       // Add reply context if provided (UazapiGO uses replyid field)
