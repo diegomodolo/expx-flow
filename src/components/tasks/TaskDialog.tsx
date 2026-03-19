@@ -935,10 +935,13 @@ export function TaskDialog({
       responsible_name: formData.responsible_name,
       responsible_avatar: formData.responsible_avatar,
       user_id: formData.responsible_user_id || null,
+      assigned_user_id:
+        formData.quadro_user_id || formData.responsible_user_id || null,
       related_client_id: formData.related_client_id || null,
       related_campaign_id: formData.related_campaign_id || null,
       progress: formData.progress,
       checklist: JSON.stringify(formData.checklist),
+      quadro_user_id: formData.quadro_user_id || null,
       // If quadro_column_id is a placeholder (starts with "00000000-"), set to null so DB doesn't reject it
       quadro_column_id: formData.quadro_column_id?.startsWith("00000000-")
         ? null
