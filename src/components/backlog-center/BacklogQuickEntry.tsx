@@ -1,4 +1,10 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import { Input } from "@/components/ui/input";
 import { Zap, User, Hash, Clock, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +37,10 @@ const PRIORITY_SUGGESTIONS = [
   { id: "low", label: "Baixa", value: "low" },
 ];
 
-function getActiveToken(text: string, cursorPos: number): { type: TokenType; search: string; start: number } {
+function getActiveToken(
+  text: string,
+  cursorPos: number,
+): { type: TokenType; search: string; start: number } {
   const before = text.slice(0, cursorPos);
 
   const lastAt = before.lastIndexOf("@");
@@ -44,7 +53,7 @@ function getActiveToken(text: string, cursorPos: number): { type: TokenType; sea
     { type: "#" as TokenType, pos: lastHash },
     { type: "/" as TokenType, pos: lastSlash },
     { type: "!" as TokenType, pos: lastBang },
-  ].filter(c => c.pos >= 0);
+  ].filter((c) => c.pos >= 0);
 
   if (candidates.length === 0) return { type: null, search: "", start: 0 };
 
@@ -63,12 +72,16 @@ function parseQuickEntry(input: string, clients: unknown[]) {
   const clientMatch = input.match(/@([\w\sÀ-ú]+?)(?=\s[#/!]|$)/i);
   const categoryMatch = input.match(/#([\w\sÀ-ú]+?)(?=\s[@/!]|$)/i);
   const minutesMatch = input.match(/\/(\d+)\s*min/i);
-  const priorityMatch = input.match(/!(alta|media|média|baixa|high|medium|low)/i);
+  const priorityMatch = input.match(
+    /!(alta|media|média|baixa|high|medium|low)/i,
+  );
 
   let clientId: string | null = null;
   if (clientMatch) {
     const search = clientMatch[1].toLowerCase().trim();
-    const found = clients.find((c: unknown) => c.name.toLowerCase().includes(search));
+    const found = clients.find((c: unknown) =>
+      c.name.toLowerCase().includes(search),
+    );
     if (found) clientId = found.id;
   }
 
@@ -95,7 +108,11 @@ function parseQuickEntry(input: string, clients: unknown[]) {
   };
 }
 
-export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props) {
+export function BacklogQuickEntry({
+  clients,
+  companyId,
+  selectedSquadId,
+}: Props) {
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
@@ -117,7 +134,10 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
     }
   }, [value]);
 
-  const activeToken = useMemo(() => getActiveToken(value, cursorPos), [value, cursorPos]);
+  const activeToken = useMemo(
+    () => getActiveToken(value, cursorPos),
+    [value, cursorPos],
+  );
 
   const suggestions = useMemo(() => {
     if (!activeToken.type) return [];
@@ -126,7 +146,11 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
     if (activeToken.type === "@") {
       return clients
         .filter((c: unknown) => c.name.toLowerCase().includes(q))
-        .map((c: unknown) => ({ id: c.id, label: c.name, icon: "user" as const }));
+        .map((c: unknown) => ({
+          id: c.id,
+          label: c.name,
+          icon: "user" as const,
+        }));
     }
 
     if (activeToken.type === "#") {
@@ -136,15 +160,19 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
     }
 
     if (activeToken.type === "/") {
-      return TIME_SUGGESTIONS
-        .filter((t) => t.label.toLowerCase().includes(q) || String(t.value).includes(q))
-        .map((t) => ({ id: String(t.value), label: t.label, icon: "clock" as const }));
+      return TIME_SUGGESTIONS.filter(
+        (t) => t.label.toLowerCase().includes(q) || String(t.value).includes(q),
+      ).map((t) => ({
+        id: String(t.value),
+        label: t.label,
+        icon: "clock" as const,
+      }));
     }
 
     if (activeToken.type === "!") {
-      return PRIORITY_SUGGESTIONS
-        .filter((p) => p.label.toLowerCase().includes(q) || p.value.includes(q))
-        .map((p) => ({ id: p.id, label: p.label, icon: "priority" as const }));
+      return PRIORITY_SUGGESTIONS.filter(
+        (p) => p.label.toLowerCase().includes(q) || p.value.includes(q),
+      ).map((p) => ({ id: p.id, label: p.label, icon: "priority" as const }));
     }
 
     return [];
@@ -170,7 +198,11 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
         replacement = `/${suggestion.id}min `;
       } else if (activeToken.type === "!") {
         // Map label back to keyword
-        const keyMap: Record<string, string> = { high: "alta", medium: "media", low: "baixa" };
+        const keyMap: Record<string, string> = {
+          high: "alta",
+          medium: "media",
+          low: "baixa",
+        };
         replacement = `!${keyMap[suggestion.id] || suggestion.id} `;
       }
 
@@ -184,7 +216,7 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
         inputRef.current?.focus();
       }, 0);
     },
-    [value, cursorPos, activeToken]
+    [value, cursorPos, activeToken],
   );
 
   const handleSubmit = async () => {
@@ -207,7 +239,9 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
         user_id: user.id,
         team_id: selectedSquadId || defaultTeam?.id || null,
         company_id: companyId,
-        deadline: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        deadline: new Date(Date.now() + 7 * 86400000)
+          .toISOString()
+          .split("T")[0],
         progress: 0,
         related_client_id: parsed.clientId || null,
       };
@@ -228,24 +262,33 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
       }
 
       queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["backlog-center-task-clients"] });
+      queryClient.invalidateQueries({
+        queryKey: ["backlog-center-task-clients"],
+      });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setValue("");
-      toast({ title: "Tarefa criada", description: `"${parsed.title}" adicionada ao backlog.` });
+      toast({
+        title: "Tarefa criada",
+        description: `"${parsed.title}" adicionada ao backlog.`,
+      });
     } catch (err: unknown) {
       console.error("Quick entry error:", err?.message || err?.code || err);
-      toast({ title: "Erro", description: `Falha ao criar tarefa: ${err?.message || 'erro desconhecido'}`, variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: `Falha ao criar tarefa: ${err?.message || "erro desconhecido"}`,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
   const scrollToItem = useCallback((index: number) => {
-    const container = dropdownRef.current?.querySelector('[data-suggestions]');
+    const container = dropdownRef.current?.querySelector("[data-suggestions]");
     if (!container) return;
-    const items = container.querySelectorAll('button');
+    const items = container.querySelectorAll("button");
     if (items[index]) {
-      items[index].scrollIntoView({ block: 'nearest' });
+      items[index].scrollIntoView({ block: "nearest" });
     }
   }, []);
 
@@ -288,9 +331,12 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
   };
 
   const iconForType = (icon: string) => {
-    if (icon === "user") return <User className="w-3.5 h-3.5 text-muted-foreground" />;
-    if (icon === "hash") return <Hash className="w-3.5 h-3.5 text-muted-foreground" />;
-    if (icon === "priority") return <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />;
+    if (icon === "user")
+      return <User className="w-3.5 h-3.5 text-muted-foreground" />;
+    if (icon === "hash")
+      return <Hash className="w-3.5 h-3.5 text-muted-foreground" />;
+    if (icon === "priority")
+      return <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />;
     return <Clock className="w-3.5 h-3.5 text-muted-foreground" />;
   };
 
@@ -316,7 +362,7 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
                   "flex items-center gap-2 w-full text-left px-3 py-2 text-sm rounded-lg transition-colors",
                   i === selectedIndex
                     ? "bg-accent text-accent-foreground"
-                    : "hover:bg-accent/50"
+                    : "hover:bg-accent/50",
                 )}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -365,7 +411,9 @@ export function BacklogQuickEntry({ clients, companyId, selectedSquadId }: Props
           autoComplete="off"
         />
         <div className="flex items-center gap-2 ml-2 flex-shrink-0 mt-1.5">
-          <kbd className="hidden sm:inline-flex text-[10px] text-muted-foreground bg-background border rounded px-1.5 py-0.5">Enter</kbd>
+          <kbd className="hidden sm:inline-flex text-[10px] text-muted-foreground bg-background border rounded px-1.5 py-0.5">
+            Enter
+          </kbd>
         </div>
       </div>
     </div>

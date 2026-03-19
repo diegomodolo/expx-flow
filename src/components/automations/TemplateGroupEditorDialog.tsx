@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +41,7 @@ export function TemplateGroupEditorDialog({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [selectedRuleIds, setSelectedRuleIds] = useState<string[]>([]);
-  
+
   const { templates: baseRules, loading: rulesLoading } = useAutomationRules();
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function TemplateGroupEditorDialog({
       setName(template.name);
       setDescription(template.description || "");
       setCategory(template.category || "");
-      setSelectedRuleIds(template.rules?.map(r => r.rule_id) || []);
+      setSelectedRuleIds(template.rules?.map((r) => r.rule_id) || []);
     } else {
       setName("");
       setDescription("");
@@ -60,7 +60,7 @@ export function TemplateGroupEditorDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       return;
     }
@@ -86,10 +86,10 @@ export function TemplateGroupEditorDialog({
   };
 
   const toggleRuleSelection = (ruleId: string) => {
-    setSelectedRuleIds(prev =>
+    setSelectedRuleIds((prev) =>
       prev.includes(ruleId)
-        ? prev.filter(id => id !== ruleId)
-        : [...prev, ruleId]
+        ? prev.filter((id) => id !== ruleId)
+        : [...prev, ruleId],
     );
   };
 
@@ -203,7 +203,9 @@ export function TemplateGroupEditorDialog({
                             </label>
                             <div className="flex gap-2">
                               <Badge variant="outline">
-                                {getEntityTypeLabel(rule.entity_type || "campaign")}
+                                {getEntityTypeLabel(
+                                  rule.entity_type || "campaign",
+                                )}
                               </Badge>
                               <Badge variant="secondary">
                                 {getActionTypeLabel(rule.action_type)}
@@ -225,10 +227,14 @@ export function TemplateGroupEditorDialog({
               {selectedRuleIds.length > 0 && (
                 <div className="bg-accent/50 p-4 rounded-lg">
                   <p className="text-sm font-medium mb-2">
-                    {selectedRuleIds.length} {selectedRuleIds.length === 1 ? "regra selecionada" : "regras selecionadas"}
+                    {selectedRuleIds.length}{" "}
+                    {selectedRuleIds.length === 1
+                      ? "regra selecionada"
+                      : "regras selecionadas"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Ao importar este template, todas as regras selecionadas serão criadas no cliente.
+                    Ao importar este template, todas as regras selecionadas
+                    serão criadas no cliente.
                   </p>
                 </div>
               )}
@@ -244,7 +250,10 @@ export function TemplateGroupEditorDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || selectedRuleIds.length === 0}>
+            <Button
+              type="submit"
+              disabled={loading || selectedRuleIds.length === 0}
+            >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {template ? "Salvar Alterações" : "Criar Template"}
             </Button>

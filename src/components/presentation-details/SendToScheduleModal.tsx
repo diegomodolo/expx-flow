@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   Send,
@@ -25,7 +31,10 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ExtendedPresentationCreative, useSendToSchedule } from "@/hooks/usePresentationMeetings";
+import {
+  ExtendedPresentationCreative,
+  useSendToSchedule,
+} from "@/hooks/usePresentationMeetings";
 import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,31 +62,40 @@ const CREATIVE_TYPE_ICONS: Record<string, React.ElementType> = {
   stories: Square,
 };
 
-export function SendToScheduleModal({ 
-  open, 
-  onClose, 
-  creatives, 
-  clientId, 
+export function SendToScheduleModal({
+  open,
+  onClose,
+  creatives,
+  clientId,
   companyId,
-  onSuccess 
+  onSuccess,
 }: SendToScheduleModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [facebookPageId, setFacebookPageId] = useState<string>("none");
   const [instagramAccountId, setInstagramAccountId] = useState<string>("none");
-  const [clientData, setClientData] = useState<{ facebook_page_id: string | null; instagram_account_id: string | null } | null>(null);
-  const [editingDates, setEditingDates] = useState<Record<string, { date: string; time: string }>>({});
-  
+  const [clientData, setClientData] = useState<{
+    facebook_page_id: string | null;
+    instagram_account_id: string | null;
+  } | null>(null);
+  const [editingDates, setEditingDates] = useState<
+    Record<string, { date: string; time: string }>
+  >({});
+
   const { sendToSchedule } = useSendToSchedule();
-  const { pages, instagramAccounts, loading: loadingAccounts } = useFacebookPages();
+  const {
+    pages,
+    instagramAccounts,
+    loading: loadingAccounts,
+  } = useFacebookPages();
 
   // Initialize dates when creatives change
   useEffect(() => {
     if (open && creatives.length > 0) {
       const initialDates: Record<string, { date: string; time: string }> = {};
-      creatives.forEach(c => {
+      creatives.forEach((c) => {
         initialDates[c.id] = {
-          date: c.scheduled_date || '',
-          time: c.scheduled_time?.slice(0, 5) || ''
+          date: c.scheduled_date || "",
+          time: c.scheduled_time?.slice(0, 5) || "",
         };
       });
       setEditingDates(initialDates);
@@ -88,33 +106,33 @@ export function SendToScheduleModal({
   useEffect(() => {
     const fetchClientData = async () => {
       if (!clientId) return;
-      
+
       const { data } = await supabase
-        .from('clients')
-        .select('facebook_page_id, instagram_account_id')
-        .eq('id', clientId)
+        .from("clients")
+        .select("facebook_page_id, instagram_account_id")
+        .eq("id", clientId)
         .maybeSingle();
-      
+
       setClientData(data);
     };
-    
+
     if (open) {
       fetchClientData();
     }
   }, [clientId, open]);
 
   // Filter pages/accounts based on client's configured IDs
-  const clientPages = clientData?.facebook_page_id 
-    ? pages.filter(p => p.id === clientData.facebook_page_id)
+  const clientPages = clientData?.facebook_page_id
+    ? pages.filter((p) => p.id === clientData.facebook_page_id)
     : [];
   const clientInstagramAccounts = clientData?.instagram_account_id
-    ? instagramAccounts.filter(a => a.id === clientData.instagram_account_id)
+    ? instagramAccounts.filter((a) => a.id === clientData.instagram_account_id)
     : [];
 
   // Auto-select all creatives on open
   useEffect(() => {
     if (open) {
-      setSelectedIds(new Set(creatives.map(c => c.id)));
+      setSelectedIds(new Set(creatives.map((c) => c.id)));
       // Auto-select client's configured account if available
       if (clientData?.facebook_page_id) {
         setFacebookPageId(clientData.facebook_page_id);
@@ -126,7 +144,7 @@ export function SendToScheduleModal({
   }, [open, creatives, clientData]);
 
   const toggleCreative = (id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -141,26 +159,29 @@ export function SendToScheduleModal({
     if (selectedIds.size === creatives.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(creatives.map(c => c.id)));
+      setSelectedIds(new Set(creatives.map((c) => c.id)));
     }
   };
 
   const handleSubmit = async () => {
     // Apply edited dates to creatives
     const selectedCreatives = creatives
-      .filter(c => selectedIds.has(c.id))
-      .map(c => ({
+      .filter((c) => selectedIds.has(c.id))
+      .map((c) => ({
         ...c,
         scheduled_date: editingDates[c.id]?.date || c.scheduled_date,
-        scheduled_time: editingDates[c.id]?.time ? `${editingDates[c.id].time}:00` : c.scheduled_time,
+        scheduled_time: editingDates[c.id]?.time
+          ? `${editingDates[c.id].time}:00`
+          : c.scheduled_time,
       }));
-    
+
     await sendToSchedule.mutateAsync({
       creatives: selectedCreatives,
       clientId,
       companyId,
       facebookPageId: facebookPageId === "none" ? null : facebookPageId,
-      instagramAccountId: instagramAccountId === "none" ? null : instagramAccountId,
+      instagramAccountId:
+        instagramAccountId === "none" ? null : instagramAccountId,
     });
 
     onSuccess();
@@ -168,15 +189,16 @@ export function SendToScheduleModal({
 
   // Sort creatives by scheduled date
   const sortedCreatives = [...creatives].sort((a, b) => {
-    const dateA = a.scheduled_date || '';
-    const dateB = b.scheduled_date || '';
+    const dateA = a.scheduled_date || "";
+    const dateB = b.scheduled_date || "";
     if (!dateA && !dateB) return 0;
     if (!dateA) return 1;
     if (!dateB) return -1;
     return dateA.localeCompare(dateB);
   });
 
-  const hasNoAccounts = clientPages.length === 0 && clientInstagramAccounts.length === 0;
+  const hasNoAccounts =
+    clientPages.length === 0 && clientInstagramAccounts.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -187,7 +209,8 @@ export function SendToScheduleModal({
             Enviar para Agendamento
           </DialogTitle>
           <DialogDescription>
-            Selecione os criativos aprovados que deseja enviar para o calendário de agendamento.
+            Selecione os criativos aprovados que deseja enviar para o calendário
+            de agendamento.
           </DialogDescription>
         </DialogHeader>
 
@@ -202,7 +225,7 @@ export function SendToScheduleModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhuma</SelectItem>
-                  {clientPages.map(page => (
+                  {clientPages.map((page) => (
                     <SelectItem key={page.id} value={page.id}>
                       {page.page_name}
                     </SelectItem>
@@ -212,13 +235,16 @@ export function SendToScheduleModal({
             </div>
             <div className="space-y-2">
               <Label>Conta do Instagram</Label>
-              <Select value={instagramAccountId} onValueChange={setInstagramAccountId}>
+              <Select
+                value={instagramAccountId}
+                onValueChange={setInstagramAccountId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhuma</SelectItem>
-                  {clientInstagramAccounts.map(account => (
+                  {clientInstagramAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       @{account.username}
                     </SelectItem>
@@ -232,7 +258,8 @@ export function SendToScheduleModal({
             <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-600">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <p className="text-sm">
-                Este cliente não possui páginas ou contas configuradas. Configure as redes sociais primeiro.
+                Este cliente não possui páginas ou contas configuradas.
+                Configure as redes sociais primeiro.
               </p>
             </div>
           )}
@@ -245,7 +272,10 @@ export function SendToScheduleModal({
                 checked={selectedIds.size === creatives.length}
                 onCheckedChange={toggleAll}
               />
-              <Label htmlFor="select-all" className="font-medium cursor-pointer">
+              <Label
+                htmlFor="select-all"
+                className="font-medium cursor-pointer"
+              >
                 Selecionar todos
               </Label>
             </div>
@@ -258,17 +288,20 @@ export function SendToScheduleModal({
           <ScrollArea className="h-[350px] pr-4">
             <div className="space-y-3">
               {sortedCreatives.map((creative) => {
-                const TypeIcon = CREATIVE_TYPE_ICONS[creative.creative_type] || Image;
+                const TypeIcon =
+                  CREATIVE_TYPE_ICONS[creative.creative_type] || Image;
                 const firstMedia = creative.creative_media?.[0];
-                const isVideo = creative.creative_type === 'reels' || firstMedia?.media_type === 'video';
+                const isVideo =
+                  creative.creative_type === "reels" ||
+                  firstMedia?.media_type === "video";
 
                 return (
                   <div
                     key={creative.id}
                     className={`p-3 rounded-lg border transition-colors ${
-                      selectedIds.has(creative.id) 
-                        ? 'bg-primary/5 border-primary/30' 
-                        : 'hover:bg-muted/50'
+                      selectedIds.has(creative.id)
+                        ? "bg-primary/5 border-primary/30"
+                        : "hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -313,7 +346,8 @@ export function SendToScheduleModal({
                           </Badge>
                         </div>
                         <p className="text-sm font-medium truncate">
-                          {creative.headline || `Criativo ${creative.order_index + 1}`}
+                          {creative.headline ||
+                            `Criativo ${creative.order_index + 1}`}
                         </p>
                       </div>
                     </div>
@@ -323,12 +357,15 @@ export function SendToScheduleModal({
                       <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
                       <input
                         type="date"
-                        value={editingDates[creative.id]?.date || ''}
+                        value={editingDates[creative.id]?.date || ""}
                         onChange={(e) => {
                           e.stopPropagation();
-                          setEditingDates(prev => ({
+                          setEditingDates((prev) => ({
                             ...prev,
-                            [creative.id]: { ...prev[creative.id], date: e.target.value }
+                            [creative.id]: {
+                              ...prev[creative.id],
+                              date: e.target.value,
+                            },
                           }));
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -336,12 +373,15 @@ export function SendToScheduleModal({
                       />
                       <input
                         type="time"
-                        value={editingDates[creative.id]?.time || ''}
+                        value={editingDates[creative.id]?.time || ""}
                         onChange={(e) => {
                           e.stopPropagation();
-                          setEditingDates(prev => ({
+                          setEditingDates((prev) => ({
                             ...prev,
-                            [creative.id]: { ...prev[creative.id], time: e.target.value }
+                            [creative.id]: {
+                              ...prev[creative.id],
+                              time: e.target.value,
+                            },
                           }));
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -359,9 +399,13 @@ export function SendToScheduleModal({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
-            disabled={selectedIds.size === 0 || sendToSchedule.isPending || (!facebookPageId && !instagramAccountId)}
+            disabled={
+              selectedIds.size === 0 ||
+              sendToSchedule.isPending ||
+              (!facebookPageId && !instagramAccountId)
+            }
           >
             {sendToSchedule.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />

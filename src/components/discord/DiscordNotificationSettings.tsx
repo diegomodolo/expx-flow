@@ -1,9 +1,29 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, Bell, CheckSquare, UserPlus, AlertTriangle, MessageSquare, BarChart3, Users, Megaphone, AtSign, CalendarClock, ShieldCheck } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  Bell,
+  CheckSquare,
+  UserPlus,
+  AlertTriangle,
+  MessageSquare,
+  BarChart3,
+  Users,
+  Megaphone,
+  AtSign,
+  CalendarClock,
+  ShieldCheck,
+} from "lucide-react";
 import { useDiscordConfig } from "@/hooks/useDiscordConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -55,14 +75,16 @@ const NOTIFICATION_OPTIONS: NotificationOption[] = [
   {
     key: "notify_task_review",
     label: "Tarefa em revisão",
-    description: "Notifica o autorizador quando uma tarefa é enviada para revisão",
+    description:
+      "Notifica o autorizador quando uma tarefa é enviada para revisão",
     icon: <ShieldCheck className="h-4 w-4" />,
     category: "tarefas",
   },
   {
     key: "notify_task_rejected",
     label: "Tarefa rejeitada",
-    description: "Notifica o responsável quando uma tarefa é rejeitada pelo autorizador",
+    description:
+      "Notifica o responsável quando uma tarefa é rejeitada pelo autorizador",
     icon: <AlertTriangle className="h-4 w-4" />,
     category: "tarefas",
   },
@@ -119,7 +141,14 @@ export const DiscordNotificationSettings = () => {
     if (config) {
       const initial: Record<string, boolean> = {};
       NOTIFICATION_OPTIONS.forEach((opt) => {
-        initial[opt.key] = config[opt.key] ?? (opt.key.includes("created") || opt.key.includes("completed") || opt.key.includes("assigned") || opt.key.includes("overdue") || opt.key.includes("squad") || opt.key.includes("mentions"));
+        initial[opt.key] =
+          config[opt.key] ??
+          (opt.key.includes("created") ||
+            opt.key.includes("completed") ||
+            opt.key.includes("assigned") ||
+            opt.key.includes("overdue") ||
+            opt.key.includes("squad") ||
+            opt.key.includes("mentions"));
       });
       setSettings(initial);
       setHasChanges(false);
@@ -165,16 +194,21 @@ export const DiscordNotificationSettings = () => {
             <div>
               <CardTitle className="text-lg">Notificações do Bot</CardTitle>
               <CardDescription>
-                Escolha quais tipos de notificação o bot enviará nos canais do Discord
+                Escolha quais tipos de notificação o bot enviará nos canais do
+                Discord
               </CardDescription>
             </div>
           </div>
           {hasChanges && (
             <Button onClick={handleSave} disabled={saving} size="sm">
               {saving ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...</>
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...
+                </>
               ) : (
-                <><Save className="h-4 w-4 mr-2" /> Salvar</>
+                <>
+                  <Save className="h-4 w-4 mr-2" /> Salvar
+                </>
               )}
             </Button>
           )}
@@ -188,10 +222,14 @@ export const DiscordNotificationSettings = () => {
         )}
 
         {categories.map((category) => {
-          const options = NOTIFICATION_OPTIONS.filter((o) => o.category === category);
+          const options = NOTIFICATION_OPTIONS.filter(
+            (o) => o.category === category,
+          );
           return (
             <div key={category} className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">{CATEGORY_LABELS[category]}</h4>
+              <h4 className="text-sm font-semibold text-foreground">
+                {CATEGORY_LABELS[category]}
+              </h4>
               <div className="space-y-1">
                 {options.map((opt) => (
                   <div
@@ -201,10 +239,15 @@ export const DiscordNotificationSettings = () => {
                     <div className="flex items-center gap-3">
                       <div className="text-muted-foreground">{opt.icon}</div>
                       <div>
-                        <Label htmlFor={opt.key} className="text-sm font-medium cursor-pointer">
+                        <Label
+                          htmlFor={opt.key}
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           {opt.label}
                         </Label>
-                        <p className="text-xs text-muted-foreground">{opt.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {opt.description}
+                        </p>
                       </div>
                     </div>
                     <Switch

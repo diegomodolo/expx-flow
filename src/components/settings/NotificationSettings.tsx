@@ -1,6 +1,12 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -23,7 +29,7 @@ export const NotificationSettings = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       toast({
@@ -35,7 +41,7 @@ export const NotificationSettings = () => {
   };
 
   const updateNotification = (key: string, value: boolean) => {
-    setNotifications(prev => ({ ...prev, [key]: value }));
+    setNotifications((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -57,7 +63,7 @@ export const NotificationSettings = () => {
               <Mail className="h-4 w-4" />
               <h3 className="text-lg font-medium">Notificações por Email</h3>
             </div>
-            
+
             <div className="space-y-4 pl-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -69,7 +75,9 @@ export const NotificationSettings = () => {
                 <Switch
                   id="email_marketing"
                   checked={notifications.email_marketing}
-                  onCheckedChange={(checked) => updateNotification('email_marketing', checked)}
+                  onCheckedChange={(checked) =>
+                    updateNotification("email_marketing", checked)
+                  }
                 />
               </div>
 
@@ -83,7 +91,9 @@ export const NotificationSettings = () => {
                 <Switch
                   id="email_security"
                   checked={notifications.email_security}
-                  onCheckedChange={(checked) => updateNotification('email_security', checked)}
+                  onCheckedChange={(checked) =>
+                    updateNotification("email_security", checked)
+                  }
                 />
               </div>
 
@@ -97,7 +107,9 @@ export const NotificationSettings = () => {
                 <Switch
                   id="email_updates"
                   checked={notifications.email_updates}
-                  onCheckedChange={(checked) => updateNotification('email_updates', checked)}
+                  onCheckedChange={(checked) =>
+                    updateNotification("email_updates", checked)
+                  }
                 />
               </div>
             </div>
@@ -111,7 +123,7 @@ export const NotificationSettings = () => {
               <MessageSquare className="h-4 w-4" />
               <h3 className="text-lg font-medium">Notificações Push</h3>
             </div>
-            
+
             <div className="space-y-4 pl-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -123,7 +135,9 @@ export const NotificationSettings = () => {
                 <Switch
                   id="push_tasks"
                   checked={notifications.push_tasks}
-                  onCheckedChange={(checked) => updateNotification('push_tasks', checked)}
+                  onCheckedChange={(checked) =>
+                    updateNotification("push_tasks", checked)
+                  }
                 />
               </div>
 
@@ -137,7 +151,9 @@ export const NotificationSettings = () => {
                 <Switch
                   id="push_campaigns"
                   checked={notifications.push_campaigns}
-                  onCheckedChange={(checked) => updateNotification('push_campaigns', checked)}
+                  onCheckedChange={(checked) =>
+                    updateNotification("push_campaigns", checked)
+                  }
                 />
               </div>
 
@@ -151,7 +167,9 @@ export const NotificationSettings = () => {
                 <Switch
                   id="push_mentions"
                   checked={notifications.push_mentions}
-                  onCheckedChange={(checked) => updateNotification('push_mentions', checked)}
+                  onCheckedChange={(checked) =>
+                    updateNotification("push_mentions", checked)
+                  }
                 />
               </div>
             </div>
@@ -165,7 +183,7 @@ export const NotificationSettings = () => {
               <MessageSquare className="h-4 w-4" />
               <h3 className="text-lg font-medium">SMS</h3>
             </div>
-            
+
             <div className="space-y-4 pl-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -177,7 +195,9 @@ export const NotificationSettings = () => {
                 <Switch
                   id="sms_alerts"
                   checked={notifications.sms_alerts}
-                  onCheckedChange={(checked) => updateNotification('sms_alerts', checked)}
+                  onCheckedChange={(checked) =>
+                    updateNotification("sms_alerts", checked)
+                  }
                 />
               </div>
             </div>
@@ -187,15 +207,17 @@ export const NotificationSettings = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setNotifications({
-                email_marketing: true,
-                email_security: true,
-                email_updates: false,
-                push_tasks: true,
-                push_campaigns: true,
-                push_mentions: true,
-                sms_alerts: false,
-              })}
+              onClick={() =>
+                setNotifications({
+                  email_marketing: true,
+                  email_security: true,
+                  email_updates: false,
+                  push_tasks: true,
+                  push_campaigns: true,
+                  push_mentions: true,
+                  sms_alerts: false,
+                })
+              }
             >
               Restaurar Padrões
             </Button>

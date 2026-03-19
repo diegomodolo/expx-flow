@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { useTasks } from "@/hooks/useTasks";
-import { useState, useMemo, Fragment } from "react";
+import React, { useState, useMemo, Fragment } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Table,

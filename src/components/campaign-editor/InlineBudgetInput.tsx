@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -70,7 +70,7 @@ export function InlineBudgetInput({
         className={cn(
           "text-sm font-medium text-left px-2 py-1 rounded-md transition-colors",
           "hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring",
-          disabled && "opacity-50 cursor-not-allowed"
+          disabled && "opacity-50 cursor-not-allowed",
         )}
       >
         R$ {currentBudget.toFixed(2)}

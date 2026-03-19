@@ -1,31 +1,41 @@
-import { useRef, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { usePDFKnowledge } from '@/hooks/usePDFKnowledge';
-import { 
-  FileText, 
-  ChevronDown, 
-  Upload, 
-  Loader2, 
+import React, { useRef, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { usePDFKnowledge } from "@/hooks/usePDFKnowledge";
+import {
+  FileText,
+  ChevronDown,
+  Upload,
+  Loader2,
   Trash2,
   File,
   CheckCircle2,
   Clock,
-  Eye
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+  Eye,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PDFKnowledgeCardProps {
   configId: string;
@@ -35,18 +45,22 @@ interface PDFKnowledgeCardProps {
   isStandalone?: boolean;
 }
 
-export function PDFKnowledgeCard({ 
-  configId, 
+export function PDFKnowledgeCard({
+  configId,
   companyId,
   open,
   onOpenChange,
-  isStandalone = false
+  isStandalone = false,
 }: PDFKnowledgeCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [viewingFile, setViewingFile] = useState<{ id: string; name: string; content: string } | null>(null);
-  const [editingContent, setEditingContent] = useState('');
-  
+  const [viewingFile, setViewingFile] = useState<{
+    id: string;
+    name: string;
+    content: string;
+  } | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+
   const {
     files,
     isLoading,
@@ -57,7 +71,7 @@ export function PDFKnowledgeCard({
     updateContent,
     isUpdatingContent,
     deleteFile,
-    isDeleting
+    isDeleting,
   } = usePDFKnowledge(configId, companyId);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -73,10 +87,12 @@ export function PDFKnowledgeCard({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const droppedFiles = Array.from(e.dataTransfer.files);
-    const pdfFile = droppedFiles.find(f => f.name.toLowerCase().endsWith('.pdf'));
-    
+    const pdfFile = droppedFiles.find((f) =>
+      f.name.toLowerCase().endsWith(".pdf"),
+    );
+
     if (pdfFile) {
       uploadFile(pdfFile);
     }
@@ -88,24 +104,24 @@ export function PDFKnowledgeCard({
       uploadFile(selectedFile);
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   const formatFileSize = (bytes: number | null) => {
-    if (!bytes) return '-';
+    if (!bytes) return "-";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleViewContent = (file: typeof files[0]) => {
+  const handleViewContent = (file: (typeof files)[0]) => {
     setViewingFile({
       id: file.id,
       name: file.file_name,
-      content: file.content_text || ''
+      content: file.content_text || "",
     });
-    setEditingContent(file.content_text || '');
+    setEditingContent(file.content_text || "");
   };
 
   const handleSaveContent = () => {
@@ -124,8 +140,10 @@ export function PDFKnowledgeCard({
         onDrop={handleDrop}
         className={cn(
           "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-          isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25",
-          isUploading && "opacity-50 pointer-events-none"
+          isDragging
+            ? "border-primary bg-primary/5"
+            : "border-muted-foreground/25",
+          isUploading && "opacity-50 pointer-events-none",
         )}
       >
         <input
@@ -135,7 +153,7 @@ export function PDFKnowledgeCard({
           className="hidden"
           onChange={handleFileSelect}
         />
-        
+
         {isUploading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -145,7 +163,7 @@ export function PDFKnowledgeCard({
           <div className="flex flex-col items-center gap-2">
             <Upload className="w-8 h-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Arraste um PDF aqui ou{' '}
+              Arraste um PDF aqui ou{" "}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="text-primary hover:underline"
@@ -153,7 +171,9 @@ export function PDFKnowledgeCard({
                 clique para selecionar
               </button>
             </p>
-            <p className="text-xs text-muted-foreground">Máximo 10MB por arquivo</p>
+            <p className="text-xs text-muted-foreground">
+              Máximo 10MB por arquivo
+            </p>
           </div>
         )}
       </div>
@@ -166,7 +186,7 @@ export function PDFKnowledgeCard({
       ) : files.length > 0 ? (
         <div className="space-y-2">
           {files.map((file) => (
-            <div 
+            <div
               key={file.id}
               className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
             >
@@ -179,10 +199,12 @@ export function PDFKnowledgeCard({
                   </span>
                   <span className="text-xs text-muted-foreground">•</span>
                   <span className="text-xs text-muted-foreground">
-                    {format(new Date(file.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                    {format(new Date(file.created_at), "dd/MM/yyyy", {
+                      locale: ptBR,
+                    })}
                   </span>
                   <span className="text-xs text-muted-foreground">•</span>
-                  {file.processing_status === 'completed' ? (
+                  {file.processing_status === "completed" ? (
                     <Badge variant="secondary" className="text-xs h-5">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
                       Processado
@@ -223,14 +245,18 @@ export function PDFKnowledgeCard({
       )}
 
       <p className="text-xs text-muted-foreground">
-        💡 Após o upload, clique no ícone de olho para adicionar ou editar o texto extraído do PDF.
-        O conteúdo será usado pela IA para gerar posts mais relevantes.
+        💡 Após o upload, clique no ícone de olho para adicionar ou editar o
+        texto extraído do PDF. O conteúdo será usado pela IA para gerar posts
+        mais relevantes.
       </p>
     </CardContent>
   );
 
   const dialogElement = (
-    <Dialog open={!!viewingFile} onOpenChange={(openState) => !openState && setViewingFile(null)}>
+    <Dialog
+      open={!!viewingFile}
+      onOpenChange={(openState) => !openState && setViewingFile(null)}
+    >
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Conteúdo do PDF</DialogTitle>
@@ -248,7 +274,9 @@ export function PDFKnowledgeCard({
               Cancelar
             </Button>
             <Button onClick={handleSaveContent} disabled={isUpdatingContent}>
-              {isUpdatingContent && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isUpdatingContent && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Salvar Conteúdo
             </Button>
           </div>
@@ -269,12 +297,15 @@ export function PDFKnowledgeCard({
                   Arquivos PDF como Base
                 </CardTitle>
                 <CardDescription>
-                  {totalFiles > 0 ? `${totalFiles} arquivo(s) anexado(s)` : 'Anexe PDFs para usar como referência'}
+                  {totalFiles > 0
+                    ? `${totalFiles} arquivo(s) anexado(s)`
+                    : "Anexe PDFs para usar como referência"}
                 </CardDescription>
               </div>
               {totalFiles > 0 && (
                 <Badge variant="secondary">
-                  {processedFiles}/{totalFiles} processado{processedFiles !== 1 ? 's' : ''}
+                  {processedFiles}/{totalFiles} processado
+                  {processedFiles !== 1 ? "s" : ""}
                 </Badge>
               )}
             </div>
@@ -297,23 +328,32 @@ export function PDFKnowledgeCard({
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="w-5 h-5 text-red-600" />
                     Arquivos PDF como Base
-                    <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 transition-transform",
+                        open && "rotate-180",
+                      )}
+                    />
                   </CardTitle>
                   <CardDescription>
-                    {totalFiles > 0 ? `${totalFiles} arquivo(s) anexado(s)` : 'Anexe PDFs para usar como referência'}
+                    {totalFiles > 0
+                      ? `${totalFiles} arquivo(s) anexado(s)`
+                      : "Anexe PDFs para usar como referência"}
                   </CardDescription>
                 </div>
                 {totalFiles > 0 && (
-                  <Badge variant="secondary" onClick={(e) => e.stopPropagation()}>
-                    {processedFiles}/{totalFiles} processado{processedFiles !== 1 ? 's' : ''}
+                  <Badge
+                    variant="secondary"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {processedFiles}/{totalFiles} processado
+                    {processedFiles !== 1 ? "s" : ""}
                   </Badge>
                 )}
               </div>
             </CardHeader>
           </CollapsibleTrigger>
-          <CollapsibleContent>
-            {cardContent}
-          </CollapsibleContent>
+          <CollapsibleContent>{cardContent}</CollapsibleContent>
         </Card>
       </Collapsible>
       {dialogElement}

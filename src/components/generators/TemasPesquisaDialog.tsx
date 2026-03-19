@@ -1,13 +1,29 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Plus, Loader2, Pencil } from "lucide-react";
-import { useMarketResearchInsights, MarketResearchInsight } from "@/hooks/useMarketResearchInsights";
+import {
+  useMarketResearchInsights,
+  MarketResearchInsight,
+} from "@/hooks/useMarketResearchInsights";
 
 interface Props {
   clientId: string;
@@ -28,17 +44,17 @@ const defaultFormData = {
   raw_content: "",
 };
 
-export function TemasPesquisaDialog({ 
-  clientId, 
-  onInsightAdded, 
+export function TemasPesquisaDialog({
+  clientId,
+  onInsightAdded,
   insightToEdit,
   open: controlledOpen,
-  onOpenChange: controlledOnOpenChange
+  onOpenChange: controlledOnOpenChange,
 }: Props) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { createInsight, updateInsight } = useMarketResearchInsights(clientId);
-  
+
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
@@ -68,7 +84,7 @@ export function TemasPesquisaDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.topic.trim()) {
       return;
     }
@@ -84,7 +100,7 @@ export function TemasPesquisaDialog({
       setFormData(defaultFormData);
       onInsightAdded?.();
     } catch (error) {
-      console.error('Error saving insight:', error);
+      console.error("Error saving insight:", error);
     } finally {
       setLoading(false);
     }
@@ -93,12 +109,13 @@ export function TemasPesquisaDialog({
   const dialogContent = (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{isEditing ? 'Editar Tema de Pesquisa' : 'Novo Tema de Pesquisa'}</DialogTitle>
+        <DialogTitle>
+          {isEditing ? "Editar Tema de Pesquisa" : "Novo Tema de Pesquisa"}
+        </DialogTitle>
         <DialogDescription>
-          {isEditing 
-            ? 'Atualize as informações do tema ou insight de mercado'
-            : 'Adicione um tema ou insight de mercado para geração de conceitos'
-          }
+          {isEditing
+            ? "Atualize as informações do tema ou insight de mercado"
+            : "Adicione um tema ou insight de mercado para geração de conceitos"}
         </DialogDescription>
       </DialogHeader>
 
@@ -109,7 +126,9 @@ export function TemasPesquisaDialog({
             id="topic"
             placeholder="Ex: Dor nas costas no home office"
             value={formData.topic}
-            onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, topic: e.target.value })
+            }
             required
           />
         </div>
@@ -120,7 +139,9 @@ export function TemasPesquisaDialog({
             id="pain_point"
             placeholder="Qual a dor/problema que o público enfrenta?"
             value={formData.pain_point}
-            onChange={(e) => setFormData({ ...formData, pain_point: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, pain_point: e.target.value })
+            }
             rows={2}
           />
         </div>
@@ -131,7 +152,9 @@ export function TemasPesquisaDialog({
             id="opportunity"
             placeholder="Como o produto/serviço resolve essa dor?"
             value={formData.opportunity}
-            onChange={(e) => setFormData({ ...formData, opportunity: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, opportunity: e.target.value })
+            }
             rows={2}
           />
         </div>
@@ -139,9 +162,11 @@ export function TemasPesquisaDialog({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="sentiment">Sentimento</Label>
-            <Select 
-              value={formData.sentiment} 
-              onValueChange={(value) => setFormData({ ...formData, sentiment: value })}
+            <Select
+              value={formData.sentiment}
+              onValueChange={(value) =>
+                setFormData({ ...formData, sentiment: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -156,9 +181,11 @@ export function TemasPesquisaDialog({
 
           <div className="space-y-2">
             <Label htmlFor="source_type">Tipo de Fonte</Label>
-            <Select 
-              value={formData.source_type} 
-              onValueChange={(value) => setFormData({ ...formData, source_type: value })}
+            <Select
+              value={formData.source_type}
+              onValueChange={(value) =>
+                setFormData({ ...formData, source_type: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -182,7 +209,9 @@ export function TemasPesquisaDialog({
             max={10}
             step={1}
             value={[formData.relevance_score]}
-            onValueChange={([value]) => setFormData({ ...formData, relevance_score: value })}
+            onValueChange={([value]) =>
+              setFormData({ ...formData, relevance_score: value })
+            }
           />
           <p className="text-xs text-muted-foreground">
             Temas com maior relevância têm prioridade na geração de conceitos
@@ -196,7 +225,9 @@ export function TemasPesquisaDialog({
             type="url"
             placeholder="https://..."
             value={formData.source_url}
-            onChange={(e) => setFormData({ ...formData, source_url: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, source_url: e.target.value })
+            }
           />
         </div>
 
@@ -206,18 +237,24 @@ export function TemasPesquisaDialog({
             id="raw_content"
             placeholder="Cole aqui um trecho relevante, citação ou comentário que inspirou este tema..."
             value={formData.raw_content}
-            onChange={(e) => setFormData({ ...formData, raw_content: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, raw_content: e.target.value })
+            }
             rows={3}
           />
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={loading || !formData.topic.trim()}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {isEditing ? 'Salvar' : 'Adicionar'}
+            {isEditing ? "Salvar" : "Adicionar"}
           </Button>
         </div>
       </form>

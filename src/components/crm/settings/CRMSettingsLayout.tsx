@@ -1,6 +1,14 @@
+import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Settings, Tag, Target, GitBranch, Users, LucideIcon } from "lucide-react";
+import {
+  Settings,
+  Tag,
+  Target,
+  GitBranch,
+  Users,
+  LucideIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface SettingsNavItem {
@@ -48,7 +56,10 @@ interface CRMSettingsLayoutProps {
   workspaceToken: string;
 }
 
-export function CRMSettingsLayout({ children, workspaceToken }: CRMSettingsLayoutProps) {
+export function CRMSettingsLayout({
+  children,
+  workspaceToken,
+}: CRMSettingsLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname.split("/").pop() || "geral";
@@ -64,7 +75,7 @@ export function CRMSettingsLayout({ children, workspaceToken }: CRMSettingsLayou
               const isActive = currentPath === item.path;
 
               const settingsPath = `/crm/${workspaceToken}/settings/${item.path}`;
-              
+
               return (
                 <button
                   key={item.path}
@@ -73,7 +84,7 @@ export function CRMSettingsLayout({ children, workspaceToken }: CRMSettingsLayou
                     "w-full flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors",
                     isActive
                       ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-foreground"
+                      : "hover:bg-muted text-foreground",
                   )}
                 >
                   <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" />
@@ -82,7 +93,9 @@ export function CRMSettingsLayout({ children, workspaceToken }: CRMSettingsLayou
                     <div
                       className={cn(
                         "text-xs mt-0.5",
-                        isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                        isActive
+                          ? "text-primary-foreground/80"
+                          : "text-muted-foreground",
                       )}
                     >
                       {item.description}
@@ -96,9 +109,7 @@ export function CRMSettingsLayout({ children, workspaceToken }: CRMSettingsLayou
       </aside>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        {children}
-      </div>
+      <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
 }

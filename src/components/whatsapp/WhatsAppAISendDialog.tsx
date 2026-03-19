@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +42,7 @@ export function WhatsAppAISendDialog({
         // Move cursor to end
         textareaRef.current?.setSelectionRange(
           textareaRef.current.value.length,
-          textareaRef.current.value.length
+          textareaRef.current.value.length,
         );
       }, 100);
     }
@@ -82,7 +82,10 @@ export function WhatsAppAISendDialog({
             disabled={isSending}
           />
           <p className="text-xs text-muted-foreground mt-2">
-            Pressione <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl</kbd> + <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Enter</kbd> para enviar
+            Pressione{" "}
+            <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl</kbd> +{" "}
+            <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Enter</kbd>{" "}
+            para enviar
           </p>
         </div>
 

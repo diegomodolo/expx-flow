@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ export function CRMCreateContactModal({
   onContactCreated,
 }: CRMCreateContactModalProps) {
   const { createContact, isCreating } = useCRMContacts(workspaceId);
-  
+
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -91,7 +91,9 @@ export function CRMCreateContactModal({
             <Input
               id="full_name"
               value={formData.full_name}
-              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, full_name: e.target.value })
+              }
               placeholder="Nome do contato"
               required
             />
@@ -106,7 +108,9 @@ export function CRMCreateContactModal({
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               placeholder="email@exemplo.com"
             />
           </div>
@@ -119,7 +123,9 @@ export function CRMCreateContactModal({
             <Input
               id="phone"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
               placeholder="(00) 00000-0000"
             />
           </div>
@@ -132,7 +138,9 @@ export function CRMCreateContactModal({
             <Input
               id="company_name"
               value={formData.company_name}
-              onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, company_name: e.target.value })
+              }
               placeholder="Nome da empresa"
             />
           </div>
@@ -142,7 +150,9 @@ export function CRMCreateContactModal({
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               placeholder="Notas adicionais..."
               rows={3}
             />
@@ -156,9 +166,13 @@ export function CRMCreateContactModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              disabled={isCreating || !formData.full_name.trim() || (!formData.email && !formData.phone)}
+            <Button
+              type="submit"
+              disabled={
+                isCreating ||
+                !formData.full_name.trim() ||
+                (!formData.email && !formData.phone)
+              }
             >
               {isCreating ? (
                 <>

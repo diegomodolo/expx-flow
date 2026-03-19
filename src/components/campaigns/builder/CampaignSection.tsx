@@ -1,16 +1,18 @@
+import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Target,
-  Settings,
-  DollarSign,
-  Info,
-} from "lucide-react";
+import { Target, Settings, DollarSign, Info } from "lucide-react";
 import { CampaignData } from "@/hooks/useCampaignBuilder";
 
 interface CampaignSectionProps {
@@ -19,37 +21,37 @@ interface CampaignSectionProps {
 }
 
 const OBJECTIVES = [
-  { value: 'OUTCOME_TRAFFIC', label: 'Tráfego' },
-  { value: 'OUTCOME_ENGAGEMENT', label: 'Engajamento' },
-  { value: 'OUTCOME_LEADS', label: 'Leads' },
-  { value: 'OUTCOME_SALES', label: 'Vendas' },
-  { value: 'OUTCOME_AWARENESS', label: 'Reconhecimento' },
-  { value: 'OUTCOME_APP_PROMOTION', label: 'Promoção de App' },
+  { value: "OUTCOME_TRAFFIC", label: "Tráfego" },
+  { value: "OUTCOME_ENGAGEMENT", label: "Engajamento" },
+  { value: "OUTCOME_LEADS", label: "Leads" },
+  { value: "OUTCOME_SALES", label: "Vendas" },
+  { value: "OUTCOME_AWARENESS", label: "Reconhecimento" },
+  { value: "OUTCOME_APP_PROMOTION", label: "Promoção de App" },
 ];
 
 const CTA_OPTIONS = [
-  { value: 'LEARN_MORE', label: 'Saiba Mais' },
-  { value: 'SHOP_NOW', label: 'Comprar Agora' },
-  { value: 'SIGN_UP', label: 'Cadastre-se' },
-  { value: 'BOOK_NOW', label: 'Reserve Agora' },
-  { value: 'CONTACT_US', label: 'Fale Conosco' },
-  { value: 'DOWNLOAD', label: 'Baixar' },
-  { value: 'GET_QUOTE', label: 'Obter Cotação' },
-  { value: 'APPLY_NOW', label: 'Candidatar-se' },
-  { value: 'SUBSCRIBE', label: 'Assinar' },
-  { value: 'WATCH_MORE', label: 'Assistir Mais' },
+  { value: "LEARN_MORE", label: "Saiba Mais" },
+  { value: "SHOP_NOW", label: "Comprar Agora" },
+  { value: "SIGN_UP", label: "Cadastre-se" },
+  { value: "BOOK_NOW", label: "Reserve Agora" },
+  { value: "CONTACT_US", label: "Fale Conosco" },
+  { value: "DOWNLOAD", label: "Baixar" },
+  { value: "GET_QUOTE", label: "Obter Cotação" },
+  { value: "APPLY_NOW", label: "Candidatar-se" },
+  { value: "SUBSCRIBE", label: "Assinar" },
+  { value: "WATCH_MORE", label: "Assistir Mais" },
 ];
 
 export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
   const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/\D/g, '');
+    const rawValue = e.target.value.replace(/\D/g, "");
     const numericValue = parseInt(rawValue, 10) / 100 || 0;
     onChange({ budgetValue: numericValue });
   };
@@ -64,7 +66,10 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
             <h2 className="text-xl font-semibold">Campanha</h2>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline">META</Badge>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+              <Badge
+                variant="outline"
+                className="bg-primary/10 text-primary border-primary/30"
+              >
                 Nova
               </Badge>
             </div>
@@ -72,11 +77,13 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
           {/* Status Toggle */}
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
-              {campaign.status === 'ACTIVE' ? 'Ativo' : 'Pausado'}
+              {campaign.status === "ACTIVE" ? "Ativo" : "Pausado"}
             </span>
             <Switch
-              checked={campaign.status === 'ACTIVE'}
-              onCheckedChange={(checked) => onChange({ status: checked ? 'ACTIVE' : 'PAUSED' })}
+              checked={campaign.status === "ACTIVE"}
+              onCheckedChange={(checked) =>
+                onChange({ status: checked ? "ACTIVE" : "PAUSED" })
+              }
               className="data-[state=checked]:bg-green-500"
             />
           </div>
@@ -105,8 +112,10 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
                     onChange={(e) => onChange({ name: e.target.value })}
                     placeholder="Ex: Campanha de Conversões - Janeiro"
                   />
-                  {campaign.name.trim() === '' && (
-                    <p className="text-xs text-destructive">O nome não pode estar vazio</p>
+                  {campaign.name.trim() === "" && (
+                    <p className="text-xs text-destructive">
+                      O nome não pode estar vazio
+                    </p>
                   )}
                 </div>
 
@@ -131,7 +140,8 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    O objetivo determina como o Meta otimizará a entrega dos seus anúncios
+                    O objetivo determina como o Meta otimizará a entrega dos
+                    seus anúncios
                   </p>
                 </div>
               </div>
@@ -150,7 +160,9 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
                   <Label>Tipo de Orçamento</Label>
                   <Select
                     value={campaign.budgetType}
-                    onValueChange={(value: 'daily' | 'lifetime') => onChange({ budgetType: value })}
+                    onValueChange={(value: "daily" | "lifetime") =>
+                      onChange({ budgetType: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -171,7 +183,9 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
                     onChange={handleBudgetChange}
                   />
                   {campaign.budgetValue < 1 && (
-                    <p className="text-xs text-destructive">O orçamento mínimo é R$ 1,00</p>
+                    <p className="text-xs text-destructive">
+                      O orçamento mínimo é R$ 1,00
+                    </p>
                   )}
                 </div>
 
@@ -179,13 +193,22 @@ export function CampaignSection({ campaign, onChange }: CampaignSectionProps) {
                 <div className="p-4 rounded-lg bg-muted/50 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      {campaign.budgetType === 'daily' ? 'Orçamento Diário:' : 'Orçamento Total:'}
+                      {campaign.budgetType === "daily"
+                        ? "Orçamento Diário:"
+                        : "Orçamento Total:"}
                     </span>
-                    <span className="font-medium">{formatCurrency(campaign.budgetValue)}</span>
+                    <span className="font-medium">
+                      {formatCurrency(campaign.budgetValue)}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Info className="w-3 h-3" />
-                    <span>A campanha será criada {campaign.status === 'ACTIVE' ? 'ativa' : 'pausada para revisão'}</span>
+                    <span>
+                      A campanha será criada{" "}
+                      {campaign.status === "ACTIVE"
+                        ? "ativa"
+                        : "pausada para revisão"}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -18,13 +18,21 @@ interface Props {
   placeholder?: string;
 }
 
-export function InlineSearchableSelect({ label, value, options, onChange, onCreate, placeholder = "Selecione..." }: Props) {
+export function InlineSearchableSelect({
+  label,
+  value,
+  options,
+  onChange,
+  onCreate,
+  placeholder = "Selecione...",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedLabel = options.find(o => o.id === value)?.nome || placeholder;
+  const selectedLabel =
+    options.find((o) => o.id === value)?.nome || placeholder;
 
   // Focus the input after the dropdown renders
   useEffect(() => {
@@ -41,7 +49,10 @@ export function InlineSearchableSelect({ label, value, options, onChange, onCrea
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
         setSearch("");
       }
@@ -50,8 +61,12 @@ export function InlineSearchableSelect({ label, value, options, onChange, onCrea
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const filtered = options.filter(o => o.nome.toLowerCase().includes(search.toLowerCase()));
-  const exactMatch = options.some(o => o.nome.toLowerCase() === search.trim().toLowerCase());
+  const filtered = options.filter((o) =>
+    o.nome.toLowerCase().includes(search.toLowerCase()),
+  );
+  const exactMatch = options.some(
+    (o) => o.nome.toLowerCase() === search.trim().toLowerCase(),
+  );
 
   // Stop ALL event propagation from the dropdown to prevent Dialog focus trap interference
   const stopPropagation = useCallback((e: React.SyntheticEvent) => {
@@ -65,7 +80,7 @@ export function InlineSearchableSelect({ label, value, options, onChange, onCrea
         variant="outline"
         role="combobox"
         className="w-full justify-between font-normal mt-1.5"
-        onClick={() => setOpen(prev => !prev)}
+        onClick={() => setOpen((prev) => !prev)}
         type="button"
       >
         {selectedLabel}
@@ -97,7 +112,7 @@ export function InlineSearchableSelect({ label, value, options, onChange, onCrea
               }}
               onKeyDown={(e) => {
                 e.stopPropagation();
-                if (e.key === 'Escape') {
+                if (e.key === "Escape") {
                   setOpen(false);
                   setSearch("");
                 }
@@ -110,24 +125,24 @@ export function InlineSearchableSelect({ label, value, options, onChange, onCrea
               className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted text-muted-foreground rounded-sm"
               onMouseDown={(e) => {
                 e.preventDefault();
-                onChange('');
-                setSearch('');
+                onChange("");
+                setSearch("");
                 setOpen(false);
               }}
             >
               Nenhuma
             </div>
-            {filtered.map(o => (
+            {filtered.map((o) => (
               <div
                 key={o.id}
                 className={cn(
                   "px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-sm",
-                  value === o.id && "bg-primary/10 text-primary"
+                  value === o.id && "bg-primary/10 text-primary",
                 )}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onChange(o.id);
-                  setSearch('');
+                  setSearch("");
                   setOpen(false);
                 }}
               >
@@ -142,7 +157,7 @@ export function InlineSearchableSelect({ label, value, options, onChange, onCrea
                   const name = search.trim();
                   onCreate(name).then((created) => {
                     if (created) onChange(created.id);
-                    setSearch('');
+                    setSearch("");
                     setOpen(false);
                   });
                 }}

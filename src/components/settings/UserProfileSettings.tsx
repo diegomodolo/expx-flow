@@ -1,8 +1,14 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,7 +46,7 @@ export const UserProfileSettings = () => {
 
     try {
       setLoading(true);
-      
+
       await updateProfile({
         full_name: formData.full_name,
         company: formData.company,
@@ -53,7 +59,7 @@ export const UserProfileSettings = () => {
         description: "Suas informações foram salvas com sucesso.",
       });
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       toast({
         title: "Erro ao atualizar",
         description: "Não foi possível salvar as alterações. Tente novamente.",
@@ -78,9 +84,9 @@ export const UserProfileSettings = () => {
   const getInitials = (name: string) => {
     if (!name) return "";
     return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -105,16 +111,25 @@ export const UserProfileSettings = () => {
               <Avatar className="h-20 w-20">
                 <AvatarImage src={formData.avatar_url} alt="Foto do perfil" />
                 <AvatarFallback className="text-lg">
-                  {formData.full_name ? getInitials(formData.full_name) : 
-                   user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
+                  {formData.full_name ? (
+                    getInitials(formData.full_name)
+                  ) : user?.email ? (
+                    getInitials(user.email)
+                  ) : (
+                    <User className="h-8 w-8" />
+                  )}
                 </AvatarFallback>
               </Avatar>
-              
+
               <ImageUploader
                 bucket="avatars"
                 currentImageUrl={formData.avatar_url}
-                onImageUploaded={(url) => setFormData({ ...formData, avatar_url: url })}
-                onImageRemoved={() => setFormData({ ...formData, avatar_url: "" })}
+                onImageUploaded={(url) =>
+                  setFormData({ ...formData, avatar_url: url })
+                }
+                onImageRemoved={() =>
+                  setFormData({ ...formData, avatar_url: "" })
+                }
                 maxSize={2}
                 className="flex-1"
               />
@@ -128,7 +143,9 @@ export const UserProfileSettings = () => {
               <Input
                 id="full_name"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, full_name: e.target.value })
+                }
                 placeholder="Seu nome completo"
               />
             </div>
@@ -155,7 +172,9 @@ export const UserProfileSettings = () => {
               <Input
                 id="company"
                 value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, company: e.target.value })
+                }
                 placeholder="Nome da empresa"
               />
             </div>
@@ -165,7 +184,9 @@ export const UserProfileSettings = () => {
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 placeholder="(11) 99999-9999"
               />
             </div>

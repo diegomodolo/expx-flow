@@ -1,13 +1,31 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Download, FileText, Printer, Plus, Minus, Calendar } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ArrowLeft,
+  Download,
+  FileText,
+  Printer,
+  Plus,
+  Minus,
+  Calendar,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -15,7 +33,7 @@ import { cn } from "@/lib/utils";
 export interface FilterConfig {
   id: string;
   label: string;
-  type: 'select' | 'date' | 'daterange' | 'input';
+  type: "select" | "date" | "daterange" | "input";
   options?: { value: string; label: string }[];
   placeholder?: string;
   defaultValue?: string;
@@ -34,36 +52,50 @@ interface ReportLayoutProps {
   filterDescription?: string;
 }
 
-export function ReportLayout({ 
-  title, 
-  description, 
-  children, 
-  onExportPDF, 
+export function ReportLayout({
+  title,
+  description,
+  children,
+  onExportPDF,
   onSendEmail,
   primaryFilters = [],
   secondaryFilters = [],
   onFilterChange,
-  filterDescription
+  filterDescription,
 }: ReportLayoutProps) {
   const navigate = useNavigate();
   const [showExtraFilters, setShowExtraFilters] = useState(false);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const [selectedDates, setSelectedDates] = useState<Record<string, Date | undefined>>({});
+  const [selectedDates, setSelectedDates] = useState<
+    Record<string, Date | undefined>
+  >({});
 
   const handleFilterChange = (filterId: string, value: string) => {
-    setFilterValues(prev => ({ ...prev, [filterId]: value }));
+    setFilterValues((prev) => ({ ...prev, [filterId]: value }));
     onFilterChange?.(filterId, value);
   };
 
   const renderFilter = (filter: FilterConfig) => {
     switch (filter.type) {
-      case 'select':
+      case "select":
         return (
           <div key={filter.id} className="space-y-2">
-            <Label htmlFor={filter.id} className="text-report-label text-foreground">{filter.label}</Label>
-            <Select onValueChange={(value) => handleFilterChange(filter.id, value)}>
+            <Label
+              htmlFor={filter.id}
+              className="text-report-label text-foreground"
+            >
+              {filter.label}
+            </Label>
+            <Select
+              onValueChange={(value) => handleFilterChange(filter.id, value)}
+            >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder={filter.placeholder || `Selecione ${filter.label.toLowerCase()}`} />
+                <SelectValue
+                  placeholder={
+                    filter.placeholder ||
+                    `Selecione ${filter.label.toLowerCase()}`
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {filter.options?.map((option) => (
@@ -75,11 +107,16 @@ export function ReportLayout({
             </Select>
           </div>
         );
-      
-      case 'input':
+
+      case "input":
         return (
           <div key={filter.id} className="space-y-2">
-            <Label htmlFor={filter.id} className="text-report-label text-foreground">{filter.label}</Label>
+            <Label
+              htmlFor={filter.id}
+              className="text-report-label text-foreground"
+            >
+              {filter.label}
+            </Label>
             <Input
               id={filter.id}
               placeholder={filter.placeholder}
@@ -88,22 +125,29 @@ export function ReportLayout({
             />
           </div>
         );
-      
-      case 'date':
+
+      case "date":
         return (
           <div key={filter.id} className="space-y-2">
-            <Label htmlFor={filter.id} className="text-report-label text-foreground">{filter.label}</Label>
+            <Label
+              htmlFor={filter.id}
+              className="text-report-label text-foreground"
+            >
+              {filter.label}
+            </Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
                     "h-8 text-xs justify-start text-left font-normal",
-                    !selectedDates[filter.id] && "text-muted-foreground"
+                    !selectedDates[filter.id] && "text-muted-foreground",
                   )}
                 >
                   <Calendar className="mr-2 h-3 w-3" />
-                  {selectedDates[filter.id] ? format(selectedDates[filter.id]!, "dd/MM/yyyy") : filter.placeholder}
+                  {selectedDates[filter.id]
+                    ? format(selectedDates[filter.id]!, "dd/MM/yyyy")
+                    : filter.placeholder}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -111,7 +155,10 @@ export function ReportLayout({
                   mode="single"
                   selected={selectedDates[filter.id]}
                   onSelect={(date) => {
-                    setSelectedDates(prev => ({ ...prev, [filter.id]: date }));
+                    setSelectedDates((prev) => ({
+                      ...prev,
+                      [filter.id]: date,
+                    }));
                     if (date) {
                       handleFilterChange(filter.id, format(date, "yyyy-MM-dd"));
                     }
@@ -123,7 +170,7 @@ export function ReportLayout({
             </Popover>
           </div>
         );
-      
+
       default:
         return null;
     }
@@ -138,11 +185,13 @@ export function ReportLayout({
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <h1 className="text-report-title text-foreground">{title}</h1>
-              <p className="text-report-description text-muted-foreground">{description}</p>
+              <p className="text-report-description text-muted-foreground">
+                {description}
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => navigate("/relatorios")}
                 className="text-sm"
@@ -168,11 +217,15 @@ export function ReportLayout({
             <Card>
               <CardContent className="p-4">
                 <div className="space-y-1">
-                  <h3 className="text-report-subtitle text-foreground">Filtros</h3>
+                  <h3 className="text-report-subtitle text-foreground">
+                    Filtros
+                  </h3>
                   {filterDescription && (
-                    <p className="text-report-caption text-muted-foreground">{filterDescription}</p>
+                    <p className="text-report-caption text-muted-foreground">
+                      {filterDescription}
+                    </p>
                   )}
-                  
+
                   {/* Primeira linha de filtros */}
                   <div className="flex items-end gap-4 flex-wrap">
                     <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4 flex-1">

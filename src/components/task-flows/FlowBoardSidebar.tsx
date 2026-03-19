@@ -1,7 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ChevronRight, Columns3, User } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Search,
+  ChevronDown,
+  ChevronRight,
+  Columns3,
+  User,
+} from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { BoardGroup } from "@/hooks/useAllBoardColumns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +23,9 @@ interface FlowBoardSidebarProps {
 
 export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
   const [search, setSearch] = useState("");
-  const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>({});
+  const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const filteredBoards = (boards || [])
     .map((board) => ({
@@ -21,7 +33,7 @@ export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
       columns: (board.columns || []).filter(
         (col) =>
           col.name?.toLowerCase().includes(search.toLowerCase()) ||
-          board.owner_name?.toLowerCase().includes(search.toLowerCase())
+          board.owner_name?.toLowerCase().includes(search.toLowerCase()),
       ),
     }))
     .filter((board) => board.columns.length > 0);
@@ -30,10 +42,13 @@ export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
     setExpandedBoards((prev) => ({ ...prev, [userId]: !prev[userId] }));
   };
 
-  const onDragStart = (event: React.DragEvent, col: BoardGroup["columns"][0]) => {
+  const onDragStart = (
+    event: React.DragEvent,
+    col: BoardGroup["columns"][0],
+  ) => {
     event.dataTransfer.setData(
       "application/task-flow-column",
-      JSON.stringify(col)
+      JSON.stringify(col),
     );
     event.dataTransfer.effectAllowed = "move";
   };
@@ -41,7 +56,9 @@ export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
   return (
     <aside className="w-64 border-r bg-card flex flex-col h-full overflow-hidden flex-shrink-0">
       <div className="p-3 border-b">
-        <h3 className="text-sm font-semibold text-foreground mb-2">Quadros & Colunas</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">
+          Quadros & Colunas
+        </h3>
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -94,7 +111,7 @@ export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
                       onDragStart={(e) => onDragStart(e, col)}
                       className={cn(
                         "flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-grab active:cursor-grabbing",
-                        "hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
+                        "hover:bg-muted/50 transition-colors border border-transparent hover:border-border",
                       )}
                     >
                       <div
@@ -102,7 +119,9 @@ export function FlowBoardSidebar({ boards, isLoading }: FlowBoardSidebarProps) {
                         style={{ backgroundColor: col.color }}
                       />
                       <Columns3 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span className="text-foreground truncate">{col.name}</span>
+                      <span className="text-foreground truncate">
+                        {col.name}
+                      </span>
                     </div>
                   ))}
                 </div>

@@ -1,6 +1,10 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useClipGenerator, Clip, ProcessingStep } from "@/hooks/useClipGenerator";
+import {
+  useClipGenerator,
+  Clip,
+  ProcessingStep,
+} from "@/hooks/useClipGenerator";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,26 +142,27 @@ export default function ClipsPage() {
                     <Upload className="h-4 w-4" />
                     Upload de Arquivo
                   </TabsTrigger>
-                   <TabsTrigger value="url" className="gap-2">
-                     <Link className="h-4 w-4" />
-                     URL do vídeo
-                   </TabsTrigger>
-                 </TabsList>
+                  <TabsTrigger value="url" className="gap-2">
+                    <Link className="h-4 w-4" />
+                    URL do vídeo
+                  </TabsTrigger>
+                </TabsList>
 
-                 <TabsContent value="url" className="space-y-4">
-                   <div>
-                     <Label>URL do vídeo (YouTube ou link direto)</Label>
-                     <Input
-                       value={url}
-                       onChange={(e) => setUrl(e.target.value)}
-                       placeholder="https://www.youtube.com/watch?v=... ou link direto .mp4"
-                       className="mt-1"
-                     />
-                     <p className="text-xs text-muted-foreground mt-1">
-                       Cole a URL do YouTube ou link direto do arquivo de vídeo. Vídeos do YouTube serão baixados automaticamente.
-                     </p>
-                   </div>
-                 </TabsContent>
+                <TabsContent value="url" className="space-y-4">
+                  <div>
+                    <Label>URL do vídeo (YouTube ou link direto)</Label>
+                    <Input
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=... ou link direto .mp4"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Cole a URL do YouTube ou link direto do arquivo de vídeo.
+                      Vídeos do YouTube serão baixados automaticamente.
+                    </p>
+                  </div>
+                </TabsContent>
 
                 <TabsContent value="upload" className="space-y-4">
                   <div>
@@ -221,7 +226,8 @@ export default function ClipsPage() {
               <div>
                 <Label>Intervalo de tempo (opcional)</Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Analise apenas um trecho específico do vídeo. Formato: mm:ss ou hh:mm:ss
+                  Analise apenas um trecho específico do vídeo. Formato: mm:ss
+                  ou hh:mm:ss
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -251,14 +257,18 @@ export default function ClipsPage() {
                   className="mt-1 min-h-[80px]"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  A IA usará essas instruções para filtrar os melhores trechos da transcrição.
+                  A IA usará essas instruções para filtrar os melhores trechos
+                  da transcrição.
                 </p>
               </div>
 
               {/* Info */}
               <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
                 <p>
-                  <strong>💡 Como funciona:</strong> O sistema analisa a transcrição do vídeo e determina automaticamente quantos clipes extrair (até 30), com base na qualidade do conteúdo e nas configurações definidas.
+                  <strong>💡 Como funciona:</strong> O sistema analisa a
+                  transcrição do vídeo e determina automaticamente quantos
+                  clipes extrair (até 30), com base na qualidade do conteúdo e
+                  nas configurações definidas.
                 </p>
               </div>
 
@@ -301,10 +311,10 @@ export default function ClipsPage() {
                         step.status === "done"
                           ? "text-muted-foreground line-through"
                           : step.status === "active"
-                          ? "font-medium text-foreground"
-                          : step.status === "error"
-                          ? "font-medium text-destructive"
-                          : "text-muted-foreground/60"
+                            ? "font-medium text-foreground"
+                            : step.status === "error"
+                              ? "font-medium text-destructive"
+                              : "text-muted-foreground/60"
                       }`}
                     >
                       {step.label}
@@ -317,7 +327,9 @@ export default function ClipsPage() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{job.progress_message || "Processando..."}</span>
-                  <span className="font-bold text-primary">{job.progress}%</span>
+                  <span className="font-bold text-primary">
+                    {job.progress}%
+                  </span>
                 </div>
                 <Progress value={job.progress} />
               </div>
@@ -327,13 +339,17 @@ export default function ClipsPage() {
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                   <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm text-destructive font-medium">Erro no processamento</p>
-                    <p className="text-xs text-muted-foreground mt-1">{job.error_message}</p>
+                    <p className="text-sm text-destructive font-medium">
+                      Erro no processamento
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {job.error_message}
+                    </p>
                   </div>
                 </div>
               )}
 
-              {(isError) && (
+              {isError && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -362,10 +378,15 @@ export default function ClipsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">
-                🎉 {clips.length} clipe{clips.length !== 1 ? "s" : ""}{" "}
-                gerado{clips.length !== 1 ? "s" : ""}!
+                🎉 {clips.length} clipe{clips.length !== 1 ? "s" : ""} gerado
+                {clips.length !== 1 ? "s" : ""}!
               </h2>
-              <Button variant="outline" size="sm" onClick={reset} className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={reset}
+                className="gap-2"
+              >
                 <RotateCcw className="h-3 w-3" />
                 Processar outro vídeo
               </Button>

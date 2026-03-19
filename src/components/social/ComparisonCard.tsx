@@ -1,5 +1,14 @@
+import React from "react";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, Eye, Users, UserPlus, MousePointerClick } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Eye,
+  Users,
+  UserPlus,
+  MousePointerClick,
+} from "lucide-react";
 
 interface ComparisonData {
   reach_change_pct: number;
@@ -26,23 +35,23 @@ function MetricComparison({
 }) {
   const isPositive = value > 0;
   const isNeutral = value === 0;
-  
-  const TrendIcon = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown;
-  const colorClass = isNeutral 
-    ? 'text-muted-foreground' 
-    : isPositive 
-      ? 'text-success' 
-      : 'text-destructive';
-  
-  const bgColorClass = isNeutral 
-    ? 'bg-muted' 
-    : isPositive 
-      ? 'bg-success/10' 
-      : 'bg-destructive/10';
 
-  const formattedValue = isPercentage 
-    ? `${isPositive ? '+' : ''}${value.toFixed(1)}%`
-    : `${isPositive ? '+' : ''}${value}`;
+  const TrendIcon = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown;
+  const colorClass = isNeutral
+    ? "text-muted-foreground"
+    : isPositive
+      ? "text-success"
+      : "text-destructive";
+
+  const bgColorClass = isNeutral
+    ? "bg-muted"
+    : isPositive
+      ? "bg-success/10"
+      : "bg-destructive/10";
+
+  const formattedValue = isPercentage
+    ? `${isPositive ? "+" : ""}${value.toFixed(1)}%`
+    : `${isPositive ? "+" : ""}${value}`;
 
   return (
     <div className={`${bgColorClass} rounded-xl p-4 flex flex-col gap-2`}>
@@ -62,7 +71,9 @@ export function ComparisonCard({ data }: ComparisonCardProps) {
   return (
     <Card className="bg-card border-0 shadow-google-sm rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-title-md text-foreground">Comparativo de Performance</h3>
+        <h3 className="text-title-md text-foreground">
+          Comparativo de Performance
+        </h3>
         <span className="text-label-sm text-muted-foreground bg-secondary px-3 py-1 rounded-full">
           Últimos 7 dias vs 7 dias anteriores
         </span>

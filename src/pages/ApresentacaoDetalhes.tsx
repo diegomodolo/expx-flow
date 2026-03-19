@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -30,15 +30,29 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePresentationDetails } from "@/hooks/usePresentations";
-import { usePresentationMeetings, useSendToSchedule, ExtendedPresentationCreative } from "@/hooks/usePresentationMeetings";
+import {
+  usePresentationMeetings,
+  useSendToSchedule,
+  ExtendedPresentationCreative,
+} from "@/hooks/usePresentationMeetings";
 import { useToast } from "@/hooks/use-toast";
 import { CreativesList } from "@/components/presentation-details/CreativesList";
 import { MeetingsHistory } from "@/components/presentation-details/MeetingsHistory";
 import { SendToScheduleModal } from "@/components/presentation-details/SendToScheduleModal";
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 const CREATIVE_TYPE_ICONS: Record<string, React.ElementType> = {
@@ -54,19 +68,38 @@ export default function ApresentacaoDetalhes() {
   const { toast } = useToast();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  const { data: presentation, isLoading: isLoadingPresentation } = usePresentationDetails(id || '');
-  const { creatives, meetings, isLoadingCreatives, isLoadingMeetings, refetch } = usePresentationMeetings(id || '');
+  const { data: presentation, isLoading: isLoadingPresentation } =
+    usePresentationDetails(id || "");
+  const {
+    creatives,
+    meetings,
+    isLoadingCreatives,
+    isLoadingMeetings,
+    refetch,
+  } = usePresentationMeetings(id || "");
   const { sendToSchedule } = useSendToSchedule();
 
   // Stats calculation
   const stats = useMemo(() => {
     const total = creatives.length;
-    const approved = creatives.filter(c => c.current_status === 'approved').length;
-    const rejected = creatives.filter(c => c.current_status === 'rejected').length;
-    const pending = creatives.filter(c => c.current_status === 'pending').length;
-    const resubmitted = creatives.filter(c => c.current_status === 'resubmitted').length;
-    const scheduled = creatives.filter(c => c.current_status === 'scheduled').length;
-    const readyToSchedule = creatives.filter(c => c.current_status === 'approved' && !c.scheduled_post_id).length;
+    const approved = creatives.filter(
+      (c) => c.current_status === "approved",
+    ).length;
+    const rejected = creatives.filter(
+      (c) => c.current_status === "rejected",
+    ).length;
+    const pending = creatives.filter(
+      (c) => c.current_status === "pending",
+    ).length;
+    const resubmitted = creatives.filter(
+      (c) => c.current_status === "resubmitted",
+    ).length;
+    const scheduled = creatives.filter(
+      (c) => c.current_status === "scheduled",
+    ).length;
+    const readyToSchedule = creatives.filter(
+      (c) => c.current_status === "approved" && !c.scheduled_post_id,
+    ).length;
 
     return {
       total,
@@ -90,14 +123,15 @@ export default function ApresentacaoDetalhes() {
       navigator.clipboard.writeText(url);
       toast({
         title: "Link copiado!",
-        description: "O link da apresentação foi copiado para a área de transferência.",
+        description:
+          "O link da apresentação foi copiado para a área de transferência.",
       });
     }
   };
 
   const handleOpenPresentation = () => {
     if (presentation?.public_token) {
-      window.open(`/apresentacao/${presentation.public_token}`, '_blank');
+      window.open(`/apresentacao/${presentation.public_token}`, "_blank");
     }
   };
 
@@ -118,7 +152,11 @@ export default function ApresentacaoDetalhes() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-12">
           <p className="text-muted-foreground">Apresentação não encontrada</p>
-          <Button variant="outline" onClick={() => navigate('/geradores/apresentacoes')} className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/geradores/apresentacoes")}
+            className="mt-4"
+          >
             Voltar
           </Button>
         </div>
@@ -152,9 +190,12 @@ export default function ApresentacaoDetalhes() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{presentation.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">
+                {presentation.name}
+              </h1>
               <p className="text-muted-foreground">
-                {presentation.clients?.name} • {MONTH_NAMES[presentation.month - 1]} {presentation.year}
+                {presentation.clients?.name} •{" "}
+                {MONTH_NAMES[presentation.month - 1]} {presentation.year}
               </p>
             </div>
           </div>
@@ -165,7 +206,11 @@ export default function ApresentacaoDetalhes() {
                   <Link2 className="w-4 h-4 mr-2" />
                   Copiar Link
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleOpenPresentation}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenPresentation}
+                >
                   <Eye className="w-4 h-4 mr-2" />
                   Visualizar
                 </Button>
@@ -179,7 +224,9 @@ export default function ApresentacaoDetalhes() {
               <Send className="w-4 h-4" />
               Enviar para Agendamento
               {stats.readyToSchedule > 0 && (
-                <Badge variant="secondary" className="ml-1">{stats.readyToSchedule}</Badge>
+                <Badge variant="secondary" className="ml-1">
+                  {stats.readyToSchedule}
+                </Badge>
               )}
             </Button>
           </div>
@@ -207,7 +254,9 @@ export default function ApresentacaoDetalhes() {
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-500">{stats.approved}</p>
+                  <p className="text-2xl font-bold text-green-500">
+                    {stats.approved}
+                  </p>
                   <p className="text-xs text-muted-foreground">Aprovados</p>
                 </div>
               </div>
@@ -220,7 +269,9 @@ export default function ApresentacaoDetalhes() {
                   <XCircle className="w-5 h-5 text-red-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-red-500">{stats.rejected}</p>
+                  <p className="text-2xl font-bold text-red-500">
+                    {stats.rejected}
+                  </p>
                   <p className="text-xs text-muted-foreground">Reprovados</p>
                 </div>
               </div>
@@ -233,7 +284,9 @@ export default function ApresentacaoDetalhes() {
                   <Clock className="w-5 h-5 text-yellow-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-yellow-500">{stats.pending + stats.resubmitted}</p>
+                  <p className="text-2xl font-bold text-yellow-500">
+                    {stats.pending + stats.resubmitted}
+                  </p>
                   <p className="text-xs text-muted-foreground">Pendentes</p>
                 </div>
               </div>
@@ -246,7 +299,9 @@ export default function ApresentacaoDetalhes() {
                   <Calendar className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-blue-500">{stats.scheduled}</p>
+                  <p className="text-2xl font-bold text-blue-500">
+                    {stats.scheduled}
+                  </p>
                   <p className="text-xs text-muted-foreground">Agendados</p>
                 </div>
               </div>
@@ -271,7 +326,7 @@ export default function ApresentacaoDetalhes() {
             <CreativesList
               creatives={creatives}
               isLoading={isLoadingCreatives}
-              presentationId={id || ''}
+              presentationId={id || ""}
               clientId={presentation.client_id}
               onRefresh={refetch}
             />
@@ -281,7 +336,7 @@ export default function ApresentacaoDetalhes() {
             <MeetingsHistory
               meetings={meetings}
               isLoading={isLoadingMeetings}
-              presentationId={id || ''}
+              presentationId={id || ""}
               onRefresh={refetch}
             />
           </TabsContent>
@@ -291,7 +346,9 @@ export default function ApresentacaoDetalhes() {
         <SendToScheduleModal
           open={showScheduleModal}
           onClose={() => setShowScheduleModal(false)}
-          creatives={creatives.filter(c => c.current_status === 'approved' && !c.scheduled_post_id)}
+          creatives={creatives.filter(
+            (c) => c.current_status === "approved" && !c.scheduled_post_id,
+          )}
           clientId={presentation.client_id}
           companyId={presentation.company_id}
           onSuccess={() => {

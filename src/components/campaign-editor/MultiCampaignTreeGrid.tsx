@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { TreeNode, ClientTargets } from "@/hooks/useCampaignTree";
 import { TreeGridRow } from "./TreeGridRow";
 import { BulkActionsBar } from "./BulkActionsBar";
@@ -8,7 +8,16 @@ import { RefreshCw, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-type SortColumn = "name" | "status" | "budget" | "ctr" | "cpa" | "cpm" | "cpc" | "conversions" | "spend";
+type SortColumn =
+  | "name"
+  | "status"
+  | "budget"
+  | "ctr"
+  | "cpa"
+  | "cpm"
+  | "cpc"
+  | "conversions"
+  | "spend";
 type SortDirection = "asc" | "desc";
 
 interface MultiCampaignTreeGridProps {
@@ -37,33 +46,45 @@ export function MultiCampaignTreeGrid({
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const { loading, currentAction, updateStatus, updateBudget, bulkUpdateStatus } = useInlineEdit({
+  const {
+    loading,
+    currentAction,
+    updateStatus,
+    updateBudget,
+    bulkUpdateStatus,
+  } = useInlineEdit({
     onSuccess: onRefresh,
   });
 
-  const handleSort = useCallback((column: SortColumn) => {
-    if (sortColumn === column) {
-      if (sortDirection === "asc") {
-        setSortDirection("desc");
+  const handleSort = useCallback(
+    (column: SortColumn) => {
+      if (sortColumn === column) {
+        if (sortDirection === "asc") {
+          setSortDirection("desc");
+        } else {
+          setSortColumn(null);
+          setSortDirection("asc");
+        }
       } else {
-        setSortColumn(null);
+        setSortColumn(column);
         setSortDirection("asc");
       }
-    } else {
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
-  }, [sortColumn, sortDirection]);
+    },
+    [sortColumn, sortDirection],
+  );
 
   // Filter and sort campaigns
   const filteredCampaigns = useMemo(() => {
-    const result = statusFilter === "all" ? [...campaigns] : campaigns.filter((campaign) => campaign.status === statusFilter);
-    
+    const result =
+      statusFilter === "all"
+        ? [...campaigns]
+        : campaigns.filter((campaign) => campaign.status === statusFilter);
+
     if (sortColumn) {
       result.sort((a, b) => {
         let aValue: number | string;
         let bValue: number | string;
-        
+
         switch (sortColumn) {
           case "name":
             aValue = a.name.toLowerCase();
@@ -104,19 +125,19 @@ export function MultiCampaignTreeGrid({
           default:
             return 0;
         }
-        
+
         if (typeof aValue === "string" && typeof bValue === "string") {
-          return sortDirection === "asc" 
-            ? aValue.localeCompare(bValue) 
+          return sortDirection === "asc"
+            ? aValue.localeCompare(bValue)
             : bValue.localeCompare(aValue);
         }
-        
-        return sortDirection === "asc" 
-          ? (aValue as number) - (bValue as number) 
+
+        return sortDirection === "asc"
+          ? (aValue as number) - (bValue as number)
           : (bValue as number) - (aValue as number);
       });
     }
-    
+
     return result;
   }, [campaigns, statusFilter, sortColumn, sortDirection]);
 
@@ -182,10 +203,10 @@ export function MultiCampaignTreeGrid({
         clientId,
         node.facebookId,
         newStatus ? "active" : "paused",
-        node.platform
+        node.platform,
       );
     },
-    [updateStatus, clientId]
+    [updateStatus, clientId],
   );
 
   const handleUpdateBudget = useCallback(
@@ -198,10 +219,10 @@ export function MultiCampaignTreeGrid({
         node.facebookId,
         newBudget,
         node.budget.type,
-        node.platform
+        node.platform,
       );
     },
-    [updateBudget, clientId]
+    [updateBudget, clientId],
   );
 
   const handleBulkPause = useCallback(() => {
@@ -241,9 +262,10 @@ export function MultiCampaignTreeGrid({
 
     if (nodes.length === 0) return;
 
-    const confirmMessage = nodes.length === 1
-      ? `Tem certeza que deseja excluir "${nodes[0].name}"?`
-      : `Tem certeza que deseja excluir ${nodes.length} itens selecionados?`;
+    const confirmMessage =
+      nodes.length === 1
+        ? `Tem certeza que deseja excluir "${nodes[0].name}"?`
+        : `Tem certeza que deseja excluir ${nodes.length} itens selecionados?`;
 
     if (!confirm(confirmMessage)) return;
 
@@ -251,7 +273,12 @@ export function MultiCampaignTreeGrid({
       try {
         await supabase.functions.invoke("delete-tree-entity", {
           body: {
-            entityType: node.type === "adset" ? "adset" : node.type === "ad" ? "ad" : "campaign",
+            entityType:
+              node.type === "adset"
+                ? "adset"
+                : node.type === "ad"
+                  ? "ad"
+                  : "campaign",
             entityId: node.id,
             clientId: clientId,
             facebookId: node.facebookId,
@@ -282,18 +309,25 @@ export function MultiCampaignTreeGrid({
       <div className="flex items-center justify-center h-64 text-muted-foreground border rounded-lg bg-card">
         <div className="text-center">
           <p className="mb-2">Nenhuma campanha encontrada</p>
-          <p className="text-sm">Clique em "Sincronizar" para buscar campanhas</p>
+          <p className="text-sm">
+            Clique em "Sincronizar" para buscar campanhas
+          </p>
         </div>
       </div>
     );
   }
 
   // Check if all are selected
-  const allSelected = allNodeIds.length > 0 && selectedNodes.size === allNodeIds.length;
-  const someSelected = selectedNodes.size > 0 && selectedNodes.size < allNodeIds.length;
+  const allSelected =
+    allNodeIds.length > 0 && selectedNodes.size === allNodeIds.length;
+  const someSelected =
+    selectedNodes.size > 0 && selectedNodes.size < allNodeIds.length;
 
   // Flatten multiple campaign trees into an array of rows
-  const flattenTree = (node: TreeNode, depth: number = 0): React.ReactNode[] => {
+  const flattenTree = (
+    node: TreeNode,
+    depth: number = 0,
+  ): React.ReactNode[] => {
     const isExpanded = expandedNodes.has(node.id);
     const hasChildren = node.children && node.children.length > 0;
     const isSelected = selectedNodeId === node.id;
@@ -364,81 +398,79 @@ export function MultiCampaignTreeGrid({
                   }}
                 />
               </th>
-              <SortableHeader 
-                column="name" 
-                label="Nome" 
-                width="27%" 
+              <SortableHeader
+                column="name"
+                label="Nome"
+                width="27%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="status" 
-                label="Status" 
-                width="7%" 
+              <SortableHeader
+                column="status"
+                label="Status"
+                width="7%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="budget" 
-                label="Orçamento" 
-                width="13%" 
+              <SortableHeader
+                column="budget"
+                label="Orçamento"
+                width="13%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="conversions" 
-                label="Conv." 
-                width="7%" 
+              <SortableHeader
+                column="conversions"
+                label="Conv."
+                width="7%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="cpa" 
-                label="CPA" 
-                width="8%" 
+              <SortableHeader
+                column="cpa"
+                label="CPA"
+                width="8%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="ctr" 
-                label="CTR" 
-                width="7%" 
+              <SortableHeader
+                column="ctr"
+                label="CTR"
+                width="7%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="cpm" 
-                label="CPM" 
-                width="7%" 
+              <SortableHeader
+                column="cpm"
+                label="CPM"
+                width="7%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="cpc" 
-                label="CPC" 
-                width="7%" 
+              <SortableHeader
+                column="cpc"
+                label="CPC"
+                width="7%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <SortableHeader 
-                column="spend" 
-                label="Investido" 
-                width="12%" 
+              <SortableHeader
+                column="spend"
+                label="Investido"
+                width="12%"
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[4%]">
-                
-              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[4%]"></th>
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
@@ -460,14 +492,21 @@ interface SortableHeaderProps {
   onSort: (column: SortColumn) => void;
 }
 
-function SortableHeader({ column, label, width, sortColumn, sortDirection, onSort }: SortableHeaderProps) {
+function SortableHeader({
+  column,
+  label,
+  width,
+  sortColumn,
+  sortDirection,
+  onSort,
+}: SortableHeaderProps) {
   const isActive = sortColumn === column;
-  
+
   return (
-    <th 
+    <th
       className={cn(
         "px-3 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors select-none",
-        isActive ? "text-foreground" : "text-muted-foreground"
+        isActive ? "text-foreground" : "text-muted-foreground",
       )}
       style={{ width }}
       onClick={() => onSort(column)}

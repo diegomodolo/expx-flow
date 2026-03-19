@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, Users, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from "react";
+import { Check, ChevronsUpDown, Users, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Command,
   CommandEmpty,
@@ -9,14 +9,14 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { useMetaAudiences, MetaAudience } from '@/hooks/useMetaAudiences';
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { useMetaAudiences, MetaAudience } from "@/hooks/useMetaAudiences";
 
 interface AudienceMultiSelectProps {
   clientId: string;
@@ -30,7 +30,7 @@ export function AudienceMultiSelect({
   clientId,
   selectedIds,
   onChange,
-  placeholder = 'Selecionar públicos...',
+  placeholder = "Selecionar públicos...",
   label,
 }: AudienceMultiSelectProps) {
   const [open, setOpen] = useState(false);
@@ -50,7 +50,7 @@ export function AudienceMultiSelect({
 
   const toggleAudience = (audienceId: string) => {
     if (selectedIds.includes(audienceId)) {
-      onChange(selectedIds.filter(id => id !== audienceId));
+      onChange(selectedIds.filter((id) => id !== audienceId));
     } else {
       onChange([...selectedIds, audienceId]);
     }
@@ -58,15 +58,15 @@ export function AudienceMultiSelect({
 
   const removeAudience = (audienceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    onChange(selectedIds.filter(id => id !== audienceId));
+    onChange(selectedIds.filter((id) => id !== audienceId));
   };
 
-  const selectedAudiences = audiences.filter(a => selectedIds.includes(a.id));
+  const selectedAudiences = audiences.filter((a) => selectedIds.includes(a.id));
 
   return (
     <div className="space-y-2">
       {label && <label className="text-sm font-medium">{label}</label>}
-      
+
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -77,12 +77,8 @@ export function AudienceMultiSelect({
           >
             <div className="flex flex-wrap gap-1 flex-1">
               {selectedAudiences.length > 0 ? (
-                selectedAudiences.map(audience => (
-                  <Badge
-                    key={audience.id}
-                    variant="secondary"
-                    className="mr-1"
-                  >
+                selectedAudiences.map((audience) => (
+                  <Badge key={audience.id} variant="secondary" className="mr-1">
                     {audience.name}
                     <button
                       className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -104,7 +100,9 @@ export function AudienceMultiSelect({
             <CommandInput placeholder="Buscar público..." />
             <CommandList>
               <CommandEmpty>
-                {loading ? 'Carregando públicos...' : 'Nenhum público encontrado.'}
+                {loading
+                  ? "Carregando públicos..."
+                  : "Nenhum público encontrado."}
               </CommandEmpty>
               <CommandGroup>
                 {audiences.map((audience) => (
@@ -116,8 +114,10 @@ export function AudienceMultiSelect({
                   >
                     <Check
                       className={cn(
-                        'mr-2 h-4 w-4',
-                        selectedIds.includes(audience.id) ? 'opacity-100' : 'opacity-0'
+                        "mr-2 h-4 w-4",
+                        selectedIds.includes(audience.id)
+                          ? "opacity-100"
+                          : "opacity-0",
                       )}
                     />
                     <div className="flex items-center justify-between flex-1">
@@ -141,8 +141,11 @@ export function AudienceMultiSelect({
 
       {selectedAudiences.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {selectedAudiences.length} público(s) selecionado(s) • 
-          ~{formatCount(selectedAudiences.reduce((sum, a) => sum + a.approximate_count, 0))} pessoas
+          {selectedAudiences.length} público(s) selecionado(s) • ~
+          {formatCount(
+            selectedAudiences.reduce((sum, a) => sum + a.approximate_count, 0),
+          )}{" "}
+          pessoas
         </p>
       )}
     </div>

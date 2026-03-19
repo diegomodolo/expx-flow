@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Target, 
-  Layers, 
+import React, { useState } from "react";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Target,
+  Layers,
   ImageIcon,
   ChevronRight,
   Sparkles,
   FileCheck,
   Plus,
   Trash2,
-} from 'lucide-react';
-import { CampaignBuilderState, AdSetData } from '@/hooks/useCampaignBuilder';
+} from "lucide-react";
+import { CampaignBuilderState, AdSetData } from "@/hooks/useCampaignBuilder";
 
-type Section = CampaignBuilderState['currentSection'];
+type Section = CampaignBuilderState["currentSection"];
 
 interface BuilderTreeNavProps {
   state: CampaignBuilderState;
@@ -81,7 +81,7 @@ function TreeNodeItem({
           <ChevronRight
             className={cn(
               "w-4 h-4 transition-transform text-muted-foreground",
-              isExpanded && "rotate-90"
+              isExpanded && "rotate-90",
             )}
           />
         </button>
@@ -90,15 +90,10 @@ function TreeNodeItem({
       )}
 
       {/* Icon */}
-      <span className="text-muted-foreground flex-shrink-0">
-        {icon}
-      </span>
+      <span className="text-muted-foreground flex-shrink-0">{icon}</span>
 
       {/* Name */}
-      <span
-        className="flex-1 truncate text-xs font-medium"
-        title={name}
-      >
+      <span className="flex-1 truncate text-xs font-medium" title={name}>
         {name}
       </span>
 
@@ -134,11 +129,11 @@ export function BuilderTreeNav({
 }: BuilderTreeNavProps) {
   const [expandedAdSets, setExpandedAdSets] = useState<Set<string>>(() => {
     // Initialize with all ad sets expanded
-    return new Set(state.adSets.map(as => as.id));
+    return new Set(state.adSets.map((as) => as.id));
   });
 
   const toggleAdSetExpand = (adSetId: string) => {
-    setExpandedAdSets(prev => {
+    setExpandedAdSets((prev) => {
       const next = new Set(prev);
       if (next.has(adSetId)) {
         next.delete(adSetId);
@@ -149,7 +144,10 @@ export function BuilderTreeNav({
     });
   };
 
-  const totalCreatives = state.adSets.reduce((sum, as) => sum + as.creatives.length, 0);
+  const totalCreatives = state.adSets.reduce(
+    (sum, as) => sum + as.creatives.length,
+    0,
+  );
 
   const isValid = !validateCampaign() && state.campaign.name;
 
@@ -173,11 +171,14 @@ export function BuilderTreeNav({
             id="ai-generator"
             name="Gerar com IA"
             icon={<Sparkles className="w-4 h-4" />}
-            isSelected={state.currentSection === 'ai-generator'}
-            onClick={() => onSelectSection('ai-generator')}
+            isSelected={state.currentSection === "ai-generator"}
+            onClick={() => onSelectSection("ai-generator")}
             level={0}
             badge={
-              <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-primary/10 text-primary border-primary/30">
+              <Badge
+                variant="outline"
+                className="h-5 px-1.5 text-[10px] bg-primary/10 text-primary border-primary/30"
+              >
                 Opcional
               </Badge>
             }
@@ -188,20 +189,29 @@ export function BuilderTreeNav({
           {/* Campaign Section */}
           <TreeNodeItem
             id="campaign"
-            name={state.campaign.name || 'Nova Campanha'}
+            name={state.campaign.name || "Nova Campanha"}
             icon={<Target className="w-4 h-4" />}
-            isSelected={state.currentSection === 'campaign' && state.selectedCreativeIndex === undefined}
-            onClick={() => onSelectSection('campaign')}
+            isSelected={
+              state.currentSection === "campaign" &&
+              state.selectedCreativeIndex === undefined
+            }
+            onClick={() => onSelectSection("campaign")}
             level={0}
             hasChildren={state.adSets.length > 0}
             isExpanded={true}
             badge={
               isValid ? (
-                <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                <Badge
+                  variant="outline"
+                  className="h-5 px-1.5 text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                >
                   ✓
                 </Badge>
               ) : state.campaign.name ? (
-                <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
+                <Badge
+                  variant="outline"
+                  className="h-5 px-1.5 text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30"
+                >
                   ...
                 </Badge>
               ) : null
@@ -219,7 +229,11 @@ export function BuilderTreeNav({
                   id={adSet.id}
                   name={adSet.name || `Conjunto ${adSetIndex + 1}`}
                   icon={<Layers className="w-4 h-4" />}
-                  isSelected={state.currentSection === 'adsets' && state.currentAdSetIndex === adSetIndex && state.selectedCreativeIndex === undefined}
+                  isSelected={
+                    state.currentSection === "adsets" &&
+                    state.currentAdSetIndex === adSetIndex &&
+                    state.selectedCreativeIndex === undefined
+                  }
                   onClick={() => onSelectAdSet(adSetIndex)}
                   level={1}
                   hasChildren={hasCreatives}
@@ -230,23 +244,28 @@ export function BuilderTreeNav({
                 />
 
                 {/* Creatives */}
-                {isAdSetExpanded && adSet.creatives.map((creative, creativeIndex) => (
-                  <TreeNodeItem
-                    key={creative.id}
-                    id={creative.id}
-                    name={creative.title || `Criativo ${creativeIndex + 1}`}
-                    icon={<ImageIcon className="w-4 h-4" />}
-                    isSelected={
-                      state.currentSection === 'adsets' && 
-                      state.currentAdSetIndex === adSetIndex && 
-                      state.selectedCreativeIndex === creativeIndex
-                    }
-                    onClick={() => onSelectCreative(adSetIndex, creativeIndex)}
-                    level={2}
-                    canRemove={adSet.creatives.length > 1}
-                    onRemove={() => onRemoveCreative(adSetIndex, creativeIndex)}
-                  />
-                ))}
+                {isAdSetExpanded &&
+                  adSet.creatives.map((creative, creativeIndex) => (
+                    <TreeNodeItem
+                      key={creative.id}
+                      id={creative.id}
+                      name={creative.title || `Criativo ${creativeIndex + 1}`}
+                      icon={<ImageIcon className="w-4 h-4" />}
+                      isSelected={
+                        state.currentSection === "adsets" &&
+                        state.currentAdSetIndex === adSetIndex &&
+                        state.selectedCreativeIndex === creativeIndex
+                      }
+                      onClick={() =>
+                        onSelectCreative(adSetIndex, creativeIndex)
+                      }
+                      level={2}
+                      canRemove={adSet.creatives.length > 1}
+                      onRemove={() =>
+                        onRemoveCreative(adSetIndex, creativeIndex)
+                      }
+                    />
+                  ))}
 
                 {/* Add Creative Button */}
                 {isAdSetExpanded && (
@@ -282,8 +301,8 @@ export function BuilderTreeNav({
             id="review"
             name="Revisão Final"
             icon={<FileCheck className="w-4 h-4" />}
-            isSelected={state.currentSection === 'review'}
-            onClick={() => onSelectSection('review')}
+            isSelected={state.currentSection === "review"}
+            onClick={() => onSelectSection("review")}
             level={0}
           />
         </div>

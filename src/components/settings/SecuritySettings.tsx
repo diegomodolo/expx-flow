@@ -1,8 +1,14 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +27,7 @@ export const SecuritySettings = () => {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordForm.new_password !== passwordForm.confirm_password) {
       toast({
         title: "Erro de validação",
@@ -41,7 +47,7 @@ export const SecuritySettings = () => {
     }
 
     setLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       toast({
@@ -61,8 +67,8 @@ export const SecuritySettings = () => {
     setTwoFactorEnabled(enabled);
     toast({
       title: enabled ? "2FA Ativado" : "2FA Desativado",
-      description: enabled 
-        ? "Autenticação de dois fatores foi ativada." 
+      description: enabled
+        ? "Autenticação de dois fatores foi ativada."
         : "Autenticação de dois fatores foi desativada.",
     });
   };
@@ -89,7 +95,12 @@ export const SecuritySettings = () => {
                   id="current_password"
                   type={showPassword ? "text" : "password"}
                   value={passwordForm.current_password}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      current_password: e.target.value,
+                    })
+                  }
                   placeholder="Digite sua senha atual"
                   required
                 />
@@ -100,7 +111,11 @@ export const SecuritySettings = () => {
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -111,12 +126,18 @@ export const SecuritySettings = () => {
                 id="new_password"
                 type="password"
                 value={passwordForm.new_password}
-                onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    new_password: e.target.value,
+                  })
+                }
                 placeholder="Digite sua nova senha"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Mínimo de 8 caracteres, inclua letras maiúsculas, minúsculas e números
+                Mínimo de 8 caracteres, inclua letras maiúsculas, minúsculas e
+                números
               </p>
             </div>
 
@@ -126,7 +147,12 @@ export const SecuritySettings = () => {
                 id="confirm_password"
                 type="password"
                 value={passwordForm.confirm_password}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
+                onChange={(e) =>
+                  setPasswordForm({
+                    ...passwordForm,
+                    confirm_password: e.target.value,
+                  })
+                }
                 placeholder="Confirme sua nova senha"
                 required
               />
@@ -168,13 +194,17 @@ export const SecuritySettings = () => {
 
           {twoFactorEnabled && (
             <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm font-medium">Configurar aplicativo autenticador:</p>
+              <p className="text-sm font-medium">
+                Configurar aplicativo autenticador:
+              </p>
               <ol className="text-sm text-muted-foreground space-y-1 pl-4">
-                <li>1. Baixe um aplicativo como Google Authenticator ou Authy</li>
+                <li>
+                  1. Baixe um aplicativo como Google Authenticator ou Authy
+                </li>
                 <li>2. Escaneie o código QR abaixo</li>
                 <li>3. Digite o código de 6 dígitos para confirmar</li>
               </ol>
-              
+
               <div className="flex justify-center p-4 bg-white rounded border">
                 <div className="w-32 h-32 bg-muted flex items-center justify-center text-xs text-muted-foreground">
                   QR Code Placeholder
@@ -190,9 +220,7 @@ export const SecuritySettings = () => {
                 />
               </div>
 
-              <Button className="w-full">
-                Confirmar Configuração
-              </Button>
+              <Button className="w-full">Confirmar Configuração</Button>
             </div>
           )}
         </CardContent>
@@ -214,7 +242,9 @@ export const SecuritySettings = () => {
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div>
                 <p className="font-medium">Sessão Atual</p>
-                <p className="text-sm text-muted-foreground">Chrome • São Paulo, Brasil</p>
+                <p className="text-sm text-muted-foreground">
+                  Chrome • São Paulo, Brasil
+                </p>
                 <p className="text-xs text-muted-foreground">Ativo agora</p>
               </div>
               <Button variant="outline" size="sm" disabled>
@@ -225,7 +255,9 @@ export const SecuritySettings = () => {
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div>
                 <p className="font-medium">iPhone • Safari</p>
-                <p className="text-sm text-muted-foreground">Rio de Janeiro, Brasil</p>
+                <p className="text-sm text-muted-foreground">
+                  Rio de Janeiro, Brasil
+                </p>
                 <p className="text-xs text-muted-foreground">Há 2 dias</p>
               </div>
               <Button variant="outline" size="sm">

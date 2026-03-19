@@ -1,10 +1,21 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,7 +26,12 @@ interface EditCampaignDialogProps {
   onSave: (id: string, updates: Partial<Campaign>) => Promise<void>;
 }
 
-export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCampaignDialogProps) {
+export function EditCampaignDialog({
+  campaign,
+  isOpen,
+  onClose,
+  onSave,
+}: EditCampaignDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     platforms: "",
@@ -62,9 +78,9 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
   };
 
   const handleChange = (field: string, value: string | number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -74,7 +90,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         <DialogHeader>
           <DialogTitle>Editar Campanha</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nome da Campanha</Label>
@@ -100,7 +116,10 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
 
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => handleChange("status", value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o status" />
               </SelectTrigger>
@@ -131,11 +150,14 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
               step="0.01"
               min="0"
               value={formData.average_ticket}
-              onChange={(e) => handleChange("average_ticket", parseFloat(e.target.value) || 0)}
+              onChange={(e) =>
+                handleChange("average_ticket", parseFloat(e.target.value) || 0)
+              }
               placeholder="0.00"
             />
             <p className="text-sm text-muted-foreground">
-              Valor médio do produto/serviço desta campanha para cálculo preciso do ROI
+              Valor médio do produto/serviço desta campanha para cálculo preciso
+              do ROI
             </p>
           </div>
 

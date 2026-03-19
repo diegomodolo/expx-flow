@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { TreeNode, ClientTargets } from "@/hooks/useCampaignTree";
 import { TreeGridRow } from "./TreeGridRow";
 import { BulkActionsBar } from "./BulkActionsBar";
@@ -30,7 +30,13 @@ export function TreeGridTable({
 
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
 
-  const { loading, currentAction, updateStatus, updateBudget, bulkUpdateStatus } = useInlineEdit({
+  const {
+    loading,
+    currentAction,
+    updateStatus,
+    updateBudget,
+    bulkUpdateStatus,
+  } = useInlineEdit({
     onSuccess: onRefresh,
   });
 
@@ -98,10 +104,10 @@ export function TreeGridTable({
         clientId,
         node.facebookId,
         newStatus ? "active" : "paused",
-        node.platform
+        node.platform,
       );
     },
-    [updateStatus, clientId]
+    [updateStatus, clientId],
   );
 
   const handleUpdateBudget = useCallback(
@@ -114,10 +120,10 @@ export function TreeGridTable({
         node.facebookId,
         newBudget,
         node.budget.type,
-        node.platform
+        node.platform,
       );
     },
-    [updateBudget, clientId]
+    [updateBudget, clientId],
   );
 
   const handleBulkPause = useCallback(() => {
@@ -157,9 +163,10 @@ export function TreeGridTable({
 
     if (nodes.length === 0) return;
 
-    const confirmMessage = nodes.length === 1
-      ? `Tem certeza que deseja excluir "${nodes[0].name}"?`
-      : `Tem certeza que deseja excluir ${nodes.length} itens selecionados?`;
+    const confirmMessage =
+      nodes.length === 1
+        ? `Tem certeza que deseja excluir "${nodes[0].name}"?`
+        : `Tem certeza que deseja excluir ${nodes.length} itens selecionados?`;
 
     if (!confirm(confirmMessage)) return;
 
@@ -167,7 +174,12 @@ export function TreeGridTable({
       try {
         await supabase.functions.invoke("delete-tree-entity", {
           body: {
-            entityType: node.type === "adset" ? "adset" : node.type === "ad" ? "ad" : "campaign",
+            entityType:
+              node.type === "adset"
+                ? "adset"
+                : node.type === "ad"
+                  ? "ad"
+                  : "campaign",
             entityId: node.id,
             clientId: clientId,
             facebookId: node.facebookId,
@@ -191,11 +203,16 @@ export function TreeGridTable({
   }
 
   // Check if all are selected
-  const allSelected = allNodeIds.length > 0 && selectedNodes.size === allNodeIds.length;
-  const someSelected = selectedNodes.size > 0 && selectedNodes.size < allNodeIds.length;
+  const allSelected =
+    allNodeIds.length > 0 && selectedNodes.size === allNodeIds.length;
+  const someSelected =
+    selectedNodes.size > 0 && selectedNodes.size < allNodeIds.length;
 
   // Flatten the tree into an array of rows for proper table alignment
-  const flattenTree = (node: TreeNode, depth: number = 0): React.ReactNode[] => {
+  const flattenTree = (
+    node: TreeNode,
+    depth: number = 0,
+  ): React.ReactNode[] => {
     const isExpanded = expandedNodes.has(node.id);
     const hasChildren = node.children && node.children.length > 0;
     const isSelected = selectedNodeId === node.id;
@@ -294,9 +311,7 @@ export function TreeGridTable({
               <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[12%]">
                 Investido
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[4%]">
-                
-              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-[4%]"></th>
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">

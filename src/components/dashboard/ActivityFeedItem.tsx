@@ -1,17 +1,18 @@
+import React from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Image, 
-  CheckCircle2, 
-  TrendingUp, 
-  Users, 
+import {
+  Image,
+  CheckCircle2,
+  TrendingUp,
+  Users,
   LayoutGrid,
   Bell,
   Zap,
   MessageSquare,
-  Target
+  Target,
 } from "lucide-react";
 import { ActivityItem } from "@/hooks/useActivityFeed";
 import { cn } from "@/lib/utils";
@@ -20,12 +21,15 @@ interface ActivityFeedItemProps {
   activity: ActivityItem;
 }
 
-const activityConfig: Record<string, {
-  icon: React.ElementType;
-  color: string;
-  bgColor: string;
-  label: string;
-}> = {
+const activityConfig: Record<
+  string,
+  {
+    icon: React.ElementType;
+    color: string;
+    bgColor: string;
+    label: string;
+  }
+> = {
   creative_generated: {
     icon: Image,
     color: "text-purple-600 dark:text-purple-400",
@@ -83,7 +87,8 @@ const activityConfig: Record<string, {
 };
 
 export function ActivityFeedItem({ activity }: ActivityFeedItemProps) {
-  const config = activityConfig[activity.activity_type] || activityConfig.default;
+  const config =
+    activityConfig[activity.activity_type] || activityConfig.default;
   const Icon = config.icon;
 
   const timeAgo = formatDistanceToNow(new Date(activity.created_at), {
@@ -93,7 +98,12 @@ export function ActivityFeedItem({ activity }: ActivityFeedItemProps) {
 
   const getUserInitials = () => {
     if (activity.user_name) {
-      return activity.user_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+      return activity.user_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
     return "SY";
   };
@@ -109,18 +119,22 @@ export function ActivityFeedItem({ activity }: ActivityFeedItemProps) {
               alt=""
               className="w-12 h-12 rounded-lg object-cover border border-border"
             />
-            <div className={cn(
-              "absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center",
-              config.bgColor
-            )}>
+            <div
+              className={cn(
+                "absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center",
+                config.bgColor,
+              )}
+            >
               <Icon className={cn("w-3 h-3", config.color)} />
             </div>
           </div>
         ) : (
-          <div className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center",
-            config.bgColor
-          )}>
+          <div
+            className={cn(
+              "w-12 h-12 rounded-full flex items-center justify-center",
+              config.bgColor,
+            )}
+          >
             <Icon className={cn("w-6 h-6", config.color)} />
           </div>
         )}
@@ -134,11 +148,14 @@ export function ActivityFeedItem({ activity }: ActivityFeedItemProps) {
               <span className="font-medium text-foreground">
                 {activity.title}
               </span>
-              <Badge variant="secondary" className={cn("text-xs", config.bgColor, config.color)}>
+              <Badge
+                variant="secondary"
+                className={cn("text-xs", config.bgColor, config.color)}
+              >
                 {config.label}
               </Badge>
             </div>
-            
+
             {activity.description && (
               <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                 {activity.description}
@@ -148,7 +165,9 @@ export function ActivityFeedItem({ activity }: ActivityFeedItemProps) {
             <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
               {activity.metadata?.client_name && (
                 <>
-                  <span className="font-medium">{activity.metadata.client_name}</span>
+                  <span className="font-medium">
+                    {activity.metadata.client_name}
+                  </span>
                   <span>•</span>
                 </>
               )}

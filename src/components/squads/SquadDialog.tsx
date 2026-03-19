@@ -1,33 +1,47 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Team } from "@/hooks/useTeams";
 import { useEmployees } from "@/hooks/useEmployees";
-import { 
-  Megaphone, 
-  Palette, 
-  Code, 
-  BarChart3, 
-  Users, 
+import {
+  Megaphone,
+  Palette,
+  Code,
+  BarChart3,
+  Users,
   Target,
   Briefcase,
   Lightbulb,
   Crown,
   MessageSquare,
-  ShieldCheck
+  ShieldCheck,
 } from "lucide-react";
 
 interface SquadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (squadData: Omit<Team, "id" | "progress" | "active_tasks" | "members">) => Promise<unknown>;
+  onSubmit: (
+    squadData: Omit<Team, "id" | "progress" | "active_tasks" | "members">,
+  ) => Promise<unknown>;
   squad?: Team;
   title: string;
   readOnly?: boolean;
@@ -45,17 +59,72 @@ const iconOptions = [
 ];
 
 const colorOptions = [
-  { value: "bg-blue-100 text-blue-800", label: "Azul", bg: "bg-blue-100", iconColor: "text-blue-600", iconBg: "bg-blue-100" },
-  { value: "bg-purple-100 text-purple-800", label: "Roxo", bg: "bg-purple-100", iconColor: "text-purple-600", iconBg: "bg-purple-100" },
-  { value: "bg-green-100 text-green-800", label: "Verde", bg: "bg-green-100", iconColor: "text-green-600", iconBg: "bg-green-100" },
-  { value: "bg-orange-100 text-orange-800", label: "Laranja", bg: "bg-orange-100", iconColor: "text-orange-600", iconBg: "bg-orange-100" },
-  { value: "bg-red-100 text-red-800", label: "Vermelho", bg: "bg-red-100", iconColor: "text-red-600", iconBg: "bg-red-100" },
-  { value: "bg-yellow-100 text-yellow-800", label: "Amarelo", bg: "bg-yellow-100", iconColor: "text-yellow-600", iconBg: "bg-yellow-100" },
-  { value: "bg-indigo-100 text-indigo-800", label: "Índigo", bg: "bg-indigo-100", iconColor: "text-indigo-600", iconBg: "bg-indigo-100" },
-  { value: "bg-pink-100 text-pink-800", label: "Rosa", bg: "bg-pink-100", iconColor: "text-pink-600", iconBg: "bg-pink-100" },
+  {
+    value: "bg-blue-100 text-blue-800",
+    label: "Azul",
+    bg: "bg-blue-100",
+    iconColor: "text-blue-600",
+    iconBg: "bg-blue-100",
+  },
+  {
+    value: "bg-purple-100 text-purple-800",
+    label: "Roxo",
+    bg: "bg-purple-100",
+    iconColor: "text-purple-600",
+    iconBg: "bg-purple-100",
+  },
+  {
+    value: "bg-green-100 text-green-800",
+    label: "Verde",
+    bg: "bg-green-100",
+    iconColor: "text-green-600",
+    iconBg: "bg-green-100",
+  },
+  {
+    value: "bg-orange-100 text-orange-800",
+    label: "Laranja",
+    bg: "bg-orange-100",
+    iconColor: "text-orange-600",
+    iconBg: "bg-orange-100",
+  },
+  {
+    value: "bg-red-100 text-red-800",
+    label: "Vermelho",
+    bg: "bg-red-100",
+    iconColor: "text-red-600",
+    iconBg: "bg-red-100",
+  },
+  {
+    value: "bg-yellow-100 text-yellow-800",
+    label: "Amarelo",
+    bg: "bg-yellow-100",
+    iconColor: "text-yellow-600",
+    iconBg: "bg-yellow-100",
+  },
+  {
+    value: "bg-indigo-100 text-indigo-800",
+    label: "Índigo",
+    bg: "bg-indigo-100",
+    iconColor: "text-indigo-600",
+    iconBg: "bg-indigo-100",
+  },
+  {
+    value: "bg-pink-100 text-pink-800",
+    label: "Rosa",
+    bg: "bg-pink-100",
+    iconColor: "text-pink-600",
+    iconBg: "bg-pink-100",
+  },
 ];
 
-export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOnly = false }: SquadDialogProps) {
+export function SquadDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  squad,
+  title,
+  readOnly = false,
+}: SquadDialogProps) {
   const { employees } = useEmployees();
   const [formData, setFormData] = useState(() => ({
     name: squad?.name || "",
@@ -65,7 +134,9 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
     icon_color: squad?.icon_color || "text-blue-600",
     icon_bg: squad?.icon_bg || "bg-blue-100",
     leader_id: (squad?.leader_id || "") as string | null,
-    whatsapp_responsible_id: (squad?.whatsapp_responsible_id || "") as string | null,
+    whatsapp_responsible_id: (squad?.whatsapp_responsible_id || "") as
+      | string
+      | null,
     authorizer_id: (squad?.authorizer_id || "") as string | null,
   }));
   const [loading, setLoading] = useState(false);
@@ -77,7 +148,9 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
       if (!squad?.id) return null;
       const { data, error } = await supabase
         .from("teams")
-        .select("name, description, color, icon, icon_color, icon_bg, leader_id, whatsapp_responsible_id, authorizer_id")
+        .select(
+          "name, description, color, icon, icon_color, icon_bg, leader_id, whatsapp_responsible_id, authorizer_id",
+        )
         .eq("id", squad.id)
         .single();
       if (error) throw error;
@@ -150,7 +223,9 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
             <SelectItem key={emp.id} value={emp.id}>
               <div className="flex items-center gap-2">
                 <Avatar className="h-5 w-5">
-                  <AvatarImage src={emp.avatar || emp.profile_avatar_url || undefined} />
+                  <AvatarImage
+                    src={emp.avatar || emp.profile_avatar_url || undefined}
+                  />
                   <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
                     {emp.name.charAt(0)}
                   </AvatarFallback>
@@ -170,7 +245,7 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-6 py-4">
             {/* Row 1: Basic Info - 2 columns */}
@@ -180,7 +255,9 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Ex: Marketing Digital"
                   required
                   disabled={readOnly}
@@ -191,13 +268,15 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
                 <Select
                   value={formData.color}
                   onValueChange={(value) => {
-                    const selectedColor = colorOptions.find(c => c.value === value);
+                    const selectedColor = colorOptions.find(
+                      (c) => c.value === value,
+                    );
                     if (selectedColor) {
                       setFormData({
                         ...formData,
                         color: value,
                         icon_color: selectedColor.iconColor,
-                        icon_bg: selectedColor.iconBg
+                        icon_bg: selectedColor.iconBg,
                       });
                     }
                   }}
@@ -210,7 +289,9 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
                     {colorOptions.map((color) => (
                       <SelectItem key={color.value} value={color.value}>
                         <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${color.bg} border border-border`} />
+                          <div
+                            className={`w-3 h-3 rounded-full ${color.bg} border border-border`}
+                          />
                           {color.label}
                         </div>
                       </SelectItem>
@@ -227,25 +308,35 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
                 {iconOptions.map((option) => {
                   const IconComponent = option.icon;
                   const isSelected = formData.icon === option.value;
-                  const selectedColor = colorOptions.find(c => c.value === formData.color);
-                  
+                  const selectedColor = colorOptions.find(
+                    (c) => c.value === formData.color,
+                  );
+
                   return (
                     <button
                       key={option.value}
                       type="button"
                       className={`p-3 rounded-lg border transition-all ${
-                        isSelected 
-                          ? `border-primary bg-primary/10` 
+                        isSelected
+                          ? `border-primary bg-primary/10`
                           : "border-border hover:border-primary/50"
                       }`}
-                      onClick={() => setFormData({ ...formData, icon: option.value })}
+                      onClick={() =>
+                        setFormData({ ...formData, icon: option.value })
+                      }
                       disabled={readOnly}
                     >
                       <div className="flex flex-col items-center gap-2">
-                        <div className={`p-2 rounded-lg ${selectedColor?.iconBg || 'bg-gray-100'}`}>
-                          <IconComponent className={`w-4 h-4 ${selectedColor?.iconColor || 'text-gray-600'}`} />
+                        <div
+                          className={`p-2 rounded-lg ${selectedColor?.iconBg || "bg-gray-100"}`}
+                        >
+                          <IconComponent
+                            className={`w-4 h-4 ${selectedColor?.iconColor || "text-gray-600"}`}
+                          />
                         </div>
-                        <span className="text-xs font-medium">{option.label}</span>
+                        <span className="text-xs font-medium">
+                          {option.label}
+                        </span>
                       </div>
                     </button>
                   );
@@ -259,7 +350,9 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Descreva as responsabilidades e objetivos do squad..."
                 rows={3}
                 required
@@ -296,15 +389,27 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${formData.icon_bg}`}>
                     {(() => {
-                      const IconComponent = iconOptions.find(opt => opt.value === formData.icon)?.icon || iconOptions[0].icon;
-                      return <IconComponent className={`w-5 h-5 ${formData.icon_color}`} />;
+                      const IconComponent =
+                        iconOptions.find((opt) => opt.value === formData.icon)
+                          ?.icon || iconOptions[0].icon;
+                      return (
+                        <IconComponent
+                          className={`w-5 h-5 ${formData.icon_color}`}
+                        />
+                      );
                     })()}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold">{formData.name || "Nome do Squad"}</h3>
-                    <p className="text-sm text-muted-foreground">{formData.description || "Descrição do squad..."}</p>
+                    <h3 className="font-semibold">
+                      {formData.name || "Nome do Squad"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {formData.description || "Descrição do squad..."}
+                    </p>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${formData.color}`}>
+                  <div
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${formData.color}`}
+                  >
                     Squad
                   </div>
                 </div>
@@ -312,7 +417,11 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               {readOnly ? "Fechar" : "Cancelar"}
             </Button>
             {!readOnly && (

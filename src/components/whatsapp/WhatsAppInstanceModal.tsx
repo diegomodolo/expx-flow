@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,14 +17,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, AlertCircle } from "lucide-react";
-import { WhatsAppInstance, INSTANCE_TYPE_OPTIONS, InstanceType } from "@/hooks/useWhatsAppInstances";
+import {
+  WhatsAppInstance,
+  INSTANCE_TYPE_OPTIONS,
+  InstanceType,
+} from "@/hooks/useWhatsAppInstances";
 
 interface WhatsAppInstanceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   instance: WhatsAppInstance | null;
-  onSave: (data: { instance_name: string; instance_type: InstanceType }) => void;
-  onUpdate: (data: { id: string; instance_name: string; instance_type: InstanceType }) => void;
+  onSave: (data: {
+    instance_name: string;
+    instance_type: InstanceType;
+  }) => void;
+  onUpdate: (data: {
+    id: string;
+    instance_name: string;
+    instance_type: InstanceType;
+  }) => void;
   isSaving: boolean;
 }
 
@@ -109,7 +120,7 @@ export function WhatsAppInstanceModal({
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              {isEditing 
+              {isEditing
                 ? "Edite o nome amigável desta instância"
                 : "O sistema criará automaticamente uma nova instância na UazapiGO"}
             </p>
@@ -117,7 +128,10 @@ export function WhatsAppInstanceModal({
 
           <div className="space-y-2">
             <Label htmlFor="instance-type">Tipo / Departamento</Label>
-            <Select value={instanceType} onValueChange={(v) => setInstanceType(v as InstanceType)}>
+            <Select
+              value={instanceType}
+              onValueChange={(v) => setInstanceType(v as InstanceType)}
+            >
               <SelectTrigger id="instance-type">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>

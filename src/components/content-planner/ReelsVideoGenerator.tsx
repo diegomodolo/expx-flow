@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,20 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Film, Loader2, Play, X, CheckCircle2, AlertCircle, Video, RefreshCw, ChevronLeft, ChevronRight, Upload, Trash2 } from "lucide-react";
+import {
+  Film,
+  Loader2,
+  Play,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Video,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Upload,
+  Trash2,
+} from "lucide-react";
 import { useReelsVideoGeneration } from "@/hooks/useReelsVideoGeneration";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -116,8 +129,9 @@ export function ReelsVideoGenerator({
   };
 
   const handleRegenerateAllFailed = () => {
-    const failedScenes = progress?.scenes?.filter(s => s.status === "error") || [];
-    const sceneNumbers = failedScenes.map(s => s.sceneNumber);
+    const failedScenes =
+      progress?.scenes?.filter((s) => s.status === "error") || [];
+    const sceneNumbers = failedScenes.map((s) => s.sceneNumber);
     if (sceneNumbers.length > 0) {
       handleRegenerateScenes(sceneNumbers);
     }
@@ -128,7 +142,7 @@ export function ReelsVideoGenerator({
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('video/')) {
+    if (!file.type.startsWith("video/")) {
       toast.error("Por favor, selecione um arquivo de vídeo");
       return;
     }
@@ -141,25 +155,25 @@ export function ReelsVideoGenerator({
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${postId}-${Date.now()}.${fileExt}`;
       const filePath = `reels/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('reels-videos')
+        .from("reels-videos")
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('reels-videos')
+        .from("reels-videos")
         .getPublicUrl(filePath);
 
       // Update the post in database
       const { error: updateError } = await supabase
-        .from('content_plan_posts')
+        .from("content_plan_posts")
         .update({ reels_uploaded_video_url: urlData.publicUrl })
-        .eq('id', postId);
+        .eq("id", postId);
 
       if (updateError) throw updateError;
 
@@ -171,7 +185,7 @@ export function ReelsVideoGenerator({
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -179,9 +193,9 @@ export function ReelsVideoGenerator({
   const handleRemoveUploadedVideo = async () => {
     try {
       const { error } = await supabase
-        .from('content_plan_posts')
+        .from("content_plan_posts")
         .update({ reels_uploaded_video_url: null })
-        .eq('id', postId);
+        .eq("id", postId);
 
       if (error) throw error;
 
@@ -193,9 +207,11 @@ export function ReelsVideoGenerator({
   };
 
   const { progress } = state;
-  const completedScenes = progress?.scenes?.filter(s => s.status === "completed").length || 0;
+  const completedScenes =
+    progress?.scenes?.filter((s) => s.status === "completed").length || 0;
   const totalScenes = progress?.totalScenes || 0;
-  const progressPercent = totalScenes > 0 ? (completedScenes / totalScenes) * 100 : 0;
+  const progressPercent =
+    totalScenes > 0 ? (completedScenes / totalScenes) * 100 : 0;
 
   // If there's an uploaded video, show it instead of generated scenes
   if (uploadedVideoUrl) {
@@ -235,7 +251,7 @@ export function ReelsVideoGenerator({
 
   // Render completed state with video carousel player
   if (isCompleted && progress?.scenes) {
-    const completedVideos = progress.scenes.filter(s => s.videoUrl);
+    const completedVideos = progress.scenes.filter((s) => s.videoUrl);
 
     if (completedVideos.length === 0) {
       return null;
@@ -300,7 +316,7 @@ export function ReelsVideoGenerator({
               <CarouselPrevious className="left-0 -translate-x-1/2 h-8 w-8" />
               <CarouselNext className="right-0 translate-x-1/2 h-8 w-8" />
             </Carousel>
-            
+
             {/* Carousel dots indicator */}
             <div className="flex justify-center gap-1.5 mt-3">
               {completedVideos.map((_, idx) => (
@@ -314,7 +330,7 @@ export function ReelsVideoGenerator({
         )}
 
         <p className="text-xs text-muted-foreground text-center">
-          {completedVideos.length > 1 
+          {completedVideos.length > 1
             ? "Deslize para ver todas as cenas. Você pode baixar e editar no seu editor favorito."
             : "O vídeo está pronto. Você pode baixá-lo e editá-lo no seu editor favorito."}
         </p>
@@ -349,7 +365,8 @@ export function ReelsVideoGenerator({
             )}
           </Button>
           <p className="text-[10px] text-muted-foreground text-center mt-1">
-            Envie o vídeo final editado para substituir as cenas geradas (máx. 1GB)
+            Envie o vídeo final editado para substituir as cenas geradas (máx.
+            1GB)
           </p>
         </div>
       </div>
@@ -364,7 +381,9 @@ export function ReelsVideoGenerator({
           <div className="flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin text-primary" />
             <span className="text-sm font-medium">
-              {state.status === "analyzing" ? "Analisando roteiro..." : "Gerando vídeos..."}
+              {state.status === "analyzing"
+                ? "Analisando roteiro..."
+                : "Gerando vídeos..."}
             </span>
           </div>
           <Button
@@ -382,7 +401,9 @@ export function ReelsVideoGenerator({
           <>
             <Progress value={progressPercent} className="h-2" />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Cenas: {completedScenes}/{totalScenes}</span>
+              <span>
+                Cenas: {completedScenes}/{totalScenes}
+              </span>
               {state.estimatedTime && <span>{state.estimatedTime}</span>}
             </div>
 
@@ -395,10 +416,10 @@ export function ReelsVideoGenerator({
                     scene.status === "completed"
                       ? "default"
                       : scene.status === "generating"
-                      ? "secondary"
-                      : scene.status === "error"
-                      ? "destructive"
-                      : "outline"
+                        ? "secondary"
+                        : scene.status === "error"
+                          ? "destructive"
+                          : "outline"
                   }
                   className="text-[10px] py-0"
                 >
@@ -420,8 +441,11 @@ export function ReelsVideoGenerator({
 
   // Render error state
   if (hasError) {
-    const errorScenes = progress?.scenes?.filter(s => s.status === "error") || [];
-    const completedVideos = progress?.scenes?.filter(s => s.status === "completed" && s.videoUrl) || [];
+    const errorScenes =
+      progress?.scenes?.filter((s) => s.status === "error") || [];
+    const completedVideos =
+      progress?.scenes?.filter((s) => s.status === "completed" && s.videoUrl) ||
+      [];
 
     return (
       <div className="space-y-3 p-3 bg-destructive/5 rounded-lg border border-destructive/20">
@@ -429,9 +453,10 @@ export function ReelsVideoGenerator({
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-medium">Erro na geração</span>
         </div>
-        
+
         <p className="text-xs text-muted-foreground">
-          {progress?.error || "Ocorreu um erro ao gerar os vídeos. Tente novamente."}
+          {progress?.error ||
+            "Ocorreu um erro ao gerar os vídeos. Tente novamente."}
         </p>
 
         {/* Show completed videos if any - using carousel */}
@@ -484,7 +509,9 @@ export function ReelsVideoGenerator({
         {errorScenes.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-destructive">Cenas com erro:</p>
+              <p className="text-xs font-medium text-destructive">
+                Cenas com erro:
+              </p>
               {errorScenes.length > 1 && (
                 <Button
                   variant="ghost"
@@ -499,9 +526,14 @@ export function ReelsVideoGenerator({
               )}
             </div>
             {errorScenes.map((scene) => (
-              <div key={scene.sceneNumber} className="flex items-center justify-between bg-background/50 p-2 rounded">
+              <div
+                key={scene.sceneNumber}
+                className="flex items-center justify-between bg-background/50 p-2 rounded"
+              >
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">Cena {scene.sceneNumber}</p>
+                  <p className="text-xs font-medium">
+                    Cena {scene.sceneNumber}
+                  </p>
                   <p className="text-[10px] text-muted-foreground truncate">
                     {scene.error || "Erro desconhecido"}
                   </p>
@@ -599,14 +631,17 @@ export function ReelsVideoGenerator({
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                Vamos analisar o roteiro e gerar até <strong>5 cenas de vídeo</strong> de 6 segundos cada,
-                totalizando aproximadamente <strong>30 segundos</strong> de conteúdo.
+                Vamos analisar o roteiro e gerar até{" "}
+                <strong>5 cenas de vídeo</strong> de 6 segundos cada,
+                totalizando aproximadamente <strong>30 segundos</strong> de
+                conteúdo.
               </p>
               <p>
                 <strong>Tempo estimado:</strong> 2-3 minutos
               </p>
               <p className="text-xs text-muted-foreground">
-                Os vídeos serão gerados sem texto/legendas para você adicionar posteriormente no seu editor preferido.
+                Os vídeos serão gerados sem texto/legendas para você adicionar
+                posteriormente no seu editor preferido.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>

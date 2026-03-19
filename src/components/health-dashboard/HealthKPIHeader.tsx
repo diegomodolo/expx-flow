@@ -1,4 +1,11 @@
-import { AlertTriangle, CheckCircle, Clock, TrendingUp, Users } from "lucide-react";
+import React from "react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HealthKPIHeaderProps {
@@ -33,15 +40,21 @@ function KPICard({ label, value, icon, variant = "default" }: KPICardProps) {
   };
 
   return (
-    <div className={cn(
-      "flex items-center gap-3 px-4 py-3 rounded-xl border",
-      variantStyles[variant]
-    )}>
-      <div className={cn("p-2 rounded-lg bg-background/50", iconStyles[variant])}>
+    <div
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 rounded-xl border",
+        variantStyles[variant],
+      )}
+    >
+      <div
+        className={cn("p-2 rounded-lg bg-background/50", iconStyles[variant])}
+      >
         {icon}
       </div>
       <div>
-        <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+          {label}
+        </p>
         <p className="text-xl font-bold text-foreground">{value}</p>
       </div>
     </div>
@@ -51,9 +64,9 @@ function KPICard({ label, value, icon, variant = "default" }: KPICardProps) {
 function formatTime(dateString: string): string {
   try {
     const date = new Date(dateString);
-    return date.toLocaleTimeString("pt-BR", { 
-      hour: "2-digit", 
-      minute: "2-digit" 
+    return date.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
     return "--:--";
@@ -72,7 +85,9 @@ export function HealthKPIHeader({
     <div className="bg-card rounded-2xl border border-border p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Radar de Saúde das Contas</h1>
+          <h1 className="text-xl font-bold text-foreground">
+            Radar de Saúde das Contas
+          </h1>
           <p className="text-sm text-muted-foreground">
             Monitoramento em tempo real • Atualizado às {formatTime(lastUpdate)}
           </p>
@@ -112,7 +127,13 @@ export function HealthKPIHeader({
           label="Score Médio"
           value={`${averageScore}%`}
           icon={<TrendingUp className="h-5 w-5" />}
-          variant={averageScore < 50 ? "critical" : averageScore < 70 ? "warning" : "success"}
+          variant={
+            averageScore < 50
+              ? "critical"
+              : averageScore < 70
+                ? "warning"
+                : "success"
+          }
         />
       </div>
     </div>

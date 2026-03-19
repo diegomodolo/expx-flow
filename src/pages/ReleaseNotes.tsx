@@ -1,3 +1,4 @@
+import React from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useReleaseNotes, ReleaseNote } from "@/hooks/useReleaseNotes";
 import { Button } from "@/components/ui/button";

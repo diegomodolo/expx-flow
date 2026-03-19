@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,18 +15,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { PixelEvent } from "@/hooks/useMetaPixels";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface PixelEventsHistoryProps {
   events: PixelEvent[];
   onRefresh: () => void;
 }
 
-const statusConfig: Record<string, { label: string; icon: React.ReactNode; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    icon: React.ReactNode;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
+> = {
   sent: {
     label: "Enviado",
     icon: <CheckCircle2 className="h-3 w-3" />,
@@ -53,7 +73,10 @@ const eventLabels: Record<string, string> = {
   StartTrial: "Trial",
 };
 
-export function PixelEventsHistory({ events, onRefresh }: PixelEventsHistoryProps) {
+export function PixelEventsHistory({
+  events,
+  onRefresh,
+}: PixelEventsHistoryProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (id: string) => {
@@ -102,7 +125,8 @@ export function PixelEventsHistory({ events, onRefresh }: PixelEventsHistoryProp
             </TableHeader>
             <TableBody>
               {events.map((event) => {
-                const status = statusConfig[event.status] || statusConfig.pending;
+                const status =
+                  statusConfig[event.status] || statusConfig.pending;
                 const isExpanded = expandedRows.has(event.id);
 
                 return (
@@ -134,9 +158,13 @@ export function PixelEventsHistory({ events, onRefresh }: PixelEventsHistoryProp
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {format(new Date(event.created_at), "dd/MM/yyyy HH:mm", {
-                          locale: ptBR,
-                        })}
+                        {format(
+                          new Date(event.created_at),
+                          "dd/MM/yyyy HH:mm",
+                          {
+                            locale: ptBR,
+                          },
+                        )}
                       </TableCell>
                     </TableRow>
                     {isExpanded && (
@@ -145,48 +173,65 @@ export function PixelEventsHistory({ events, onRefresh }: PixelEventsHistoryProp
                           <div className="p-4 space-y-3">
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="text-muted-foreground">Event ID:</span>
+                                <span className="text-muted-foreground">
+                                  Event ID:
+                                </span>
                                 <code className="ml-2 text-xs bg-muted px-2 py-1 rounded">
                                   {event.event_id}
                                 </code>
                               </div>
                               <div>
-                                <span className="text-muted-foreground">Event Time:</span>
+                                <span className="text-muted-foreground">
+                                  Event Time:
+                                </span>
                                 <span className="ml-2">
-                                  {format(new Date(event.event_time), "dd/MM/yyyy HH:mm:ss", {
-                                    locale: ptBR,
-                                  })}
+                                  {format(
+                                    new Date(event.event_time),
+                                    "dd/MM/yyyy HH:mm:ss",
+                                    {
+                                      locale: ptBR,
+                                    },
+                                  )}
                                 </span>
                               </div>
                             </div>
 
-                            {event.user_data && Object.keys(event.user_data).length > 0 && (
-                              <div>
-                                <span className="text-sm text-muted-foreground">User Data (hashed):</span>
-                                <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
-                                  {JSON.stringify(event.user_data, null, 2)}
-                                </pre>
-                              </div>
-                            )}
+                            {event.user_data &&
+                              Object.keys(event.user_data).length > 0 && (
+                                <div>
+                                  <span className="text-sm text-muted-foreground">
+                                    User Data (hashed):
+                                  </span>
+                                  <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
+                                    {JSON.stringify(event.user_data, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
 
-                            {event.custom_data && Object.keys(event.custom_data).length > 0 && (
-                              <div>
-                                <span className="text-sm text-muted-foreground">Custom Data:</span>
-                                <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
-                                  {JSON.stringify(event.custom_data, null, 2)}
-                                </pre>
-                              </div>
-                            )}
+                            {event.custom_data &&
+                              Object.keys(event.custom_data).length > 0 && (
+                                <div>
+                                  <span className="text-sm text-muted-foreground">
+                                    Custom Data:
+                                  </span>
+                                  <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
+                                    {JSON.stringify(event.custom_data, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
 
                             {event.error_message && (
                               <div className="text-destructive text-sm">
-                                <span className="font-medium">Erro:</span> {event.error_message}
+                                <span className="font-medium">Erro:</span>{" "}
+                                {event.error_message}
                               </div>
                             )}
 
                             {event.meta_response && (
                               <div>
-                                <span className="text-sm text-muted-foreground">Meta Response:</span>
+                                <span className="text-sm text-muted-foreground">
+                                  Meta Response:
+                                </span>
                                 <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
                                   {JSON.stringify(event.meta_response, null, 2)}
                                 </pre>

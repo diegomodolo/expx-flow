@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,19 +28,21 @@ export function CreateAudienceModal({
 }: CreateAudienceModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [tosError, setTosError] = useState<{ show: boolean; url?: string }>({ show: false });
+  const [tosError, setTosError] = useState<{ show: boolean; url?: string }>({
+    show: false,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setTosError({ show: false });
-    
+
     try {
       await onSubmit(name.trim(), description.trim() || undefined);
       setName("");
       setDescription("");
     } catch (error: unknown) {
-      if (error?.type === 'TOS_NOT_ACCEPTED') {
+      if (error?.type === "TOS_NOT_ACCEPTED") {
         setTosError({ show: true, url: error.tosUrl });
       }
     }
@@ -69,14 +71,21 @@ export function CreateAudienceModal({
                 <AlertTitle>Termos de Serviço não aceitos</AlertTitle>
                 <AlertDescription className="mt-2">
                   <p className="mb-3">
-                    Para criar públicos personalizados, você precisa aceitar os Termos de Serviço de Públicos Personalizados do Meta.
+                    Para criar públicos personalizados, você precisa aceitar os
+                    Termos de Serviço de Públicos Personalizados do Meta.
                   </p>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    onClick={() => window.open(tosError.url || 'https://business.facebook.com/ads/manage/customaudiences/tos/', '_blank')}
+                    onClick={() =>
+                      window.open(
+                        tosError.url ||
+                          "https://business.facebook.com/ads/manage/customaudiences/tos/",
+                        "_blank",
+                      )
+                    }
                   >
                     <ExternalLink className="h-4 w-4" />
                     Aceitar Termos de Serviço
@@ -108,8 +117,9 @@ export function CreateAudienceModal({
             <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
               <p className="font-medium mb-1">Informação</p>
               <p>
-                O público será criado como "Personalizado" com dados fornecidos pelo usuário.
-                Após criar, você poderá adicionar leads via upload de CSV ou manualmente.
+                O público será criado como "Personalizado" com dados fornecidos
+                pelo usuário. Após criar, você poderá adicionar leads via upload
+                de CSV ou manualmente.
               </p>
             </div>
           </div>

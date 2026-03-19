@@ -1,24 +1,65 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCRMContacts } from "@/hooks/useCRMContacts";
 import { useCRMDeals, CRMStage } from "@/hooks/useCRMDeals";
 import { Loader2 } from "lucide-react";
 
 const brazilianStates = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
-  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
 ];
 
 const temperatureOptions = [
-  { value: 'cold', label: '❄️ Frio - Sem interesse imediato', color: '#3b82f6' },
-  { value: 'warm', label: '☀️ Morno - Interesse moderado', color: '#f59e0b' },
-  { value: 'hot', label: '🔥 Quente - Pronto para fechar', color: '#ef4444' },
+  {
+    value: "cold",
+    label: "❄️ Frio - Sem interesse imediato",
+    color: "#3b82f6",
+  },
+  { value: "warm", label: "☀️ Morno - Interesse moderado", color: "#f59e0b" },
+  { value: "hot", label: "🔥 Quente - Pronto para fechar", color: "#ef4444" },
 ];
 
 interface CRMNewLeadDialogProps {
@@ -29,39 +70,49 @@ interface CRMNewLeadDialogProps {
   boardId: string;
 }
 
-export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId }: CRMNewLeadDialogProps) {
-  const { findOrCreateContact, isCreating: isCreatingContact } = useCRMContacts(workspaceId);
-  const { createDeal, isCreating: isCreatingDeal } = useCRMDeals(workspaceId, boardId);
-  
+export function CRMNewLeadDialog({
+  isOpen,
+  onClose,
+  stages,
+  workspaceId,
+  boardId,
+}: CRMNewLeadDialogProps) {
+  const { findOrCreateContact, isCreating: isCreatingContact } =
+    useCRMContacts(workspaceId);
+  const { createDeal, isCreating: isCreatingDeal } = useCRMDeals(
+    workspaceId,
+    boardId,
+  );
+
   const [formData, setFormData] = useState({
     // Básico
-    full_name: '',
-    email: '',
-    phone: '',
-    company_name: '',
-    temperature: '',
-    stage_id: stages[0]?.id || '',
-    
+    full_name: "",
+    email: "",
+    phone: "",
+    company_name: "",
+    temperature: "",
+    stage_id: stages[0]?.id || "",
+
     // Contato e Social
-    facebook: '',
-    instagram: '',
-    website: '',
-    city: '',
-    state: '',
-    
+    facebook: "",
+    instagram: "",
+    website: "",
+    city: "",
+    state: "",
+
     // Rastreamento
-    utm_source: '',
-    utm_medium: '',
-    utm_campaign: '',
-    
+    utm_source: "",
+    utm_medium: "",
+    utm_campaign: "",
+
     // Vendas
-    start_date: '',
-    expected_close_date: '',
-    quantity: '1',
-    value: '',
-    
+    start_date: "",
+    expected_close_date: "",
+    quantity: "1",
+    value: "",
+
     // Observações
-    notes: '',
+    notes: "",
   });
 
   const isLoading = isCreatingContact || isCreatingDeal;
@@ -111,32 +162,33 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
         title: formData.full_name.trim(), // Usa o nome como título do deal
         value: formData.value ? parseFloat(formData.value) : null,
         quantity: parseInt(formData.quantity) || 1,
-        temperature: formData.temperature as "cold" | "warm" | "hot" | null || null,
+        temperature:
+          (formData.temperature as "cold" | "warm" | "hot" | null) || null,
         expected_close_date: formData.expected_close_date || null,
         notes: formData.notes || null,
       });
 
       // Reset form
       setFormData({
-        full_name: '',
-        email: '',
-        phone: '',
-        company_name: '',
-        temperature: '',
-        stage_id: stages[0]?.id || '',
-        facebook: '',
-        instagram: '',
-        website: '',
-        city: '',
-        state: '',
-        utm_source: '',
-        utm_medium: '',
-        utm_campaign: '',
-        start_date: '',
-        expected_close_date: '',
-        quantity: '1',
-        value: '',
-        notes: '',
+        full_name: "",
+        email: "",
+        phone: "",
+        company_name: "",
+        temperature: "",
+        stage_id: stages[0]?.id || "",
+        facebook: "",
+        instagram: "",
+        website: "",
+        city: "",
+        state: "",
+        utm_source: "",
+        utm_medium: "",
+        utm_campaign: "",
+        start_date: "",
+        expected_close_date: "",
+        quantity: "1",
+        value: "",
+        notes: "",
       });
       onClose();
     } catch (error) {
@@ -168,7 +220,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="full_name"
                     value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, full_name: e.target.value })
+                    }
                     placeholder="Nome completo do contato"
                     required
                   />
@@ -180,7 +234,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     placeholder="email@exemplo.com"
                   />
                 </div>
@@ -190,7 +246,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
                     placeholder="(00) 00000-0000"
                   />
                 </div>
@@ -200,14 +258,21 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="company_name"
                     value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, company_name: e.target.value })
+                    }
                     placeholder="Nome da empresa"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="temperature">Temperatura</Label>
-                  <Select value={formData.temperature} onValueChange={(value) => setFormData({ ...formData, temperature: value })}>
+                  <Select
+                    value={formData.temperature}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, temperature: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a temperatura" />
                     </SelectTrigger>
@@ -223,7 +288,12 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
 
                 <div className="col-span-2">
                   <Label htmlFor="stage_id">Estágio Inicial *</Label>
-                  <Select value={formData.stage_id} onValueChange={(value) => setFormData({ ...formData, stage_id: value })}>
+                  <Select
+                    value={formData.stage_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, stage_id: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o estágio" />
                     </SelectTrigger>
@@ -246,7 +316,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="facebook"
                     value={formData.facebook}
-                    onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, facebook: e.target.value })
+                    }
                     placeholder="facebook.com/usuario"
                   />
                 </div>
@@ -256,7 +328,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="instagram"
                     value={formData.instagram}
-                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, instagram: e.target.value })
+                    }
                     placeholder="@usuario"
                   />
                 </div>
@@ -267,7 +341,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                     id="website"
                     type="url"
                     value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, website: e.target.value })
+                    }
                     placeholder="https://exemplo.com"
                   />
                 </div>
@@ -277,14 +353,21 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="city"
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
                     placeholder="São Paulo"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="state">Estado</Label>
-                  <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+                  <Select
+                    value={formData.state}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, state: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="UF" />
                     </SelectTrigger>
@@ -307,7 +390,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="utm_source"
                     value={formData.utm_source}
-                    onChange={(e) => setFormData({ ...formData, utm_source: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, utm_source: e.target.value })
+                    }
                     placeholder="google, facebook, instagram"
                   />
                 </div>
@@ -317,7 +402,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="utm_medium"
                     value={formData.utm_medium}
-                    onChange={(e) => setFormData({ ...formData, utm_medium: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, utm_medium: e.target.value })
+                    }
                     placeholder="cpc, organic, social"
                   />
                 </div>
@@ -327,7 +414,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   <Input
                     id="utm_campaign"
                     value={formData.utm_campaign}
-                    onChange={(e) => setFormData({ ...formData, utm_campaign: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, utm_campaign: e.target.value })
+                    }
                     placeholder="Nome da campanha"
                   />
                 </div>
@@ -342,17 +431,26 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                     id="start_date"
                     type="datetime-local"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, start_date: e.target.value })
+                    }
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="expected_close_date">Previsão de Fechamento</Label>
+                  <Label htmlFor="expected_close_date">
+                    Previsão de Fechamento
+                  </Label>
                   <Input
                     id="expected_close_date"
                     type="datetime-local"
                     value={formData.expected_close_date}
-                    onChange={(e) => setFormData({ ...formData, expected_close_date: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        expected_close_date: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -363,7 +461,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                     type="number"
                     min="1"
                     value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, quantity: e.target.value })
+                    }
                   />
                 </div>
 
@@ -375,7 +475,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                     step="0.01"
                     min="0"
                     value={formData.value}
-                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, value: e.target.value })
+                    }
                     placeholder="0.00"
                   />
                 </div>
@@ -388,7 +490,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                 <Textarea
                   id="notes"
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   placeholder="Adicione observações sobre o negócio..."
                   rows={8}
                 />

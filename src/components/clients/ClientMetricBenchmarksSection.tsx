@@ -1,10 +1,26 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, TrendingUp, DollarSign, Percent, Eye, RefreshCw } from "lucide-react";
-import { BenchmarkFormData, emptyBenchmarkFormData } from "@/hooks/useClientBenchmarks";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Target,
+  TrendingUp,
+  DollarSign,
+  Percent,
+  Eye,
+  RefreshCw,
+} from "lucide-react";
+import {
+  BenchmarkFormData,
+  emptyBenchmarkFormData,
+} from "@/hooks/useClientBenchmarks";
 import { cn } from "@/lib/utils";
 
 interface MetricInputProps {
@@ -18,7 +34,16 @@ interface MetricInputProps {
   icon?: React.ReactNode;
 }
 
-function MetricInput({ label, value, onChange, placeholder, prefix, suffix, disabled, icon }: MetricInputProps) {
+function MetricInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  prefix,
+  suffix,
+  disabled,
+  icon,
+}: MetricInputProps) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -39,11 +64,7 @@ function MetricInput({ label, value, onChange, placeholder, prefix, suffix, disa
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={cn(
-            "h-9",
-            prefix && "pl-8",
-            suffix && "pr-8"
-          )}
+          className={cn("h-9", prefix && "pl-8", suffix && "pr-8")}
         />
         {suffix && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
@@ -56,45 +77,58 @@ function MetricInput({ label, value, onChange, placeholder, prefix, suffix, disa
 }
 
 interface PlatformBenchmarkCardProps {
-  platform: 'meta_ads' | 'google_ads';
+  platform: "meta_ads" | "google_ads";
   formData: BenchmarkFormData;
   onChange: (data: BenchmarkFormData) => void;
   disabled?: boolean;
 }
 
-function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: PlatformBenchmarkCardProps) {
-  const platformInfo = platform === 'meta_ads' 
-    ? { 
-        name: 'Meta Ads', 
-        color: 'from-blue-500 to-indigo-600',
-        bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-        borderColor: 'border-blue-200 dark:border-blue-800'
-      }
-    : { 
-        name: 'Google Ads', 
-        color: 'from-red-500 to-yellow-500',
-        bgColor: 'bg-red-50 dark:bg-red-950/30',
-        borderColor: 'border-red-200 dark:border-red-800'
-      };
+function PlatformBenchmarkCard({
+  platform,
+  formData,
+  onChange,
+  disabled,
+}: PlatformBenchmarkCardProps) {
+  const platformInfo =
+    platform === "meta_ads"
+      ? {
+          name: "Meta Ads",
+          color: "from-blue-500 to-indigo-600",
+          bgColor: "bg-blue-50 dark:bg-blue-950/30",
+          borderColor: "border-blue-200 dark:border-blue-800",
+        }
+      : {
+          name: "Google Ads",
+          color: "from-red-500 to-yellow-500",
+          bgColor: "bg-red-50 dark:bg-red-950/30",
+          borderColor: "border-red-200 dark:border-red-800",
+        };
 
-  const updateField = (field: keyof BenchmarkFormData, value: string | boolean) => {
+  const updateField = (
+    field: keyof BenchmarkFormData,
+    value: string | boolean,
+  ) => {
     onChange({ ...formData, [field]: value });
   };
 
   return (
-    <Card className={cn(
-      "transition-all duration-200",
-      formData.is_active 
-        ? `${platformInfo.bgColor} ${platformInfo.borderColor}` 
-        : "bg-muted/30 opacity-60"
-    )}>
+    <Card
+      className={cn(
+        "transition-all duration-200",
+        formData.is_active
+          ? `${platformInfo.bgColor} ${platformInfo.borderColor}`
+          : "bg-muted/30 opacity-60",
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-2 h-8 rounded-full bg-gradient-to-b",
-              platformInfo.color
-            )} />
+            <div
+              className={cn(
+                "w-2 h-8 rounded-full bg-gradient-to-b",
+                platformInfo.color,
+              )}
+            />
             <div>
               <CardTitle className="text-base">{platformInfo.name}</CardTitle>
               <CardDescription className="text-xs">
@@ -103,13 +137,16 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor={`${platform}-active`} className="text-xs text-muted-foreground">
+            <Label
+              htmlFor={`${platform}-active`}
+              className="text-xs text-muted-foreground"
+            >
               Ativo
             </Label>
             <Switch
               id={`${platform}-active`}
               checked={formData.is_active}
-              onCheckedChange={(checked) => updateField('is_active', checked)}
+              onCheckedChange={(checked) => updateField("is_active", checked)}
               disabled={disabled}
             />
           </div>
@@ -121,7 +158,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="CPA Ideal"
             value={formData.target_cpa}
-            onChange={(v) => updateField('target_cpa', v)}
+            onChange={(v) => updateField("target_cpa", v)}
             placeholder="0.00"
             prefix="R$"
             disabled={disabled || !formData.is_active}
@@ -130,7 +167,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="CPL Ideal"
             value={formData.target_cpl}
-            onChange={(v) => updateField('target_cpl', v)}
+            onChange={(v) => updateField("target_cpl", v)}
             placeholder="0.00"
             prefix="R$"
             disabled={disabled || !formData.is_active}
@@ -139,7 +176,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="CTR Ideal"
             value={formData.target_ctr}
-            onChange={(v) => updateField('target_ctr', v)}
+            onChange={(v) => updateField("target_ctr", v)}
             placeholder="0.00"
             suffix="%"
             disabled={disabled || !formData.is_active}
@@ -152,7 +189,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="CPC Ideal"
             value={formData.target_cpc}
-            onChange={(v) => updateField('target_cpc', v)}
+            onChange={(v) => updateField("target_cpc", v)}
             placeholder="0.00"
             prefix="R$"
             disabled={disabled || !formData.is_active}
@@ -161,7 +198,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="CPM Ideal"
             value={formData.target_cpm}
-            onChange={(v) => updateField('target_cpm', v)}
+            onChange={(v) => updateField("target_cpm", v)}
             placeholder="0.00"
             prefix="R$"
             disabled={disabled || !formData.is_active}
@@ -170,7 +207,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="ROAS Ideal"
             value={formData.target_roas}
-            onChange={(v) => updateField('target_roas', v)}
+            onChange={(v) => updateField("target_roas", v)}
             placeholder="0.00"
             suffix="x"
             disabled={disabled || !formData.is_active}
@@ -183,7 +220,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="Taxa de Conversão"
             value={formData.target_conversion_rate}
-            onChange={(v) => updateField('target_conversion_rate', v)}
+            onChange={(v) => updateField("target_conversion_rate", v)}
             placeholder="0.00"
             suffix="%"
             disabled={disabled || !formData.is_active}
@@ -192,7 +229,7 @@ function PlatformBenchmarkCard({ platform, formData, onChange, disabled }: Platf
           <MetricInput
             label="Frequência Máxima"
             value={formData.target_frequency}
-            onChange={(v) => updateField('target_frequency', v)}
+            onChange={(v) => updateField("target_frequency", v)}
             placeholder="0.0"
             disabled={disabled || !formData.is_active}
             icon={<RefreshCw className="w-3 h-3" />}
@@ -216,7 +253,7 @@ export function ClientMetricBenchmarksSection({
   googleFormData,
   onMetaChange,
   onGoogleChange,
-  readOnly = false
+  readOnly = false,
 }: ClientMetricBenchmarksSectionProps) {
   return (
     <div className="space-y-6">
@@ -227,8 +264,9 @@ export function ClientMetricBenchmarksSection({
           <div>
             <p className="text-sm font-medium">Métricas Ideais (Benchmarks)</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Configure os valores ideais de performance para este cliente. Essas métricas serão usadas 
-              como referência para avaliar se os resultados estão bons ou precisam de atenção.
+              Configure os valores ideais de performance para este cliente.
+              Essas métricas serão usadas como referência para avaliar se os
+              resultados estão bons ou precisam de atenção.
             </p>
           </div>
         </div>
@@ -253,8 +291,9 @@ export function ClientMetricBenchmarksSection({
       {/* Info Footer */}
       <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
         <p className="text-sm text-amber-800 dark:text-amber-200">
-          💡 <strong>Dica:</strong> Deixe os campos em branco para métricas que não são relevantes 
-          para este cliente. Apenas métricas preenchidas serão consideradas na avaliação.
+          💡 <strong>Dica:</strong> Deixe os campos em branco para métricas que
+          não são relevantes para este cliente. Apenas métricas preenchidas
+          serão consideradas na avaliação.
         </p>
       </div>
     </div>

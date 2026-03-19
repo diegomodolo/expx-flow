@@ -1,15 +1,15 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import type { BlockType } from "@/hooks/useFunnels";
-import { 
-  Facebook, 
-  Search as SearchIcon, 
-  Youtube, 
-  Mail, 
-  BookOpen, 
-  Newspaper, 
+import {
+  Facebook,
+  Search as SearchIcon,
+  Youtube,
+  Mail,
+  BookOpen,
+  Newspaper,
   Video,
   Megaphone,
   FileText,
@@ -51,7 +51,7 @@ import {
   QrCode,
   Package,
   Layers,
-  type LucideIcon
+  type LucideIcon,
 } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -59,49 +59,49 @@ const iconMap: Record<string, LucideIcon> = {
   google: SearchIcon,
   youtube: Youtube,
   mail: Mail,
-  'book-open': BookOpen,
+  "book-open": BookOpen,
   newspaper: Newspaper,
   video: Video,
   megaphone: Megaphone,
-  'file-text': FileText,
-  'message-square': MessageSquare,
+  "file-text": FileText,
+  "message-square": MessageSquare,
   users: Users,
   target: Target,
-  'trending-up': TrendingUp,
-  'check-circle': CheckCircle,
+  "trending-up": TrendingUp,
+  "check-circle": CheckCircle,
   podcast: Podcast,
   image: Image,
-  'list-checks': ListChecks,
+  "list-checks": ListChecks,
   brain: Brain,
-  'graduation-cap': GraduationCap,
-  'users-round': UsersRound,
+  "graduation-cap": GraduationCap,
+  "users-round": UsersRound,
   bell: Bell,
   mic: Mic,
-  'file-badge': FileBadge2,
-  'clipboard-list': ClipboardList,
+  "file-badge": FileBadge2,
+  "clipboard-list": ClipboardList,
   bot: Bot,
-  'message-circle': MessageCircle,
-  'chart-bar': BarChart2,
+  "message-circle": MessageCircle,
+  "chart-bar": BarChart2,
   calendar: Calendar,
   presentation: Presentation,
-  'play-circle': PlayCircle,
-  'file-check': FileCheck,
+  "play-circle": PlayCircle,
+  "file-check": FileCheck,
   phone: Phone,
-  'credit-card': CreditCard,
+  "credit-card": CreditCard,
   rocket: Rocket,
   star: Star,
-  'layout-dashboard': LayoutDashboard,
+  "layout-dashboard": LayoutDashboard,
   gift: Gift,
   repeat: Repeat,
   plug: Plug,
   database: Database,
-  'bot-message-square': BotMessageSquare,
-  'bar-chart-3': BarChart3,
-  'calendar-days': CalendarDays,
+  "bot-message-square": BotMessageSquare,
+  "bar-chart-3": BarChart3,
+  "calendar-days": CalendarDays,
   cast: Cast,
-  'qr-code': QrCode,
-  'package': Package,
-  'layers': Layers,
+  "qr-code": QrCode,
+  package: Package,
+  layers: Layers,
 };
 
 interface BlockLibraryProps {
@@ -124,19 +124,25 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filtrar blocos com base no termo de pesquisa
-  const filteredBlocks = blockTypes.filter((block) =>
-    block.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    block.default_description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBlocks = blockTypes.filter(
+    (block) =>
+      block.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      block.default_description
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()),
   );
 
   // Agrupar blocos por categoria
-  const groupedBlocks = filteredBlocks.reduce((acc, block) => {
-    if (!acc[block.category]) {
-      acc[block.category] = [];
-    }
-    acc[block.category].push(block);
-    return acc;
-  }, {} as Record<string, BlockType[]>);
+  const groupedBlocks = filteredBlocks.reduce(
+    (acc, block) => {
+      if (!acc[block.category]) {
+        acc[block.category] = [];
+      }
+      acc[block.category].push(block);
+      return acc;
+    },
+    {} as Record<string, BlockType[]>,
+  );
 
   // Ordenar categorias com containers primeiro
   const categoryOrder = [
@@ -149,7 +155,7 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
     "automacao",
     "eventos",
   ];
-  
+
   const categories = Object.keys(groupedBlocks).sort((a, b) => {
     const indexA = categoryOrder.indexOf(a);
     const indexB = categoryOrder.indexOf(b);
@@ -191,7 +197,9 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
                 </h4>
                 <div className="space-y-2">
                   {blocks.map((block) => {
-                    const IconComponent = block.icon ? iconMap[block.icon] : null;
+                    const IconComponent = block.icon
+                      ? iconMap[block.icon]
+                      : null;
                     return (
                       <div
                         key={block.id}
@@ -205,12 +213,14 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
                       >
                         <div className="flex items-center gap-2">
                           {IconComponent && (
-                            <IconComponent 
-                              className="h-4 w-4 shrink-0" 
+                            <IconComponent
+                              className="h-4 w-4 shrink-0"
                               style={{ color: block.color }}
                             />
                           )}
-                          <div className="text-sm font-medium">{block.display_name}</div>
+                          <div className="text-sm font-medium">
+                            {block.display_name}
+                          </div>
                         </div>
                         {block.default_description && (
                           <div className="text-xs text-muted-foreground mt-1">

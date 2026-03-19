@@ -1,11 +1,30 @@
-import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useWhatsAppConversations } from "@/hooks/useWhatsAppConversations";
-import { useWhatsAppInstances, getInstanceProvider, type WhatsAppProvider } from "@/hooks/useWhatsAppInstances";
+import {
+  useWhatsAppInstances,
+  getInstanceProvider,
+  type WhatsAppProvider,
+} from "@/hooks/useWhatsAppInstances";
 import { useWhatsAppRealtime } from "@/hooks/useWhatsAppRealtime";
 import { useSyncWhatsAppChats } from "@/hooks/useSyncWhatsAppChats";
 import { useWhatsAppPanelSizes } from "@/hooks/useWhatsAppPanelSizes";
@@ -20,29 +39,67 @@ import { WhatsAppBlockedContactsModal } from "./WhatsAppBlockedContactsModal";
 import { WhatsAppRemindersPanel } from "./WhatsAppRemindersPanel";
 import { WhatsAppNewConversationDialog } from "./WhatsAppNewConversationDialog";
 import { useWhatsAppReminders } from "@/hooks/useWhatsAppReminders";
-import { MessageSquare, Settings, AlertCircle, Phone, CheckCircle2, XCircle, RefreshCw, Archive, Star, Users, MessageCircle, BellOff, Sparkles, Zap, ShieldOff, Heart, Bell, Smartphone } from "lucide-react";
+import {
+  MessageSquare,
+  Settings,
+  AlertCircle,
+  Phone,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Archive,
+  Star,
+  Users,
+  MessageCircle,
+  BellOff,
+  Sparkles,
+  Zap,
+  ShieldOff,
+  Heart,
+  Bell,
+  Smartphone,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface WhatsAppInboxDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProps) {
+export function WhatsAppInboxDrawer({
+  isOpen,
+  onClose,
+}: WhatsAppInboxDrawerProps) {
   const { activeCompany } = useCompany();
   const { user } = useAuth();
-  const { config, isLoading: isLoadingConfig } = useWhatsAppConfig(activeCompany?.company_id);
-  const { instances, userInstances, isLoading: isLoadingInstances } = useWhatsAppInstances(activeCompany?.company_id);
+  const { config, isLoading: isLoadingConfig } = useWhatsAppConfig(
+    activeCompany?.company_id,
+  );
+  const {
+    instances,
+    userInstances,
+    isLoading: isLoadingInstances,
+  } = useWhatsAppInstances(activeCompany?.company_id);
   const { assignments } = useWhatsAppAssignments(activeCompany?.company_id);
   const { data: userSquad } = useUserWhatsAppSquad(activeCompany?.company_id);
-  const { todayReminders, clientIdsWithTodayReminders } = useWhatsAppReminders();
+  const { todayReminders, clientIdsWithTodayReminders } =
+    useWhatsAppReminders();
   const navigate = useNavigate();
-  
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
+    null,
+  );
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [squadFilterActive, setSquadFilterActive] = useState(false); // Filter by user's squad
   const [isAIConfigOpen, setIsAIConfigOpen] = useState(false);
@@ -51,21 +108,30 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   const [isRemindersPanelOpen, setIsRemindersPanelOpen] = useState(false);
   const [isNewConversationOpen, setIsNewConversationOpen] = useState(false);
   const hasTriggeredSync = useRef(false);
-  
+
   // Panel sizes persistence
-  const { sizes, isLoaded: sizesLoaded, setConversationListSize } = useWhatsAppPanelSizes();
+  const {
+    sizes,
+    isLoaded: sizesLoaded,
+    setConversationListSize,
+  } = useWhatsAppPanelSizes();
 
   // Hook para sincronização de chats
-  const { syncChats, isSyncing } = useSyncWhatsAppChats(activeCompany?.company_id);
+  const { syncChats, isSyncing } = useSyncWhatsAppChats(
+    activeCompany?.company_id,
+  );
 
   // Determine which instances to show (user's assigned instances, or all if admin)
-  const availableInstances = userInstances.length > 0 ? userInstances : instances;
+  const availableInstances =
+    userInstances.length > 0 ? userInstances : instances;
 
   // Set default instance
   useEffect(() => {
     if (availableInstances.length > 0 && !selectedInstanceId) {
       // Try to find user's default instance
-      const defaultInstance = availableInstances.find((i: unknown) => i.is_default);
+      const defaultInstance = availableInstances.find(
+        (i: unknown) => i.is_default,
+      );
       if (defaultInstance) {
         setSelectedInstanceId(defaultInstance.id);
       } else {
@@ -81,7 +147,7 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
       hasTriggeredSync.current = true;
       syncChats(selectedInstanceId);
     }
-    
+
     // Reset flag quando fechar o modal
     if (!isOpen) {
       hasTriggeredSync.current = false;
@@ -98,20 +164,26 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   // Fetch conversations - include archived when viewing archived filter
   const includeArchived = activeFilter === "archived";
   // Only apply squad filter if both the filter is active AND we have the squad data
-  const squadFilterId = squadFilterActive && userSquad?.squadId ? userSquad.squadId : null;
-  
-  const { conversations, isLoading: isLoadingConversations, markAsRead, refetchConversations } = useWhatsAppConversations(
+  const squadFilterId =
+    squadFilterActive && userSquad?.squadId ? userSquad.squadId : null;
+
+  const {
+    conversations,
+    isLoading: isLoadingConversations,
+    markAsRead,
+    refetchConversations,
+  } = useWhatsAppConversations(
     activeCompany?.company_id,
     selectedInstanceId,
     includeArchived,
-    squadFilterId
+    squadFilterId,
   );
 
   // Enable realtime updates
   useWhatsAppRealtime(activeCompany?.company_id);
-  
+
   // Filter conversations based on active filter
-  const filteredConversations = conversations.filter(c => {
+  const filteredConversations = conversations.filter((c) => {
     switch (activeFilter) {
       case "unread":
         return (c.unread_count || 0) > 0 && !c.is_archived;
@@ -133,25 +205,34 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
   });
 
   // Apply "Meu Squad" filter at UI level as a safety net (prevents showing all chats if the query cache doesn't refresh)
-  const squadScopedConversations = squadFilterActive && userSquad?.squadId
-    ? filteredConversations.filter(c => !!c.client_id && c.client_team_id === userSquad.squadId)
-    : filteredConversations;
+  const squadScopedConversations =
+    squadFilterActive && userSquad?.squadId
+      ? filteredConversations.filter(
+          (c) => !!c.client_id && c.client_team_id === userSquad.squadId,
+        )
+      : filteredConversations;
 
-  const selectedConversation = squadScopedConversations.find(c => c.id === selectedConversationId);
-  const selectedInstance = availableInstances.find(i => i.id === selectedInstanceId);
-  
+  const selectedConversation = squadScopedConversations.find(
+    (c) => c.id === selectedConversationId,
+  );
+  const selectedInstance = availableInstances.find(
+    (i) => i.id === selectedInstanceId,
+  );
+
   // Check if connected - now works for all providers
   const isUazapi = config?.provider === "uazapi";
   const isMeta = config?.provider === "meta";
-  
+
   // Get the provider of the selected instance
-  const selectedInstanceProvider = selectedInstance ? getInstanceProvider(selectedInstance) : null;
-  
+  const selectedInstanceProvider = selectedInstance
+    ? getInstanceProvider(selectedInstance)
+    : null;
+
   // For Meta/UazapiGO, check instance connection; for Z-API, check config
-  const isConnected = selectedInstance 
+  const isConnected = selectedInstance
     ? selectedInstance.is_connected
     : config?.is_connected;
-  
+
   // Show instance selector if there are any available instances (from any provider)
   const showInstanceSelector = availableInstances.length > 0;
 
@@ -171,13 +252,16 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
 
   const handleChatArchived = (conversationId: string, archived: boolean) => {
     // If the archived chat is selected and we're not viewing archived, clear selection
-    if (archived && selectedConversationId === conversationId && activeFilter !== "archived") {
+    if (
+      archived &&
+      selectedConversationId === conversationId &&
+      activeFilter !== "archived"
+    ) {
       setSelectedConversationId(null);
     }
     // Refresh conversation list
     refetchConversations();
   };
-
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -196,7 +280,8 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             </div>
             <h3 className="text-lg font-medium">WhatsApp não conectado</h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Configure sua integração com Z-API, UazapiGO ou Meta Cloud API para usar o chat do WhatsApp
+              Configure sua integração com Z-API, UazapiGO ou Meta Cloud API
+              para usar o chat do WhatsApp
             </p>
             <Button asChild>
               <Link to="/configuracoes/whatsapp" onClick={onClose}>
@@ -209,10 +294,12 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
             <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
               <Phone className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium">Nenhuma instância disponível</h3>
+            <h3 className="text-lg font-medium">
+              Nenhuma instância disponível
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              {isMeta 
-                ? "Configure seu número Meta Cloud API nas configurações" 
+              {isMeta
+                ? "Configure seu número Meta Cloud API nas configurações"
                 : "Crie uma instância ou solicite acesso a uma instância existente"}
             </p>
             <Button asChild>
@@ -223,214 +310,232 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">
-              {/* Sidebar with filter icons - WhatsApp Web style */}
-              <TooltipProvider delayDuration={300}>
-                <div className="w-14 min-w-14 border-r bg-muted/30 flex flex-col items-center py-3 gap-1">
-                  <SidebarFilterButton
-                    icon={MessageCircle}
-                    label="Todas"
-                    isActive={activeFilter === "all"}
-                    onClick={() => setActiveFilter("all")}
-                  />
-                  <SidebarFilterButton
-                    icon={MessageSquare}
-                    label="Não lidas"
-                    isActive={activeFilter === "unread"}
-                    onClick={() => setActiveFilter("unread")}
-                    count={conversations.filter(c => (c.unread_count || 0) > 0).length}
-                  />
-                  <SidebarFilterButton
-                    icon={Star}
-                    label="Favoritos"
-                    isActive={activeFilter === "favorites"}
-                    onClick={() => setActiveFilter("favorites")}
-                  />
-                  <SidebarFilterButton
-                    icon={Users}
-                    label="Grupos"
-                    isActive={activeFilter === "groups"}
-                    onClick={() => setActiveFilter("groups")}
-                  />
-                  
-                  {/* Squad filter - only show if user is a WhatsApp responsible */}
-                  {userSquad && (
-                    <>
-                      <div className="h-px w-8 bg-border my-2" />
-                      <SidebarFilterButton
-                        icon={Heart}
-                        label={`Meu Squad (${userSquad.squadName})`}
-                        isActive={squadFilterActive}
-                        onClick={() => setSquadFilterActive(prev => !prev)}
-                        badgeColor={userSquad.squadColor || undefined}
-                        count={squadFilterActive ? squadScopedConversations.length : undefined}
-                      />
-                    </>
-                  )}
-                  
-                  <div className="h-px w-8 bg-border my-2" />
-                  
-                  {/* Reminders button */}
-                  <SidebarFilterButton
-                    icon={Bell}
-                    label="Lembretes"
-                    isActive={isRemindersPanelOpen}
-                    onClick={() => setIsRemindersPanelOpen(true)}
-                    count={todayReminders.length > 0 ? todayReminders.length : undefined}
-                  />
-                  
-                  <div className="flex-1" />
-                  
-                  <SidebarFilterButton
-                    icon={Archive}
-                    label="Arquivados"
-                    isActive={activeFilter === "archived"}
-                    onClick={() => setActiveFilter("archived")}
-                  />
-                  <SidebarFilterButton
-                    icon={BellOff}
-                    label="Silenciados"
-                    isActive={activeFilter === "muted"}
-                    onClick={() => setActiveFilter("muted")}
-                  />
-                  <SidebarFilterButton
-                    icon={ShieldOff}
-                    label="Bloqueados"
-                    isActive={isBlockedContactsOpen}
-                    onClick={() => setIsBlockedContactsOpen(true)}
-                  />
-                  
-                  <div className="h-px w-8 bg-border my-2" />
-                  
-                  <SidebarFilterButton
-                    icon={Zap}
-                    label="Respostas Rápidas"
-                    isActive={isQuickReplyManagerOpen}
-                    onClick={() => setIsQuickReplyManagerOpen(true)}
-                  />
-                  
-                  <SidebarFilterButton
-                    icon={Sparkles}
-                    label="Configurar IA"
-                    isActive={isAIConfigOpen}
-                    onClick={() => setIsAIConfigOpen(true)}
-                  />
-                  
-                  {selectedInstanceId && (
-                    <SidebarFilterButton
-                      icon={RefreshCw}
-                      label="Atualizar conversas"
-                      isActive={false}
-                      onClick={() => syncChats(selectedInstanceId)}
-                      isSyncing={isSyncing}
-                    />
-                  )}
-                  
-                  <div className="h-px w-8 bg-border my-2" />
-                  
-                  <SidebarFilterButton
-                    icon={Settings}
-                    label="Configurações"
-                    isActive={false}
-                    onClick={() => {
-                      onClose();
-                      navigate("/configuracoes/whatsapp");
-                    }}
-                  />
-                </div>
-              </TooltipProvider>
-
-              {/* Quick Reply Manager Modal */}
-              <WhatsAppQuickReplyManager
-                instanceId={selectedInstanceId}
-                open={isQuickReplyManagerOpen}
-                onOpenChange={setIsQuickReplyManagerOpen}
-              />
-
-              {/* AI Config Modal */}
-              <WhatsAppAIAgentConfigModal
-                isOpen={isAIConfigOpen}
-                onClose={() => setIsAIConfigOpen(false)}
-                companyId={activeCompany?.company_id}
-                instanceId={selectedInstanceId}
-              />
-
-              {/* Blocked Contacts Modal */}
-              <WhatsAppBlockedContactsModal
-                isOpen={isBlockedContactsOpen}
-                onClose={() => setIsBlockedContactsOpen(false)}
-                companyId={activeCompany?.company_id}
-                instanceId={selectedInstanceId}
-              />
-
-              {/* Reminders Panel */}
-              <WhatsAppRemindersPanel
-                open={isRemindersPanelOpen}
-                onOpenChange={setIsRemindersPanelOpen}
-                onNavigateToChat={(conversationId, instanceId) => {
-                  // Switch to the correct instance if needed
-                  if (instanceId !== selectedInstanceId) {
-                    setSelectedInstanceId(instanceId);
+            {/* Sidebar with filter icons - WhatsApp Web style */}
+            <TooltipProvider delayDuration={300}>
+              <div className="w-14 min-w-14 border-r bg-muted/30 flex flex-col items-center py-3 gap-1">
+                <SidebarFilterButton
+                  icon={MessageCircle}
+                  label="Todas"
+                  isActive={activeFilter === "all"}
+                  onClick={() => setActiveFilter("all")}
+                />
+                <SidebarFilterButton
+                  icon={MessageSquare}
+                  label="Não lidas"
+                  isActive={activeFilter === "unread"}
+                  onClick={() => setActiveFilter("unread")}
+                  count={
+                    conversations.filter((c) => (c.unread_count || 0) > 0)
+                      .length
                   }
-                  // Select the conversation
-                  setSelectedConversationId(conversationId);
-                  markAsRead(conversationId);
-                }}
-              />
+                />
+                <SidebarFilterButton
+                  icon={Star}
+                  label="Favoritos"
+                  isActive={activeFilter === "favorites"}
+                  onClick={() => setActiveFilter("favorites")}
+                />
+                <SidebarFilterButton
+                  icon={Users}
+                  label="Grupos"
+                  isActive={activeFilter === "groups"}
+                  onClick={() => setActiveFilter("groups")}
+                />
 
-              {/* New Conversation Dialog */}
-              {activeCompany?.company_id && selectedInstanceId && (
-                <WhatsAppNewConversationDialog
-                  isOpen={isNewConversationOpen}
-                  onClose={() => setIsNewConversationOpen(false)}
-                  companyId={activeCompany.company_id}
-                  instanceId={selectedInstanceId}
-                  onConversationCreated={(conversationId) => {
-                    refetchConversations();
-                    setSelectedConversationId(conversationId);
+                {/* Squad filter - only show if user is a WhatsApp responsible */}
+                {userSquad && (
+                  <>
+                    <div className="h-px w-8 bg-border my-2" />
+                    <SidebarFilterButton
+                      icon={Heart}
+                      label={`Meu Squad (${userSquad.squadName})`}
+                      isActive={squadFilterActive}
+                      onClick={() => setSquadFilterActive((prev) => !prev)}
+                      badgeColor={userSquad.squadColor || undefined}
+                      count={
+                        squadFilterActive
+                          ? squadScopedConversations.length
+                          : undefined
+                      }
+                    />
+                  </>
+                )}
+
+                <div className="h-px w-8 bg-border my-2" />
+
+                {/* Reminders button */}
+                <SidebarFilterButton
+                  icon={Bell}
+                  label="Lembretes"
+                  isActive={isRemindersPanelOpen}
+                  onClick={() => setIsRemindersPanelOpen(true)}
+                  count={
+                    todayReminders.length > 0
+                      ? todayReminders.length
+                      : undefined
+                  }
+                />
+
+                <div className="flex-1" />
+
+                <SidebarFilterButton
+                  icon={Archive}
+                  label="Arquivados"
+                  isActive={activeFilter === "archived"}
+                  onClick={() => setActiveFilter("archived")}
+                />
+                <SidebarFilterButton
+                  icon={BellOff}
+                  label="Silenciados"
+                  isActive={activeFilter === "muted"}
+                  onClick={() => setActiveFilter("muted")}
+                />
+                <SidebarFilterButton
+                  icon={ShieldOff}
+                  label="Bloqueados"
+                  isActive={isBlockedContactsOpen}
+                  onClick={() => setIsBlockedContactsOpen(true)}
+                />
+
+                <div className="h-px w-8 bg-border my-2" />
+
+                <SidebarFilterButton
+                  icon={Zap}
+                  label="Respostas Rápidas"
+                  isActive={isQuickReplyManagerOpen}
+                  onClick={() => setIsQuickReplyManagerOpen(true)}
+                />
+
+                <SidebarFilterButton
+                  icon={Sparkles}
+                  label="Configurar IA"
+                  isActive={isAIConfigOpen}
+                  onClick={() => setIsAIConfigOpen(true)}
+                />
+
+                {selectedInstanceId && (
+                  <SidebarFilterButton
+                    icon={RefreshCw}
+                    label="Atualizar conversas"
+                    isActive={false}
+                    onClick={() => syncChats(selectedInstanceId)}
+                    isSyncing={isSyncing}
+                  />
+                )}
+
+                <div className="h-px w-8 bg-border my-2" />
+
+                <SidebarFilterButton
+                  icon={Settings}
+                  label="Configurações"
+                  isActive={false}
+                  onClick={() => {
+                    onClose();
+                    navigate("/configuracoes/whatsapp");
                   }}
                 />
-              )}
+              </div>
+            </TooltipProvider>
 
-              {/* Resizable panels for conversation list and chat */}
-              <ResizablePanelGroup 
-                direction="horizontal" 
-                className="flex-1"
-                onLayout={(sizes) => {
-                  if (sizes[0]) {
-                    setConversationListSize(sizes[0]);
-                  }
+            {/* Quick Reply Manager Modal */}
+            <WhatsAppQuickReplyManager
+              instanceId={selectedInstanceId}
+              open={isQuickReplyManagerOpen}
+              onOpenChange={setIsQuickReplyManagerOpen}
+            />
+
+            {/* AI Config Modal */}
+            <WhatsAppAIAgentConfigModal
+              isOpen={isAIConfigOpen}
+              onClose={() => setIsAIConfigOpen(false)}
+              companyId={activeCompany?.company_id}
+              instanceId={selectedInstanceId}
+            />
+
+            {/* Blocked Contacts Modal */}
+            <WhatsAppBlockedContactsModal
+              isOpen={isBlockedContactsOpen}
+              onClose={() => setIsBlockedContactsOpen(false)}
+              companyId={activeCompany?.company_id}
+              instanceId={selectedInstanceId}
+            />
+
+            {/* Reminders Panel */}
+            <WhatsAppRemindersPanel
+              open={isRemindersPanelOpen}
+              onOpenChange={setIsRemindersPanelOpen}
+              onNavigateToChat={(conversationId, instanceId) => {
+                // Switch to the correct instance if needed
+                if (instanceId !== selectedInstanceId) {
+                  setSelectedInstanceId(instanceId);
+                }
+                // Select the conversation
+                setSelectedConversationId(conversationId);
+                markAsRead(conversationId);
+              }}
+            />
+
+            {/* New Conversation Dialog */}
+            {activeCompany?.company_id && selectedInstanceId && (
+              <WhatsAppNewConversationDialog
+                isOpen={isNewConversationOpen}
+                onClose={() => setIsNewConversationOpen(false)}
+                companyId={activeCompany.company_id}
+                instanceId={selectedInstanceId}
+                onConversationCreated={(conversationId) => {
+                  refetchConversations();
+                  setSelectedConversationId(conversationId);
                 }}
+              />
+            )}
+
+            {/* Resizable panels for conversation list and chat */}
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="flex-1"
+              onLayout={(sizes) => {
+                if (sizes[0]) {
+                  setConversationListSize(sizes[0]);
+                }
+              }}
+            >
+              {/* Conversation List Panel */}
+              <ResizablePanel
+                defaultSize={sizesLoaded ? sizes.conversationList : 25}
+                minSize={15}
+                maxSize={40}
+                className="border-r"
               >
-                {/* Conversation List Panel */}
-                <ResizablePanel 
-                  defaultSize={sizesLoaded ? sizes.conversationList : 25} 
-                  minSize={15} 
-                  maxSize={40}
-                  className="border-r"
-                >
-                  <WhatsAppConversationList
-                    conversations={squadScopedConversations}
-                    isLoading={isLoadingConversations}
-                    selectedId={selectedConversationId}
-                    onSelect={handleSelectConversation}
-                    assignments={assignments}
-                    currentUserId={user?.id}
-                    currentUserTeamId={userSquad?.squadId}
-                    clientIdsWithTodayReminders={clientIdsWithTodayReminders}
-                    onNewConversation={() => setIsNewConversationOpen(true)}
-                    instanceSelector={showInstanceSelector ? (
-                      <Select value={selectedInstanceId || ""} onValueChange={handleInstanceChange}>
+                <WhatsAppConversationList
+                  conversations={squadScopedConversations}
+                  isLoading={isLoadingConversations}
+                  selectedId={selectedConversationId}
+                  onSelect={handleSelectConversation}
+                  assignments={assignments}
+                  currentUserId={user?.id}
+                  currentUserTeamId={userSquad?.squadId}
+                  clientIdsWithTodayReminders={clientIdsWithTodayReminders}
+                  onNewConversation={() => setIsNewConversationOpen(true)}
+                  instanceSelector={
+                    showInstanceSelector ? (
+                      <Select
+                        value={selectedInstanceId || ""}
+                        onValueChange={handleInstanceChange}
+                      >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione uma instância">
                             {selectedInstance && (
                               <div className="flex items-center gap-2">
                                 {/* Provider icon */}
-                                {getInstanceProvider(selectedInstance) === "meta" ? (
+                                {getInstanceProvider(selectedInstance) ===
+                                "meta" ? (
                                   <Smartphone className="h-4 w-4 text-blue-500" />
                                 ) : (
                                   <Phone className="h-4 w-4 text-green-500" />
                                 )}
-                                <span className="truncate">{selectedInstance.instance_name}</span>
+                                <span className="truncate">
+                                  {selectedInstance.instance_name}
+                                </span>
                                 {selectedInstance.is_connected ? (
                                   <CheckCircle2 className="h-3 w-3 text-google-green-500 ml-auto shrink-0" />
                                 ) : (
@@ -469,32 +574,38 @@ export function WhatsAppInboxDrawer({ isOpen, onClose }: WhatsAppInboxDrawerProp
                           })}
                         </SelectContent>
                       </Select>
-                    ) : undefined}
+                    ) : undefined
+                  }
+                />
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+
+              {/* Chat Window Panel */}
+              <ResizablePanel
+                defaultSize={sizesLoaded ? sizes.chatWindow : 75}
+                minSize={40}
+              >
+                {selectedConversation ? (
+                  <WhatsAppChatWindow
+                    conversation={selectedConversation}
+                    companyId={activeCompany?.company_id}
+                    instanceId={selectedInstanceId}
+                    onChatDeleted={handleChatDeleted}
+                    onChatArchived={handleChatArchived}
+                    onNavigateAway={onClose}
                   />
-                </ResizablePanel>
-
-                <ResizableHandle withHandle />
-
-                {/* Chat Window Panel */}
-                <ResizablePanel defaultSize={sizesLoaded ? sizes.chatWindow : 75} minSize={40}>
-                  {selectedConversation ? (
-                    <WhatsAppChatWindow
-                      conversation={selectedConversation}
-                      companyId={activeCompany?.company_id}
-                      instanceId={selectedInstanceId}
-                      onChatDeleted={handleChatDeleted}
-                      onChatArchived={handleChatArchived}
-                      onNavigateAway={onClose}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-                      <MessageSquare className="h-16 w-16 opacity-20" />
-                      <p className="text-sm">Selecione uma conversa para ver as mensagens</p>
-                    </div>
-                  )}
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+                    <MessageSquare className="h-16 w-16 opacity-20" />
+                    <p className="text-sm">
+                      Selecione uma conversa para ver as mensagens
+                    </p>
+                  </div>
+                )}
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </div>
         )}
       </DialogContent>
     </Dialog>
@@ -512,7 +623,15 @@ interface SidebarFilterButtonProps {
   badgeColor?: string; // Optional color badge (for squad indicator)
 }
 
-function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count, isSyncing, badgeColor }: SidebarFilterButtonProps) {
+function SidebarFilterButton({
+  icon: Icon,
+  label,
+  isActive,
+  onClick,
+  count,
+  isSyncing,
+  badgeColor,
+}: SidebarFilterButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -521,25 +640,27 @@ function SidebarFilterButton({ icon: Icon, label, isActive, onClick, count, isSy
           disabled={isSyncing}
           className={cn(
             "relative w-10 h-10 rounded-full flex items-center justify-center transition-colors",
-            isActive 
-              ? "bg-primary text-primary-foreground" 
+            isActive
+              ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            isSyncing && "opacity-70 cursor-not-allowed"
+            isSyncing && "opacity-70 cursor-not-allowed",
           )}
         >
           <Icon className={cn("h-5 w-5", isSyncing && "animate-spin")} />
           {count !== undefined && count > 0 && (
-            <span className={cn(
-              "absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-medium flex items-center justify-center px-1",
-              isActive 
-                ? "bg-background text-foreground" 
-                : "bg-primary text-primary-foreground"
-            )}>
+            <span
+              className={cn(
+                "absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-medium flex items-center justify-center px-1",
+                isActive
+                  ? "bg-background text-foreground"
+                  : "bg-primary text-primary-foreground",
+              )}
+            >
               {count > 99 ? "99+" : count}
             </span>
           )}
           {badgeColor && (
-            <span 
+            <span
               className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background"
               style={{ backgroundColor: badgeColor }}
             />

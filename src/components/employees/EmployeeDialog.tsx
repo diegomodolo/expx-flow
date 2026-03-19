@@ -1,10 +1,22 @@
-import { useState, useLayoutEffect } from "react";
+import React, { useState, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Employee, CreateEmployeeData } from "@/hooks/useEmployees";
 import { useTeams } from "@/hooks/useTeams";
 
@@ -17,17 +29,24 @@ interface EmployeeDialogProps {
   readOnly?: boolean;
 }
 
-export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, readOnly = false }: EmployeeDialogProps) {
+export function EmployeeDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  employee,
+  title,
+  readOnly = false,
+}: EmployeeDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     role: "",
     team_id: "",
-    status: "active" as Employee['status'],
+    status: "active" as Employee["status"],
     start_date: "",
     skills: "",
-    avatar: ""
+    avatar: "",
   });
   const [loading, setLoading] = useState(false);
   const { teams } = useTeams();
@@ -83,7 +102,7 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-6 py-4">
             {/* Row 1: Basic Info - 2 columns */}
@@ -93,7 +112,9 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Nome completo"
                   required
                   disabled={readOnly}
@@ -105,7 +126,9 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   placeholder="email@exemplo.com"
                   required
                   disabled={readOnly}
@@ -120,7 +143,9 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   placeholder="(11) 99999-9999"
                   disabled={readOnly}
                 />
@@ -130,7 +155,9 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
                 <Input
                   id="role"
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
                   placeholder="Ex: Analista de Marketing"
                   required
                   disabled={readOnly}
@@ -142,7 +169,13 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="team_id">Equipe</Label>
-                <Select value={formData.team_id} onValueChange={(value) => setFormData({ ...formData, team_id: value })} disabled={readOnly}>
+                <Select
+                  value={formData.team_id}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, team_id: value })
+                  }
+                  disabled={readOnly}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma equipe" />
                   </SelectTrigger>
@@ -157,7 +190,13 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: Employee['status']) => setFormData({ ...formData, status: value })} disabled={readOnly}>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: Employee["status"]) =>
+                    setFormData({ ...formData, status: value })
+                  }
+                  disabled={readOnly}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
@@ -174,7 +213,9 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
                   id="start_date"
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, start_date: e.target.value })
+                  }
                   required
                   disabled={readOnly}
                 />
@@ -187,7 +228,9 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
               <Textarea
                 id="skills"
                 value={formData.skills}
-                onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, skills: e.target.value })
+                }
                 placeholder="Ex: React, TypeScript, Marketing Digital..."
                 rows={3}
                 disabled={readOnly}
@@ -195,7 +238,11 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               {readOnly ? "Fechar" : "Cancelar"}
             </Button>
             {!readOnly && (

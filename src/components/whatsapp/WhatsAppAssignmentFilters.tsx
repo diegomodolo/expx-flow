@@ -1,8 +1,18 @@
+import React from "react";
 import { User, Users, UserCheck, UserX, HelpCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-export type AssignmentFilter = "all" | "mine" | "my-squad" | "unassigned" | "no-squad";
+export type AssignmentFilter =
+  | "all"
+  | "mine"
+  | "my-squad"
+  | "unassigned"
+  | "no-squad";
 
 interface WhatsAppAssignmentFiltersProps {
   activeFilter: AssignmentFilter;
@@ -69,7 +79,13 @@ interface FilterButtonProps {
   count?: number;
 }
 
-function FilterButton({ icon: Icon, label, isActive, onClick, count }: FilterButtonProps) {
+function FilterButton({
+  icon: Icon,
+  label,
+  isActive,
+  onClick,
+  count,
+}: FilterButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -79,15 +95,17 @@ function FilterButton({ icon: Icon, label, isActive, onClick, count }: FilterBut
             "flex items-center justify-center gap-1 p-1.5 rounded text-[9px] font-medium transition-colors min-w-[28px]",
             isActive
               ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted",
           )}
         >
           <Icon className="h-4 w-4 shrink-0" />
           {count !== undefined && count > 0 && (
-            <span className={cn(
-              "text-[8px] font-bold",
-              isActive ? "text-primary-foreground/80" : "text-primary"
-            )}>
+            <span
+              className={cn(
+                "text-[8px] font-bold",
+                isActive ? "text-primary-foreground/80" : "text-primary",
+              )}
+            >
               {count > 99 ? "99+" : count}
             </span>
           )}

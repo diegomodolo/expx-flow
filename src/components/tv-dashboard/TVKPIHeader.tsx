@@ -1,5 +1,16 @@
+import React from "react";
 import { TVMetrics } from "@/hooks/useTrafegoDashboard";
-import { TrendingUp, TrendingDown, Minus, DollarSign, Users, Target, MousePointerClick, RefreshCw, Calendar } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  DollarSign,
+  Users,
+  Target,
+  MousePointerClick,
+  RefreshCw,
+  Calendar,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SyncInfo {
@@ -44,11 +55,13 @@ interface KPICardProps {
 function KPICard({ label, value, change, icon, invertColors }: KPICardProps) {
   const isPositive = invertColors ? change < 0 : change > 0;
   const isNegative = invertColors ? change > 0 : change < 0;
-  
+
   return (
     <div className="bg-card rounded-xl p-3 elevation-2 flex flex-col gap-1">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-sm font-medium">{label}</span>
+        <span className="text-muted-foreground text-sm font-medium">
+          {label}
+        </span>
         <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
           {icon}
         </div>
@@ -62,13 +75,16 @@ function KPICard({ label, value, change, icon, invertColors }: KPICardProps) {
         ) : (
           <TrendingDown className="h-3 w-3 text-red-500" />
         )}
-        <span className={cn(
-          "text-xs font-medium",
-          change === 0 && "text-muted-foreground",
-          isPositive && "text-green-500",
-          isNegative && "text-red-500"
-        )}>
-          {change > 0 ? "+" : ""}{change.toFixed(1)}%
+        <span
+          className={cn(
+            "text-xs font-medium",
+            change === 0 && "text-muted-foreground",
+            isPositive && "text-green-500",
+            isNegative && "text-red-500",
+          )}
+        >
+          {change > 0 ? "+" : ""}
+          {change.toFixed(1)}%
         </span>
       </div>
     </div>
@@ -82,7 +98,7 @@ function formatSyncDate(dateString: string | null): string {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
 }
 
@@ -93,7 +109,7 @@ function formatSyncPeriod(period: number | null): string {
 
 export function TVKPIHeader({ metrics, lastSync, syncInfo }: TVKPIHeaderProps) {
   const syncTime = new Date(lastSync);
-  
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
@@ -119,17 +135,26 @@ export function TVKPIHeader({ metrics, lastSync, syncInfo }: TVKPIHeaderProps) {
               </div>
             </div>
           )}
-          
+
           <div className="flex items-center gap-1.5">
             <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span>Atualizado {syncTime.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span>
+              Atualizado{" "}
+              {syncTime.toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
           </div>
           <div className="text-lg font-mono">
-            {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            {new Date().toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </div>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-4 gap-3">
         <KPICard
           label="Investimento"

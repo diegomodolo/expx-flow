@@ -23,7 +23,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useGeneratedCampaigns } from "@/hooks/useGeneratedCampaigns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Select,
   SelectContent,

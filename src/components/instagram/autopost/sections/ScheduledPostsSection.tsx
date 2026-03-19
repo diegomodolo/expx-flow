@@ -1,29 +1,40 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  Calendar, 
-  Clock, 
-  Image, 
-  RefreshCw, 
-  Edit, 
-  Loader2, 
-  Trash2, 
-  Send, 
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Calendar,
+  Clock,
+  Image,
+  RefreshCw,
+  Edit,
+  Loader2,
+  Trash2,
+  Send,
   Eye,
   Layers,
   ChevronLeft,
   ChevronRight,
   CheckCircle,
   AlertTriangle,
-  Scan
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+  Scan,
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface ScheduledPostsSectionProps {
   pendingPosts: unknown[];
@@ -42,7 +53,13 @@ interface ScheduledPostsSectionProps {
   isValidatingGrammar?: boolean;
 }
 
-function CarouselImagePreview({ imageUrls, onViewFull }: { imageUrls: string[]; onViewFull: () => void }) {
+function CarouselImagePreview({
+  imageUrls,
+  onViewFull,
+}: {
+  imageUrls: string[];
+  onViewFull: () => void;
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const nextImage = (e: React.MouseEvent) => {
@@ -63,12 +80,12 @@ function CarouselImagePreview({ imageUrls, onViewFull }: { imageUrls: string[]; 
         className="w-full h-full object-cover cursor-pointer"
         onClick={onViewFull}
       />
-      
+
       <div className="absolute top-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1">
         <Layers className="w-3 h-3" />
         {currentIndex + 1}/{imageUrls.length}
       </div>
-      
+
       {imageUrls.length > 1 && (
         <>
           <button
@@ -92,7 +109,7 @@ function CarouselImagePreview({ imageUrls, onViewFull }: { imageUrls: string[]; 
             key={idx}
             className={cn(
               "w-1.5 h-1.5 rounded-full transition-colors",
-              idx === currentIndex ? "bg-white" : "bg-white/50"
+              idx === currentIndex ? "bg-white" : "bg-white/50",
             )}
           />
         ))}
@@ -121,7 +138,7 @@ export function ScheduledPostsSection({
   isValidatingGrammar,
 }: ScheduledPostsSectionProps) {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [captionText, setCaptionText] = useState('');
+  const [captionText, setCaptionText] = useState("");
 
   return (
     <Card>
@@ -133,7 +150,8 @@ export function ScheduledPostsSection({
               Postagens Agendadas
             </CardTitle>
             <CardDescription>
-              {pendingPosts.length} post{pendingPosts.length !== 1 ? 's' : ''} na fila
+              {pendingPosts.length} post{pendingPosts.length !== 1 ? "s" : ""}{" "}
+              na fila
             </CardDescription>
           </div>
           <Button onClick={onGenerateNext} disabled={isGeneratingNext}>
@@ -159,14 +177,20 @@ export function ScheduledPostsSection({
         ) : (
           <div className="space-y-4">
             {pendingPosts.map((post: unknown, index: number) => {
-              const isCarousel = post.post_type === 'carousel' && post.image_urls && post.image_urls.length > 1;
-              
+              const isCarousel =
+                post.post_type === "carousel" &&
+                post.image_urls &&
+                post.image_urls.length > 1;
+
               return (
-                <div key={post.id} className={`p-4 rounded-lg border ${index === 0 ? 'border-primary bg-primary/5' : 'bg-muted/30'}`}>
+                <div
+                  key={post.id}
+                  className={`p-4 rounded-lg border ${index === 0 ? "border-primary bg-primary/5" : "bg-muted/30"}`}
+                >
                   <div className="flex gap-4">
                     {isCarousel ? (
-                      <CarouselImagePreview 
-                        imageUrls={post.image_urls} 
+                      <CarouselImagePreview
+                        imageUrls={post.image_urls}
                         onViewFull={() => onPreview(post)}
                       />
                     ) : (
@@ -180,66 +204,94 @@ export function ScheduledPostsSection({
                       </div>
                     )}
 
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={index === 0 ? 'default' : 'secondary'}>
-                              <Clock className="w-3 h-3 mr-1" />
-                              {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                            </Badge>
-                            {isCarousel && (
-                              <Badge variant="outline">
-                                <Layers className="w-3 h-3 mr-1" />
-                                {post.image_urls.length} imagens
-                              </Badge>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={index === 0 ? "default" : "secondary"}
+                          >
+                            <Clock className="w-3 h-3 mr-1" />
+                            {format(
+                              new Date(post.scheduled_at),
+                              "dd/MM 'às' HH:mm",
+                              { locale: ptBR },
                             )}
-                            
-                            {/* Grammar validation status */}
-                            <TooltipProvider>
-                              {post.grammar_validated && !post.grammar_errors?.length && (
+                          </Badge>
+                          {isCarousel && (
+                            <Badge variant="outline">
+                              <Layers className="w-3 h-3 mr-1" />
+                              {post.image_urls.length} imagens
+                            </Badge>
+                          )}
+
+                          {/* Grammar validation status */}
+                          <TooltipProvider>
+                            {post.grammar_validated &&
+                              !post.grammar_errors?.length && (
                                 <Tooltip>
                                   <TooltipTrigger>
-                                    <Badge variant="outline" className="text-green-600 border-green-600">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-green-600 border-green-600"
+                                    >
                                       <CheckCircle className="w-3 h-3 mr-1" />
                                       Texto OK
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Texto verificado - nenhum erro encontrado</p>
+                                    <p>
+                                      Texto verificado - nenhum erro encontrado
+                                    </p>
                                   </TooltipContent>
                                 </Tooltip>
                               )}
-                              
-                              {post.grammar_errors && post.grammar_errors.length > 0 && (
+
+                            {post.grammar_errors &&
+                              post.grammar_errors.length > 0 && (
                                 <Tooltip>
                                   <TooltipTrigger>
-                                    <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-yellow-600 border-yellow-600"
+                                    >
                                       <AlertTriangle className="w-3 h-3 mr-1" />
-                                      {post.grammar_errors.length} alerta{post.grammar_errors.length !== 1 ? 's' : ''}
+                                      {post.grammar_errors.length} alerta
+                                      {post.grammar_errors.length !== 1
+                                        ? "s"
+                                        : ""}
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <p className="font-medium mb-1">Possíveis erros de texto:</p>
+                                    <p className="font-medium mb-1">
+                                      Possíveis erros de texto:
+                                    </p>
                                     <ul className="text-xs space-y-1">
-                                      {post.grammar_errors.slice(0, 3).map((err: string, i: number) => (
-                                        <li key={i}>• {err}</li>
-                                      ))}
+                                      {post.grammar_errors
+                                        .slice(0, 3)
+                                        .map((err: string, i: number) => (
+                                          <li key={i}>• {err}</li>
+                                        ))}
                                       {post.grammar_errors.length > 3 && (
-                                        <li>... e mais {post.grammar_errors.length - 3}</li>
+                                        <li>
+                                          ... e mais{" "}
+                                          {post.grammar_errors.length - 3}
+                                        </li>
                                       )}
                                     </ul>
                                   </TooltipContent>
                                 </Tooltip>
                               )}
-                            </TooltipProvider>
-                          </div>
-                          {index === 0 && (
-                            <Badge variant="outline" className="text-xs">Próxima</Badge>
-                          )}
+                          </TooltipProvider>
                         </div>
-                      
+                        {index === 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            Próxima
+                          </Badge>
+                        )}
+                      </div>
+
                       <p className="text-sm line-clamp-3">{post.caption}</p>
-                      
+
                       <div className="flex gap-2 flex-wrap">
                         <Button
                           size="sm"
@@ -317,13 +369,25 @@ export function ScheduledPostsSection({
                         className="min-h-[100px]"
                       />
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => {
-                          onUpdateCaption(post.id, captionText);
-                          setEditingPostId(null);
-                        }} disabled={isUpdatingCaption}>
-                          {isUpdatingCaption ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            onUpdateCaption(post.id, captionText);
+                            setEditingPostId(null);
+                          }}
+                          disabled={isUpdatingCaption}
+                        >
+                          {isUpdatingCaption ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Salvar"
+                          )}
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingPostId(null)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingPostId(null)}
+                        >
                           Cancelar
                         </Button>
                       </div>

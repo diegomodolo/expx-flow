@@ -1,7 +1,21 @@
+import React from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Instagram, Facebook, Linkedin, Twitter, Globe, ArrowRight } from "lucide-react";
+import {
+  Instagram,
+  Facebook,
+  Linkedin,
+  Twitter,
+  Globe,
+  ArrowRight,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface PlatformCard {
@@ -22,7 +36,7 @@ const platforms: PlatformCard[] = [
     icon: Instagram,
     available: true,
     route: "/automatizadores/instagram",
-    color: "bg-gradient-to-br from-purple-500 to-pink-500"
+    color: "bg-gradient-to-br from-purple-500 to-pink-500",
   },
   {
     id: "wordpress",
@@ -31,7 +45,7 @@ const platforms: PlatformCard[] = [
     icon: Globe,
     available: true,
     route: "/automatizadores/wordpress",
-    color: "bg-gradient-to-br from-blue-500 to-cyan-500"
+    color: "bg-gradient-to-br from-blue-500 to-cyan-500",
   },
   {
     id: "facebook",
@@ -40,7 +54,7 @@ const platforms: PlatformCard[] = [
     icon: Facebook,
     available: false,
     route: "/automatizadores/facebook",
-    color: "bg-gradient-to-br from-blue-600 to-blue-400"
+    color: "bg-gradient-to-br from-blue-600 to-blue-400",
   },
   {
     id: "linkedin",
@@ -49,7 +63,7 @@ const platforms: PlatformCard[] = [
     icon: Linkedin,
     available: false,
     route: "/automatizadores/linkedin",
-    color: "bg-gradient-to-br from-blue-700 to-blue-500"
+    color: "bg-gradient-to-br from-blue-700 to-blue-500",
   },
   {
     id: "twitter",
@@ -58,8 +72,8 @@ const platforms: PlatformCard[] = [
     icon: Twitter,
     available: false,
     route: "/automatizadores/twitter",
-    color: "bg-gradient-to-br from-gray-800 to-gray-600"
-  }
+    color: "bg-gradient-to-br from-gray-800 to-gray-600",
+  },
 ];
 
 export default function AutomatizadoresHub() {
@@ -71,7 +85,8 @@ export default function AutomatizadoresHub() {
         <div>
           <h1 className="text-3xl font-bold">Automatizadores</h1>
           <p className="text-muted-foreground mt-1">
-            Selecione uma plataforma para configurar postagens automáticas com IA
+            Selecione uma plataforma para configurar postagens automáticas com
+            IA
           </p>
         </div>
 
@@ -86,7 +101,9 @@ export default function AutomatizadoresHub() {
               }`}
               onClick={() => platform.available && navigate(platform.route)}
             >
-              <div className={`absolute inset-0 ${platform.color} opacity-10`} />
+              <div
+                className={`absolute inset-0 ${platform.color} opacity-10`}
+              />
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className={`p-3 rounded-xl ${platform.color}`}>

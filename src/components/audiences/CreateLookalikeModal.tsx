@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,7 @@ interface CreateLookalikeModalProps {
     name: string,
     country: string,
     ratio: number,
-    lookalikeType?: 'similarity' | 'reach'
+    lookalikeType?: "similarity" | "reach",
   ) => Promise<void>;
   loading?: boolean;
 }
@@ -59,14 +59,22 @@ export function CreateLookalikeModal({
   const [name, setName] = useState("");
   const [country, setCountry] = useState("BR");
   const [ratio, setRatio] = useState([1]);
-  const [lookalikeType, setLookalikeType] = useState<'similarity' | 'reach' | undefined>(undefined);
+  const [lookalikeType, setLookalikeType] = useState<
+    "similarity" | "reach" | undefined
+  >(undefined);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!originAudience || !name.trim()) return;
 
-    await onSubmit(originAudience.id, name.trim(), country, ratio[0], lookalikeType);
-    
+    await onSubmit(
+      originAudience.id,
+      name.trim(),
+      country,
+      ratio[0],
+      lookalikeType,
+    );
+
     // Reset form
     setName("");
     setCountry("BR");
@@ -104,8 +112,9 @@ export function CreateLookalikeModal({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                O público semelhante pode levar de 1 a 6 horas para ser populado pelo Meta. 
-                O público de origem precisa ter pelo menos 100 pessoas.
+                O público semelhante pode levar de 1 a 6 horas para ser populado
+                pelo Meta. O público de origem precisa ter pelo menos 100
+                pessoas.
               </AlertDescription>
             </Alert>
 
@@ -139,7 +148,9 @@ export function CreateLookalikeModal({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Tamanho do público</Label>
-                <span className="text-sm font-medium text-primary">{ratio[0]}%</span>
+                <span className="text-sm font-medium text-primary">
+                  {ratio[0]}%
+                </span>
               </div>
               <Slider
                 value={ratio}
@@ -150,15 +161,20 @@ export function CreateLookalikeModal({
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
-                1% = mais similar ao público de origem. 10% = maior alcance, menos similar.
+                1% = mais similar ao público de origem. 10% = maior alcance,
+                menos similar.
               </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="type">Otimização (opcional)</Label>
-              <Select 
-                value={lookalikeType || "auto"} 
-                onValueChange={(v) => setLookalikeType(v === "auto" ? undefined : v as 'similarity' | 'reach')}
+              <Select
+                value={lookalikeType || "auto"}
+                onValueChange={(v) =>
+                  setLookalikeType(
+                    v === "auto" ? undefined : (v as "similarity" | "reach"),
+                  )
+                }
               >
                 <SelectTrigger id="type">
                   <SelectValue placeholder="Automático" />

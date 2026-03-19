@@ -1,9 +1,20 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Target, TrendingUp, DollarSign, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  Target,
+  TrendingUp,
+  DollarSign,
+  CheckCircle2,
+} from "lucide-react";
 import { useCRMWorkspaceGoals } from "@/hooks/useCRMWorkspaceGoals";
 
 interface GoalsConfigModalProps {
@@ -19,18 +30,29 @@ interface GoalsConfigModalProps {
 }
 
 const MONTHS = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
-export const GoalsConfigModal = ({ 
-  open, 
-  onOpenChange, 
+export const GoalsConfigModal = ({
+  open,
+  onOpenChange,
   workspaceId,
-  currentMetrics 
+  currentMetrics,
 }: GoalsConfigModalProps) => {
-  const { goal, isSaving, saveGoals, currentMonth, currentYear } = useCRMWorkspaceGoals(workspaceId);
-  
+  const { goal, isSaving, saveGoals, currentMonth, currentYear } =
+    useCRMWorkspaceGoals(workspaceId);
+
   const [targetLeads, setTargetLeads] = useState<string>("");
   const [targetRevenue, setTargetRevenue] = useState<string>("");
   const [targetConversion, setTargetConversion] = useState<string>("");
@@ -48,45 +70,53 @@ export const GoalsConfigModal = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     saveGoals({
       target_leads: targetLeads ? parseInt(targetLeads) : null,
       target_revenue: targetRevenue ? parseFloat(targetRevenue) : null,
-      target_conversion_rate: targetConversion ? parseFloat(targetConversion) : null,
-      target_closed_deals: targetClosedDeals ? parseInt(targetClosedDeals) : null
+      target_conversion_rate: targetConversion
+        ? parseFloat(targetConversion)
+        : null,
+      target_closed_deals: targetClosedDeals
+        ? parseInt(targetClosedDeals)
+        : null,
     });
-    
+
     onOpenChange(false);
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
-  const calculateRemaining = (current: number, target: string, isPercentage = false) => {
+  const calculateRemaining = (
+    current: number,
+    target: string,
+    isPercentage = false,
+  ) => {
     const targetNum = parseFloat(target);
     if (!target || isNaN(targetNum)) return null;
-    
+
     const remaining = targetNum - current;
     if (remaining <= 0) return "Meta atingida! 🎉";
-    
+
     if (isPercentage) {
       return `Faltam: ${remaining.toFixed(1)}%`;
     }
-    
+
     return `Faltam: ${remaining}`;
   };
 
   const calculateRemainingRevenue = (current: number, target: string) => {
     const targetNum = parseFloat(target);
     if (!target || isNaN(targetNum)) return null;
-    
+
     const remaining = targetNum - current;
     if (remaining <= 0) return "Meta atingida! 🎉";
-    
+
     return `Faltam: ${formatCurrency(remaining)}`;
   };
 
@@ -150,7 +180,10 @@ export const GoalsConfigModal = ({
               </span>
               {targetRevenue && (
                 <span className="text-muted-foreground">
-                  {calculateRemainingRevenue(currentMetrics.revenue, targetRevenue)}
+                  {calculateRemainingRevenue(
+                    currentMetrics.revenue,
+                    targetRevenue,
+                  )}
                 </span>
               )}
             </div>
@@ -178,7 +211,11 @@ export const GoalsConfigModal = ({
               </span>
               {targetConversion && (
                 <span className="text-muted-foreground">
-                  {calculateRemaining(currentMetrics.conversionRate, targetConversion, true)}
+                  {calculateRemaining(
+                    currentMetrics.conversionRate,
+                    targetConversion,
+                    true,
+                  )}
                 </span>
               )}
             </div>
@@ -204,7 +241,10 @@ export const GoalsConfigModal = ({
               </span>
               {targetClosedDeals && (
                 <span className="text-muted-foreground">
-                  {calculateRemaining(currentMetrics.closedDeals, targetClosedDeals)}
+                  {calculateRemaining(
+                    currentMetrics.closedDeals,
+                    targetClosedDeals,
+                  )}
                 </span>
               )}
             </div>
@@ -220,18 +260,14 @@ export const GoalsConfigModal = ({
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              className="flex-1"
-              disabled={isSaving}
-            >
+            <Button type="submit" className="flex-1" disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Salvando...
                 </>
               ) : (
-                'Salvar Metas'
+                "Salvar Metas"
               )}
             </Button>
           </div>
