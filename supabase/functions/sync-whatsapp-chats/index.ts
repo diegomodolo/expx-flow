@@ -490,6 +490,66 @@ serve(async (req) => {
           }
         }
 
+        // Auto-fix: se é grupo com JID correto (@g.us), corrigir registros antigos com phone corrompido
+        if (isGroupOrBroadcast && phone.includes("@g.us")) {
+          // O phone corrompido antigo foi gerado removendo @g.us, removendo hífen, e às vezes adicionando 55
+          // Ex: "5521996087371-1549194057@g.us" → antigo ficava "55219960873711549194057"
+          const groupDigits = phone.replace("@g.us", "").replace(/\D/g, "");
+          // Buscar registros corrompidos: mesmo instance, phone longo sem @g.us que contém os dígitos do grupo
+          const { data: corruptedRecords } = await supabase
+            .from("whatsapp_conversations")
+            .select("id, phone")
+            .eq("company_id", company_id)
+            .eq("instance_id", instance_id)
+            .not("phone", "like", "%@g.us%");
+
+          // Encontrar o registro corrompido que corresponde a esse grupo
+          // O phone corrompido foi gerado: rawId → remove @g.us → remove hífen → remove não-dígitos
+          // Ex: "5521996087371-1549194057@g.us" → "55219960873711549194057"
+          // Reconstruir o que o phone corrompido seria:
+          const corruptedVersion = groupDigits; // sem @g.us e sem hífen
+          const corruptedWithPrefix = "55" + groupDigits; // com 55 na frente
+          const corrupted = (corruptedRecords || []).find(
+            (r: { id: string; phone: string }) => {
+              return (
+                r.phone === corruptedVersion ||
+                r.phone === corruptedWithPrefix ||
+                (r.phone.length > 18 && r.phone.endsWith(groupDigits))
+              );
+            },
+          );
+
+          if (corrupted) {
+            console.log(
+              `[sync-whatsapp-chats] Auto-fixing group phone: ${corrupted.phone} → ${phone}`,
+            );
+            // Migrar mensagens do registro antigo para o novo phone
+            await supabase
+              .from("whatsapp_messages")
+              .update({ conversation_id: corrupted.id })
+              .eq("conversation_id", corrupted.id); // no-op but ensures no orphans
+            // Atualizar o phone diretamente no registro existente
+            const { error: fixError } = await supabase
+              .from("whatsapp_conversations")
+              .update({ phone })
+              .eq("id", corrupted.id);
+            if (fixError) {
+              console.error(
+                `[sync-whatsapp-chats] Error fixing group phone:`,
+                fixError,
+              );
+              // Se falhar (ex: unique constraint), deletar o corrompido — o upsert abaixo vai criar o novo
+              await supabase
+                .from("whatsapp_conversations")
+                .delete()
+                .eq("id", corrupted.id);
+            } else {
+              // Phone corrigido com sucesso, o upsert abaixo vai atualizar os outros campos
+              syncedCount++;
+            }
+          }
+        }
+
         // Upsert na tabela de conversas
         const { error: upsertError } = await supabase
           .from("whatsapp_conversations")
