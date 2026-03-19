@@ -47,7 +47,7 @@ export const useFacebookPages = () => {
     try {
       const { data, error } = await supabase
         .from('facebook_pages')
-        .select('*')
+        .select('id, page_id, name, picture_url, is_active, connected_at, token_expires_at, is_token_valid, company_id')
         .eq('company_id', activeCompany.company_id)
         .eq('is_active', true);
 
@@ -68,8 +68,8 @@ export const useFacebookPages = () => {
       const { data, error } = await supabase
         .from('instagram_accounts')
         .select(`
-          *,
-          facebook_page:facebook_pages(*)
+          id, instagram_id, username, profile_picture_url, is_active, connected_at, is_token_valid, company_id,
+          facebook_page:facebook_pages(id, page_id, name, picture_url, is_active)
         `)
         .eq('company_id', activeCompany.company_id)
         .eq('is_active', true);

@@ -186,7 +186,8 @@ export function useLeadQualificationRules() {
       const { error: updateError } = await supabase
         .from('lead_qualification_weights')
         .update(newWeights)
-        .eq('id', weights.id);
+        .eq('id', weights.id)
+        .eq('company_id', activeCompany.company_id);
 
       if (updateError) throw updateError;
       await fetchWeights();
@@ -214,32 +215,36 @@ export function useLeadQualificationRules() {
   }, [activeCompany?.company_id, fetchRules]);
 
   const updateRule = useCallback(async (id: string, updates: Partial<QualificationRule>) => {
+    if (!activeCompany?.company_id) return;
     try {
       const { error: updateError } = await supabase
         .from('lead_qualification_rules')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', activeCompany.company_id);
 
       if (updateError) throw updateError;
       await fetchRules();
     } catch (err: unknown) {
       setError(err.message);
     }
-  }, [fetchRules]);
+  }, [activeCompany?.company_id, fetchRules]);
 
   const deleteRule = useCallback(async (id: string) => {
+    if (!activeCompany?.company_id) return;
     try {
       const { error: deleteError } = await supabase
         .from('lead_qualification_rules')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', activeCompany.company_id);
 
       if (deleteError) throw deleteError;
       await fetchRules();
     } catch (err: unknown) {
       setError(err.message);
     }
-  }, [fetchRules]);
+  }, [activeCompany?.company_id, fetchRules]);
 
   useEffect(() => {
     if (activeCompany?.company_id) {

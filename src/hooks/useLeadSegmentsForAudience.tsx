@@ -44,7 +44,8 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
           const { count } = await (supabase
             .from('lead_segment_assignments') as unknown)
             .select('*', { count: 'exact', head: true })
-            .eq('segment_id', seg.id);
+            .eq('segment_id', seg.id)
+            .eq('company_id', activeCompany.company_id);
           
           return {
             id: seg.id,
@@ -97,7 +98,8 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
       const { data: assignments, error: assignmentsError } = await (supabase
         .from('lead_segment_assignments') as unknown)
         .select('lead_id')
-        .eq('segment_id', segmentId);
+        .eq('segment_id', segmentId)
+        .eq('company_id', activeCompany.company_id);
 
       if (assignmentsError) throw assignmentsError;
 
@@ -116,7 +118,8 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
       const { data: leads, error: leadsError } = await (supabase
         .from('cnae_lead_pool') as unknown)
         .select('id, email, phone, razao_social')
-        .in('id', leadIds);
+        .in('id', leadIds)
+        .eq('company_id', activeCompany.company_id);
 
       if (leadsError) throw leadsError;
 
