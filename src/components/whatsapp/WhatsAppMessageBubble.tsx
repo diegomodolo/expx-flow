@@ -53,6 +53,7 @@ interface WhatsAppMessageBubbleProps {
   message: WhatsAppMessage;
   allMessages?: WhatsAppMessage[]; // All messages in conversation for looking up quoted messages
   contactName?: string;
+  isGroup?: boolean;
   instanceId?: string | null;
   companyId?: string;
   remoteJid?: string; // phone@s.whatsapp.net format
@@ -66,6 +67,7 @@ export function WhatsAppMessageBubble({
   message,
   allMessages,
   contactName,
+  isGroup,
   instanceId,
   companyId,
   remoteJid,
@@ -543,6 +545,13 @@ export function WhatsAppMessageBubble({
               message.reaction && "mb-4",
             )}
           >
+            {/* Sender name for group messages */}
+            {isGroup && !isOutgoing && (message as any).sender_name && (
+              <p className="text-xs font-semibold mb-1 text-primary/80">
+                {(message as any).sender_name}
+              </p>
+            )}
+
             {/* Quoted message preview */}
             {message.reply_to_message_id &&
               allMessages &&

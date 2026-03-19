@@ -679,7 +679,20 @@ serve(async (req) => {
       conversationId = newConversation.id;
     }
 
-    // Save message with media_url
+    // Extract sender info for group messages
+    const senderName = message?.senderName || message?.pushName || null;
+    const senderPhone = (() => {
+      const raw =
+        message?.sender_pn || message?.participant || message?.sender || "";
+      return (
+        raw
+          .replace("@s.whatsapp.net", "")
+          .replace("@c.us", "")
+          .replace(/\D/g, "") || null
+      );
+    })();
+
+    // Save message with media_url and sender info
     const { error: messageError } = await supabase
       .from("whatsapp_messages")
       .insert({
@@ -692,6 +705,8 @@ serve(async (req) => {
         external_id: externalId,
         status: direction === "outgoing" ? "sent" : "delivered",
         sent_at: new Date().toISOString(),
+        sender_name: senderName,
+        sender_phone: senderPhone,
       });
 
     if (messageError) {

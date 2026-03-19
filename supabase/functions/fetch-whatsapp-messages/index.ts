@@ -433,16 +433,38 @@ serve(async (req) => {
           else status = "sent";
         }
 
+        // Extract sender info for group messages
+        const msgSenderName =
+          msg.senderName || msg.pushName || msg.sender_name || null;
+        const msgSenderPhone = (() => {
+          const raw =
+            msg.sender_pn ||
+            msg.participant ||
+            msg.sender ||
+            msg.key?.participant ||
+            "";
+          const cleaned =
+            typeof raw === "string"
+              ? raw
+                  .replace("@s.whatsapp.net", "")
+                  .replace("@c.us", "")
+                  .replace(/\D/g, "")
+              : "";
+          return cleaned || null;
+        })();
+
         const messageData = {
           conversation_id,
           company_id,
           direction,
-          content: content.substring(0, 5000), // Limitar tamanho
+          content: content.substring(0, 5000),
           message_type: messageType,
           media_url: mediaUrl,
           status,
           external_id: externalId,
           sent_at: sentAt,
+          sender_name: msgSenderName,
+          sender_phone: msgSenderPhone,
         };
 
         // Upsert mensagem usando a constraint (company_id, external_id)

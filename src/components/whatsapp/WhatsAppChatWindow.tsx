@@ -1083,6 +1083,7 @@ export function WhatsAppChatWindow({
                       message={message}
                       allMessages={messages}
                       contactName={displayName}
+                      isGroup={isGroupConversation}
                       instanceId={instanceId ?? null}
                       companyId={companyId}
                       remoteJid={`${conversation.phone}@s.whatsapp.net`}
