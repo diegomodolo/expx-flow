@@ -32,7 +32,7 @@ interface Conversation {
 interface Message {
   id: string;
   conversation_id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   created_at: string;
 }
@@ -41,12 +41,13 @@ export function useIAAgents() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [currentAgent, setCurrentAgent] = useState<Agent | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [currentConversation, setCurrentConversation] =
+    useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const isFetchingRef = useRef(false);
   const lastCompanyIdRef = useRef<string | null>(null);
-  
+
   const { user } = useAuth();
   const { activeCompany } = useCompany();
   const { toast } = useToast();
@@ -58,18 +59,20 @@ export function useIAAgents() {
     isFetchingRef.current = true;
     try {
       const { data, error } = await supabase
-        .from('ia_agents')
-        .select(`
+        .from("ia_agents")
+        .select(
+          `
           *,
           client:clients(id, name, company)
-        `)
-        .eq('company_id', activeCompany.company_id)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .eq("company_id", activeCompany.company_id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setAgents(data || []);
     } catch (error) {
-      console.error('Error fetching agents:', error);
+      console.error("Error fetching agents:", error);
       toast({
         title: "Erro ao carregar agentes",
         description: "Não foi possível carregar os agentes.",
@@ -88,6 +91,8 @@ export function useIAAgents() {
     additional_instructions?: string;
     model?: string;
     client_id?: string | null;
+    output_instructions?: string | null;
+    is_collaborator?: boolean;
   }) => {
     if (!user || !activeCompany) return null;
 
@@ -103,12 +108,12 @@ export function useIAAgents() {
 
     try {
       const { data, error } = await supabase
-        .from('ia_agents')
+        .from("ia_agents")
         .insert({
           ...agentData,
           company_id: activeCompany.company_id,
           user_id: user.id,
-          model: agentData.model || 'google/gemini-2.5-flash'
+          model: agentData.model || "google/gemini-2.5-flash",
         })
         .select()
         .single();
@@ -116,7 +121,7 @@ export function useIAAgents() {
       if (error) throw error;
 
       // Adiciona o novo agente ao início da lista imediatamente
-      setAgents(prev => [data, ...prev]);
+      setAgents((prev) => [data, ...prev]);
 
       toast({
         title: "Agente criado",
@@ -125,7 +130,7 @@ export function useIAAgents() {
 
       return data;
     } catch (error) {
-      console.error('Error creating agent:', error);
+      console.error("Error creating agent:", error);
       toast({
         title: "Erro ao criar agente",
         description: "Não foi possível criar o agente.",
@@ -139,9 +144,9 @@ export function useIAAgents() {
   const updateAgent = async (agentId: string, updates: Partial<Agent>) => {
     try {
       const { error } = await supabase
-        .from('ia_agents')
+        .from("ia_agents")
         .update(updates)
-        .eq('id', agentId);
+        .eq("id", agentId);
 
       if (error) throw error;
 
@@ -155,7 +160,7 @@ export function useIAAgents() {
         description: "Agente atualizado com sucesso!",
       });
     } catch (error) {
-      console.error('Error updating agent:', error);
+      console.error("Error updating agent:", error);
       toast({
         title: "Erro ao atualizar agente",
         description: "Não foi possível atualizar o agente.",
@@ -166,7 +171,7 @@ export function useIAAgents() {
 
   // Duplicar agente
   const duplicateAgent = async (agentId: string) => {
-    const agent = agents.find(a => a.id === agentId);
+    const agent = agents.find((a) => a.id === agentId);
     if (!agent) return;
 
     await createAgent({
@@ -174,7 +179,10 @@ export function useIAAgents() {
       description: agent.description || undefined,
       prompt_base: agent.prompt_base,
       additional_instructions: agent.additional_instructions || undefined,
-      model: agent.model
+      output_instructions: agent.output_instructions || undefined,
+      model: agent.model,
+      client_id: agent.client_id || undefined,
+      is_collaborator: agent.is_collaborator,
     });
   };
 
@@ -182,14 +190,14 @@ export function useIAAgents() {
   const deleteAgent = async (agentId: string) => {
     try {
       const { error } = await supabase
-        .from('ia_agents')
+        .from("ia_agents")
         .delete()
-        .eq('id', agentId);
+        .eq("id", agentId);
 
       if (error) throw error;
 
-      setAgents(prev => prev.filter(a => a.id !== agentId));
-      
+      setAgents((prev) => prev.filter((a) => a.id !== agentId));
+
       if (currentAgent?.id === agentId) {
         setCurrentAgent(null);
         setCurrentConversation(null);
@@ -201,7 +209,7 @@ export function useIAAgents() {
         description: "Agente excluído com sucesso!",
       });
     } catch (error) {
-      console.error('Error deleting agent:', error);
+      console.error("Error deleting agent:", error);
       toast({
         title: "Erro ao excluir agente",
         description: "Não foi possível excluir o agente.",
@@ -213,19 +221,19 @@ export function useIAAgents() {
   // Buscar conversas de um agente
   const fetchConversations = async (agentId: string) => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('ia_agent_conversations')
-        .select('*')
-        .eq('agent_id', agentId)
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+        .from("ia_agent_conversations")
+        .select("*")
+        .eq("agent_id", agentId)
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
 
       if (error) throw error;
       setConversations(data || []);
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      console.error("Error fetching conversations:", error);
     }
   };
 
@@ -235,12 +243,12 @@ export function useIAAgents() {
 
     try {
       const { data, error } = await supabase
-        .from('ia_agent_conversations')
+        .from("ia_agent_conversations")
         .insert({
           agent_id: agentId,
           company_id: activeCompany.company_id,
           user_id: user.id,
-          title: 'Nova conversa'
+          title: "Nova conversa",
         })
         .select()
         .single();
@@ -251,7 +259,7 @@ export function useIAAgents() {
       setMessages([]);
       await fetchConversations(agentId);
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      console.error("Error creating conversation:", error);
       toast({
         title: "Erro ao criar conversa",
         description: "Não foi possível criar uma nova conversa.",
@@ -264,15 +272,15 @@ export function useIAAgents() {
   const fetchMessages = async (conversationId: string) => {
     try {
       const { data, error } = await supabase
-        .from('ia_agent_messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .from("ia_agent_messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       setMessages((data || []) as Message[]);
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error("Error fetching messages:", error);
     }
   };
 
@@ -282,25 +290,24 @@ export function useIAAgents() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ia-agent-chat', {
+      const { data, error } = await supabase.functions.invoke("ia-agent-chat", {
         body: {
           conversationId: currentConversation.id,
           message,
-          agentId: currentAgent.id
-        }
+          agentId: currentAgent.id,
+        },
       });
 
       if (error) throw error;
 
       if (!data.success) {
-        throw new Error(data.error || 'Erro desconhecido');
+        throw new Error(data.error || "Erro desconhecido");
       }
 
       await fetchMessages(currentConversation.id);
       await fetchConversations(currentAgent.id);
-
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
         title: "Erro ao enviar mensagem",
         description: "Não foi possível enviar a mensagem.",
@@ -314,28 +321,28 @@ export function useIAAgents() {
   // Carregar agente
   const loadAgent = async (agentId: string) => {
     // Primeiro tenta encontrar no array já carregado
-    let agent = agents.find(a => a.id === agentId);
-    
+    let agent = agents.find((a) => a.id === agentId);
+
     // Se não encontrar, busca direto do banco
     if (!agent) {
       try {
         const { data, error } = await supabase
-          .from('ia_agents')
-          .select('*')
-          .eq('id', agentId)
+          .from("ia_agents")
+          .select("*")
+          .eq("id", agentId)
           .single();
-        
+
         if (error) throw error;
         agent = data;
-        
+
         // Atualiza a lista local também
-        setAgents(prev => {
-          const exists = prev.find(a => a.id === agentId);
+        setAgents((prev) => {
+          const exists = prev.find((a) => a.id === agentId);
           if (exists) return prev;
           return [data, ...prev];
         });
       } catch (error) {
-        console.error('Error loading agent:', error);
+        console.error("Error loading agent:", error);
         toast({
           title: "Erro ao carregar agente",
           description: "Não foi possível carregar o agente.",
@@ -344,14 +351,14 @@ export function useIAAgents() {
         return;
       }
     }
-    
+
     setCurrentAgent(agent);
     await fetchConversations(agentId);
   };
 
   // Carregar conversa
   const loadConversation = async (conversationId: string) => {
-    const conversation = conversations.find(c => c.id === conversationId);
+    const conversation = conversations.find((c) => c.id === conversationId);
     if (conversation) {
       setCurrentConversation(conversation);
       await fetchMessages(conversationId);
@@ -359,23 +366,30 @@ export function useIAAgents() {
   };
 
   // Renomear conversa
-  const renameConversation = async (conversationId: string, newTitle: string) => {
+  const renameConversation = async (
+    conversationId: string,
+    newTitle: string,
+  ) => {
     try {
       const { error } = await supabase
-        .from('ia_agent_conversations')
+        .from("ia_agent_conversations")
         .update({ title: newTitle })
-        .eq('id', conversationId);
+        .eq("id", conversationId);
 
       if (error) throw error;
 
       // Atualiza o estado local
-      setConversations(prev => 
-        prev.map(c => c.id === conversationId ? { ...c, title: newTitle } : c)
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === conversationId ? { ...c, title: newTitle } : c,
+        ),
       );
-      
+
       // Atualiza a conversa atual se for a mesma
       if (currentConversation?.id === conversationId) {
-        setCurrentConversation(prev => prev ? { ...prev, title: newTitle } : null);
+        setCurrentConversation((prev) =>
+          prev ? { ...prev, title: newTitle } : null,
+        );
       }
 
       toast({
@@ -383,7 +397,7 @@ export function useIAAgents() {
         description: "O título da conversa foi atualizado.",
       });
     } catch (error) {
-      console.error('Error renaming conversation:', error);
+      console.error("Error renaming conversation:", error);
       toast({
         title: "Erro ao renomear conversa",
         description: "Não foi possível renomear a conversa.",
@@ -396,14 +410,14 @@ export function useIAAgents() {
   const deleteConversation = async (conversationId: string) => {
     try {
       const { error } = await supabase
-        .from('ia_agent_conversations')
+        .from("ia_agent_conversations")
         .delete()
-        .eq('id', conversationId);
+        .eq("id", conversationId);
 
       if (error) throw error;
 
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-      
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+
       if (currentConversation?.id === conversationId) {
         setCurrentConversation(null);
         setMessages([]);
@@ -414,7 +428,7 @@ export function useIAAgents() {
         description: "Conversa excluída com sucesso!",
       });
     } catch (error) {
-      console.error('Error deleting conversation:', error);
+      console.error("Error deleting conversation:", error);
       toast({
         title: "Erro ao excluir conversa",
         description: "Não foi possível excluir a conversa.",
@@ -425,7 +439,7 @@ export function useIAAgents() {
 
   useEffect(() => {
     const currentCompanyId = activeCompany?.company_id;
-    
+
     // Só busca se o company_id realmente mudou
     if (currentCompanyId && currentCompanyId !== lastCompanyIdRef.current) {
       lastCompanyIdRef.current = currentCompanyId;
@@ -449,6 +463,6 @@ export function useIAAgents() {
     loadConversation,
     renameConversation,
     deleteConversation,
-    sendMessage
+    sendMessage,
   };
 }

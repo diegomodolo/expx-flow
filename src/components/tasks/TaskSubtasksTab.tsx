@@ -82,6 +82,7 @@ export function TaskSubtasksTab({
     subtasks,
     isLoading,
     completionPercentage,
+    parentTask,
     createSubtask,
     importRoteiro,
     deleteSubtask,
@@ -166,6 +167,7 @@ export function TaskSubtasksTab({
           variant="outline"
           size="sm"
           onClick={() => setShowRoteiroDialog(true)}
+          disabled={!parentTask}
           className="gap-1.5"
         >
           <BookOpen className="w-4 h-4" />
@@ -198,7 +200,7 @@ export function TaskSubtasksTab({
           variant="outline"
           size="icon"
           onClick={handleAddSubtask}
-          disabled={!newTitle.trim() || createSubtask.isPending}
+          disabled={!newTitle.trim() || createSubtask.isPending || !parentTask}
         >
           {createSubtask.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

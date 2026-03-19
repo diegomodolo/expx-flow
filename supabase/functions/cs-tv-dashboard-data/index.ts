@@ -168,10 +168,18 @@ Deno.serve(async (req) => {
       .from("companies")
       .select("id, name")
       .eq("cs_tv_dashboard_token", token)
-      .single();
+      .maybeSingle();
 
-    if (companyError || !company) {
-      console.error("Invalid token:", companyError);
+    if (companyError) {
+      console.error("Error fetching company by token:", companyError);
+      return new Response(JSON.stringify({ error: "Erro ao validar token" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!company) {
+      console.error("No company found for token");
       return new Response(
         JSON.stringify({ error: "Token inválido ou expirado" }),
         {

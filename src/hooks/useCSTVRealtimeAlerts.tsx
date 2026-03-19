@@ -74,6 +74,33 @@ export function useCSTVRealtimeAlerts({
           return false;
         }
 
+        // Validate conversation_id FK before insert
+        let validConversationId: string | null =
+          alertData.conversationId || null;
+        if (validConversationId) {
+          const { data: conversationExists, error: convError } =
+            await supabasePublic
+              .from("whatsapp_conversations")
+              .select("id")
+              .eq("id", validConversationId)
+              .maybeSingle();
+
+          if (convError) {
+            console.warn(
+              "[useCSTVRealtimeAlerts] Error checking conversation existence, skipping insert:",
+              convError,
+            );
+            return false;
+          }
+
+          if (!conversationExists) {
+            console.warn(
+              `[useCSTVRealtimeAlerts] Conversation ${validConversationId} not found in whatsapp_conversations, skipping insert to avoid FK violation`,
+            );
+            return false;
+          }
+        }
+
         // Mark as displayed
         const { error: insertError } = await supabasePublic
           .from("cs_tv_displayed_alerts")
@@ -82,7 +109,7 @@ export function useCSTVRealtimeAlerts({
             analysis_id: analysisId,
             alert_type: alertType,
             score: alertData.score,
-            conversation_id: alertData.conversationId,
+            conversation_id: validConversationId,
             contact_name: alertData.contactName || null,
             attendant_name: alertData.attendantName || null,
           });
@@ -215,6 +242,33 @@ export function useMarkAlertAsDisplayed() {
       },
     ): Promise<boolean> => {
       try {
+        // Validate conversation_id FK before insert
+        let validConversationId: string | null =
+          additionalData?.conversationId || null;
+        if (validConversationId) {
+          const { data: conversationExists, error: convError } =
+            await supabasePublic
+              .from("whatsapp_conversations")
+              .select("id")
+              .eq("id", validConversationId)
+              .maybeSingle();
+
+          if (convError) {
+            console.warn(
+              "[useMarkAlertAsDisplayed] Error checking conversation existence, skipping insert:",
+              convError,
+            );
+            return false;
+          }
+
+          if (!conversationExists) {
+            console.warn(
+              `[useMarkAlertAsDisplayed] Conversation ${validConversationId} not found in whatsapp_conversations, skipping insert to avoid FK violation`,
+            );
+            return false;
+          }
+        }
+
         const { error } = await supabasePublic
           .from("cs_tv_displayed_alerts")
           .insert({
@@ -222,7 +276,7 @@ export function useMarkAlertAsDisplayed() {
             analysis_id: analysisId,
             alert_type: alertType,
             score: additionalData?.score,
-            conversation_id: additionalData?.conversationId,
+            conversation_id: validConversationId,
             contact_name: additionalData?.contactName,
             attendant_name: additionalData?.attendantName,
           });

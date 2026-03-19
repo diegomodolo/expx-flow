@@ -112,6 +112,13 @@ Deno.serve(async (req) => {
       }
 
       for (const task of tasks) {
+        // Store original state before changing for recovery on failure
+        const originalStatus = task.status || "todo";
+        const originalColumnId = task.quadro_column_id;
+        const originalEtapa =
+          boardColumns?.find((c) => c.id === task.quadro_column_id)?.name ||
+          "Pendente";
+
         try {
           console.log(
             `[agent-task-executor] Processing task "${task.title}" (${task.id})`,
@@ -275,10 +282,18 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
             await supabase
               .from("tasks")
               .update({
-                status: "todo",
-                quadro_column_id: task.quadro_column_id,
+                status: originalStatus,
+                quadro_column_id: originalColumnId,
+                etapa: originalEtapa,
+                updated_at: new Date().toISOString(),
               })
               .eq("id", task.id);
+            // Close any open time tracking session
+            await supabase
+              .from("task_time_tracking")
+              .update({ ended_at: new Date().toISOString() })
+              .eq("task_id", task.id)
+              .is("ended_at", null);
             continue;
           }
 
@@ -317,10 +332,19 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
             await supabase
               .from("tasks")
               .update({
-                status: "todo",
-                quadro_column_id: task.quadro_column_id,
+                status: originalStatus,
+                quadro_column_id: originalColumnId,
+                etapa: originalEtapa,
+                updated_at: new Date().toISOString(),
               })
               .eq("id", task.id);
+
+            // Close any open time tracking session
+            await supabase
+              .from("task_time_tracking")
+              .update({ ended_at: new Date().toISOString() })
+              .eq("task_id", task.id)
+              .is("ended_at", null);
 
             // Log failure
             await supabase.from("task_history").insert({
@@ -332,7 +356,7 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
               description: `🤖 Erro na execução: ${chatResult.error || "Falha desconhecida"}`,
               field_changed: "ai_execution",
               old_value: "progress",
-              new_value: "todo",
+              new_value: originalStatus,
             });
             continue;
           }
@@ -473,13 +497,39 @@ Gere o resultado/output da execução desta tarefa de forma completa e estrutura
           totalProcessed++;
         } catch (taskErr) {
           console.error(
-            `[agent-task-executor] Error processing task ${task.id}:`,
+            `[agent-task-executor] Task execution failed, restoring status for task ${task.id}:`,
             taskErr,
           );
+          // Recovery: restore task to original status
           await supabase
             .from("tasks")
-            .update({ status: "todo", quadro_column_id: task.quadro_column_id })
+            .update({
+              status: originalStatus,
+              quadro_column_id: originalColumnId,
+              etapa: originalEtapa,
+              updated_at: new Date().toISOString(),
+            })
             .eq("id", task.id);
+
+          // Close any open time tracking session left by this execution
+          await supabase
+            .from("task_time_tracking")
+            .update({ ended_at: new Date().toISOString() })
+            .eq("task_id", task.id)
+            .is("ended_at", null);
+
+          // Log the failure in task history
+          await supabase.from("task_history").insert({
+            task_id: task.id,
+            company_id: task.company_id || employee.company_id,
+            user_id: employee.user_id,
+            user_name: employee.name,
+            history_type: "automatic",
+            description: `🤖 Erro na execução: ${taskErr instanceof Error ? taskErr.message : "Falha desconhecida"}`,
+            field_changed: "ai_execution",
+            old_value: "progress",
+            new_value: originalStatus,
+          });
         }
       }
     }

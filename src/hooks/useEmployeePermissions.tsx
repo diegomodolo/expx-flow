@@ -171,12 +171,13 @@ export function useEmployeePermissions() {
         .select("role")
         .eq("user_id", user.id)
         .eq("company_id", activeCompany.company_id)
-        .single();
+        .maybeSingle();
 
       if (memberError) {
         console.error("Erro ao buscar membro da empresa:", memberError);
       }
 
+      // Se member é null, usuário não é membro desta empresa — tratar como não-owner
       const userIsOwner = member?.role === "owner";
 
       setIsOwner(userIsOwner);

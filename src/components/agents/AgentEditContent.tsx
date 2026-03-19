@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SearchableClientSelect } from "@/components/ui/searchable-client-select";
-import { Settings, Brain, FileText, Bot, Puzzle, MessageCircle, Save, UserCheck } from "lucide-react";
+import {
+  Settings,
+  Brain,
+  FileText,
+  Bot,
+  Puzzle,
+  MessageCircle,
+  Save,
+  UserCheck,
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +41,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Section = "chat" | "geral" | "prompt" | "conhecimento" | "skills" | "telegram";
+type Section =
+  | "chat"
+  | "geral"
+  | "prompt"
+  | "conhecimento"
+  | "skills"
+  | "telegram";
 
 const menuItems: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "chat", label: "Chat", icon: MessageCircle },
@@ -72,38 +87,45 @@ export function AgentEditContent({
   } = useIAAgents();
   const { clients } = useClients();
   const { activeCompany } = useCompany();
-  
-  const syncCollaboratorStatus = async (agentId: string, isCollaborator: boolean, agentName: string) => {
+
+  const syncCollaboratorStatus = async (
+    agentId: string,
+    isCollaborator: boolean,
+    agentName: string,
+  ) => {
     if (!activeCompany?.company_id) return;
-    
+
     const { data: existingEmployee } = await supabase
-      .from('employees')
-      .select('id')
-      .eq('ia_agent_id', agentId as unknown)
-      .eq('company_id', activeCompany.company_id)
+      .from("employees")
+      .select("id")
+      .eq("ia_agent_id", agentId as unknown)
+      .eq("company_id", activeCompany.company_id)
       .maybeSingle();
-    
+
     if (isCollaborator && !existingEmployee) {
-      const { error } = await supabase.from('employees').insert({
+      const { error } = await supabase.from("employees").insert({
         company_id: activeCompany.company_id,
         name: `🤖 ${agentName}`,
         email: `agent-${agentId}@ai.internal`,
-        role: 'Agente IA',
-        status: 'active',
-        start_date: new Date().toISOString().split('T')[0],
-        user_id: agentId,
+        role: "Agente IA",
+        status: "active",
+        start_date: new Date().toISOString().split("T")[0],
+        user_id: null,
         ia_agent_id: agentId,
       } as unknown);
       if (error) {
-        console.error('Error creating collaborator employee:', error);
-        toast.error('Erro ao criar colaborador. Tente desativar e reativar.');
+        console.error("Error creating collaborator employee:", error);
+        toast.error("Erro ao criar colaborador. Tente desativar e reativar.");
       }
     } else if (!isCollaborator && existingEmployee) {
-      await supabase.from('employees').delete().eq('id', existingEmployee.id);
+      await supabase.from("employees").delete().eq("id", existingEmployee.id);
     } else if (isCollaborator && existingEmployee) {
-      await supabase.from('employees').update({
-        name: `🤖 ${agentName}`,
-      }).eq('id', existingEmployee.id);
+      await supabase
+        .from("employees")
+        .update({
+          name: `🤖 ${agentName}`,
+        })
+        .eq("id", existingEmployee.id);
     }
   };
 
@@ -124,17 +146,23 @@ export function AgentEditContent({
   const handleInsertSkill = (skillTag: string) => {
     const textarea = promptRef.current;
     if (!textarea) {
-      setFormData(prev => ({ ...prev, prompt_base: prev.prompt_base + " " + skillTag }));
+      setFormData((prev) => ({
+        ...prev,
+        prompt_base: prev.prompt_base + " " + skillTag,
+      }));
       return;
     }
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const text = formData.prompt_base;
     const newText = text.substring(0, start) + skillTag + text.substring(end);
-    setFormData(prev => ({ ...prev, prompt_base: newText }));
+    setFormData((prev) => ({ ...prev, prompt_base: newText }));
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + skillTag.length, start + skillTag.length);
+      textarea.setSelectionRange(
+        start + skillTag.length,
+        start + skillTag.length,
+      );
     }, 0);
   };
 
@@ -151,7 +179,8 @@ export function AgentEditContent({
         description: currentAgent.description || "",
         prompt_base: currentAgent.prompt_base,
         additional_instructions: currentAgent.additional_instructions || "",
-        output_instructions: (currentAgent as unknown).output_instructions || "",
+        output_instructions:
+          (currentAgent as unknown).output_instructions || "",
         client_id: currentAgent.client_id || "none",
         is_collaborator: (currentAgent as unknown).is_collaborator || false,
       });
@@ -175,9 +204,13 @@ export function AgentEditContent({
         client_id: rest.client_id === "none" ? null : rest.client_id,
         is_collaborator,
       } as unknown);
-      
-      await syncCollaboratorStatus(agentId, is_collaborator, formData.agent_name);
-      
+
+      await syncCollaboratorStatus(
+        agentId,
+        is_collaborator,
+        formData.agent_name,
+      );
+
       onSaved?.();
     } finally {
       setSaving(false);
@@ -197,7 +230,9 @@ export function AgentEditContent({
     }
   };
 
-  const visibleMenuItems = showChat ? menuItems : menuItems.filter((m) => m.id !== "chat");
+  const visibleMenuItems = showChat
+    ? menuItems
+    : menuItems.filter((m) => m.id !== "chat");
 
   if (!currentAgent) {
     return (
@@ -215,7 +250,9 @@ export function AgentEditContent({
       <Card className="w-80 p-6 shrink-0">
         <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">{currentAgent.agent_name}</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              {currentAgent.agent_name}
+            </h2>
             <p className="text-sm text-muted-foreground">
               Configurações do agente
             </p>
@@ -232,7 +269,7 @@ export function AgentEditContent({
                   "flex items-center gap-3 p-3 rounded-lg transition-colors w-full text-left",
                   activeSection === item.id
                     ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground",
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
@@ -246,7 +283,11 @@ export function AgentEditContent({
           {!isChat && (
             <>
               <Separator />
-              <Button onClick={() => handleSubmit()} disabled={saving} className="w-full">
+              <Button
+                onClick={() => handleSubmit()}
+                disabled={saving}
+                className="w-full"
+              >
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? "Salvando..." : "Salvar Alterações"}
               </Button>
@@ -274,18 +315,26 @@ export function AgentEditContent({
                     <ChatMessages messages={messages} loading={loading} />
                   </div>
                   <div className="border-t border-border p-4">
-                    <ChatInput onSendMessage={handleSendMessage} disabled={loading} />
+                    <ChatInput
+                      onSendMessage={handleSendMessage}
+                      disabled={loading}
+                    />
                   </div>
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-center">
                   <div>
                     <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Nenhuma conversa selecionada</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      Nenhuma conversa selecionada
+                    </h3>
                     <p className="text-muted-foreground mb-4">
-                      Crie uma nova conversa para começar a interagir com {currentAgent.agent_name}
+                      Crie uma nova conversa para começar a interagir com{" "}
+                      {currentAgent.agent_name}
                     </p>
-                    <Button onClick={handleNewConversation}>Nova Conversa</Button>
+                    <Button onClick={handleNewConversation}>
+                      Nova Conversa
+                    </Button>
                   </div>
                 </div>
               )}
@@ -295,13 +344,17 @@ export function AgentEditContent({
           <Card className="p-6 overflow-y-auto max-h-[calc(100vh-220px)]">
             {activeSection === "geral" && (
               <div className="space-y-6">
-                <h2 className="text-lg font-semibold mb-4">Configurações Gerais</h2>
+                <h2 className="text-lg font-semibold mb-4">
+                  Configurações Gerais
+                </h2>
                 <div>
                   <Label htmlFor="agent_name">Nome do Agente *</Label>
                   <Input
                     id="agent_name"
                     value={formData.agent_name}
-                    onChange={(e) => setFormData({ ...formData, agent_name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, agent_name: e.target.value })
+                    }
                     placeholder="Ex: Assistente de Marketing"
                     required
                   />
@@ -311,40 +364,52 @@ export function AgentEditContent({
                   <Input
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     placeholder="Breve descrição do agente (opcional)"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="client_id">Cliente Associado (Opcional)</Label>
+                  <Label htmlFor="client_id">
+                    Cliente Associado (Opcional)
+                  </Label>
                   <SearchableClientSelect
-                    clients={clients.map(c => ({ id: c.id, name: c.name }))}
+                    clients={clients.map((c) => ({ id: c.id, name: c.name }))}
                     value={formData.client_id}
-                    onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, client_id: value })
+                    }
                     noneLabel="Nenhum cliente específico"
                     placeholder="Selecione um cliente"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Quando associado, o agente terá acesso automático ao briefing, campanhas e métricas deste cliente.
+                    Quando associado, o agente terá acesso automático ao
+                    briefing, campanhas e métricas deste cliente.
                   </p>
                 </div>
-                
+
                 {/* Collaborator Toggle */}
                 <div className="flex items-center justify-between rounded-lg border border-border p-4">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <UserCheck className="w-4 h-4 text-primary" />
-                      <Label htmlFor="is_collaborator" className="font-medium">Ativar como Colaborador</Label>
+                      <Label htmlFor="is_collaborator" className="font-medium">
+                        Ativar como Colaborador
+                      </Label>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Quando ativado, este agente aparecerá como colaborador da empresa — podendo ser atribuído a tarefas, 
-                      adicionado a squads e contactado no chat interno.
+                      Quando ativado, este agente aparecerá como colaborador da
+                      empresa — podendo ser atribuído a tarefas, adicionado a
+                      squads e contactado no chat interno.
                     </p>
                   </div>
                   <Switch
                     id="is_collaborator"
                     checked={formData.is_collaborator}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_collaborator: checked })}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_collaborator: checked })
+                    }
                   />
                 </div>
               </div>
@@ -352,7 +417,9 @@ export function AgentEditContent({
 
             {activeSection === "prompt" && (
               <div className="space-y-6">
-                <h2 className="text-lg font-semibold mb-4">Prompt & Instruções</h2>
+                <h2 className="text-lg font-semibold mb-4">
+                  Prompt & Instruções
+                </h2>
                 <div>
                   <Label htmlFor="prompt_base">Prompt Base do Agente *</Label>
                   <Textarea
@@ -371,14 +438,22 @@ export function AgentEditContent({
                     {formData.prompt_base.length}/50 caracteres mínimos
                   </p>
                 </div>
-                <PromptSkillInjector agentId={agentId} onInsertSkill={handleInsertSkill} />
+                <PromptSkillInjector
+                  agentId={agentId}
+                  onInsertSkill={handleInsertSkill}
+                />
                 <div>
-                  <Label htmlFor="additional_instructions">Instruções Adicionais</Label>
+                  <Label htmlFor="additional_instructions">
+                    Instruções Adicionais
+                  </Label>
                   <Textarea
                     id="additional_instructions"
                     value={formData.additional_instructions}
                     onChange={(e) =>
-                      setFormData({ ...formData, additional_instructions: e.target.value })
+                      setFormData({
+                        ...formData,
+                        additional_instructions: e.target.value,
+                      })
                     }
                     placeholder="Contexto adicional, regras específicas... (opcional)"
                     className="min-h-[180px]"
@@ -388,7 +463,8 @@ export function AgentEditContent({
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      O prompt deve ter no mínimo 50 caracteres. Seja mais específico sobre como o agente deve se comportar.
+                      O prompt deve ter no mínimo 50 caracteres. Seja mais
+                      específico sobre como o agente deve se comportar.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -396,18 +472,25 @@ export function AgentEditContent({
                 <Separator />
 
                 <div>
-                  <Label htmlFor="output_instructions">Instruções de Saída (Output)</Label>
+                  <Label htmlFor="output_instructions">
+                    Instruções de Saída (Output)
+                  </Label>
                   <Textarea
                     id="output_instructions"
                     value={formData.output_instructions}
                     onChange={(e) =>
-                      setFormData({ ...formData, output_instructions: e.target.value })
+                      setFormData({
+                        ...formData,
+                        output_instructions: e.target.value,
+                      })
                     }
                     placeholder="Ex: Sempre inclua a URL da imagem gerada na resposta. Formate links como [texto](url). Liste todos os artefatos produzidos com seus respectivos links."
                     className="min-h-[120px]"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Define como o agente deve formatar suas respostas finais — quais dados incluir, como apresentar links, imagens e resultados.
+                    Define como o agente deve formatar suas respostas finais —
+                    quais dados incluir, como apresentar links, imagens e
+                    resultados.
                   </p>
                 </div>
               </div>
@@ -415,7 +498,9 @@ export function AgentEditContent({
 
             {activeSection === "conhecimento" && (
               <div className="space-y-6">
-                <h2 className="text-lg font-semibold mb-4">Base de Conhecimento</h2>
+                <h2 className="text-lg font-semibold mb-4">
+                  Base de Conhecimento
+                </h2>
                 <KnowledgeDocumentsManager agentId={agentId} />
               </div>
             )}
@@ -424,7 +509,8 @@ export function AgentEditContent({
               <div className="space-y-6">
                 <h2 className="text-lg font-semibold mb-1">Skills do Agente</h2>
                 <p className="text-sm text-muted-foreground">
-                  Habilite as capacidades que este agente pode executar durante conversas.
+                  Habilite as capacidades que este agente pode executar durante
+                  conversas.
                 </p>
                 <AgentSkillsConfig
                   agentId={agentId}
@@ -435,11 +521,17 @@ export function AgentEditContent({
 
             {activeSection === "telegram" && (
               <div className="space-y-6">
-                <h2 className="text-lg font-semibold mb-4">Integração com Telegram</h2>
+                <h2 className="text-lg font-semibold mb-4">
+                  Integração com Telegram
+                </h2>
                 <TelegramBotConfig
                   agentId={agentId}
-                  telegramBotToken={(currentAgent as unknown).telegram_bot_token || null}
-                  telegramBotName={(currentAgent as unknown).telegram_bot_name || null}
+                  telegramBotToken={
+                    (currentAgent as unknown).telegram_bot_token || null
+                  }
+                  telegramBotName={
+                    (currentAgent as unknown).telegram_bot_name || null
+                  }
                   onUpdate={() => loadAgent(agentId)}
                 />
               </div>

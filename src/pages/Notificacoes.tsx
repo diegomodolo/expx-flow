@@ -240,7 +240,7 @@ export default function Notificacoes() {
       const { data } = await supabase
         .from("tasks")
         .select(
-          "id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata",
+          "id, title, description, status, priority, task_type, related_client_id, responsible_name, assigned_user_id, user_id, created_at, due_date, deadline, parent_task_id, completed_at, team_id, company_id, checklist, etapa, progress, task_state, start_date, updated_at",
         )
         .eq("id", item.source_id)
         .single();
@@ -256,7 +256,7 @@ export default function Notificacoes() {
       const { data } = await supabase
         .from("tasks")
         .select(
-          "id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata",
+          "id, title, description, status, priority, task_type, related_client_id, responsible_name, assigned_user_id, user_id, created_at, due_date, deadline, parent_task_id, completed_at, team_id, company_id, checklist, etapa, progress, task_state, start_date, updated_at",
         )
         .eq("id", item.source_id)
         .single();

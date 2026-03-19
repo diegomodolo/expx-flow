@@ -175,6 +175,21 @@ export function useWhatsAppRealtimeAnalysis({
       if (!companyId || !convId) return;
 
       try {
+        // Validate conversation exists before saving to prevent FK violations
+        const { data: conv } = await supabase
+          .from("whatsapp_conversations")
+          .select("id")
+          .eq("id", convId)
+          .maybeSingle();
+
+        if (!conv) {
+          console.warn(
+            "[useWhatsAppRealtimeAnalysis] Conversation not found, skipping save:",
+            convId,
+          );
+          return;
+        }
+
         const now = new Date().toISOString();
 
         // Data for current analysis (upsert - keeps only latest)
