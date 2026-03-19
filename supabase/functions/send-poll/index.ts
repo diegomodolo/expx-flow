@@ -192,15 +192,16 @@ serve(async (req) => {
       );
     }
 
-    // Send poll via UazapiGO v2 API
+    // Send poll via UazapiGO v2 API — endpoint /send/menu with type "poll"
     const cleanEndpoint = config.uazapi_endpoint?.replace(/\/$/, "");
-    const uazapiUrl = `${cleanEndpoint}/message/sendPoll`;
+    const uazapiUrl = `${cleanEndpoint}/send/menu`;
     console.log("[send-whatsapp-poll] Calling UazapiGO:", uazapiUrl);
 
     const uazapiBody = {
       number: formattedPhone,
-      name: question,
-      values: options,
+      type: "poll",
+      text: question,
+      choices: options,
       selectableCount: allow_multiple ? 0 : 1,
     };
 
