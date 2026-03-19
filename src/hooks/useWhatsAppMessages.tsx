@@ -718,27 +718,20 @@ export function useWhatsAppMessages(
           })
           .eq("id", conversationId);
 
-        // Send via API (direct fetch — supabase.functions.invoke sends JWT that causes 405)
+        // Send via API
         let data: unknown = null;
         let sendError = false;
         try {
-          const res = await fetch(
-            "https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/send-whatsapp-poll",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                company_id: companyId,
-                recipient_phone: phone,
-                question,
-                options,
-                allow_multiple: allowMultiple,
-                instance_id: instanceId ?? undefined,
-              }),
+          data = await invokeWithRetry(supabase, "send-poll", {
+            body: {
+              company_id: companyId,
+              recipient_phone: phone,
+              question,
+              options,
+              allow_multiple: allowMultiple,
+              instance_id: instanceId ?? undefined,
             },
-          );
-          data = await res.json();
-          if (!res.ok) throw new Error(data?.error || "Erro ao enviar enquete");
+          });
         } catch {
           sendError = true;
         }
