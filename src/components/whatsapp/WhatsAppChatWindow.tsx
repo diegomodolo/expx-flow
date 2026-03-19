@@ -1215,6 +1215,7 @@ export function WhatsAppChatWindow({
                 message_type: forwardMessage.message_type,
                 media_url: forwardMessage.media_url,
                 cached_media_url: forwardMessage.cached_media_url,
+                external_id: forwardMessage.external_id,
               },
               instanceId,
             });

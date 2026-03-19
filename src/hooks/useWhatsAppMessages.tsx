@@ -816,22 +816,43 @@ export function useWhatsAppMessages(
         message_type: string;
         media_url?: string | null;
         cached_media_url?: string | null;
+        external_id?: string | null;
       };
       instanceId?: string | null;
     }) => {
       const results = [];
-      const fileUrl = message.media_url || message.cached_media_url;
 
-      console.log(
-        "[forwardMessage] type:",
-        message.message_type,
-        "media_url:",
-        message.media_url,
-        "cached_media_url:",
-        message.cached_media_url,
-        "fileUrl:",
-        fileUrl,
-      );
+      // For media messages with encrypted WhatsApp URLs, download first via UAZAPI
+      let resolvedFileUrl = message.cached_media_url || message.media_url;
+      const isEncryptedUrl =
+        resolvedFileUrl?.includes(".enc") ||
+        resolvedFileUrl?.includes("mmg.whatsapp.net");
+
+      if (
+        message.message_type !== "text" &&
+        isEncryptedUrl &&
+        message.external_id &&
+        instanceId
+      ) {
+        try {
+          // Download media via UAZAPI to get accessible base64/URL
+          const downloadResult = await invokeWithRetry(
+            supabase,
+            "download-whatsapp-media",
+            {
+              body: {
+                instanceId,
+                messageId: message.external_id,
+              },
+            },
+          );
+          if (downloadResult?.base64 || downloadResult?.url) {
+            resolvedFileUrl = downloadResult.base64 || downloadResult.url;
+          }
+        } catch {
+          // If download fails, try with original URL anyway
+        }
+      }
 
       for (const target of targetConversations) {
         try {
@@ -846,7 +867,7 @@ export function useWhatsAppMessages(
                 forward: true,
               },
             });
-          } else if (fileUrl) {
+          } else if (resolvedFileUrl) {
             await invokeWithRetry(supabase, "send-whatsapp-media", {
               body: {
                 company_id: companyId,
@@ -855,13 +876,13 @@ export function useWhatsAppMessages(
                   message.message_type === "ptt"
                     ? "audio"
                     : message.message_type,
-                file: fileUrl,
+                file: resolvedFileUrl,
                 instance_id: instanceId ?? undefined,
                 forward: true,
               },
             });
           } else {
-            // Fallback: forward content as text if no media URL
+            // Fallback: forward content as text
             await invokeWithRetry(supabase, "send-whatsapp-notification", {
               body: {
                 company_id: companyId,
