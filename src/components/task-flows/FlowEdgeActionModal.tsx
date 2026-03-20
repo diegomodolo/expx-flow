@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Copy, Ghost, UserRound, Tag, CircleDot, Settings2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-export type FlowActionType = "move" | "copy" | "ghost";
+type FlowActionType = "move" | "copy" | "ghost";
 
 export interface FlowEdgePropertyChanges {
   changeStatus?: boolean;
@@ -27,7 +27,7 @@ export interface FlowEdgePropertyChanges {
   newClassificacaoName?: string;
 }
 
-export interface FlowEdgeData {
+interface FlowEdgeData {
   actionType: FlowActionType;
   propertyChanges?: FlowEdgePropertyChanges;
 }

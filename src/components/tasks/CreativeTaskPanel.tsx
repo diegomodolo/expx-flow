@@ -30,9 +30,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type PostType = "feed" | "stories" | "reels";
+type PostType = "feed" | "stories" | "reels";
 
-export interface CreativeFile {
+interface CreativeFile {
   id: string;
   url: string;
   name: string;

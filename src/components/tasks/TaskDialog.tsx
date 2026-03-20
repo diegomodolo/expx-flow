@@ -85,7 +85,7 @@ import { TaskOutputPanel } from "./TaskOutputPanel";
 import { TaskReviewPanel } from "./TaskReviewPanel";
 import { cn } from "@/lib/utils";
 
-export type TaskDialogMode = "kanban" | "roteiro";
+type TaskDialogMode = "kanban" | "roteiro";
 
 interface TaskDialogProps {
   open: boolean;

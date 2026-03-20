@@ -1,4 +1,4 @@
-export interface AIFunctionDef {
+interface AIFunctionDef {
   functionName: string;
   label: string;
   category: string;

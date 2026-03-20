@@ -3,7 +3,7 @@ import { NodeProps, NodeResizer } from "@xyflow/react";
 import { Pencil, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export interface GroupNodeData {
+interface GroupNodeData {
   label: string;
   description?: string;
   color?: string;

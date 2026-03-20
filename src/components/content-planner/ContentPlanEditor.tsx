@@ -49,7 +49,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-export interface PortugueseValidationErrors {
+interface PortugueseValidationErrors {
   [postId: string]: {
     [field: string]: string | undefined;
   };

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface ScoreBreakdown {
+interface ScoreBreakdown {
   visual: number;
   copy: number;
   headline_cta: number;
