@@ -33,6 +33,27 @@ export function useTasksAwaitingReview() {
     queryFn: async () => {
       if (!user || !activeCompany?.company_id) return [];
 
+      // Buscar task_ids das notificações de review do usuário
+      const { data: notifications, error: notifError } = await supabase
+        .from("user_notifications" as unknown)
+        .select("action_metadata")
+        .eq("user_id", user.id)
+        .eq("type", "task_review")
+        .eq("is_read", false);
+
+      if (notifError) throw notifError;
+      if (!notifications || notifications.length === 0) return [];
+
+      const taskIds = notifications
+        .map(
+          (n: { action_metadata: Record<string, unknown> | null }) =>
+            n.action_metadata?.task_id as string,
+        )
+        .filter(Boolean);
+
+      if (taskIds.length === 0) return [];
+
+      // Buscar dados completos das tarefas
       const { data, error } = await supabase
         .from("tasks")
         .select(
@@ -45,6 +66,7 @@ export function useTasksAwaitingReview() {
         `,
         )
         .eq("company_id", activeCompany.company_id)
+        .in("id", taskIds)
         .in("status", ["review", "waiting_approval"])
         .order("created_at", { ascending: false });
 
