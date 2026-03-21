@@ -43,7 +43,10 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useGroupOpsMembers } from "@/hooks/useGroupOpsMembers";
+import {
+  useGroupOpsMembers,
+  type JoinRequest,
+} from "@/hooks/useGroupOpsMembers";
 import { useGroupOpsGroups } from "@/hooks/useGroupOpsGroups";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +69,9 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  UserCheck,
+  UserX,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { GroupOpsMember } from "@/hooks/useGroupOpsMembers";
@@ -94,8 +100,48 @@ export default function GroupOpsMembersList() {
   const [addMembersOpen, setAddMembersOpen] = useState(false);
   const [removeCompanyOpen, setRemoveCompanyOpen] = useState(false);
 
-  const { members, isLoading, updateMember } =
-    useGroupOpsMembers(selectedGroup);
+  const {
+    members,
+    isLoading,
+    updateMember,
+    fetchJoinRequests,
+    handleJoinRequest,
+  } = useGroupOpsMembers(selectedGroup);
+
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [showRequests, setShowRequests] = useState(false);
+  const [processingJid, setProcessingJid] = useState<string | null>(null);
+
+  const loadJoinRequests = useCallback(async () => {
+    if (!selectedGroup) return;
+    setLoadingRequests(true);
+    try {
+      const requests = await fetchJoinRequests(selectedGroup);
+      setJoinRequests(requests);
+    } finally {
+      setLoadingRequests(false);
+    }
+  }, [selectedGroup, fetchJoinRequests]);
+
+  const handleApproveReject = async (
+    jid: string,
+    action: "approve" | "reject",
+  ) => {
+    if (!selectedGroup) return;
+    const phone = jid.replace("@s.whatsapp.net", "");
+    setProcessingJid(jid);
+    try {
+      await handleJoinRequest.mutateAsync({
+        groupId: selectedGroup,
+        participants: [phone],
+        action,
+      });
+      setJoinRequests((prev) => prev.filter((r) => r.jid !== jid));
+    } finally {
+      setProcessingJid(null);
+    }
+  };
 
   // Fetch client associations by phone
   const clientMatchQuery = useQuery({
@@ -338,6 +384,26 @@ export default function GroupOpsMembersList() {
             <>
               <Button
                 size="sm"
+                variant={showRequests ? "default" : "outline"}
+                className="gap-2"
+                onClick={() => {
+                  setShowRequests(!showRequests);
+                  if (!showRequests) loadJoinRequests();
+                }}
+              >
+                <Clock className="h-4 w-4" />
+                Solicitações
+                {joinRequests.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 min-w-5 px-1 text-xs bg-amber-500 text-white"
+                  >
+                    {joinRequests.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                size="sm"
                 variant="default"
                 className="gap-2"
                 onClick={() => setAddMembersOpen(true)}
@@ -425,6 +491,94 @@ export default function GroupOpsMembersList() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Join Requests Panel */}
+      {showRequests && selectedGroup && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4 text-amber-500" />
+                Solicitações Pendentes ({joinRequests.length})
+              </h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={loadJoinRequests}
+                disabled={loadingRequests}
+              >
+                {loadingRequests ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {loadingRequests ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : joinRequests.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma solicitação pendente
+              </p>
+            ) : (
+              <div className="divide-y">
+                {joinRequests.map((req) => (
+                  <div
+                    key={req.jid}
+                    className="flex items-center justify-between py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs">
+                          {(req.name || req.phone)?.[0]?.toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {req.name || formatPhone(req.phone)}
+                        </p>
+                        {req.name && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatPhone(req.phone)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="gap-1 h-8"
+                        disabled={processingJid === req.jid}
+                        onClick={() => handleApproveReject(req.jid, "approve")}
+                      >
+                        {processingJid === req.jid ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <UserCheck className="h-3.5 w-3.5" />
+                        )}
+                        Aprovar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 h-8 text-destructive hover:text-destructive"
+                        disabled={processingJid === req.jid}
+                        onClick={() => handleApproveReject(req.jid, "reject")}
+                      >
+                        <UserX className="h-3.5 w-3.5" />
+                        Rejeitar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>

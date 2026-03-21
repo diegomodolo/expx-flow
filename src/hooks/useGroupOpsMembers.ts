@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
+export interface JoinRequest {
+  jid: string;
+  phone: string;
+  name?: string;
+}
+
 export interface GroupOpsMember {
   id: string;
   group_id: string;
@@ -173,9 +179,152 @@ export function useGroupOpsMembers(groupId?: string) {
       toast.error(err.message || "Erro ao atualizar membro"),
   });
 
+  // Helper to get API config for a group
+  const getApiConfig = async (groupId: string) => {
+    const { data: group } = await supabase
+      .from("groupops_groups")
+      .select("provider_group_id, config_json")
+      .eq("id", groupId)
+      .single();
+    if (!group?.provider_group_id) throw new Error("Grupo sem JID configurado");
+
+    const instanceId = (group.config_json as Record<string, unknown>)
+      ?.instance_id as string | undefined;
+
+    // Try campaign instance, then fallback
+    let resolvedInstanceId = instanceId;
+    if (!resolvedInstanceId) {
+      const { data: campaign } = await supabase
+        .from("groupops_campaigns")
+        .select("instance_id")
+        .eq("group_id", groupId)
+        .eq("company_id", companyId!)
+        .not("instance_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      resolvedInstanceId = campaign?.instance_id;
+    }
+    if (!resolvedInstanceId) {
+      const { data: inst } = await supabase
+        .from("whatsapp_instances")
+        .select("id")
+        .eq("company_id", companyId!)
+        .eq("is_connected", true)
+        .limit(1)
+        .maybeSingle();
+      resolvedInstanceId = inst?.id;
+    }
+    if (!resolvedInstanceId)
+      throw new Error("Nenhuma instância WhatsApp conectada");
+
+    const { data: instance } = await supabase
+      .from("whatsapp_instances")
+      .select("uazapi_token")
+      .eq("id", resolvedInstanceId)
+      .single();
+    if (!instance?.uazapi_token)
+      throw new Error("Token da instância não encontrado");
+
+    const { data: config } = await supabase
+      .from("whatsapp_configs")
+      .select("uazapi_endpoint")
+      .eq("company_id", companyId!)
+      .eq("is_active", true)
+      .single();
+    if (!config?.uazapi_endpoint)
+      throw new Error("Endpoint WhatsApp não configurado");
+
+    return {
+      endpoint: config.uazapi_endpoint.replace(/\/$/, ""),
+      token: instance.uazapi_token,
+      groupJid: group.provider_group_id,
+    };
+  };
+
+  // Fetch pending join requests for a group
+  const fetchJoinRequests = async (groupId: string): Promise<JoinRequest[]> => {
+    if (!companyId) return [];
+    try {
+      const { endpoint, token, groupJid } = await getApiConfig(groupId);
+
+      const res = await fetch(`${endpoint}/group/info`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token },
+        body: JSON.stringify({
+          groupjid: groupJid,
+          getRequestsParticipants: true,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao buscar solicitações");
+
+      const info = await res.json();
+      const requests = info.request_participants;
+
+      if (!requests || !Array.isArray(requests)) return [];
+
+      return requests.map(
+        (r: { JID?: string; jid?: string; Name?: string; name?: string }) => {
+          const jid = r.JID || r.jid || "";
+          const phone = jid.replace("@s.whatsapp.net", "");
+          return { jid, phone, name: r.Name || r.name };
+        },
+      );
+    } catch (err) {
+      console.error("Error fetching join requests:", err);
+      return [];
+    }
+  };
+
+  // Approve or reject a join request
+  const handleJoinRequest = useMutation({
+    mutationFn: async ({
+      groupId,
+      participants,
+      action,
+    }: {
+      groupId: string;
+      participants: string[];
+      action: "approve" | "reject";
+    }) => {
+      const { endpoint, token, groupJid } = await getApiConfig(groupId);
+
+      const res = await fetch(`${endpoint}/group/updateParticipants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token },
+        body: JSON.stringify({
+          groupjid: groupJid,
+          action,
+          participants,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          err?.message ||
+            `Erro ao ${action === "approve" ? "aprovar" : "rejeitar"} solicitação`,
+        );
+      }
+
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["groupops-members"] });
+      toast.success(
+        variables.action === "approve"
+          ? "Solicitação aprovada com sucesso"
+          : "Solicitação rejeitada",
+      );
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   return {
     members: membersQuery.data ?? [],
     isLoading: membersQuery.isLoading,
     updateMember,
+    fetchJoinRequests,
+    handleJoinRequest,
   };
 }
