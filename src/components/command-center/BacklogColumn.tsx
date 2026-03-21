@@ -192,7 +192,7 @@ export function BacklogColumn({ tasks, getAgingHours, teamColor, onClickTask }: 
           Backlog
         </h3>
         <div className="flex items-center gap-1.5">
-          <Button
+          <Button aria-label="Filtrar backlog"
             variant={filtersOpen || activeFilterCount > 0 ? "default" : "ghost"}
             size="icon"
             className="h-6 w-6 relative"
