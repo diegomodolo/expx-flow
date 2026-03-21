@@ -63,7 +63,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       if (!companyId) return null;
       const { data, error } = await supabase
         .from("whatsapp_configs")
-        .select("*")
+        .select("id, company_id, access_token, phone_number_id, business_account_id, is_active, daily_message_limit, webhook_verify_token, api_version, is_meta_official, evolution_api_url, evolution_api_key, provider, meta_app_id, meta_app_secret, uazapi_endpoint, uazapi_token, uazapi_webhook_secret, meta_webhook_secret, created_at, updated_at")
         .eq("company_id", companyId)
         .maybeSingle();
       if (error) throw error;

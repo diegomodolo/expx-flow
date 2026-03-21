@@ -75,7 +75,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       if (!companyId) return [];
       const { data, error } = await supabase
         .from("whatsapp_instances")
-        .select("*")
+        .select("id, instance_name, instance_id, status, is_active, phone_number, profile_picture_url, webhook_url, is_connected, company_id")
         .eq("company_id", companyId)
         .eq("is_active", true)
         .order("instance_name");
@@ -290,7 +290,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
   const fetchInstanceUsers = async (instanceId: string): Promise<WhatsAppInstanceUser[]> => {
     const { data, error } = await supabase
       .from("whatsapp_instance_users")
-      .select("*")
+      .select("id, instance_id, user_id, assigned_at")
       .eq("instance_id", instanceId);
 
     if (error) throw error;

@@ -439,7 +439,8 @@ export function useLeadScoring() {
           classification_reason: result.reason,
           last_scored_at: new Date().toISOString(),
         })
-        .eq("id", leadId);
+        .eq("id", leadId)
+        .eq("company_id", activeCompany.company_id);
 
       if (error) throw error;
       return result;
@@ -499,7 +500,8 @@ export function useLeadScoring() {
                 classification_reason: result.reason,
                 last_scored_at: new Date().toISOString(),
               })
-              .eq("id", lead.id);
+              .eq("id", lead.id)
+              .eq("company_id", activeCompany.company_id);
 
             if (updateError) {
               console.error(`Error updating lead ${lead.id}:`, updateError);
