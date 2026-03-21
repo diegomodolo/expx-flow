@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 interface PlatformMetrics {
@@ -14,7 +15,7 @@ interface PlatformComparisonChartProps {
   google: PlatformMetrics;
 }
 
-export function PlatformComparisonChart({ meta, google }: PlatformComparisonChartProps) {
+export const PlatformComparisonChart = React.memo(function PlatformComparisonChart({ meta, google }: PlatformComparisonChartProps) {
   const data = [
     {
       name: 'Investimento',
@@ -134,4 +135,4 @@ export function PlatformComparisonChart({ meta, google }: PlatformComparisonChar
       </Card>
     </div>
   );
-}
+});

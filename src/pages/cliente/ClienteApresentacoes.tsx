@@ -46,7 +46,7 @@ export function ClienteApresentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaign_presentations')
-        .select('*')
+        .select('id, name, period_start, period_end, status, view_count, executive_summary, public_token')
         .eq('client_id', client.id)
         .order('created_at', { ascending: false });
 

@@ -58,7 +58,7 @@ export function InstagramAutoPostsManager({
     queryFn: async () => {
       const { data } = await supabase
         .from('instagram_accounts')
-        .select('*')
+        .select('id, username')
         .eq('id', instagramAccountId)
         .single();
       return data;
@@ -71,7 +71,7 @@ export function InstagramAutoPostsManager({
     queryFn: async () => {
       const { data } = await supabase
         .from('instagram_accounts')
-        .select('*')
+        .select('id, username')
         .eq('company_id', config!.company_id)
         .order('username');
       return data || [];

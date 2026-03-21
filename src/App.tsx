@@ -6,17 +6,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 
 // Import the real pages
-import LandingPage from "./pages/LandingPage";
-import ClipsPage from "./pages/Clips";
-import AuthPage from "./pages/AuthPage";
-import DashboardPage from "./pages/DashboardPage";
-import IAChat from "./pages/IAChat";
-import Configuracoes from "./pages/Configuracoes";
+const LandingPage = React.lazy(() => import("./pages/LandingPage"));
+const ClipsPage = React.lazy(() => import("./pages/Clips"));
+const AuthPage = React.lazy(() => import("./pages/AuthPage"));
+const DashboardPage = React.lazy(() => import("./pages/DashboardPage"));
+const IAChat = React.lazy(() => import("./pages/IAChat"));
+const Configuracoes = React.lazy(() => import("./pages/Configuracoes"));
 const ParametrosPerformancePage = React.lazy(
   () => import("./pages/ParametrosPerformancePage"),
 );
-import PlannerConfigPage from "./pages/PlannerConfigPage";
-import Perfil from "./pages/Perfil";
+const PlannerConfigPage = React.lazy(() => import("./pages/PlannerConfigPage"));
+const Perfil = React.lazy(() => import("./pages/Perfil"));
 const Clientes = React.lazy(() => import("./pages/Clientes"));
 const ClienteDetalhes = React.lazy(() => import("./pages/ClienteDetalhes"));
 const Campanhas = React.lazy(() => import("./pages/Campanhas"));
@@ -24,9 +24,9 @@ const CampanhasUnificadas = React.lazy(
   () => import("./pages/CampanhasUnificadas"),
 );
 const CampanhaDetalhes = React.lazy(() => import("./pages/CampanhaDetalhes"));
-import Colaboradores from "./pages/Colaboradores";
-import WorkSchedules from "./pages/WorkSchedules";
-import Squad from "./pages/Squad";
+const Colaboradores = React.lazy(() => import("./pages/Colaboradores"));
+const WorkSchedules = React.lazy(() => import("./pages/WorkSchedules"));
+const Squad = React.lazy(() => import("./pages/Squad"));
 const SquadDashboard = React.lazy(() => import("./pages/SquadDashboard"));
 const SquadCommandCenter = React.lazy(
   () => import("./pages/SquadCommandCenter"),
@@ -34,14 +34,14 @@ const SquadCommandCenter = React.lazy(
 const BacklogCommandCenter = React.lazy(
   () => import("./pages/BacklogCommandCenter"),
 );
-import Historias from "./pages/Historias";
+const Historias = React.lazy(() => import("./pages/Historias"));
 const AgentSquads = React.lazy(() => import("./pages/AgentSquads"));
 const AgentSquadEditor = React.lazy(() => import("./pages/AgentSquadEditor"));
 const Tarefas = React.lazy(() => import("./pages/Tarefas"));
 const TarefasAguardandoRevisao = React.lazy(
   () => import("./pages/TarefasAguardandoRevisao"),
 );
-import TarefasRecorrentes from "./pages/TarefasRecorrentes";
+const TarefasRecorrentes = React.lazy(() => import("./pages/TarefasRecorrentes"));
 const Relatorios = React.lazy(() => import("./pages/Relatorios"));
 const RelatorioExecutivo = React.lazy(
   () => import("./pages/reports/RelatorioExecutivo"),
@@ -135,9 +135,9 @@ const DashboardFabricaCriativos = React.lazy(
 const RevisaoDiariaCriativos = React.lazy(
   () => import("./pages/geradores/RevisaoDiariaCriativos"),
 );
-import ConfiguracaoFabricaCriativos from "./pages/geradores/ConfiguracaoFabricaCriativos";
-import TemasFabricaCriativos from "./pages/geradores/TemasFabricaCriativos";
-import HistoricoGeracoesCriativos from "./pages/geradores/HistoricoGeracoesCriativos";
+const ConfiguracaoFabricaCriativos = React.lazy(() => import("./pages/geradores/ConfiguracaoFabricaCriativos"));
+const TemasFabricaCriativos = React.lazy(() => import("./pages/geradores/TemasFabricaCriativos"));
+const HistoricoGeracoesCriativos = React.lazy(() => import("./pages/geradores/HistoricoGeracoesCriativos"));
 import CriativosPublicados from "./pages/geradores/CriativosPublicados";
 import FabricaCarrosseis from "./pages/geradores/FabricaCarrosseis";
 import DashboardFabricaCarrosseis from "./pages/geradores/DashboardFabricaCarrosseis";

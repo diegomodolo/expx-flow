@@ -99,7 +99,7 @@ export default function InstagramAutoPostsPage() {
 
       const { data: accounts } = await supabase
         .from('instagram_accounts')
-        .select('*')
+        .select('id, username')
         .eq('id', client.instagram_account_id);
 
       return accounts || [];
