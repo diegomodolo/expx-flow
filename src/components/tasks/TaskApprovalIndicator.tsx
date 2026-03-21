@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Hand, ClipboardCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Hand, ClipboardCheck, ExternalLink } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ export function TaskApprovalIndicator({
 }: TaskApprovalIndicatorProps) {
   const [open, setOpen] = useState(false);
   const { tasks, count } = useTasksAwaitingApproval();
+  const navigate = useNavigate();
 
   if (count === 0) return null;
 
@@ -99,6 +101,18 @@ export function TaskApprovalIndicator({
               {count} tarefa{count !== 1 ? "s" : ""} para revisar
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs gap-1 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setOpen(false);
+              navigate("/tarefas-aguardando-revisao");
+            }}
+          >
+            Ver todas
+            <ExternalLink className="h-3 w-3" />
+          </Button>
         </div>
 
         {/* List */}
