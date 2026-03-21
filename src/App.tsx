@@ -38,6 +38,9 @@ import Historias from "./pages/Historias";
 const AgentSquads = React.lazy(() => import("./pages/AgentSquads"));
 const AgentSquadEditor = React.lazy(() => import("./pages/AgentSquadEditor"));
 const Tarefas = React.lazy(() => import("./pages/Tarefas"));
+const TarefasAguardandoRevisao = React.lazy(
+  () => import("./pages/TarefasAguardandoRevisao"),
+);
 import TarefasRecorrentes from "./pages/TarefasRecorrentes";
 const Relatorios = React.lazy(() => import("./pages/Relatorios"));
 const RelatorioExecutivo = React.lazy(
@@ -562,6 +565,14 @@ const App = () => {
                       element={
                         <ProtectedRoute>
                           <Tarefas />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/tarefas-aguardando-revisao"
+                      element={
+                        <ProtectedRoute>
+                          <TarefasAguardandoRevisao />
                         </ProtectedRoute>
                       }
                     />
