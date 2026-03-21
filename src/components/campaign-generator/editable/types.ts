@@ -36,22 +36,22 @@ export interface EditableStrategy {
   dailyBudget: number;
   duration: number; // 0 means infinite/no end date
   totalBudget: number;
-  
+
   // Schedule
   startDate: Date;
   endDate: Date | null; // null means no end date (infinite)
   hasEndDate: boolean; // false means campaign runs indefinitely
   useOptimalHours: boolean;
   optimalHours: string;
-  
+
   // Bidding
   bidStrategy: 'LOWEST_COST' | 'COST_CAP' | 'BID_CAP';
   targetCPA?: number;
   targetROAS?: number;
-  
+
   // Ad Sets
   adSets: EditableAdSet[];
-  
+
   // Recommendations
   recommendations: string[];
   estimatedReach: string;

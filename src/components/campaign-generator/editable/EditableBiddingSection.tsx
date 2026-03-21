@@ -27,7 +27,7 @@ export function EditableBiddingSection({ strategy, onChange }: EditableBiddingSe
           <Label>Estratégia</Label>
           <Select
             value={strategy.bidStrategy}
-            onValueChange={(value) => onChange({ 
+            onValueChange={(value) => onChange({
               bidStrategy: value as EditableStrategy['bidStrategy'],
               // Reset targets when changing strategy
               targetCPA: value === 'COST_CAP' ? strategy.targetCPA : undefined,

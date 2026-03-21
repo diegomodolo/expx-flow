@@ -120,7 +120,7 @@ export function EditableCreativeCard({
 
     setIsGeneratingAI(true);
     try {
-      const prompt = `Crie uma imagem profissional para anúncio de mídia social. 
+      const prompt = `Crie uma imagem profissional para anúncio de mídia social.
         Título: ${creative.headline || "Sem título"}
         Texto: ${creative.body || "Sem texto"}
         Descrição: ${creative.description || "Sem descrição"}
