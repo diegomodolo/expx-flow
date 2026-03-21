@@ -72,7 +72,7 @@ export default function CommunicationDashboard() {
     const { data } = await supabase
       .from("tasks")
       .select(
-        "id, title, description, status, priority, due_date, start_date, user_id, team_id, related_client_id, related_campaign_id, progress, task_type, task_state, checklist, quadro_column_id, quadro_user_id",
+        "id, title, description, status, priority, due_date, start_date, user_id, team_id, related_client_id, related_campaign_id, progress, task_type, task_state, checklist, quadro_column_id, assigned_user_id",
       )
       .eq("id", taskId)
       .maybeSingle();

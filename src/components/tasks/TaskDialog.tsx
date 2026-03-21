@@ -306,9 +306,7 @@ export function TaskDialog({
     if (!parentTaskInfo) return;
     const { data } = await supabase
       .from("tasks")
-      .select(
-        "id, title, description, status, priority, type, client_id, responsible_id, created_at, due_date, tags, parent_id, completed_at, created_by, custom_fields, metadata",
-      )
+      .select("*")
       .eq("id", parentTaskInfo.id)
       .single();
     if (data) setViewingParentTask(data);
