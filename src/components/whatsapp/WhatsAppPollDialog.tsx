@@ -101,8 +101,7 @@ export function WhatsAppPollDialog({
                     value={option}
                     onChange={(e) => handleOptionChange(index, e.target.value)}
                   />
-                  <Button
-                    type="button"
+                  <Button aria-label="Remover opção" type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemoveOption(index)}

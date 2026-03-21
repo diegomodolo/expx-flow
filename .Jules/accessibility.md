@@ -19,3 +19,8 @@
 
 **Learning:** When addressing accessibility issues across many files for `<img/>` and `<Button size="icon">` components, it is crucial to at least ensure generic placeholders (`alt="Imagem descritiva"`, `aria-label="Ação"`) exist.
 **Action:** Enforce generic accessibility fallbacks when no explicit description can be auto-inferred. This acts as a foundation that can be manually improved over time.
+
+## 2026-03-11 - Specific ARIA labels vs. Generic labels
+
+**Learning:** While generic labels (`aria-label="Ação"`) satisfy automated AST/Regex checkers, they do not provide real value to screen reader users.
+**Action:** Always attempt to provide specific, descriptive `aria-label`s based on the component's context (e.g., "Remover opção", "Filtrar backlog") before falling back to generic ones. Generic ones should only be used as an absolute last resort during large automated migrations.
