@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,84 +41,86 @@ const monthNames = [
 
 export default function ValueStatementPublic() {
   const { token } = useParams<{ token: string }>();
-  const [data, setData] = useState<ValueStatementData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [approved, setApproved] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data, isLoading: loading, error } = useQuery({
+    queryKey: ['value_statement_public', token],
+    queryFn: async () => {
+      if (!token) throw new Error("Token inválido");
+
+      const { data: statement, error: fetchError } = await supabase
+        .from('value_statements')
+        .select(`
+          id,
+          period_month,
+          period_year,
+          total_investment,
+          total_return,
+          leads_generated,
+          conversions,
+          executive_summary,
+          next_month_plan,
+          status,
+          clients (
+            name,
+            company
+          )
+        `)
+        .eq('public_token', token)
+        .single();
+
+      if (fetchError) throw new Error("Comprovante não encontrado");
+
+      return statement as ValueStatementData;
+    },
+    enabled: !!token,
+    retry: false
+  });
+
+  const markViewedMutation = useMutation({
+    mutationFn: async (statementId: string) => {
+      const { error } = await supabase
+        .from('value_statements')
+        .update({
+          status: 'viewed',
+          viewed_at: new Date().toISOString()
+        })
+        .eq('id', statementId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['value_statement_public', token] });
+    }
+  });
 
   useEffect(() => {
-    async function fetchData() {
-      if (!token) {
-        setError("Token inválido");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data: statement, error: fetchError } = await supabase
-          .from('value_statements')
-          .select(`
-            id,
-            period_month,
-            period_year,
-            total_investment,
-            total_return,
-            leads_generated,
-            conversions,
-            executive_summary,
-            next_month_plan,
-            status,
-            clients (
-              name,
-              company
-            )
-          `)
-          .eq('public_token', token)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        setData(statement as ValueStatementData);
-        setApproved(statement.status === 'approved');
-
-        // Mark as viewed
-        if (statement.status === 'sent') {
-          await supabase
-            .from('value_statements')
-            .update({ 
-              status: 'viewed', 
-              viewed_at: new Date().toISOString() 
-            })
-            .eq('id', statement.id);
-        }
-      } catch (err) {
-        console.error('Error fetching value statement:', err);
-        setError("Comprovante não encontrado");
-      } finally {
-        setLoading(false);
-      }
+    if (data && data.status === 'sent') {
+      markViewedMutation.mutate(data.id);
     }
+  }, [data]);
 
-    fetchData();
-  }, [token]);
-
-  const handleApprove = async () => {
-    if (!data) return;
-
-    try {
-      await supabase
+  const approveMutation = useMutation({
+    mutationFn: async () => {
+      if (!data) throw new Error("Sem dados");
+      const { error } = await supabase
         .from('value_statements')
         .update({ 
           status: 'approved', 
           approved_at: new Date().toISOString() 
         })
         .eq('id', data.id);
-
-      setApproved(true);
-    } catch (err) {
-      console.error('Error approving:', err);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['value_statement_public', token] });
     }
+  });
+
+  const handleApprove = () => {
+    approveMutation.mutate();
   };
+
+  const approved = data?.status === 'approved';
 
   if (loading) {
     return (
@@ -135,7 +138,7 @@ export default function ValueStatementPublic() {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
-            <p className="text-lg font-medium text-destructive mb-2">{error || "Erro desconhecido"}</p>
+            <p className="text-lg font-medium text-destructive mb-2">{error instanceof Error ? error.message : "Erro desconhecido"}</p>
             <p className="text-muted-foreground">O comprovante solicitado não foi encontrado ou expirou.</p>
           </CardContent>
         </Card>

@@ -50,7 +50,7 @@ export default function HistoricoGeracoes() {
 
       let query = supabase
         .from('ad_generation_queue')
-        .select('*')
+        .select('id, status, generation_type, client_id, generated_at, quality_score, reviewed_at, published_at, generated_content')
         .eq('company_id', activeCompany.company_id)
         .order('generated_at', { ascending: false })
         .limit(100);

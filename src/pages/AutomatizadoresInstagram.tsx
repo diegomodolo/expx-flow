@@ -78,7 +78,7 @@ export default function AutomatizadoresInstagram() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('instagram_accounts')
-        .select('*')
+        .select('id, username')
         .eq('company_id', activeCompany?.company_id ?? '');
 
       if (error) throw error;

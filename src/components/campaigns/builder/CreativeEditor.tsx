@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,7 +56,7 @@ const CTA_OPTIONS = [
   { value: 'CALL_NOW', label: 'Ligar Agora' },
 ];
 
-export function CreativeEditor({ creative, onChange, clientId, companyId, clientName, clientAvatar }: CreativeEditorProps) {
+export const CreativeEditor = React.memo(function CreativeEditor({ creative, onChange, clientId, companyId, clientName, clientAvatar }: CreativeEditorProps) {
   const [generatingTexts, setGeneratingTexts] = useState(false);
   const [showUtmFields, setShowUtmFields] = useState(false);
   const { toast } = useToast();
@@ -388,4 +388,4 @@ export function CreativeEditor({ creative, onChange, clientId, companyId, client
       </ScrollArea>
     </div>
   );
-}
+});
