@@ -114,7 +114,7 @@ export function ProfileGoogleMeetCard() {
               ao seu Google Calendar e as transcrições ficarão vinculadas ao seu
               Drive.
             </p>
-            <Button onClick={connectGoogle} disabled={loading}>
+            <Button onClick={() => connectGoogle()} disabled={loading}>
               <Video className="h-4 w-4 mr-2" />
               Conectar minha conta Google
             </Button>

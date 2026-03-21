@@ -45,6 +45,7 @@ async function generateImage(
       systemPrompt: "",
       userPrompt: "",
       messages: [{ role: "user", content: contentArray }],
+      modalities: ["image", "text"],
     });
 
     return result.content || null;

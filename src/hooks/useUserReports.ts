@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface UserReport {
   id: string;
@@ -32,5 +33,26 @@ export function useUserReports(companyId: string | undefined) {
       return data as UserReport[];
     },
     enabled: !!companyId,
+  });
+}
+
+export function useDeleteReport(companyId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase
+        .from("user_reports")
+        .delete()
+        .eq("id", reportId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-reports", companyId] });
+      toast.success("Reporte excluído com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao excluir reporte");
+    },
   });
 }

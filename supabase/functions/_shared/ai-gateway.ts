@@ -66,6 +66,14 @@ const FUNCTION_DEFAULTS: Record<
     primary: "google/gemini-2.5-flash-image-preview",
     fallback: "google/gemini-2.5-flash-image-preview",
   },
+  "generate-creative-variations": {
+    primary: "google/gemini-2.5-flash-image-preview",
+    fallback: "google/gemini-2.5-flash-image-preview",
+  },
+  "generate-research-themes": {
+    primary: "google/gemini-2.5-flash",
+    fallback: "openai/gpt-4o-mini",
+  },
 
   // Vídeo & YouTube
   "generate-video-script": {
