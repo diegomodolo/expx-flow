@@ -52,7 +52,7 @@ export interface InstagramOption {
   username: string;
 }
 
-export interface VideoItem {
+interface VideoItem {
   id: string;
   title: string;
   description?: string;

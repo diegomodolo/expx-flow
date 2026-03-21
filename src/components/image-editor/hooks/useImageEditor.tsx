@@ -36,7 +36,7 @@ export interface AIMessage {
   timestamp: Date;
 }
 
-export interface ImageEditorState {
+interface ImageEditorState {
   images: string[];
   currentImageIndex: number;
   elements: CanvasElement[][];

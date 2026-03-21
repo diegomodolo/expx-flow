@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export interface FieldOption {
+interface FieldOption {
   value: string;
   label: string;
   type: "number" | "boolean" | "string";

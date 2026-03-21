@@ -28,7 +28,7 @@ const conditionsGroupSchema = z.object({
     .min(1, "Adicione pelo menos uma condição"),
 });
 
-export type ConditionType = z.infer<typeof conditionSchema>;
+type ConditionType = z.infer<typeof conditionSchema>;
 export type ConditionsGroup = z.infer<typeof conditionsGroupSchema>;
 
 interface ConditionEditorProps {

@@ -31,7 +31,7 @@ export interface SlideColors {
   accent: string;
 }
 
-export interface SlideRenderData {
+interface SlideRenderData {
   design: SlideDesign;
   slideOrder: number;
   totalSlides: number;
