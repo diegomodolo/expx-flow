@@ -4,15 +4,15 @@ import { useToast } from "@/hooks/use-toast";
 
 // Instance type options for categorization
 export const INSTANCE_TYPE_OPTIONS = [
-  { value: 'general', label: 'Geral' },
-  { value: 'support', label: 'Suporte' },
-  { value: 'cs', label: 'CS / Pós-venda' },
-  { value: 'commercial', label: 'Comercial' },
-  { value: 'financial', label: 'Financeiro' },
-  { value: 'administrative', label: 'Administrativo' },
+  { value: "general", label: "Geral" },
+  { value: "support", label: "Suporte" },
+  { value: "cs", label: "CS / Pós-venda" },
+  { value: "commercial", label: "Comercial" },
+  { value: "financial", label: "Financeiro" },
+  { value: "administrative", label: "Administrativo" },
 ] as const;
 
-export type InstanceType = typeof INSTANCE_TYPE_OPTIONS[number]['value'];
+export type InstanceType = (typeof INSTANCE_TYPE_OPTIONS)[number]["value"];
 
 // Provider type for WhatsApp instances
 export type WhatsAppProvider = "uazapi" | "meta" | "zapi";
@@ -44,7 +44,9 @@ export interface WhatsAppInstance {
 }
 
 // Helper to determine instance provider
-export function getInstanceProvider(instance: WhatsAppInstance): WhatsAppProvider {
+export function getInstanceProvider(
+  instance: WhatsAppInstance,
+): WhatsAppProvider {
   if (instance.meta_phone_number_id) return "meta";
   if (instance.uazapi_token) return "uazapi";
   return "uazapi"; // fallback
@@ -75,7 +77,9 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       if (!companyId) return [];
       const { data, error } = await supabase
         .from("whatsapp_instances")
-        .select("id, instance_name, instance_id, status, is_active, phone_number, profile_picture_url, webhook_url, is_connected, company_id")
+        .select(
+          "id, company_id, instance_name, session_id, is_connected, connected_phone, last_connection_test, is_active, status, profile_name, profile_pic_url, uazapi_instance_id, uazapi_token, instance_type, meta_phone_number_id, meta_access_token, created_at, updated_at",
+        )
         .eq("company_id", companyId)
         .eq("is_active", true)
         .order("instance_name");
@@ -90,13 +94,16 @@ export function useWhatsAppInstances(companyId: string | undefined) {
     queryKey: ["whatsapp-user-instances", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      
-      const { data: { user } } = await supabase.auth.getUser();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       const { data, error } = await supabase
         .from("whatsapp_instance_users")
-        .select(`
+        .select(
+          `
           *,
           whatsapp_instances!inner (
             id,
@@ -108,44 +115,56 @@ export function useWhatsAppInstances(companyId: string | undefined) {
             last_connection_test,
             is_active
           )
-        `)
+        `,
+        )
         .eq("user_id", user.id)
         .eq("whatsapp_instances.company_id", companyId)
         .eq("whatsapp_instances.is_active", true);
 
       if (error) throw error;
-      
-      return data?.map(item => ({
-        ...(item.whatsapp_instances as unknown as WhatsAppInstance),
-        can_view: item.can_view,
-        can_send: item.can_send,
-        is_default: item.is_default,
-      })) || [];
+
+      return (
+        data?.map((item) => ({
+          ...(item.whatsapp_instances as unknown as WhatsAppInstance),
+          can_view: item.can_view,
+          can_send: item.can_send,
+          is_default: item.is_default,
+        })) || []
+      );
     },
     enabled: !!companyId,
   });
 
   // Create instance mutation - now uses edge function to create on UazapiGO
   const createInstanceMutation = useMutation({
-    mutationFn: async (data: { instance_name: string; instance_type?: InstanceType }) => {
+    mutationFn: async (data: {
+      instance_name: string;
+      instance_type?: InstanceType;
+    }) => {
       if (!companyId) throw new Error("Company ID required");
 
       // Call edge function to create instance on UazapiGO
-      const { data: result, error } = await supabase.functions.invoke("create-uazapi-instance", {
-        body: {
-          company_id: companyId,
-          instance_name: data.instance_name,
-          instance_type: data.instance_type || "general",
+      const { data: result, error } = await supabase.functions.invoke(
+        "create-uazapi-instance",
+        {
+          body: {
+            company_id: companyId,
+            instance_name: data.instance_name,
+            instance_type: data.instance_type || "general",
+          },
         },
-      });
+      );
 
       if (error) throw error;
-      if (!result.success) throw new Error(result.error || "Erro ao criar instância");
-      
+      if (!result.success)
+        throw new Error(result.error || "Erro ao criar instância");
+
       return result.instance;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-instances", companyId],
+      });
       toast({ title: "Instância criada com sucesso na UazapiGO" });
     },
     onError: (error: unknown) => {
@@ -159,7 +178,10 @@ export function useWhatsAppInstances(companyId: string | undefined) {
 
   // Update instance mutation
   const updateInstanceMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<WhatsAppInstance> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...data
+    }: Partial<WhatsAppInstance> & { id: string }) => {
       const { error } = await supabase
         .from("whatsapp_instances")
         .update(data)
@@ -168,7 +190,9 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-instances", companyId],
+      });
       toast({ title: "Instância atualizada" });
     },
     onError: (error: unknown) => {
@@ -191,7 +215,9 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-instances", companyId],
+      });
       toast({ title: "Instância removida" });
     },
     onError: (error: unknown) => {
@@ -206,7 +232,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
   // Test instance connection
   const testConnectionMutation = useMutation({
     mutationFn: async (instanceId: string) => {
-      const instance = instances?.find(i => i.id === instanceId);
+      const instance = instances?.find((i) => i.id === instanceId);
       if (!instance) throw new Error("Instância não encontrada");
 
       // Get base config
@@ -216,28 +242,36 @@ export function useWhatsAppInstances(companyId: string | undefined) {
         .eq("company_id", companyId)
         .single();
 
-      if (configError || !config) throw new Error("Configuração base não encontrada");
+      if (configError || !config)
+        throw new Error("Configuração base não encontrada");
 
-      const { data, error } = await supabase.functions.invoke("test-uazapi-connection", {
-        body: {
-          endpoint: config.uazapi_endpoint,
-          token: config.uazapi_token,
-          session: instance.session_id,
-          company_id: companyId,
-          instance_id: instanceId,
+      const { data, error } = await supabase.functions.invoke(
+        "test-uazapi-connection",
+        {
+          body: {
+            endpoint: config.uazapi_endpoint,
+            token: config.uazapi_token,
+            session: instance.session_id,
+            company_id: companyId,
+            instance_id: instanceId,
+          },
         },
-      });
+      );
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
       return data;
     },
     onSuccess: (data, instanceId) => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-instances", companyId],
+      });
       if (data.is_connected) {
         toast({
           title: "Conexão estabelecida!",
-          description: data.connected_phone ? `Conectado: ${data.connected_phone}` : "WhatsApp conectado",
+          description: data.connected_phone
+            ? `Conectado: ${data.connected_phone}`
+            : "WhatsApp conectado",
         });
       } else {
         toast({
@@ -258,23 +292,35 @@ export function useWhatsAppInstances(companyId: string | undefined) {
 
   // Configure webhook for an instance
   const configureWebhookMutation = useMutation({
-    mutationFn: async ({ instanceId, receiveGroupMessages }: { instanceId: string; receiveGroupMessages: boolean }) => {
-      const { data, error } = await supabase.functions.invoke("configure-uazapi-webhook", {
-        body: { 
-          instance_id: instanceId,
-          receive_group_messages: receiveGroupMessages,
+    mutationFn: async ({
+      instanceId,
+      receiveGroupMessages,
+    }: {
+      instanceId: string;
+      receiveGroupMessages: boolean;
+    }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "configure-uazapi-webhook",
+        {
+          body: {
+            instance_id: instanceId,
+            receive_group_messages: receiveGroupMessages,
+          },
         },
-      });
+      );
 
       if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Erro ao configurar webhook");
+      if (!data.success)
+        throw new Error(data.error || "Erro ao configurar webhook");
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
-      toast({ 
-        title: "Webhook configurado!", 
-        description: `URL: ${data.webhook_url}` 
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-instances", companyId],
+      });
+      toast({
+        title: "Webhook configurado!",
+        description: `URL: ${data.webhook_url}`,
       });
     },
     onError: (error: unknown) => {
@@ -287,7 +333,9 @@ export function useWhatsAppInstances(companyId: string | undefined) {
   });
 
   // Fetch users assigned to an instance
-  const fetchInstanceUsers = async (instanceId: string): Promise<WhatsAppInstanceUser[]> => {
+  const fetchInstanceUsers = async (
+    instanceId: string,
+  ): Promise<WhatsAppInstanceUser[]> => {
     const { data, error } = await supabase
       .from("whatsapp_instance_users")
       .select("id, instance_id, user_id, assigned_at")
@@ -308,16 +356,17 @@ export function useWhatsAppInstances(companyId: string | undefined) {
       is_default?: boolean;
       is_attendant?: boolean;
     }) => {
-      const { error } = await supabase
-        .from("whatsapp_instance_users")
-        .upsert({
+      const { error } = await supabase.from("whatsapp_instance_users").upsert(
+        {
           instance_id: data.instance_id,
           user_id: data.user_id,
           can_view: data.can_view ?? true,
           can_send: data.can_send ?? true,
           is_default: data.is_default ?? false,
           is_attendant: data.is_attendant ?? false,
-        }, { onConflict: "instance_id,user_id" });
+        },
+        { onConflict: "instance_id,user_id" },
+      );
 
       if (error) throw error;
     },

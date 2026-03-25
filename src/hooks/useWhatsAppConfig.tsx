@@ -63,7 +63,9 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       if (!companyId) return null;
       const { data, error } = await supabase
         .from("whatsapp_configs")
-        .select("id, company_id, access_token, phone_number_id, business_account_id, is_active, daily_message_limit, webhook_verify_token, api_version, is_meta_official, evolution_api_url, evolution_api_key, provider, meta_app_id, meta_app_secret, uazapi_endpoint, uazapi_token, uazapi_webhook_secret, meta_webhook_secret, created_at, updated_at")
+        .select(
+          "id, company_id, instance_id, token, client_token, is_active, is_connected, connected_phone, last_connection_test, provider, uazapi_endpoint, uazapi_token, uazapi_admintoken, uazapi_session, meta_phone_number_id, meta_access_token, meta_business_account_id, meta_app_id, meta_webhook_verify_token, meta_is_connected, meta_phone_number, meta_last_connection_test, created_at, updated_at",
+        )
         .eq("company_id", companyId)
         .maybeSingle();
       if (error) throw error;
@@ -108,57 +110,68 @@ export function useWhatsAppConfig(companyId: string | undefined) {
   const saveConfigMutation = useMutation({
     mutationFn: async (configData: Partial<WhatsAppConfig>) => {
       if (!companyId) throw new Error("Company ID required");
-      
-      const { error } = await supabase
-        .from("whatsapp_configs")
-        .upsert({
+
+      const { error } = await supabase.from("whatsapp_configs").upsert(
+        {
           company_id: companyId,
           provider: "zapi",
           ...configData,
-        }, { onConflict: "company_id" });
-      
+        },
+        { onConflict: "company_id" },
+      );
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-config", companyId],
+      });
       toast({ title: "Configuração salva com sucesso" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao salvar configuração", 
+      toast({
+        title: "Erro ao salvar configuração",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
 
   // Save UazapiGO config mutation
   const saveUazapiConfigMutation = useMutation({
-    mutationFn: async (configData: { endpoint: string; token: string; admintoken: string; session: string }) => {
+    mutationFn: async (configData: {
+      endpoint: string;
+      token: string;
+      admintoken: string;
+      session: string;
+    }) => {
       if (!companyId) throw new Error("Company ID required");
-      
-      const { error } = await supabase
-        .from("whatsapp_configs")
-        .upsert({
+
+      const { error } = await supabase.from("whatsapp_configs").upsert(
+        {
           company_id: companyId,
           provider: "uazapi",
           uazapi_endpoint: configData.endpoint,
           uazapi_token: configData.token,
           uazapi_admintoken: configData.admintoken,
           uazapi_session: configData.session,
-        }, { onConflict: "company_id" });
-      
+        },
+        { onConflict: "company_id" },
+      );
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-config", companyId],
+      });
       toast({ title: "Configuração UazapiGO salva com sucesso" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao salvar configuração", 
+      toast({
+        title: "Erro ao salvar configuração",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
@@ -173,11 +186,10 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       webhook_verify_token: string;
     }) => {
       if (!companyId) throw new Error("Company ID required");
-      
+
       // Save config
-      const { error } = await supabase
-        .from("whatsapp_configs")
-        .upsert({
+      const { error } = await supabase.from("whatsapp_configs").upsert(
+        {
           company_id: companyId,
           provider: "meta",
           meta_phone_number_id: configData.phone_number_id,
@@ -185,13 +197,15 @@ export function useWhatsAppConfig(companyId: string | undefined) {
           meta_business_account_id: configData.business_account_id,
           meta_app_id: configData.app_id,
           meta_webhook_verify_token: configData.webhook_verify_token,
-        }, { onConflict: "company_id" });
-      
+        },
+        { onConflict: "company_id" },
+      );
+
       if (error) throw error;
 
       // Auto-create/update virtual instance for Meta in whatsapp_instances table
       const instanceName = `Meta Business (${configData.phone_number_id})`;
-      
+
       // Check if instance already exists for this phone_number_id
       const { data: existingInstance } = await supabase
         .from("whatsapp_instances")
@@ -199,7 +213,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         .eq("company_id", companyId)
         .eq("meta_phone_number_id", configData.phone_number_id)
         .maybeSingle();
-      
+
       if (existingInstance) {
         // Update existing
         await supabase
@@ -212,29 +226,31 @@ export function useWhatsAppConfig(companyId: string | undefined) {
           .eq("id", existingInstance.id);
       } else {
         // Create new instance
-        await supabase
-          .from("whatsapp_instances")
-          .insert({
-            company_id: companyId,
-            instance_name: instanceName,
-            session_id: `meta_${configData.phone_number_id}`,
-            meta_phone_number_id: configData.phone_number_id,
-            meta_access_token: configData.access_token,
-            is_active: true,
-            is_connected: false,
-          });
+        await supabase.from("whatsapp_instances").insert({
+          company_id: companyId,
+          instance_name: instanceName,
+          session_id: `meta_${configData.phone_number_id}`,
+          meta_phone_number_id: configData.phone_number_id,
+          meta_access_token: configData.access_token,
+          is_active: true,
+          is_connected: false,
+        });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-config", companyId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-instances", companyId],
+      });
       toast({ title: "Configuração Meta Cloud API salva com sucesso" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao salvar configuração", 
+      toast({
+        title: "Erro ao salvar configuração",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
@@ -245,21 +261,21 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       if (!config?.meta_phone_number_id || !config?.meta_access_token) {
         throw new Error("Configure o Phone Number ID e Access Token primeiro");
       }
-      
+
       // Test by calling Meta's Graph API to get phone number details
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/${config.meta_phone_number_id}?access_token=${config.meta_access_token}`
+        `https://graph.facebook.com/v18.0/${config.meta_phone_number_id}?access_token=${config.meta_access_token}`,
       );
-      
+
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(data.error.message || "Erro na API do Meta");
       }
-      
+
       const connectedPhone = data.display_phone_number || data.verified_name;
       const testTime = new Date().toISOString();
-      
+
       // Update connection status in whatsapp_configs
       await supabase
         .from("whatsapp_configs")
@@ -269,7 +285,7 @@ export function useWhatsAppConfig(companyId: string | undefined) {
           last_connection_test: testTime,
         })
         .eq("company_id", companyId);
-      
+
       // Also update the virtual instance in whatsapp_instances
       await supabase
         .from("whatsapp_instances")
@@ -281,96 +297,122 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         })
         .eq("company_id", companyId)
         .eq("meta_phone_number_id", config.meta_phone_number_id);
-      
+
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-instances", companyId] });
-      toast({ 
-        title: "Conexão estabelecida!", 
-        description: `Conectado: ${data.display_phone_number || data.verified_name}` 
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-config", companyId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-instances", companyId],
+      });
+      toast({
+        title: "Conexão estabelecida!",
+        description: `Conectado: ${data.display_phone_number || data.verified_name}`,
       });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao testar conexão", 
+      toast({
+        title: "Erro ao testar conexão",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
 
   // Test Z-API connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: async (credentials: { instance_id: string; token: string; client_token?: string }) => {
-      const { data, error } = await supabase.functions.invoke("test-whatsapp-connection", {
-        body: {
-          ...credentials,
-          company_id: companyId,
+    mutationFn: async (credentials: {
+      instance_id: string;
+      token: string;
+      client_token?: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "test-whatsapp-connection",
+        {
+          body: {
+            ...credentials,
+            company_id: companyId,
+          },
         },
-      });
+      );
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-config", companyId],
+      });
       if (data.is_connected) {
-        toast({ 
-          title: "Conexão estabelecida!", 
-          description: data.connected_phone ? `Conectado: ${data.connected_phone}` : "WhatsApp conectado" 
+        toast({
+          title: "Conexão estabelecida!",
+          description: data.connected_phone
+            ? `Conectado: ${data.connected_phone}`
+            : "WhatsApp conectado",
         });
       } else {
-        toast({ 
-          title: "WhatsApp não conectado", 
+        toast({
+          title: "WhatsApp não conectado",
           description: "Escaneie o QR Code no painel da Z-API",
-          variant: "destructive" 
+          variant: "destructive",
         });
       }
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao testar conexão", 
+      toast({
+        title: "Erro ao testar conexão",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
 
   // Test UazapiGO connection mutation
   const testUazapiConnectionMutation = useMutation({
-    mutationFn: async (credentials: { endpoint: string; token: string; session: string }) => {
-      const { data, error } = await supabase.functions.invoke("test-uazapi-connection", {
-        body: {
-          ...credentials,
-          company_id: companyId,
+    mutationFn: async (credentials: {
+      endpoint: string;
+      token: string;
+      session: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "test-uazapi-connection",
+        {
+          body: {
+            ...credentials,
+            company_id: companyId,
+          },
         },
-      });
+      );
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-config", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-config", companyId],
+      });
       if (data.is_connected) {
-        toast({ 
-          title: "Conexão estabelecida!", 
-          description: data.connected_phone ? `Conectado: ${data.connected_phone}` : "WhatsApp conectado" 
+        toast({
+          title: "Conexão estabelecida!",
+          description: data.connected_phone
+            ? `Conectado: ${data.connected_phone}`
+            : "WhatsApp conectado",
         });
       } else {
-        toast({ 
-          title: "WhatsApp não conectado", 
+        toast({
+          title: "WhatsApp não conectado",
           description: "Use o botão 'Ver QR Code' para conectar",
-          variant: "destructive" 
+          variant: "destructive",
         });
       }
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao testar conexão", 
+      toast({
+        title: "Erro ao testar conexão",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
@@ -379,75 +421,87 @@ export function useWhatsAppConfig(companyId: string | undefined) {
   const savePreferencesMutation = useMutation({
     mutationFn: async (prefsData: Partial<WhatsAppPreferences>) => {
       if (!companyId) throw new Error("Company ID required");
-      
+
       const { error } = await supabase
         .from("whatsapp_notification_preferences")
-        .upsert({
-          company_id: companyId,
-          ...prefsData,
-        }, { onConflict: "company_id" });
-      
+        .upsert(
+          {
+            company_id: companyId,
+            ...prefsData,
+          },
+          { onConflict: "company_id" },
+        );
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-preferences", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-preferences", companyId],
+      });
       toast({ title: "Preferências salvas" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao salvar preferências", 
+      toast({
+        title: "Erro ao salvar preferências",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
 
   // Add recipient mutation
   const addRecipientMutation = useMutation({
-    mutationFn: async (recipient: Omit<WhatsAppRecipient, "id" | "company_id">) => {
+    mutationFn: async (
+      recipient: Omit<WhatsAppRecipient, "id" | "company_id">,
+    ) => {
       if (!companyId) throw new Error("Company ID required");
-      
-      const { error } = await supabase
-        .from("whatsapp_recipients")
-        .insert({
-          company_id: companyId,
-          ...recipient,
-        });
-      
+
+      const { error } = await supabase.from("whatsapp_recipients").insert({
+        company_id: companyId,
+        ...recipient,
+      });
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-recipients", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-recipients", companyId],
+      });
       toast({ title: "Destinatário adicionado" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao adicionar destinatário", 
+      toast({
+        title: "Erro ao adicionar destinatário",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
 
   // Update recipient mutation
   const updateRecipientMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<WhatsAppRecipient> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...data
+    }: Partial<WhatsAppRecipient> & { id: string }) => {
       const { error } = await supabase
         .from("whatsapp_recipients")
         .update(data)
         .eq("id", id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-recipients", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-recipients", companyId],
+      });
       toast({ title: "Destinatário atualizado" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao atualizar destinatário", 
+      toast({
+        title: "Erro ao atualizar destinatário",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
@@ -459,18 +513,20 @@ export function useWhatsAppConfig(companyId: string | undefined) {
         .from("whatsapp_recipients")
         .delete()
         .eq("id", id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-recipients", companyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-recipients", companyId],
+      });
       toast({ title: "Destinatário removido" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao remover destinatário", 
+      toast({
+        title: "Erro ao remover destinatário",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
@@ -478,14 +534,18 @@ export function useWhatsAppConfig(companyId: string | undefined) {
   // Send test message mutation
   const sendTestMessageMutation = useMutation({
     mutationFn: async (phone: string) => {
-      const { data, error } = await supabase.functions.invoke("send-whatsapp-notification", {
-        body: {
-          company_id: companyId,
-          recipient_phone: phone,
-          message: "✅ *Teste de Conexão*\n\nSua integração com WhatsApp está funcionando corretamente!\n\n_Enviado pelo Expx Flow_",
-          notification_type: "test",
+      const { data, error } = await supabase.functions.invoke(
+        "send-whatsapp-notification",
+        {
+          body: {
+            company_id: companyId,
+            recipient_phone: phone,
+            message:
+              "✅ *Teste de Conexão*\n\nSua integração com WhatsApp está funcionando corretamente!\n\n_Enviado pelo Expx Flow_",
+            notification_type: "test",
+          },
         },
-      });
+      );
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
       return data;
@@ -494,10 +554,10 @@ export function useWhatsAppConfig(companyId: string | undefined) {
       toast({ title: "Mensagem de teste enviada!" });
     },
     onError: (error: unknown) => {
-      toast({ 
-        title: "Erro ao enviar mensagem", 
+      toast({
+        title: "Erro ao enviar mensagem",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive",
       });
     },
   });
