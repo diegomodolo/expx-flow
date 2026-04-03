@@ -116,8 +116,21 @@ export async function downloadAndCacheMedia({
       const errorText = await response.text();
       console.error(
         "[downloadAndCacheMedia] Download failed:",
-        response.status,
-        errorText,
+        `status=${response.status}`,
+        `statusText=${response.statusText}`,
+        `instanceId=${instanceId}`,
+        `messageId=${externalMessageId}`,
+        `response=${errorText.substring(0, 500)}`,
+      );
+      return null;
+    }
+
+    const contentType = response.headers.get("Content-Type") || "";
+    if (contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error(
+        "[downloadAndCacheMedia] Expected binary but got JSON:",
+        text.substring(0, 500),
       );
       return null;
     }

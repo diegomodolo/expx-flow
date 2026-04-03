@@ -169,11 +169,25 @@ serve(async (req) => {
         );
       }
 
+      // Normalize field name variations from UazapiGO
       const fileURL: string | null =
-        uazapiData.fileURL || uazapiData.fileUrl || null;
+        uazapiData.fileURL || uazapiData.fileUrl || uazapiData.file_url || null;
       const mimetype: string | null =
-        uazapiData.mimetype || uazapiData.mimeType || null;
-      const base64Data: string | null = uazapiData.base64Data || null;
+        uazapiData.mimetype ||
+        uazapiData.mimeType ||
+        uazapiData.mime_type ||
+        null;
+      const base64Data: string | null =
+        uazapiData.base64Data || uazapiData.base64 || uazapiData.data || null;
+
+      if (!fileURL && !base64Data) {
+        console.error(
+          "[download-whatsapp-media] UazapiGO response has no recognized media fields. Keys:",
+          Object.keys(uazapiData),
+          "Full response:",
+          JSON.stringify(uazapiData).substring(0, 1000),
+        );
+      }
 
       let bytes: Uint8Array;
       const originalContentType = mimetype || "application/octet-stream";
