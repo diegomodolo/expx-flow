@@ -56,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
       await supabase.auth.admin.createUser({
         email,
         password: tempPassword,
-        email_confirm: false, // Não confirmar automaticamente
+        email_confirm: true, // Confirmar automaticamente para permitir login por senha
         user_metadata: {
           full_name: name,
           invited_by_company: companyName,
@@ -110,6 +110,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 4. Enviar email com magic link
+    if (!resendApiKey) {
+      console.warn(
+        "RESEND_API_KEY not configured - invitation email will not be sent",
+      );
+    }
+
     if (resendApiKey) {
       try {
         const resend = new Resend(resendApiKey);
