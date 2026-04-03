@@ -1832,7 +1832,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
                     type="date"
                     value={post.scheduled_date || ""}
                     onChange={(e) =>
-                      onUpdate({ scheduled_date: e.target.value })
+                      onUpdate({ scheduled_date: e.target.value || null })
                     }
                   />
                 </div>
