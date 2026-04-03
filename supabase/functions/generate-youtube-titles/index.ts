@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { scriptId, topic, style = "mixed" } = await req.json();
+    const { scriptId, topic, style = "mixed", companyId } = await req.json();
 
     console.log("Generating titles for:", topic || "script");
 
@@ -92,6 +92,7 @@ Retorne em formato JSON:
 
     const aiResult = await callAI({
       functionName: "generate-youtube-titles",
+      companyId,
       systemPrompt:
         "Você é especialista em títulos virais para YouTube. Retorne apenas JSON válido.",
       userPrompt,

@@ -317,7 +317,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
       const { data, error } = await supabase.functions.invoke(
         "generate-youtube-titles",
         {
-          body: { scriptId, topic: script?.title, style },
+          body: { scriptId, topic: script?.title, style, companyId },
         },
       );
 
