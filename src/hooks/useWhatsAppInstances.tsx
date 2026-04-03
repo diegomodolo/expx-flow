@@ -338,7 +338,7 @@ export function useWhatsAppInstances(companyId: string | undefined) {
   ): Promise<WhatsAppInstanceUser[]> => {
     const { data, error } = await supabase
       .from("whatsapp_instance_users")
-      .select("id, instance_id, user_id, assigned_at")
+      .select("id, instance_id, user_id, created_at")
       .eq("instance_id", instanceId);
 
     if (error) throw error;
