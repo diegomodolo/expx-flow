@@ -24,7 +24,7 @@ export interface YouTubeSlide {
   updated_at: string;
 }
 
-export function useYouTubeSlides(scriptId: string | null) {
+export function useYouTubeSlides(scriptId: string | null, companyId?: string) {
   const [slides, setSlides] = useState<YouTubeSlide[]>([]);
   const [loading, setLoading] = useState(false);
   const [generatingStructure, setGeneratingStructure] = useState(false);
@@ -76,7 +76,7 @@ export function useYouTubeSlides(scriptId: string | null) {
         const { data, error } = await supabase.functions.invoke(
           "generate-presentation-slides",
           {
-            body: { scriptId, scriptContent, title, numberOfSlides },
+            body: { scriptId, scriptContent, title, numberOfSlides, companyId },
           },
         );
 

@@ -81,7 +81,7 @@ export function SlidesSection({
     deleteSlide,
     reorderSlides,
     exportToPpt,
-  } = useYouTubeSlides(scriptId);
+  } = useYouTubeSlides(scriptId, companyId);
 
   const [numberOfSlides, setNumberOfSlides] = useState(10);
   const [activeTab, setActiveTab] = useState<"carousel" | "editor">("carousel");

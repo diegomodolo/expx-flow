@@ -19,6 +19,7 @@ serve(async (req) => {
       scriptContent,
       title,
       numberOfSlides = 10,
+      companyId,
     } = await req.json();
 
     if (!scriptId || !scriptContent) {
@@ -93,8 +94,11 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       `[generate-presentation-slides] Calling AI to generate slide structure...`,
     );
 
+    const resolvedCompanyId = companyId || scriptData.company_id;
+
     const aiResult = await callAI({
       functionName: "generate-presentation-slides",
+      companyId: resolvedCompanyId,
       systemPrompt,
       userPrompt,
     });
