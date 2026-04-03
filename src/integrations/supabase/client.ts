@@ -106,6 +106,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       storageKey: "sb-ejwpfztkspbvmuwwiwmk-auth-token",
       flowType: "pkce",
+      lockAcquireTimeout: 15000,
     },
     realtime: {
       decode: safeRealtimeDecode,
