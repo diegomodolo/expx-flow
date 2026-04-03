@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { KnowledgeDocumentsManager } from "@/components/agents/KnowledgeDocumentsManager";
 import { TelegramBotConfig } from "@/components/agents/TelegramBotConfig";
@@ -87,6 +88,7 @@ export function AgentEditContent({
   } = useIAAgents();
   const { clients } = useClients();
   const { activeCompany } = useCompany();
+  const { user } = useAuth();
 
   const syncCollaboratorStatus = async (
     agentId: string,
@@ -110,7 +112,7 @@ export function AgentEditContent({
         role: "Agente IA",
         status: "active",
         start_date: new Date().toISOString().split("T")[0],
-        user_id: null,
+        user_id: user?.id,
         ia_agent_id: agentId,
       } as unknown);
       if (error) {
