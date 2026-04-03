@@ -163,18 +163,19 @@ serve(async (req) => {
     // Convert scheduledAt from local time to UTC using the timezone offset
     let scheduledAtUTC: string | null = null;
     if (scheduledAt) {
-      // scheduledAt comes as "YYYY-MM-DDTHH:mm" (local time)
-      // timezoneOffset is in minutes (e.g., 180 for UTC-3)
+      // scheduledAt comes as "YYYY-MM-DDTHH:mm" (local time from browser datetime-local input)
+      // timezoneOffset is getTimezoneOffset() in minutes: positive for zones WEST of UTC
+      // e.g. UTC-3 (Brasilia) → offset = 180
+      // Parsing "YYYY-MM-DDTHH:mm" in Deno treats it as local time, which is UTC in server context.
+      // By appending "Z" we force UTC parse, then subtract the offset to get real UTC.
       const offset = timezoneOffset || 0;
-      const localDate = new Date(scheduledAt);
-      // The browser datetime-local gives us the local time components
-      // We need to interpret it as the user's local time and convert to UTC
-      const utcDate = new Date(localDate.getTime() + offset * 60 * 1000);
+      const parsedAsUTC = new Date(scheduledAt + "Z");
+      const utcDate = new Date(parsedAsUTC.getTime() - offset * 60 * 1000);
       scheduledAtUTC = utcDate.toISOString();
       console.log(
         "Scheduled at (local):",
         scheduledAt,
-        "Offset:",
+        "Offset (min):",
         offset,
         "UTC:",
         scheduledAtUTC,
