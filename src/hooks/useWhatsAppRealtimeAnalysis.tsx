@@ -59,6 +59,7 @@ interface UseWhatsAppRealtimeAnalysisProps {
     transcription_status?: string | null;
   }>;
   enabled: boolean;
+  hasApiKey?: boolean;
   isGroupConversation?: boolean;
 }
 
@@ -68,6 +69,7 @@ export function useWhatsAppRealtimeAnalysis({
   instanceId,
   messages,
   enabled,
+  hasApiKey = true,
   isGroupConversation = false,
 }: UseWhatsAppRealtimeAnalysisProps) {
   const [analysis, setAnalysis] = useState<RealtimeAnalysis | null>(null);
@@ -301,6 +303,7 @@ export function useWhatsAppRealtimeAnalysis({
   const analyzeConversation = useCallback(
     async (latestMessages: typeof messages) => {
       if (!companyId || latestMessages.length === 0 || !conversationId) return;
+      if (!hasApiKey) return;
 
       // Skip analysis for group conversations if ignore_group_analysis is enabled
       if (isGroupConversation && (config?.ignore_group_analysis ?? true)) {

@@ -34,6 +34,7 @@ import {
   RealtimeAnalysis,
 } from "@/hooks/useWhatsAppRealtimeAnalysis";
 import { WhatsAppRealtimeAnalysisCard } from "./WhatsAppRealtimeAnalysisCard";
+import { useAIApiKey } from "@/hooks/useAIApiKey";
 
 interface WhatsAppAIAssistantProps {
   isOpen: boolean;
@@ -262,6 +263,8 @@ export function WhatsAppAIAssistant({
   const lastCustomerMessage = useRef<string | null>(null);
   const lastSavedAnalysisTimestamp = useRef<string | null>(null); // Track saved analysis to prevent duplicates
 
+  const { hasKey: hasApiKey, isLoading: isLoadingApiKey } = useAIApiKey();
+
   // If force is enabled, always keep analysis on
   const isAnalysisActive = forceRealtimeAnalysis || realtimeAnalysisEnabled;
 
@@ -278,6 +281,7 @@ export function WhatsAppAIAssistant({
     instanceId,
     messages: conversationMessages,
     enabled: isAnalysisActive,
+    hasApiKey,
     isGroupConversation,
   });
 
@@ -353,6 +357,7 @@ export function WhatsAppAIAssistant({
     }
   }, [isOpen]);
   const generateSuggestion = async (messageToRespond: string) => {
+    if (!hasApiKey) return;
     setIsGenerating(true);
 
     const systemPrompt = `Você é um assistente de atendimento ao cliente via WhatsApp. 
@@ -412,7 +417,7 @@ Responda diretamente ao que o cliente perguntou ou comentou.`;
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isGenerating) return;
+    if (!input.trim() || isGenerating || !hasApiKey) return;
 
     const userContent = input.trim();
     setInput("");
@@ -543,6 +548,31 @@ Siga as instruções do atendente para ajustar a resposta.`;
 
   if (!isOpen) return null;
 
+  if (!isLoadingApiKey && !hasApiKey) {
+    return (
+      <div className="w-full h-full border-l bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+          <AlertTriangle className="h-6 w-6 text-amber-500" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-sm mb-1">
+            Chave OpenRouter não configurada
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Para usar o Assistente IA, configure sua chave de API do OpenRouter
+            nas configurações da empresa.
+          </p>
+        </div>
+        <a
+          href="/configuracoes/ia"
+          className="text-xs text-primary underline underline-offset-2 hover:opacity-80"
+        >
+          Ir para Configurações de IA →
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full border-l bg-background flex flex-col">
       {/* Header */}
@@ -616,6 +646,7 @@ Siga as instruções do atendente para ajustar a resposta.`;
             isAnalyzing={isAnalyzing}
             error={analysisError}
             onRefresh={triggerAnalysis}
+            hasApiKey={hasApiKey}
           />
         )}
       </div>

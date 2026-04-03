@@ -17,6 +17,7 @@ interface WhatsAppRealtimeAnalysisCardProps {
   isAnalyzing: boolean;
   error: string | null;
   onRefresh: () => void;
+  hasApiKey?: boolean;
 }
 
 const temperatureConfig = {
@@ -60,7 +61,25 @@ export function WhatsAppRealtimeAnalysisCard({
   isAnalyzing,
   error,
   onRefresh,
+  hasApiKey = true,
 }: WhatsAppRealtimeAnalysisCardProps) {
+  if (!hasApiKey) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        <span>
+          Chave OpenRouter não configurada.{" "}
+          <a
+            href="/configuracoes/ia"
+            className="underline underline-offset-2 hover:opacity-80"
+          >
+            Configurar
+          </a>
+        </span>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="flex items-center justify-between gap-2 text-sm">
