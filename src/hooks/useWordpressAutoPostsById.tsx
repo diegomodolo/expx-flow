@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 export interface WordpressAutoPostConfig {
   id: string;
@@ -52,20 +53,26 @@ export interface WordpressAutoPost {
 export function useWordpressAutoPostConfigById(configId: string) {
   const queryClient = useQueryClient();
 
-  const { data: config, isLoading, error } = useQuery({
-    queryKey: ['wordpress-auto-post-config', configId],
+  const {
+    data: config,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["wordpress-auto-post-config", configId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('wordpress_auto_post_configs')
-        .select(`
+        .from("wordpress_auto_post_configs")
+        .select(
+          `
           *,
           wordpress_sites (
             id,
             name,
             site_url
           )
-        `)
-        .eq('id', configId)
+        `,
+        )
+        .eq("id", configId)
         .single();
 
       if (error) throw error;
@@ -77,9 +84,9 @@ export function useWordpressAutoPostConfigById(configId: string) {
   const updateConfigMutation = useMutation({
     mutationFn: async (updates: Partial<WordpressAutoPostConfig>) => {
       const { data, error } = await supabase
-        .from('wordpress_auto_post_configs')
+        .from("wordpress_auto_post_configs")
         .update(updates)
-        .eq('id', configId)
+        .eq("id", configId)
         .select()
         .single();
 
@@ -87,31 +94,35 @@ export function useWordpressAutoPostConfigById(configId: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-post-config', configId] });
-      toast.success('Configuração atualizada!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-post-config", configId],
+      });
+      toast.success("Configuração atualizada!");
     },
     onError: (error: unknown) => {
-      console.error('Error updating config:', error);
-      toast.error('Erro ao atualizar configuração');
+      console.error("Error updating config:", error);
+      toast.error("Erro ao atualizar configuração");
     },
   });
 
   const deleteConfigMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from('wordpress_auto_post_configs')
+        .from("wordpress_auto_post_configs")
         .delete()
-        .eq('id', configId);
+        .eq("id", configId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-post-configs'] });
-      toast.success('Automação excluída!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-post-configs"],
+      });
+      toast.success("Automação excluída!");
     },
     onError: (error: unknown) => {
-      console.error('Error deleting config:', error);
-      toast.error('Erro ao excluir automação');
+      console.error("Error deleting config:", error);
+      toast.error("Erro ao excluir automação");
     },
   });
 
@@ -129,14 +140,18 @@ export function useWordpressAutoPostConfigById(configId: string) {
 export function useWordpressAutoPostsByConfigId(configId: string) {
   const queryClient = useQueryClient();
 
-  const { data: posts, isLoading, error } = useQuery({
-    queryKey: ['wordpress-auto-posts', configId],
+  const {
+    data: posts,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["wordpress-auto-posts", configId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('wordpress_auto_posts')
-        .select('*')
-        .eq('config_id', configId)
-        .order('scheduled_at', { ascending: true });
+        .from("wordpress_auto_posts")
+        .select("*")
+        .eq("config_id", configId)
+        .order("scheduled_at", { ascending: true });
 
       if (error) throw error;
       return data as WordpressAutoPost[];
@@ -144,108 +159,138 @@ export function useWordpressAutoPostsByConfigId(configId: string) {
     enabled: !!configId,
   });
 
-  const pendingPosts = posts?.filter(p => p.status === 'pending' || p.status === 'publishing') || [];
-  const publishedPosts = posts?.filter(p => p.status === 'published')
-    .sort((a, b) => new Date(b.published_at || b.created_at).getTime() - new Date(a.published_at || a.created_at).getTime()) || [];
+  const pendingPosts =
+    posts?.filter((p) => p.status === "pending" || p.status === "publishing") ||
+    [];
+  const publishedPosts =
+    posts
+      ?.filter((p) => p.status === "published")
+      .sort(
+        (a, b) =>
+          new Date(b.published_at || b.created_at).getTime() -
+          new Date(a.published_at || a.created_at).getTime(),
+      ) || [];
   const nextPost = pendingPosts[0] || null;
 
   const regeneratePostMutation = useMutation({
     mutationFn: async (postId: string) => {
       // Get post data first
       const { data: postData } = await supabase
-        .from('wordpress_auto_posts')
-        .select('config_id, client_id, company_id')
-        .eq('id', postId)
+        .from("wordpress_auto_posts")
+        .select("config_id, client_id, company_id")
+        .eq("id", postId)
         .single();
 
-      if (!postData) throw new Error('Post not found');
+      if (!postData) throw new Error("Post not found");
 
       // Delete the post
       const { error: deleteError } = await supabase
-        .from('wordpress_auto_posts')
+        .from("wordpress_auto_posts")
         .delete()
-        .eq('id', postId);
+        .eq("id", postId);
 
       if (deleteError) throw deleteError;
 
       // Generate new post
-      const { data, error } = await supabase.functions.invoke('generate-wordpress-auto-post', {
-        body: {
-          configId: postData.config_id,
-          clientId: postData.client_id,
-          companyId: postData.company_id,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-wordpress-auto-post",
+        {
+          body: {
+            configId: postData.config_id,
+            clientId: postData.client_id,
+            companyId: postData.company_id,
+          },
         },
-      });
+      );
 
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
-      toast.success('Post regenerado com sucesso!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-posts", configId],
+      });
+      toast.success("Post regenerado com sucesso!");
     },
     onError: (error: unknown) => {
-      console.error('Error regenerating post:', error);
-      toast.error('Erro ao regenerar post');
+      console.error("Error regenerating post:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao regenerar post");
+      }
     },
   });
 
   const generateNextPostMutation = useMutation({
     mutationFn: async () => {
       const { data: config } = await supabase
-        .from('wordpress_auto_post_configs')
-        .select('id, client_id, company_id')
-        .eq('id', configId)
+        .from("wordpress_auto_post_configs")
+        .select("id, client_id, company_id")
+        .eq("id", configId)
         .single();
 
-      if (!config) throw new Error('Config not found');
+      if (!config) throw new Error("Config not found");
 
-      const { data, error } = await supabase.functions.invoke('generate-wordpress-auto-post', {
-        body: {
-          configId: config.id,
-          clientId: config.client_id,
-          companyId: config.company_id,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-wordpress-auto-post",
+        {
+          body: {
+            configId: config.id,
+            clientId: config.client_id,
+            companyId: config.company_id,
+          },
         },
-      });
+      );
 
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
-      toast.success('Novo post gerado!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-posts", configId],
+      });
+      toast.success("Novo post gerado!");
     },
     onError: (error: unknown) => {
-      console.error('Error generating post:', error);
-      toast.error('Erro ao gerar post');
+      console.error("Error generating post:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao gerar post");
+      }
     },
   });
 
   const deletePostMutation = useMutation({
     mutationFn: async (postId: string) => {
       const { error } = await supabase
-        .from('wordpress_auto_posts')
+        .from("wordpress_auto_posts")
         .delete()
-        .eq('id', postId);
+        .eq("id", postId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
-      toast.success('Post excluído!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-posts", configId],
+      });
+      toast.success("Post excluído!");
     },
     onError: (error: unknown) => {
-      console.error('Error deleting post:', error);
-      toast.error('Erro ao excluir post');
+      console.error("Error deleting post:", error);
+      toast.error("Erro ao excluir post");
     },
   });
 
   const updatePostMutation = useMutation({
-    mutationFn: async ({ postId, updates }: { postId: string; updates: Partial<WordpressAutoPost> }) => {
+    mutationFn: async ({
+      postId,
+      updates,
+    }: {
+      postId: string;
+      updates: Partial<WordpressAutoPost>;
+    }) => {
       const { data, error } = await supabase
-        .from('wordpress_auto_posts')
+        .from("wordpress_auto_posts")
         .update(updates)
-        .eq('id', postId)
+        .eq("id", postId)
         .select()
         .single();
 
@@ -253,34 +298,43 @@ export function useWordpressAutoPostsByConfigId(configId: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
-      toast.success('Post atualizado!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-posts", configId],
+      });
+      toast.success("Post atualizado!");
     },
     onError: (error: unknown) => {
-      console.error('Error updating post:', error);
-      toast.error('Erro ao atualizar post');
+      console.error("Error updating post:", error);
+      toast.error("Erro ao atualizar post");
     },
   });
 
   const publishNowMutation = useMutation({
     mutationFn: async (postId: string) => {
-      const { data, error } = await supabase.functions.invoke('publish-wordpress-auto-post', {
-        body: { postId },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "publish-wordpress-auto-post",
+        {
+          body: { postId },
+        },
+      );
 
       if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['wordpress-auto-posts', configId] });
-      toast.success('Post publicado com sucesso!');
+      queryClient.invalidateQueries({
+        queryKey: ["wordpress-auto-posts", configId],
+      });
+      toast.success("Post publicado com sucesso!");
       if (data?.wordpressPostUrl) {
-        window.open(data.wordpressPostUrl, '_blank');
+        window.open(data.wordpressPostUrl, "_blank");
       }
     },
     onError: (error: unknown) => {
-      console.error('Error publishing post:', error);
-      toast.error('Erro ao publicar post');
+      console.error("Error publishing post:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao publicar post");
+      }
     },
   });
 

@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompany } from '@/contexts/CompanyContext';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
+import { toast } from "sonner";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 export interface AdWinner {
   id: string;
@@ -44,18 +45,23 @@ export function useAdWinners(clientId: string | null) {
   const queryClient = useQueryClient();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const { data: winners, isLoading, error, refetch } = useQuery({
-    queryKey: ['ad-winners', clientId, activeCompany?.company_id],
+  const {
+    data: winners,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["ad-winners", clientId, activeCompany?.company_id],
     queryFn: async () => {
       if (!clientId || !activeCompany?.company_id) return [];
-      
+
       const { data, error } = await supabase
-        .from('ad_performance_winners')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('company_id', activeCompany.company_id)
-        .eq('is_winner', true)
-        .order('conversions', { ascending: false });
+        .from("ad_performance_winners")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany.company_id)
+        .eq("is_winner", true)
+        .order("conversions", { ascending: false });
 
       if (error) throw error;
       return data as AdWinner[];
@@ -63,37 +69,46 @@ export function useAdWinners(clientId: string | null) {
     enabled: !!clientId && !!activeCompany?.company_id,
   });
 
-  const analyzeWinners = async (criteria?: Partial<{
-    min_spend: number;
-    min_days: number;
-    min_conversions: number;
-    cpa_threshold_percentile: number;
-    ctr_threshold_percentile: number;
-  }>): Promise<WinnerAnalysisResult | null> => {
+  const analyzeWinners = async (
+    criteria?: Partial<{
+      min_spend: number;
+      min_days: number;
+      min_conversions: number;
+      cpa_threshold_percentile: number;
+      ctr_threshold_percentile: number;
+    }>,
+  ): Promise<WinnerAnalysisResult | null> => {
     if (!clientId || !activeCompany?.company_id) {
-      toast.error('Selecione um cliente primeiro');
+      toast.error("Selecione um cliente primeiro");
       return null;
     }
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-ad-winners', {
-        body: {
-          client_id: clientId,
-          company_id: activeCompany.company_id,
-          criteria,
+      const { data, error } = await supabase.functions.invoke(
+        "analyze-ad-winners",
+        {
+          body: {
+            client_id: clientId,
+            company_id: activeCompany.company_id,
+            criteria,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
-      toast.success(`Análise concluída: ${data.winners?.length || 0} vencedores identificados`);
-      queryClient.invalidateQueries({ queryKey: ['ad-winners', clientId] });
-      
+      toast.success(
+        `Análise concluída: ${data.winners?.length || 0} vencedores identificados`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["ad-winners", clientId] });
+
       return data as WinnerAnalysisResult;
     } catch (error: unknown) {
-      console.error('Error analyzing winners:', error);
-      toast.error('Erro ao analisar vencedores: ' + error.message);
+      console.error("Error analyzing winners:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao analisar vencedores: " + (error as Error).message);
+      }
       return null;
     } finally {
       setIsAnalyzing(false);
@@ -104,45 +119,56 @@ export function useAdWinners(clientId: string | null) {
 
   const createIteration = async (winnerId: string): Promise<boolean> => {
     if (!clientId || !activeCompany?.company_id) {
-      toast.error('Selecione um cliente primeiro');
+      toast.error("Selecione um cliente primeiro");
       return false;
     }
 
-    const winner = winners?.find(w => w.id === winnerId);
+    const winner = winners?.find((w) => w.id === winnerId);
     if (!winner) {
-      toast.error('Anúncio vencedor não encontrado');
+      toast.error("Anúncio vencedor não encontrado");
       return false;
     }
 
     setIsCreatingIteration(true);
     try {
       // Get user_id from session
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user?.id) {
-        toast.error('Sessão expirada');
+        toast.error("Sessão expirada");
         return false;
       }
 
-      const { data, error } = await supabase.functions.invoke('daily-ad-generator', {
-        body: {
-          client_id: clientId,
-          company_id: activeCompany.company_id,
-          user_id: session.user.id,
-          generation_type: 'iteration',
-          count: 1,
-          source_winner_id: winnerId,
+      const { data, error } = await supabase.functions.invoke(
+        "daily-ad-generator",
+        {
+          body: {
+            client_id: clientId,
+            company_id: activeCompany.company_id,
+            user_id: session.user.id,
+            generation_type: "iteration",
+            count: 1,
+            source_winner_id: winnerId,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
-      toast.success('Iteração criada com sucesso! Verifique a fila de revisão.');
-      queryClient.invalidateQueries({ queryKey: ['ad-generation-queue', clientId] });
-      
+      toast.success(
+        "Iteração criada com sucesso! Verifique a fila de revisão.",
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["ad-generation-queue", clientId],
+      });
+
       return true;
     } catch (error: unknown) {
-      console.error('Error creating iteration:', error);
-      toast.error('Erro ao criar iteração: ' + error.message);
+      console.error("Error creating iteration:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao criar iteração: " + (error as Error).message);
+      }
       return false;
     } finally {
       setIsCreatingIteration(false);

@@ -1,10 +1,18 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { Loader2, Sparkles, TrendingUp, AlertCircle } from "lucide-react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useMarketResearchInsights } from "@/hooks/useMarketResearchInsights";
@@ -25,18 +33,18 @@ interface GerarTemasIADialogProps {
   onThemesAdded: () => void;
 }
 
-export function GerarTemasIADialog({ 
-  open, 
-  onOpenChange, 
-  clientId, 
-  onThemesAdded 
+export function GerarTemasIADialog({
+  open,
+  onOpenChange,
+  clientId,
+  onThemesAdded,
 }: GerarTemasIADialogProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [themes, setThemes] = useState<GeneratedTheme[]>([]);
   const [selectedThemes, setSelectedThemes] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  
+
   const { toast } = useToast();
   const { activeCompany } = useCompany();
   const { createInsight } = useMarketResearchInsights(clientId);
@@ -57,22 +65,29 @@ export function GerarTemasIADialog({
     setSelectedThemes(new Set());
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('generate-research-themes', {
-        body: { clientId, companyId: activeCompany.company_id }
-      });
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "generate-research-themes",
+        {
+          body: { clientId, companyId: activeCompany.company_id },
+        },
+      );
 
       if (fnError) throw fnError;
 
       if (data.success && data.themes) {
         setThemes(data.themes);
         // Select all by default
-        setSelectedThemes(new Set(data.themes.map((_: GeneratedTheme, i: number) => i)));
+        setSelectedThemes(
+          new Set(data.themes.map((_: GeneratedTheme, i: number) => i)),
+        );
       } else {
         setError(data.error || "Erro ao gerar temas");
       }
     } catch (err) {
       console.error("Error generating themes:", err);
-      setError("Erro ao comunicar com a IA. Tente novamente.");
+      if (!handleNoApiKeyError(err)) {
+        setError("Erro ao comunicar com a IA. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }
@@ -110,7 +125,7 @@ export function GerarTemasIADialog({
 
     try {
       const selectedThemesList = themes.filter((_, i) => selectedThemes.has(i));
-      
+
       for (const theme of selectedThemesList) {
         await createInsight({
           topic: theme.topic,
@@ -118,7 +133,7 @@ export function GerarTemasIADialog({
           opportunity: theme.opportunity,
           sentiment: theme.sentiment,
           relevance_score: theme.relevance_score,
-          source_type: 'research',
+          source_type: "research",
         });
       }
 
@@ -154,17 +169,23 @@ export function GerarTemasIADialog({
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
-      case 'positive': return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'negative': return 'bg-red-500/10 text-red-600 border-red-500/20';
-      default: return 'bg-muted text-muted-foreground';
+      case "positive":
+        return "bg-green-500/10 text-green-600 border-green-500/20";
+      case "negative":
+        return "bg-red-500/10 text-red-600 border-red-500/20";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getSentimentLabel = (sentiment: string) => {
     switch (sentiment) {
-      case 'positive': return 'Positivo';
-      case 'negative': return 'Negativo';
-      default: return 'Neutro';
+      case "positive":
+        return "Positivo";
+      case "negative":
+        return "Negativo";
+      default:
+        return "Neutro";
     }
   };
 
@@ -177,7 +198,8 @@ export function GerarTemasIADialog({
             Gerar Temas com IA
           </DialogTitle>
           <DialogDescription>
-            A IA irá analisar o briefing do cliente e sugerir temas de pesquisa relevantes para criar anúncios.
+            A IA irá analisar o briefing do cliente e sugerir temas de pesquisa
+            relevantes para criar anúncios.
           </DialogDescription>
         </DialogHeader>
 
@@ -186,7 +208,8 @@ export function GerarTemasIADialog({
             <div className="flex flex-col items-center justify-center py-12">
               <Sparkles className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground text-center mb-6">
-                Clique no botão abaixo para gerar temas de pesquisa baseados no briefing do cliente.
+                Clique no botão abaixo para gerar temas de pesquisa baseados no
+                briefing do cliente.
               </p>
               <Button onClick={generateThemes} className="gap-2">
                 <Sparkles className="h-4 w-4" />
@@ -198,8 +221,12 @@ export function GerarTemasIADialog({
           {loading && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Analisando briefing e gerando temas...</p>
-              <p className="text-xs text-muted-foreground mt-2">Isso pode levar alguns segundos</p>
+              <p className="text-muted-foreground">
+                Analisando briefing e gerando temas...
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Isso pode levar alguns segundos
+              </p>
             </div>
           )}
 
@@ -235,9 +262,9 @@ export function GerarTemasIADialog({
                     key={index}
                     className={cn(
                       "border rounded-lg p-4 cursor-pointer transition-all",
-                      selectedThemes.has(index) 
-                        ? "border-primary bg-primary/5" 
-                        : "hover:border-muted-foreground/30"
+                      selectedThemes.has(index)
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-muted-foreground/30",
                     )}
                     onClick={() => toggleTheme(index)}
                   >
@@ -250,7 +277,10 @@ export function GerarTemasIADialog({
                         <div className="flex items-start justify-between gap-2">
                           <h4 className="font-medium">{theme.topic}</h4>
                           <div className="flex items-center gap-2 shrink-0">
-                            <Badge variant="outline" className={getSentimentColor(theme.sentiment)}>
+                            <Badge
+                              variant="outline"
+                              className={getSentimentColor(theme.sentiment)}
+                            >
                               {getSentimentLabel(theme.sentiment)}
                             </Badge>
                             <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -259,16 +289,22 @@ export function GerarTemasIADialog({
                             </div>
                           </div>
                         </div>
-                        
+
                         {theme.pain_point && (
                           <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">Dor:</span> {theme.pain_point}
+                            <span className="font-medium text-foreground">
+                              Dor:
+                            </span>{" "}
+                            {theme.pain_point}
                           </p>
                         )}
-                        
+
                         {theme.opportunity && (
                           <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">Oportunidade:</span> {theme.opportunity}
+                            <span className="font-medium text-foreground">
+                              Oportunidade:
+                            </span>{" "}
+                            {theme.opportunity}
                           </p>
                         )}
                       </div>
@@ -281,12 +317,16 @@ export function GerarTemasIADialog({
         </div>
 
         <DialogFooter className="border-t pt-4">
-          <Button variant="outline" onClick={handleClose} disabled={loading || saving}>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={loading || saving}
+          >
             Cancelar
           </Button>
           {themes.length > 0 && (
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               disabled={selectedThemes.size === 0 || saving}
               className="gap-2"
             >

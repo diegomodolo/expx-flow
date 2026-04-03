@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import {
   Dialog,
   DialogContent,
@@ -6,20 +7,20 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Sparkles, Loader2, Check, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+} from "@/components/ui/select";
+import { Sparkles, Loader2, Check, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GenerateElementModalProps {
   companyId: string;
@@ -28,11 +29,11 @@ interface GenerateElementModalProps {
 }
 
 const CATEGORIES = [
-  { value: 'dispositivos', label: 'Dispositivos' },
-  { value: 'icones', label: 'Ícones' },
-  { value: 'objetos', label: 'Objetos' },
-  { value: 'decorativos', label: 'Decorativos' },
-  { value: 'custom', label: 'Personalizado' },
+  { value: "dispositivos", label: "Dispositivos" },
+  { value: "icones", label: "Ícones" },
+  { value: "objetos", label: "Objetos" },
+  { value: "decorativos", label: "Decorativos" },
+  { value: "custom", label: "Personalizado" },
 ];
 
 export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
@@ -40,9 +41,9 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
   onClose,
   onElementGenerated,
 }) => {
-  const [prompt, setPrompt] = useState('');
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('custom');
+  const [prompt, setPrompt] = useState("");
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("custom");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
   const [generatedElement, setGeneratedElement] = useState<unknown>(null);
@@ -50,11 +51,11 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setError('Por favor, descreva o elemento que deseja gerar.');
+      setError("Por favor, descreva o elemento que deseja gerar.");
       return;
     }
     if (!name.trim()) {
-      setError('Por favor, dê um nome para o elemento.');
+      setError("Por favor, dê um nome para o elemento.");
       return;
     }
 
@@ -62,17 +63,20 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('generate-element', {
-        body: {
-          prompt: prompt.trim(),
-          companyId,
-          name: name.trim(),
-          category,
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "generate-element",
+        {
+          body: {
+            prompt: prompt.trim(),
+            companyId,
+            name: name.trim(),
+            category,
+          },
         },
-      });
+      );
 
       if (fnError) {
-        throw new Error(fnError.message || 'Erro ao gerar elemento');
+        throw new Error(fnError.message || "Erro ao gerar elemento");
       }
 
       if (data?.error) {
@@ -83,11 +87,13 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
         setGeneratedPreview(data.imageUrl);
         setGeneratedElement(data.element);
       } else {
-        throw new Error('Resposta inválida do servidor');
+        throw new Error("Resposta inválida do servidor");
       }
     } catch (err) {
-      console.error('Generate error:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao gerar elemento');
+      console.error("Generate error:", err);
+      if (!handleNoApiKeyError(err)) {
+        setError(err instanceof Error ? err.message : "Erro ao gerar elemento");
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -102,8 +108,8 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
   const handleReset = () => {
     setGeneratedPreview(null);
     setGeneratedElement(null);
-    setPrompt('');
-    setName('');
+    setPrompt("");
+    setName("");
     setError(null);
   };
 
@@ -116,7 +122,8 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
             Gerar Elemento com IA
           </DialogTitle>
           <DialogDescription>
-            Descreva o elemento que você quer criar. A IA irá gerar uma imagem isolada com fundo transparente.
+            Descreva o elemento que você quer criar. A IA irá gerar uma imagem
+            isolada com fundo transparente.
           </DialogDescription>
         </DialogHeader>
 
@@ -147,7 +154,11 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="category">Categoria</Label>
-              <Select value={category} onValueChange={setCategory} disabled={isGenerating}>
+              <Select
+                value={category}
+                onValueChange={setCategory}
+                disabled={isGenerating}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -187,7 +198,11 @@ export const GenerateElementModal: React.FC<GenerateElementModalProps> = ({
         <DialogFooter className="gap-2 sm:gap-0">
           {!generatedPreview ? (
             <>
-              <Button variant="outline" onClick={onClose} disabled={isGenerating}>
+              <Button
+                variant="outline"
+                onClick={onClose}
+                disabled={isGenerating}
+              >
                 Cancelar
               </Button>
               <Button onClick={handleGenerate} disabled={isGenerating}>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 export interface VideoGenerationState {
   creativeId: string | null;
@@ -66,7 +67,11 @@ export function useVideoGeneration() {
   }, []);
 
   const startPolling = useCallback(
-    (operationName: string, creativeId: string, estimatedTimeSeconds: number) => {
+    (
+      operationName: string,
+      creativeId: string,
+      estimatedTimeSeconds: number,
+    ) => {
       if (pollingRef.current) clearInterval(pollingRef.current);
 
       const pollInterval = 10_000; // 10s
@@ -79,14 +84,20 @@ export function useVideoGeneration() {
         // Progresso estimado (só UX)
         const elapsed = Date.now() - (startTimeRef.current || Date.now());
         const estimatedMs = Math.max(5, estimatedTimeSeconds) * 1000;
-        const progress = Math.min(95, Math.round((elapsed / estimatedMs) * 100));
+        const progress = Math.min(
+          95,
+          Math.round((elapsed / estimatedMs) * 100),
+        );
         setState((prev) => ({ ...prev, progress }));
 
         try {
-          const { data, error } = await supabase.functions.invoke("generate-video-creative", {
-            method: "POST",
-            body: { operationName, creativeId },
-          });
+          const { data, error } = await supabase.functions.invoke(
+            "generate-video-creative",
+            {
+              method: "POST",
+              body: { operationName, creativeId },
+            },
+          );
 
           if (error) throw error;
 
@@ -165,13 +176,17 @@ export function useVideoGeneration() {
       startTimeRef.current = Date.now();
 
       try {
-        const { data, error } = await supabase.functions.invoke("generate-video-creative", {
-          method: "POST",
-          body: params,
-        });
+        const { data, error } = await supabase.functions.invoke(
+          "generate-video-creative",
+          {
+            method: "POST",
+            body: params,
+          },
+        );
 
         if (error) throw error;
-        if (!data?.success) throw new Error(data?.error || "Failed to start video generation");
+        if (!data?.success)
+          throw new Error(data?.error || "Failed to start video generation");
 
         const estimatedTime = data.estimatedTime || 60;
 
@@ -196,14 +211,16 @@ export function useVideoGeneration() {
         setState((prev) => ({
           ...prev,
           status: "error",
-          error: error?.message || "Erro ao iniciar geração",
+          error: (error as Error)?.message || "Erro ao iniciar geração",
         }));
 
-        toast({
-          title: "Erro na geração",
-          description: error?.message,
-          variant: "destructive",
-        });
+        if (!handleNoApiKeyError(error)) {
+          toast({
+            title: "Erro na geração",
+            description: (error as Error)?.message,
+            variant: "destructive",
+          });
+        }
 
         throw error;
       }

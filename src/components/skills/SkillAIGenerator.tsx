@@ -5,9 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import type { Skill } from "@/hooks/useSkills";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 
 interface Props {
@@ -26,9 +33,12 @@ export function SkillAIGenerator({ onGenerate }: Props) {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-skill-ai", {
-        body: { prompt: prompt.trim() },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "generate-skill-ai",
+        {
+          body: { prompt: prompt.trim() },
+        },
+      );
       if (error) throw error;
       if (!data?.success || !data?.skill) {
         throw new Error(data?.error || "Erro ao gerar skill");
@@ -54,7 +64,9 @@ export function SkillAIGenerator({ onGenerate }: Props) {
       setOpen(false);
       setPrompt("");
     } catch (err: unknown) {
-      toast.error("Erro: " + err.message);
+      if (!handleNoApiKeyError(err)) {
+        toast.error("Erro: " + (err as Error).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -82,7 +94,8 @@ export function SkillAIGenerator({ onGenerate }: Props) {
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            A IA vai gerar o ID, nome, descrição, parâmetros, system prompt e o código da Edge Function automaticamente.
+            A IA vai gerar o ID, nome, descrição, parâmetros, system prompt e o
+            código da Edge Function automaticamente.
           </p>
         </div>
         <DialogFooter>
@@ -90,7 +103,11 @@ export function SkillAIGenerator({ onGenerate }: Props) {
             <Button variant="outline">Cancelar</Button>
           </DialogClose>
           <Button onClick={handleGenerate} disabled={loading || !prompt.trim()}>
-            {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            {loading ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-1" />
+            )}
             {loading ? "Gerando..." : "Gerar Skill"}
           </Button>
         </DialogFooter>

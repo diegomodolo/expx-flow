@@ -7,7 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Collapsible,
   CollapsibleContent,
@@ -29,6 +35,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 interface CreativeEditorProps {
   creative: CreativeData;
@@ -40,47 +47,66 @@ interface CreativeEditorProps {
 }
 
 const CTA_OPTIONS = [
-  { value: 'LEARN_MORE', label: 'Saiba Mais' },
-  { value: 'SHOP_NOW', label: 'Comprar Agora' },
-  { value: 'SIGN_UP', label: 'Cadastre-se' },
-  { value: 'SUBSCRIBE', label: 'Inscrever-se' },
-  { value: 'CONTACT_US', label: 'Fale Conosco' },
-  { value: 'GET_QUOTE', label: 'Pedir Orçamento' },
-  { value: 'BOOK_NOW', label: 'Reservar Agora' },
-  { value: 'DOWNLOAD', label: 'Baixar' },
-  { value: 'APPLY_NOW', label: 'Candidatar-se' },
-  { value: 'GET_OFFER', label: 'Obter Oferta' },
-  { value: 'WATCH_MORE', label: 'Assistir Mais' },
-  { value: 'SEND_MESSAGE', label: 'Enviar Mensagem' },
-  { value: 'WHATSAPP_MESSAGE', label: 'WhatsApp' },
-  { value: 'CALL_NOW', label: 'Ligar Agora' },
+  { value: "LEARN_MORE", label: "Saiba Mais" },
+  { value: "SHOP_NOW", label: "Comprar Agora" },
+  { value: "SIGN_UP", label: "Cadastre-se" },
+  { value: "SUBSCRIBE", label: "Inscrever-se" },
+  { value: "CONTACT_US", label: "Fale Conosco" },
+  { value: "GET_QUOTE", label: "Pedir Orçamento" },
+  { value: "BOOK_NOW", label: "Reservar Agora" },
+  { value: "DOWNLOAD", label: "Baixar" },
+  { value: "APPLY_NOW", label: "Candidatar-se" },
+  { value: "GET_OFFER", label: "Obter Oferta" },
+  { value: "WATCH_MORE", label: "Assistir Mais" },
+  { value: "SEND_MESSAGE", label: "Enviar Mensagem" },
+  { value: "WHATSAPP_MESSAGE", label: "WhatsApp" },
+  { value: "CALL_NOW", label: "Ligar Agora" },
 ];
 
-export const CreativeEditor = React.memo(function CreativeEditor({ creative, onChange, clientId, companyId, clientName, clientAvatar }: CreativeEditorProps) {
+export const CreativeEditor = React.memo(function CreativeEditor({
+  creative,
+  onChange,
+  clientId,
+  companyId,
+  clientName,
+  clientAvatar,
+}: CreativeEditorProps) {
   const [generatingTexts, setGeneratingTexts] = useState(false);
   const [showUtmFields, setShowUtmFields] = useState(false);
   const { toast } = useToast();
 
-  const handleTypeChange = (type: CreativeData['type']) => {
+  const handleTypeChange = (type: CreativeData["type"]) => {
     onChange({ type, mediaUrls: [] });
   };
 
   const handleGenerateTexts = async () => {
     if (!clientId) {
-      toast({ title: "Erro", description: "Cliente não identificado.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Cliente não identificado.",
+        variant: "destructive",
+      });
       return;
     }
     if (creative.mediaUrls.length === 0) {
-      toast({ title: "Adicione uma imagem", description: "É necessário ter uma imagem no criativo para gerar os textos.", variant: "destructive" });
+      toast({
+        title: "Adicione uma imagem",
+        description:
+          "É necessário ter uma imagem no criativo para gerar os textos.",
+        variant: "destructive",
+      });
       return;
     }
 
     const imageUrl = creative.mediaUrls[0];
     setGeneratingTexts(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-creative-texts', {
-        body: { clientId, imageUrl },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "generate-creative-texts",
+        {
+          body: { clientId, imageUrl },
+        },
+      );
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
@@ -92,23 +118,35 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
         callToAction: data.data.callToAction || creative.callToAction,
       });
 
-      toast({ title: "Textos gerados!", description: "Os campos foram preenchidos com base na imagem e no briefing do cliente." });
+      toast({
+        title: "Textos gerados!",
+        description:
+          "Os campos foram preenchidos com base na imagem e no briefing do cliente.",
+      });
     } catch (err: unknown) {
       console.error("Error generating texts:", err);
-      toast({ title: "Erro ao gerar textos", description: err.message || "Não foi possível gerar os textos.", variant: "destructive" });
+      if (!handleNoApiKeyError(err)) {
+        toast({
+          title: "Erro ao gerar textos",
+          description:
+            (err as Error).message || "Não foi possível gerar os textos.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setGeneratingTexts(false);
     }
   };
 
-  const canGenerateTexts = clientId && creative.mediaUrls.length > 0 && creative.type !== 'VIDEO';
+  const canGenerateTexts =
+    clientId && creative.mediaUrls.length > 0 && creative.type !== "VIDEO";
 
   // UTM handling
-  const utmSource = creative.urlParameters?.utm_source || '';
-  const utmMedium = creative.urlParameters?.utm_medium || '';
-  const utmCampaign = creative.urlParameters?.utm_campaign || '';
-  const utmContent = creative.urlParameters?.utm_content || '';
-  const utmTerm = creative.urlParameters?.utm_term || '';
+  const utmSource = creative.urlParameters?.utm_source || "";
+  const utmMedium = creative.urlParameters?.utm_medium || "";
+  const utmCampaign = creative.urlParameters?.utm_campaign || "";
+  const utmContent = creative.urlParameters?.utm_content || "";
+  const utmTerm = creative.urlParameters?.utm_term || "";
   const hasUtm = utmSource || utmMedium || utmCampaign || utmContent || utmTerm;
 
   const updateUtm = (field: string, value: string) => {
@@ -130,7 +168,10 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
             <h2 className="text-xl font-semibold">Anúncio</h2>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline">META</Badge>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+              <Badge
+                variant="outline"
+                className="bg-primary/10 text-primary border-primary/30"
+              >
                 Novo
               </Badge>
             </div>
@@ -201,7 +242,9 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       placeholder="Texto principal do anúncio que aparece acima da mídia"
                       rows={4}
                     />
-                    <p className="text-xs text-muted-foreground">{creative.body.length}/500 caracteres</p>
+                    <p className="text-xs text-muted-foreground">
+                      {creative.body.length}/500 caracteres
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -217,11 +260,15 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                     <Label>Descrição</Label>
                     <Textarea
                       value={creative.description}
-                      onChange={(e) => onChange({ description: e.target.value })}
+                      onChange={(e) =>
+                        onChange({ description: e.target.value })
+                      }
                       placeholder="Descrição complementar do anúncio"
                       rows={3}
                     />
-                    <p className="text-xs text-muted-foreground">{creative.description.length}/300 caracteres</p>
+                    <p className="text-xs text-muted-foreground">
+                      {creative.description.length}/300 caracteres
+                    </p>
                   </div>
                 </div>
               </div>
@@ -241,14 +288,20 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       onChange={(e) => onChange({ linkUrl: e.target.value })}
                       placeholder="https://seusite.com/pagina"
                     />
-                    {creative.linkUrl && !creative.linkUrl.match(/^https?:\/\//) && (
-                      <p className="text-xs text-destructive">URL deve começar com http:// ou https://</p>
-                    )}
+                    {creative.linkUrl &&
+                      !creative.linkUrl.match(/^https?:\/\//) && (
+                        <p className="text-xs text-destructive">
+                          URL deve começar com http:// ou https://
+                        </p>
+                      )}
                   </div>
 
                   <div className="space-y-2">
                     <Label>Chamada para Ação (CTA)</Label>
-                    <Select value={creative.callToAction} onValueChange={(v) => onChange({ callToAction: v })}>
+                    <Select
+                      value={creative.callToAction}
+                      onValueChange={(v) => onChange({ callToAction: v })}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -279,18 +332,32 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                     <ToggleGroup
                       type="single"
                       value={creative.type}
-                      onValueChange={(value) => value && handleTypeChange(value as CreativeData['type'])}
+                      onValueChange={(value) =>
+                        value && handleTypeChange(value as CreativeData["type"])
+                      }
                       className="justify-start"
                     >
-                      <ToggleGroupItem value="IMAGE" aria-label="Imagem" className="gap-2">
+                      <ToggleGroupItem
+                        value="IMAGE"
+                        aria-label="Imagem"
+                        className="gap-2"
+                      >
                         <Image className="h-4 w-4" />
                         Imagem
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="VIDEO" aria-label="Vídeo" className="gap-2">
+                      <ToggleGroupItem
+                        value="VIDEO"
+                        aria-label="Vídeo"
+                        className="gap-2"
+                      >
                         <Film className="h-4 w-4" />
                         Vídeo
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="CAROUSEL" aria-label="Carrossel" className="gap-2">
+                      <ToggleGroupItem
+                        value="CAROUSEL"
+                        aria-label="Carrossel"
+                        className="gap-2"
+                      >
                         <Layers className="h-4 w-4" />
                         Carrossel
                       </ToggleGroupItem>
@@ -303,7 +370,7 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       mediaUrls={creative.mediaUrls}
                       onChange={(urls) => onChange({ mediaUrls: urls })}
                       type={creative.type}
-                      maxFiles={creative.type === 'CAROUSEL' ? 10 : 1}
+                      maxFiles={creative.type === "CAROUSEL" ? 10 : 1}
                       clientId={clientId}
                       companyId={companyId}
                       creativeContext={{
@@ -326,10 +393,20 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
               {/* UTM Parameters */}
               <Collapsible open={showUtmFields} onOpenChange={setShowUtmFields}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2 h-8 text-xs">
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showUtmFields ? 'rotate-180' : ''}`} />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2 h-8 text-xs"
+                  >
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform ${showUtmFields ? "rotate-180" : ""}`}
+                    />
                     Parâmetros UTM
-                    {hasUtm && <Badge variant="secondary" className="ml-2 text-xs">Configurado</Badge>}
+                    {hasUtm && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        Configurado
+                      </Badge>
+                    )}
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-4 pt-3">
@@ -338,7 +415,9 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       <Label className="text-xs">utm_source</Label>
                       <Input
                         value={utmSource}
-                        onChange={(e) => updateUtm('utm_source', e.target.value)}
+                        onChange={(e) =>
+                          updateUtm("utm_source", e.target.value)
+                        }
                         placeholder="facebook"
                         className="h-8 text-sm"
                       />
@@ -347,7 +426,9 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       <Label className="text-xs">utm_medium</Label>
                       <Input
                         value={utmMedium}
-                        onChange={(e) => updateUtm('utm_medium', e.target.value)}
+                        onChange={(e) =>
+                          updateUtm("utm_medium", e.target.value)
+                        }
                         placeholder="cpc"
                         className="h-8 text-sm"
                       />
@@ -356,7 +437,9 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       <Label className="text-xs">utm_campaign</Label>
                       <Input
                         value={utmCampaign}
-                        onChange={(e) => updateUtm('utm_campaign', e.target.value)}
+                        onChange={(e) =>
+                          updateUtm("utm_campaign", e.target.value)
+                        }
                         placeholder="{{campaign.name}}"
                         className="h-8 text-sm"
                       />
@@ -365,7 +448,9 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       <Label className="text-xs">utm_content</Label>
                       <Input
                         value={utmContent}
-                        onChange={(e) => updateUtm('utm_content', e.target.value)}
+                        onChange={(e) =>
+                          updateUtm("utm_content", e.target.value)
+                        }
                         placeholder="{{ad.name}}"
                         className="h-8 text-sm"
                       />
@@ -374,7 +459,7 @@ export const CreativeEditor = React.memo(function CreativeEditor({ creative, onC
                       <Label className="text-xs">utm_term</Label>
                       <Input
                         value={utmTerm}
-                        onChange={(e) => updateUtm('utm_term', e.target.value)}
+                        onChange={(e) => updateUtm("utm_term", e.target.value)}
                         placeholder="{{adset.name}}"
                         className="h-8 text-sm"
                       />

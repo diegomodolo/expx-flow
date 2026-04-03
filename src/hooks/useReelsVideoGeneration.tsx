@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 interface SceneProgress {
   sceneNumber: number;
@@ -59,201 +60,247 @@ export function useReelsVideoGeneration() {
     postIdRef.current = null;
   }, [stopPolling]);
 
-  const startPolling = useCallback((postId: string) => {
-    stopPolling();
-    postIdRef.current = postId;
+  const startPolling = useCallback(
+    (postId: string) => {
+      stopPolling();
+      postIdRef.current = postId;
 
-    const poll = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-reels-video", {
-          body: { action: "status", postId },
-        });
+      const poll = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke(
+            "generate-reels-video",
+            {
+              body: { action: "status", postId },
+            },
+          );
 
-        if (error) {
-          console.error("Polling error:", error);
-          return;
-        }
-
-        const progress = data.progress as ReelsProgress;
-        const completedScenes = progress?.scenes?.filter(s => s.status === "completed").length || 0;
-        const errorScenes = progress?.scenes?.filter(s => s.status === "error").length || 0;
-        const totalScenes = progress?.totalScenes || 0;
-        const remainingScenes = totalScenes - completedScenes - errorScenes;
-        
-        // Estimate ~60 seconds per scene
-        const estimatedSeconds = remainingScenes * 60;
-        const estimatedTime = estimatedSeconds > 60 
-          ? `~${Math.ceil(estimatedSeconds / 60)} min restantes`
-          : `~${estimatedSeconds}s restantes`;
-
-        // Determine UI status - safety fallback for inconsistent backend state
-        let uiStatus = data.status;
-        if (data.allDone && data.status === "generating") {
-          // Backend says all done but status is still generating - force correct status
-          if (errorScenes > 0 && completedScenes === 0) {
-            uiStatus = "error";
-          } else if (completedScenes > 0) {
-            uiStatus = "completed";
-          } else {
-            uiStatus = "error"; // No scenes completed = error
+          if (error) {
+            console.error("Polling error:", error);
+            return;
           }
+
+          const progress = data.progress as ReelsProgress;
+          const completedScenes =
+            progress?.scenes?.filter((s) => s.status === "completed").length ||
+            0;
+          const errorScenes =
+            progress?.scenes?.filter((s) => s.status === "error").length || 0;
+          const totalScenes = progress?.totalScenes || 0;
+          const remainingScenes = totalScenes - completedScenes - errorScenes;
+
+          // Estimate ~60 seconds per scene
+          const estimatedSeconds = remainingScenes * 60;
+          const estimatedTime =
+            estimatedSeconds > 60
+              ? `~${Math.ceil(estimatedSeconds / 60)} min restantes`
+              : `~${estimatedSeconds}s restantes`;
+
+          // Determine UI status - safety fallback for inconsistent backend state
+          let uiStatus = data.status;
+          if (data.allDone && data.status === "generating") {
+            // Backend says all done but status is still generating - force correct status
+            if (errorScenes > 0 && completedScenes === 0) {
+              uiStatus = "error";
+            } else if (completedScenes > 0) {
+              uiStatus = "completed";
+            } else {
+              uiStatus = "error"; // No scenes completed = error
+            }
+          }
+
+          setState({
+            status: uiStatus,
+            progress,
+            estimatedTime: uiStatus === "generating" ? estimatedTime : null,
+          });
+
+          // Stop polling if done
+          if (
+            uiStatus === "completed" ||
+            uiStatus === "error" ||
+            data.allDone
+          ) {
+            stopPolling();
+          }
+        } catch (err) {
+          console.error("Polling error:", err);
         }
+      };
 
-        setState({
-          status: uiStatus,
-          progress,
-          estimatedTime: uiStatus === "generating" ? estimatedTime : null,
-        });
+      // Poll immediately, then every 10 seconds
+      poll();
+      pollingRef.current = setInterval(poll, 10000);
+    },
+    [stopPolling],
+  );
 
-        // Stop polling if done
-        if (uiStatus === "completed" || uiStatus === "error" || data.allDone) {
-          stopPolling();
-        }
-      } catch (err) {
-        console.error("Polling error:", err);
-      }
-    };
+  const startGeneration = useCallback(
+    async (params: StartReelsGenerationParams) => {
+      const { postId, clientId, companyId, script, headline, subheadline } =
+        params;
 
-    // Poll immediately, then every 10 seconds
-    poll();
-    pollingRef.current = setInterval(poll, 10000);
-  }, [stopPolling]);
-
-  const startGeneration = useCallback(async (params: StartReelsGenerationParams) => {
-    const { postId, clientId, companyId, script, headline, subheadline } = params;
-
-    setState({
-      status: "analyzing",
-      progress: null,
-      estimatedTime: "Analisando roteiro...",
-    });
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-reels-video", {
-        body: {
-          action: "start",
-          postId,
-          clientId,
-          companyId,
-          script,
-          headline,
-          subheadline,
-        },
+      setState({
+        status: "analyzing",
+        progress: null,
+        estimatedTime: "Analisando roteiro...",
       });
 
-      if (error) throw error;
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "generate-reels-video",
+          {
+            body: {
+              action: "start",
+              postId,
+              clientId,
+              companyId,
+              script,
+              headline,
+              subheadline,
+            },
+          },
+        );
 
-      if (!data.success) {
-        throw new Error(data.error || "Failed to start generation");
+        if (error) throw error;
+
+        if (!data.success) {
+          throw new Error(data.error || "Failed to start generation");
+        }
+
+        // Estimate initial time: ~60 seconds per scene
+        const estimatedSeconds = data.totalScenes * 60;
+        const estimatedTime = `~${Math.ceil(estimatedSeconds / 60)} min`;
+
+        setState((prev) => ({
+          ...prev,
+          status: "generating",
+          estimatedTime,
+        }));
+
+        // Start polling for progress
+        startPolling(postId);
+
+        return data;
+      } catch (err: unknown) {
+        if (!handleNoApiKeyError(err)) {
+          setState({
+            status: "error",
+            progress: {
+              totalScenes: 0,
+              currentScene: 0,
+              scenes: [],
+              error: (err as Error).message,
+            },
+            estimatedTime: null,
+          });
+        }
+        throw err;
+      }
+    },
+    [startPolling],
+  );
+
+  const cancelGeneration = useCallback(
+    async (postId: string) => {
+      stopPolling();
+
+      try {
+        await supabase.functions.invoke("generate-reels-video", {
+          body: { action: "reset", postId },
+        });
+      } catch (err) {
+        console.error("Error resetting generation:", err);
       }
 
-      // Estimate initial time: ~60 seconds per scene
-      const estimatedSeconds = data.totalScenes * 60;
-      const estimatedTime = `~${Math.ceil(estimatedSeconds / 60)} min`;
+      reset();
+    },
+    [stopPolling, reset],
+  );
 
-      setState(prev => ({
+  const regenerateScenes = useCallback(
+    async (postId: string, sceneNumbers: number[]) => {
+      setState((prev) => ({
         ...prev,
         status: "generating",
-        estimatedTime,
+        estimatedTime: `Regenerando ${sceneNumbers.length} cena(s)...`,
       }));
 
-      // Start polling for progress
-      startPolling(postId);
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "generate-reels-video",
+          {
+            body: {
+              action: "regenerate_scenes",
+              postId,
+              sceneNumbers,
+            },
+          },
+        );
 
-      return data;
-    } catch (err: unknown) {
-      setState({
-        status: "error",
-        progress: { totalScenes: 0, currentScene: 0, scenes: [], error: err.message },
-        estimatedTime: null,
-      });
-      throw err;
-    }
-  }, [startPolling]);
+        if (error) throw error;
 
-  const cancelGeneration = useCallback(async (postId: string) => {
-    stopPolling();
+        if (!data.success) {
+          throw new Error(data.error || "Failed to regenerate scenes");
+        }
 
-    try {
-      await supabase.functions.invoke("generate-reels-video", {
-        body: { action: "reset", postId },
-      });
-    } catch (err) {
-      console.error("Error resetting generation:", err);
-    }
+        // Start polling for progress
+        startPolling(postId);
 
-    reset();
-  }, [stopPolling, reset]);
-
-  const regenerateScenes = useCallback(async (postId: string, sceneNumbers: number[]) => {
-    setState(prev => ({
-      ...prev,
-      status: "generating",
-      estimatedTime: `Regenerando ${sceneNumbers.length} cena(s)...`,
-    }));
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-reels-video", {
-        body: {
-          action: "regenerate_scenes",
-          postId,
-          sceneNumbers,
-        },
-      });
-
-      if (error) throw error;
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to regenerate scenes");
+        return data;
+      } catch (err: unknown) {
+        if (!handleNoApiKeyError(err)) {
+          setState((prev) => ({
+            ...prev,
+            status: "error",
+            progress: { ...prev.progress!, error: (err as Error).message },
+          }));
+        }
+        throw err;
       }
-
-      // Start polling for progress
-      startPolling(postId);
-
-      return data;
-    } catch (err: unknown) {
-      setState(prev => ({
-        ...prev,
-        status: "error",
-        progress: { ...prev.progress!, error: err.message },
-      }));
-      throw err;
-    }
-  }, [startPolling]);
+    },
+    [startPolling],
+  );
 
   // Load existing progress on mount
-  const loadExistingProgress = useCallback(async (postId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("content_plan_posts")
-        .select("reels_generation_status, reels_generation_progress")
-        .eq("id", postId)
-        .single();
+  const loadExistingProgress = useCallback(
+    async (postId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from("content_plan_posts")
+          .select("reels_generation_status, reels_generation_progress")
+          .eq("id", postId)
+          .single();
 
-      if (error || !data) return;
+        if (error || !data) return;
 
-      const status = data.reels_generation_status as ReelsGenerationState["status"];
-      const progressData = data.reels_generation_progress;
-      const progress: ReelsProgress | null = progressData && typeof progressData === 'object' && 'scenes' in progressData
-        ? progressData as unknown as ReelsProgress
-        : null;
+        const status =
+          data.reels_generation_status as ReelsGenerationState["status"];
+        const progressData = data.reels_generation_progress;
+        const progress: ReelsProgress | null =
+          progressData &&
+          typeof progressData === "object" &&
+          "scenes" in progressData
+            ? (progressData as unknown as ReelsProgress)
+            : null;
 
-      if (status && status !== "idle") {
-        setState({
-          status,
-          progress,
-          estimatedTime: status === "generating" ? "Calculando..." : null,
-        });
+        if (status && status !== "idle") {
+          setState({
+            status,
+            progress,
+            estimatedTime: status === "generating" ? "Calculando..." : null,
+          });
 
-        // Resume polling if still generating
-        if (status === "generating") {
-          startPolling(postId);
+          // Resume polling if still generating
+          if (status === "generating") {
+            startPolling(postId);
+          }
         }
+      } catch (err) {
+        console.error("Error loading existing progress:", err);
       }
-    } catch (err) {
-      console.error("Error loading existing progress:", err);
-    }
-  }, [startPolling]);
+    },
+    [startPolling],
+  );
 
   // Cleanup on unmount
   useEffect(() => {

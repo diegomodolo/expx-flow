@@ -1,11 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useCompany } from '@/contexts/CompanyContext';
-import { toast } from 'sonner';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
+import { toast } from "sonner";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
-export type AdGenerationType = 'clone' | 'concept' | 'iteration';
-export type AdGenerationStatus = 'pending' | 'approved' | 'rejected' | 'published';
+export type AdGenerationType = "clone" | "concept" | "iteration";
+export type AdGenerationStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "published";
 
 export interface GeneratedAd {
   id: string;
@@ -73,13 +78,13 @@ export function useAdGenerationQueue(clientId?: string) {
 
     try {
       let query = supabase
-        .from('ad_generation_queue')
-        .select('*, clients(name, company)')
-        .eq('company_id', activeCompany.id)
-        .order('generated_at', { ascending: false });
+        .from("ad_generation_queue")
+        .select("*, clients(name, company)")
+        .eq("company_id", activeCompany.id)
+        .order("generated_at", { ascending: false });
 
       if (clientId) {
-        query = query.eq('client_id', clientId);
+        query = query.eq("client_id", clientId);
       }
 
       const { data, error } = await query;
@@ -87,7 +92,7 @@ export function useAdGenerationQueue(clientId?: string) {
       if (error) throw error;
       setAds((data || []) as unknown as GeneratedAd[]);
     } catch (error) {
-      console.error('Error fetching ad queue:', error);
+      console.error("Error fetching ad queue:", error);
     } finally {
       setIsLoading(false);
     }
@@ -98,15 +103,15 @@ export function useAdGenerationQueue(clientId?: string) {
 
     try {
       const { data, error } = await supabase
-        .from('ad_generation_schedules')
-        .select('*')
-        .eq('client_id', clientId)
+        .from("ad_generation_schedules")
+        .select("*")
+        .eq("client_id", clientId)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== "PGRST116") throw error;
       setSchedule(data as unknown as AdGenerationSchedule);
     } catch (error) {
-      console.error('Error fetching schedule:', error);
+      console.error("Error fetching schedule:", error);
     }
   }, [clientId]);
 
@@ -120,25 +125,28 @@ export function useAdGenerationQueue(clientId?: string) {
     options?: {
       count?: number;
       generation_type?: AdGenerationType;
-    }
+    },
   ) => {
     if (!user?.id || !activeCompany?.id) {
-      toast.error('Usuário ou empresa não encontrado');
+      toast.error("Usuário ou empresa não encontrado");
       return;
     }
 
     setIsGenerating(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('daily-ad-generator', {
-        body: {
-          client_id: targetClientId,
-          company_id: activeCompany.id,
-          user_id: user.id,
-          generation_type: options?.generation_type,
-          count: options?.count || 10,
+      const { data, error } = await supabase.functions.invoke(
+        "daily-ad-generator",
+        {
+          body: {
+            client_id: targetClientId,
+            company_id: activeCompany.id,
+            user_id: user.id,
+            generation_type: options?.generation_type,
+            count: options?.count || 10,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -146,15 +154,21 @@ export function useAdGenerationQueue(clientId?: string) {
       fetchAds();
       return data;
     } catch (error: unknown) {
-      console.error('Error generating ads:', error);
-      toast.error('Erro ao gerar anúncios: ' + error.message);
+      console.error("Error generating ads:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao gerar anúncios: " + (error as Error).message);
+      }
       throw error;
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const updateAdStatus = async (adId: string, status: AdGenerationStatus, notes?: string) => {
+  const updateAdStatus = async (
+    adId: string,
+    status: AdGenerationStatus,
+    notes?: string,
+  ) => {
     if (!user?.id) return;
 
     try {
@@ -164,29 +178,34 @@ export function useAdGenerationQueue(clientId?: string) {
         reviewed_by: user.id,
       };
 
-      if (status === 'published') {
+      if (status === "published") {
         updates.published_at = new Date().toISOString();
       }
 
       const { error } = await supabase
-        .from('ad_generation_queue')
+        .from("ad_generation_queue")
         .update(updates)
-        .eq('id', adId);
+        .eq("id", adId);
 
       if (error) throw error;
 
-      setAds(prev => prev.map(ad => 
-        ad.id === adId ? { ...ad, ...updates } : ad
-      ));
+      setAds((prev) =>
+        prev.map((ad) => (ad.id === adId ? { ...ad, ...updates } : ad)),
+      );
 
-      toast.success(`Anúncio ${status === 'approved' ? 'aprovado' : status === 'rejected' ? 'rejeitado' : 'publicado'}!`);
+      toast.success(
+        `Anúncio ${status === "approved" ? "aprovado" : status === "rejected" ? "rejeitado" : "publicado"}!`,
+      );
     } catch (error: unknown) {
-      console.error('Error updating ad status:', error);
-      toast.error('Erro ao atualizar status: ' + error.message);
+      console.error("Error updating ad status:", error);
+      toast.error("Erro ao atualizar status: " + error.message);
     }
   };
 
-  const bulkUpdateStatus = async (adIds: string[], status: AdGenerationStatus) => {
+  const bulkUpdateStatus = async (
+    adIds: string[],
+    status: AdGenerationStatus,
+  ) => {
     if (!user?.id) return;
 
     try {
@@ -196,25 +215,25 @@ export function useAdGenerationQueue(clientId?: string) {
         reviewed_by: user.id,
       };
 
-      if (status === 'published') {
+      if (status === "published") {
         updates.published_at = new Date().toISOString();
       }
 
       const { error } = await supabase
-        .from('ad_generation_queue')
+        .from("ad_generation_queue")
         .update(updates)
-        .in('id', adIds);
+        .in("id", adIds);
 
       if (error) throw error;
 
-      setAds(prev => prev.map(ad => 
-        adIds.includes(ad.id) ? { ...ad, ...updates } : ad
-      ));
+      setAds((prev) =>
+        prev.map((ad) => (adIds.includes(ad.id) ? { ...ad, ...updates } : ad)),
+      );
 
       toast.success(`${adIds.length} anúncios atualizados!`);
     } catch (error: unknown) {
-      console.error('Error bulk updating ads:', error);
-      toast.error('Erro ao atualizar anúncios: ' + error.message);
+      console.error("Error bulk updating ads:", error);
+      toast.error("Erro ao atualizar anúncios: " + error.message);
     }
   };
 
@@ -223,21 +242,21 @@ export function useAdGenerationQueue(clientId?: string) {
 
     try {
       const { data: existing } = await supabase
-        .from('ad_generation_schedules')
-        .select('id')
-        .eq('client_id', clientId)
+        .from("ad_generation_schedules")
+        .select("id")
+        .eq("client_id", clientId)
         .single();
 
       if (existing) {
         const { error } = await supabase
-          .from('ad_generation_schedules')
+          .from("ad_generation_schedules")
           .update(updates)
-          .eq('id', existing.id);
+          .eq("id", existing.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('ad_generation_schedules')
+          .from("ad_generation_schedules")
           .insert({
             client_id: clientId,
             company_id: activeCompany.id,
@@ -248,44 +267,47 @@ export function useAdGenerationQueue(clientId?: string) {
       }
 
       fetchSchedule();
-      toast.success('Configuração salva!');
+      toast.success("Configuração salva!");
     } catch (error: unknown) {
-      console.error('Error updating schedule:', error);
-      toast.error('Erro ao salvar configuração: ' + error.message);
+      console.error("Error updating schedule:", error);
+      toast.error("Erro ao salvar configuração: " + error.message);
     }
   };
 
   const deleteAd = async (adId: string) => {
     try {
       const { error } = await supabase
-        .from('ad_generation_queue')
+        .from("ad_generation_queue")
         .delete()
-        .eq('id', adId);
+        .eq("id", adId);
 
       if (error) throw error;
 
-      setAds(prev => prev.filter(ad => ad.id !== adId));
-      toast.success('Anúncio removido!');
+      setAds((prev) => prev.filter((ad) => ad.id !== adId));
+      toast.success("Anúncio removido!");
     } catch (error: unknown) {
-      console.error('Error deleting ad:', error);
-      toast.error('Erro ao remover anúncio: ' + error.message);
+      console.error("Error deleting ad:", error);
+      toast.error("Erro ao remover anúncio: " + error.message);
     }
   };
 
   const publishAds = async (adIds?: string[]) => {
     if (!clientId || !activeCompany?.id) {
-      toast.error('Cliente não selecionado');
+      toast.error("Cliente não selecionado");
       return;
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
-        body: {
-          client_id: clientId,
-          company_id: activeCompany.id,
-          ad_ids: adIds,
+      const { data, error } = await supabase.functions.invoke(
+        "publish-approved-ads",
+        {
+          body: {
+            client_id: clientId,
+            company_id: activeCompany.id,
+            ad_ids: adIds,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -295,13 +317,15 @@ export function useAdGenerationQueue(clientId?: string) {
       } else if (data.error) {
         toast.error(data.error);
       } else {
-        toast.info('Nenhum anúncio aprovado para publicar');
+        toast.info("Nenhum anúncio aprovado para publicar");
       }
 
       return data;
     } catch (error: unknown) {
-      console.error('Error publishing ads:', error);
-      toast.error('Erro ao publicar: ' + error.message);
+      console.error("Error publishing ads:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao publicar: " + (error as Error).message);
+      }
       throw error;
     }
   };

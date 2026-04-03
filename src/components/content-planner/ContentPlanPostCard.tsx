@@ -71,6 +71,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { useCompany } from "@/contexts/CompanyContext";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 interface ContentPlanPostCardProps {
   post: ContentPlanPost;
@@ -1100,9 +1101,12 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
         }
       } catch (error: unknown) {
         console.error("Error generating creative:", error);
-        toast.error(
-          "Erro ao gerar criativo: " + (error.message || "Erro desconhecido"),
-        );
+        if (!handleNoApiKeyError(error)) {
+          toast.error(
+            "Erro ao gerar criativo: " +
+              ((error as Error).message || "Erro desconhecido"),
+          );
+        }
       } finally {
         setGeneratingCreative(false);
       }

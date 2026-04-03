@@ -2,8 +2,16 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Sparkles, RefreshCw, Save, Edit, PenLine } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  RefreshCw,
+  Save,
+  Edit,
+  PenLine,
+} from "lucide-react";
 import { Client } from "@/hooks/useClients";
 
 interface ClientBriefingTabProps {
@@ -15,11 +23,17 @@ interface ClientBriefingTabProps {
   onBriefingUpdate: (updatedClient: Client) => void;
 }
 
-export function ClientBriefingTab({ client, formData, onBriefingUpdate }: ClientBriefingTabProps) {
+export function ClientBriefingTab({
+  client,
+  formData,
+  onBriefingUpdate,
+}: ClientBriefingTabProps) {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [briefingContent, setBriefingContent] = useState(client?.ai_briefing || "");
+  const [briefingContent, setBriefingContent] = useState(
+    client?.ai_briefing || "",
+  );
   const { toast } = useToast();
 
   // Sincronizar o briefingContent quando o cliente mudar
@@ -29,11 +43,12 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
 
   const generateBriefing = async () => {
     const websiteUrl = formData.website_url;
-    
+
     if (!websiteUrl) {
       toast({
         title: "Website necessário",
-        description: "É necessário preencher o campo Website na aba Informações Gerais para gerar o briefing.",
+        description:
+          "É necessário preencher o campo Website na aba Informações Gerais para gerar o briefing.",
         variant: "destructive",
       });
       return;
@@ -42,7 +57,8 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
     if (!client?.id) {
       toast({
         title: "Cliente não salvo",
-        description: "É necessário salvar o cliente primeiro antes de gerar o briefing.",
+        description:
+          "É necessário salvar o cliente primeiro antes de gerar o briefing.",
         variant: "destructive",
       });
       return;
@@ -50,12 +66,15 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
 
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-client-briefing', {
-        body: {
-          clientId: client.id,
-          websiteUrl: websiteUrl,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-client-briefing",
+        {
+          body: {
+            clientId: client.id,
+            websiteUrl: websiteUrl,
+          },
         },
-      });
+      );
 
       if (error) throw error;
 
@@ -79,11 +98,16 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
       }
     } catch (error) {
       console.error("Erro ao gerar briefing:", error);
-      toast({
-        title: "Erro ao gerar briefing",
-        description: error instanceof Error ? error.message : "Erro interno. Tente novamente.",
-        variant: "destructive",
-      });
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao gerar briefing",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Erro interno. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setGenerating(false);
     }
@@ -102,12 +126,12 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('clients')
+        .from("clients")
         .update({
           ai_briefing: briefingContent,
           briefing_generated_at: new Date().toISOString(),
         })
-        .eq('id', client.id);
+        .eq("id", client.id);
 
       if (error) throw error;
 
@@ -147,12 +171,12 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -162,17 +186,18 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
         <div>
           <h3 className="text-lg font-semibold">Briefing Inteligente</h3>
           <p className="text-sm text-muted-foreground">
-            Análise completa do negócio baseada no website para criação de campanhas eficazes
+            Análise completa do negócio baseada no website para criação de
+            campanhas eficazes
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {client?.briefing_generated_at && (
             <span className="text-xs text-muted-foreground">
               Atualizado em {formatDate(client.briefing_generated_at)}
             </span>
           )}
-          
+
           <Button
             type="button"
             onClick={generateBriefing}
@@ -186,7 +211,11 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
-            {generating ? "Gerando..." : client?.ai_briefing ? "Atualizar Briefing" : "Gerar Briefing via IA"}
+            {generating
+              ? "Gerando..."
+              : client?.ai_briefing
+                ? "Atualizar Briefing"
+                : "Gerar Briefing via IA"}
           </Button>
         </div>
       </div>
@@ -194,7 +223,9 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
       {!formData.website_url && (
         <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
           <p className="text-sm text-yellow-800">
-            💡 <strong>Dica:</strong> Preencha o campo "Website" na aba "Informações Gerais" para gerar um briefing detalhado automaticamente.
+            💡 <strong>Dica:</strong> Preencha o campo "Website" na aba
+            "Informações Gerais" para gerar um briefing detalhado
+            automaticamente.
           </p>
         </div>
       )}
@@ -202,7 +233,8 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
       {!client?.id && formData.website_url && (
         <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800">
-            ℹ️ <strong>Aviso:</strong> Salve o cliente primeiro clicando em "Criar" na aba "Informações Gerais" para poder gerar o briefing.
+            ℹ️ <strong>Aviso:</strong> Salve o cliente primeiro clicando em
+            "Criar" na aba "Informações Gerais" para poder gerar o briefing.
           </p>
         </div>
       )}
@@ -252,7 +284,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
               )}
             </div>
           </div>
-          
+
           {isEditing ? (
             <div className="space-y-2">
               <Textarea
@@ -263,7 +295,8 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
                 disabled={saving}
               />
               <p className="text-xs text-muted-foreground">
-                💡 Dica: Use formatação Markdown para melhor organização do conteúdo.
+                💡 Dica: Use formatação Markdown para melhor organização do
+                conteúdo.
               </p>
             </div>
           ) : (
@@ -312,7 +345,8 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
             disabled={saving}
           />
           <p className="text-xs text-muted-foreground">
-            💡 Dica: Use formatação Markdown para melhor organização do conteúdo.
+            💡 Dica: Use formatação Markdown para melhor organização do
+            conteúdo.
           </p>
         </div>
       ) : (
@@ -322,17 +356,26 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
           </div>
           <h4 className="text-lg font-medium mb-2">Nenhum briefing ainda</h4>
           <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-            Gere um briefing inteligente via IA ou escreva manualmente as informações do cliente.
+            Gere um briefing inteligente via IA ou escreva manualmente as
+            informações do cliente.
           </p>
           <div className="flex items-center justify-center gap-3">
             {formData.website_url && client?.id && (
-              <Button type="button" onClick={generateBriefing} disabled={generating}>
+              <Button
+                type="button"
+                onClick={generateBriefing}
+                disabled={generating}
+              >
                 <Sparkles className="w-4 h-4 mr-2" />
                 Gerar via IA
               </Button>
             )}
             {client?.id && (
-              <Button type="button" variant="outline" onClick={() => setIsEditing(true)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+              >
                 <PenLine className="w-4 h-4 mr-2" />
                 Escrever Manualmente
               </Button>

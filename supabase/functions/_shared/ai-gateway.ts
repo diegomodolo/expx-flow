@@ -429,6 +429,16 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResponse> {
   } = options;
 
   const config = await resolveConfig(functionName, companyId);
+
+  if (!config.apiKey) {
+    throw Object.assign(
+      new Error(
+        "Chave OpenRouter não configurada para esta empresa. Acesse Configurações > IA para adicionar sua chave.",
+      ),
+      { code: "NO_API_KEY" },
+    );
+  }
+
   const startTime = Date.now();
 
   const messages = customMessages || [

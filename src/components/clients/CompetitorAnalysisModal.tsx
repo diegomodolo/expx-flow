@@ -1,15 +1,34 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, BarChart3, TrendingUp, Target, Lightbulb, Plus, ChevronDown, ChevronRight } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Competitor, CompetitorAd } from '@/hooks/useCompetitors';
-import { useTasks } from '@/hooks/useTasks';
-import { useTeams } from '@/hooks/useTeams';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Loader2,
+  BarChart3,
+  TrendingUp,
+  Target,
+  Lightbulb,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Competitor, CompetitorAd } from "@/hooks/useCompetitors";
+import { useTasks } from "@/hooks/useTasks";
+import { useTeams } from "@/hooks/useTeams";
+import { toast } from "sonner";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 interface CompetitorAnalysisModalProps {
   competitor: Competitor;
@@ -36,52 +55,60 @@ interface AnalysisResult {
   }[];
 }
 
-export const CompetitorAnalysisModal = ({ 
-  competitor, 
-  competitorAds, 
-  open, 
-  onOpenChange 
+export const CompetitorAnalysisModal = ({
+  competitor,
+  competitorAds,
+  open,
+  onOpenChange,
 }: CompetitorAnalysisModalProps) => {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [creatingTask, setCreatingTask] = useState<number | null>(null);
   const [createdTasks, setCreatedTasks] = useState<Set<number>>(new Set());
   const [adsExpanded, setAdsExpanded] = useState(false);
-  
+
   const { createTask } = useTasks();
   const { teams } = useTeams();
 
   const generateAnalysis = async () => {
     setLoading(true);
-    
+
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-competitor-insights', {
-        body: {
-          competitorData: [competitor],
-          competitorAds: competitorAds,
-          analysisType: 'single_competitor'
-        }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "analyze-competitor-insights",
+        {
+          body: {
+            competitorData: [competitor],
+            competitorAds: competitorAds,
+            analysisType: "single_competitor",
+          },
+        },
+      );
 
       if (error) throw error;
 
       setAnalysis(data.analysis);
-      toast.success('Análise gerada com sucesso!');
+      toast.success("Análise gerada com sucesso!");
     } catch (error) {
-      console.error('Error generating analysis:', error);
-      toast.error('Erro ao gerar análise do concorrente');
+      console.error("Error generating analysis:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao gerar análise do concorrente");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const createTaskFromVariation = async (variation: AnalysisResult['ad_variations'][0], index: number) => {
+  const createTaskFromVariation = async (
+    variation: AnalysisResult["ad_variations"][0],
+    index: number,
+  ) => {
     setCreatingTask(index);
-    
+
     try {
       const firstTeam = teams?.[0];
       if (!firstTeam) {
-        toast.error('Nenhuma equipe encontrada. Crie uma equipe primeiro.');
+        toast.error("Nenhuma equipe encontrada. Crie uma equipe primeiro.");
         return;
       }
 
@@ -101,22 +128,24 @@ export const CompetitorAnalysisModal = ({
       await createTask({
         title: taskTitle,
         description: taskDescription,
-        status: 'todo',
-        priority: 'medium',
+        status: "todo",
+        priority: "medium",
         team_id: firstTeam.id,
-        responsible_name: 'Equipe de Marketing',
-        responsible_avatar: '',
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 dias
+        responsible_name: "Equipe de Marketing",
+        responsible_avatar: "",
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0], // 7 dias
         progress: 0,
-        origin: 'automation',
-        related_client_id: competitor.client_id
+        origin: "automation",
+        related_client_id: competitor.client_id,
       });
 
-      toast.success('Tarefa criada com sucesso!');
-      setCreatedTasks(prev => new Set([...prev, index]));
+      toast.success("Tarefa criada com sucesso!");
+      setCreatedTasks((prev) => new Set([...prev, index]));
     } catch (error) {
-      console.error('Error creating task:', error);
-      toast.error('Erro ao criar tarefa');
+      console.error("Error creating task:", error);
+      toast.error("Erro ao criar tarefa");
     } finally {
       setCreatingTask(null);
     }
@@ -136,17 +165,15 @@ export const CompetitorAnalysisModal = ({
           {/* Header com info do concorrente */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">{competitor.company_name}</CardTitle>
+              <CardTitle className="text-lg">
+                {competitor.company_name}
+              </CardTitle>
               <div className="flex flex-wrap gap-2 text-sm text-gray-600">
                 {competitor.website_url && (
                   <span>🌐 {competitor.website_url}</span>
                 )}
-                {competitor.facebook_page_name && (
-                  <span>📘 Facebook</span>
-                )}
-                {competitor.instagram_handle && (
-                  <span>📷 Instagram</span>
-                )}
+                {competitor.facebook_page_name && <span>📘 Facebook</span>}
+                {competitor.instagram_handle && <span>📷 Instagram</span>}
                 <span>📊 {competitorAds.length} anúncios</span>
               </div>
             </CardHeader>
@@ -155,7 +182,7 @@ export const CompetitorAnalysisModal = ({
                 <p className="text-sm">{competitor.description}</p>
               </CardContent>
             )}
-            
+
             {/* Anúncios Monitorados - Collapsible */}
             <CardContent>
               <Collapsible open={adsExpanded} onOpenChange={setAdsExpanded}>
@@ -167,13 +194,18 @@ export const CompetitorAnalysisModal = ({
                   )}
                   Ver Anúncios Monitorados ({competitorAds.length})
                 </CollapsibleTrigger>
-                
+
                 <CollapsibleContent className="mt-4">
                   <div className="space-y-3 max-h-60 overflow-y-auto">
                     {competitorAds.slice(0, 5).map((ad, index) => (
-                      <div key={index} className="border rounded-lg p-3 text-xs">
+                      <div
+                        key={index}
+                        className="border rounded-lg p-3 text-xs"
+                      >
                         <div className="flex items-start justify-between mb-2">
-                          <span className="font-medium text-blue-600">{ad.platform}</span>
+                          <span className="font-medium text-blue-600">
+                            {ad.platform}
+                          </span>
                           <Badge variant="outline" className="text-xs">
                             {ad.ad_type}
                           </Badge>
@@ -184,7 +216,9 @@ export const CompetitorAnalysisModal = ({
                         </p>
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>CTA: {ad.call_to_action}</span>
-                          <span>{new Date(ad.date_spotted).toLocaleDateString()}</span>
+                          <span>
+                            {new Date(ad.date_spotted).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -202,7 +236,7 @@ export const CompetitorAnalysisModal = ({
           {/* Botão para gerar análise */}
           {!analysis && (
             <div className="text-center py-8">
-              <Button 
+              <Button
                 onClick={generateAnalysis}
                 disabled={loading}
                 size="lg"
@@ -235,7 +269,9 @@ export const CompetitorAnalysisModal = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm leading-relaxed">{analysis.competitor_overview}</p>
+                  <p className="text-sm leading-relaxed">
+                    {analysis.competitor_overview}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -243,7 +279,9 @@ export const CompetitorAnalysisModal = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Estratégia de Messaging</CardTitle>
+                    <CardTitle className="text-base">
+                      Estratégia de Messaging
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm">{analysis.messaging_strategy}</p>
@@ -252,7 +290,9 @@ export const CompetitorAnalysisModal = ({
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Padrões Criativos</CardTitle>
+                    <CardTitle className="text-base">
+                      Padrões Criativos
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm">{analysis.creative_patterns}</p>
@@ -261,7 +301,9 @@ export const CompetitorAnalysisModal = ({
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Indicadores de Performance</CardTitle>
+                    <CardTitle className="text-base">
+                      Indicadores de Performance
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm">{analysis.performance_indicators}</p>
@@ -270,10 +312,14 @@ export const CompetitorAnalysisModal = ({
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Oportunidades Estratégicas</CardTitle>
+                    <CardTitle className="text-base">
+                      Oportunidades Estratégicas
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm">{analysis.strategic_opportunities}</p>
+                    <p className="text-sm">
+                      {analysis.strategic_opportunities}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -290,7 +336,11 @@ export const CompetitorAnalysisModal = ({
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
                       {analysis.key_insights.map((insight, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="text-xs"
+                        >
                           {insight}
                         </Badge>
                       ))}
@@ -300,26 +350,30 @@ export const CompetitorAnalysisModal = ({
               )}
 
               {/* Recommendations */}
-              {analysis.recommendations && analysis.recommendations.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5" />
-                      Recomendações Estratégicas
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {analysis.recommendations.map((rec, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                          {rec}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
+              {analysis.recommendations &&
+                analysis.recommendations.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Recomendações Estratégicas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {analysis.recommendations.map((rec, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start gap-2 text-sm"
+                          >
+                            <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
 
               {/* Ad Variations */}
               {analysis.ad_variations && analysis.ad_variations.length > 0 && (
@@ -332,57 +386,87 @@ export const CompetitorAnalysisModal = ({
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                       {analysis.ad_variations.map((variation, index) => (
-                         <div key={index} className="border rounded-lg p-4 space-y-2">
-                           <div className="flex items-start justify-between">
-                             <h4 className="font-medium text-sm">Variação {index + 1}</h4>
-                             <div className="flex items-center gap-2">
-                               <Badge variant="outline" className="text-xs">Adaptado</Badge>
-                               <Button
-                                 size="sm"
-                                 variant={createdTasks.has(index) ? "secondary" : "outline"}
-                                 onClick={() => createTaskFromVariation(variation, index)}
-                                 disabled={creatingTask === index || createdTasks.has(index)}
-                                 className="h-7 px-2 text-xs"
-                               >
-                                 {creatingTask === index ? (
-                                   <Loader2 className="w-3 h-3 animate-spin" />
-                                 ) : createdTasks.has(index) ? (
-                                   'Tarefa Criada'
-                                 ) : (
-                                   <>
-                                     <Plus className="w-3 h-3 mr-1" />
-                                     Criar Tarefa
-                                   </>
-                                 )}
-                               </Button>
-                             </div>
-                           </div>
-                           <div className="space-y-2 text-sm">
-                             <div>
-                               <span className="font-medium">Título:</span> {variation.title}
-                             </div>
-                             <div>
-                               <span className="font-medium">Copy:</span> {variation.copy}
-                             </div>
-                             <div>
-                               <span className="font-medium">CTA:</span> {variation.cta}
-                             </div>
-                             <div className="grid grid-cols-2 gap-4 pt-2">
-                               <div>
-                                 <span className="font-medium text-xs text-blue-600">Tipo de Campanha:</span>
-                                 <p className="text-xs">{variation.campaign_type}</p>
-                               </div>
-                               <div>
-                                 <span className="font-medium text-xs text-green-600">Etapa do Funil:</span>
-                                 <p className="text-xs">{variation.funnel_stage}</p>
-                               </div>
-                             </div>
-                             <div className="text-xs text-gray-600 border-t pt-2">
-                               <span className="font-medium">Justificativa:</span> {variation.rationale}
-                             </div>
-                           </div>
-                         </div>
+                      {analysis.ad_variations.map((variation, index) => (
+                        <div
+                          key={index}
+                          className="border rounded-lg p-4 space-y-2"
+                        >
+                          <div className="flex items-start justify-between">
+                            <h4 className="font-medium text-sm">
+                              Variação {index + 1}
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                Adaptado
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant={
+                                  createdTasks.has(index)
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                                onClick={() =>
+                                  createTaskFromVariation(variation, index)
+                                }
+                                disabled={
+                                  creatingTask === index ||
+                                  createdTasks.has(index)
+                                }
+                                className="h-7 px-2 text-xs"
+                              >
+                                {creatingTask === index ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : createdTasks.has(index) ? (
+                                  "Tarefa Criada"
+                                ) : (
+                                  <>
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    Criar Tarefa
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <span className="font-medium">Título:</span>{" "}
+                              {variation.title}
+                            </div>
+                            <div>
+                              <span className="font-medium">Copy:</span>{" "}
+                              {variation.copy}
+                            </div>
+                            <div>
+                              <span className="font-medium">CTA:</span>{" "}
+                              {variation.cta}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                              <div>
+                                <span className="font-medium text-xs text-blue-600">
+                                  Tipo de Campanha:
+                                </span>
+                                <p className="text-xs">
+                                  {variation.campaign_type}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-xs text-green-600">
+                                  Etapa do Funil:
+                                </span>
+                                <p className="text-xs">
+                                  {variation.funnel_stage}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-600 border-t pt-2">
+                              <span className="font-medium">
+                                Justificativa:
+                              </span>{" "}
+                              {variation.rationale}
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </CardContent>
@@ -391,8 +475,8 @@ export const CompetitorAnalysisModal = ({
 
               {/* Botão para nova análise */}
               <div className="text-center pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setAnalysis(null)}
                   size="sm"
                 >

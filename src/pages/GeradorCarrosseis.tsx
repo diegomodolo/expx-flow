@@ -4,13 +4,32 @@ import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Layers, Sparkles, History, Home, BookOpen, Scale, Camera, ListChecks, Instagram, Wand2, Copy } from "lucide-react";
+import {
+  Layers,
+  Sparkles,
+  History,
+  Home,
+  BookOpen,
+  Scale,
+  Camera,
+  ListChecks,
+  Instagram,
+  Wand2,
+  Copy,
+} from "lucide-react";
 import { toast } from "sonner";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useClients } from "@/hooks/useClients";
@@ -18,11 +37,18 @@ import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombob
 import { CarouselGenerationProgressModal } from "@/components/generators/CarouselGenerationProgressModal";
 import { CarouselType } from "@/hooks/useCarouselGenerationStream";
 import { CarouselHistoryList } from "@/components/carousel-generator/CarouselHistoryList";
-import { InstagramCarouselSelector, SelectedCarousel } from "@/components/carousel-generator/InstagramCarouselSelector";
+import {
+  InstagramCarouselSelector,
+  SelectedCarousel,
+} from "@/components/carousel-generator/InstagramCarouselSelector";
 import { SelectedCarouselPreview } from "@/components/carousel-generator/SelectedCarouselPreview";
 import { ThemeSelectorModal } from "@/components/carousel-generator/ThemeSelectorModal";
 import { SlideContent } from "@/components/carousel-generator/SlideContentCard";
-import { VisualVariationOptionsCard, VisualVariationOptions, defaultVisualVariations } from "@/components/carousel-generator/VisualVariationOptions";
+import {
+  VisualVariationOptionsCard,
+  VisualVariationOptions,
+  defaultVisualVariations,
+} from "@/components/carousel-generator/VisualVariationOptions";
 import { GeneratedCarouselPreview } from "@/components/carousel-generator/GeneratedCarouselPreview";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -75,40 +101,54 @@ export default function GeradorCarrosseis() {
   const [theme, setTheme] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
-  
+
   // States for generation mode
-  const [generationMode, setGenerationMode] = useState<GenerationMode>("scratch");
-  const [selectedCarousel, setSelectedCarousel] = useState<SelectedCarousel | null>(null);
+  const [generationMode, setGenerationMode] =
+    useState<GenerationMode>("scratch");
+  const [selectedCarousel, setSelectedCarousel] =
+    useState<SelectedCarousel | null>(null);
   const [isCarouselSelectorOpen, setIsCarouselSelectorOpen] = useState(false);
 
   // States for AI content generation
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [themeSuggestions, setThemeSuggestions] = useState<string[]>([]);
-  const [generatedSlideContents, setGeneratedSlideContents] = useState<SlideContent[] | null>(null);
-  
+  const [generatedSlideContents, setGeneratedSlideContents] = useState<
+    SlideContent[] | null
+  >(null);
+
   // Visual variation options state
-  const [visualVariations, setVisualVariations] = useState<VisualVariationOptions>(defaultVisualVariations);
+  const [visualVariations, setVisualVariations] =
+    useState<VisualVariationOptions>(defaultVisualVariations);
 
   // State for last generated carousel
-  const [lastGeneratedCarouselId, setLastGeneratedCarouselId] = useState<string | null>(null);
+  const [lastGeneratedCarouselId, setLastGeneratedCarouselId] = useState<
+    string | null
+  >(null);
 
   const { clients, loading: isLoadingClients } = useClients();
 
   const clientsForCombobox = useMemo(
     () => clients.map((c) => ({ id: c.id, name: c.name })),
-    [clients]
+    [clients],
   );
 
   // Get the selected client to access instagram_id
   const selectedClient = useMemo(
     () => clients.find((c) => c.id === selectedClientId),
-    [clients, selectedClientId]
+    [clients, selectedClientId],
   );
 
   // Determine if we can generate - require content when using example mode
-  const canGenerate = !!selectedClientId && !!companyId && !!user?.id &&
-    (generationMode === "scratch" || (generationMode === "fromExample" && selectedCarousel && generatedSlideContents && generatedSlideContents.length > 0));
+  const canGenerate =
+    !!selectedClientId &&
+    !!companyId &&
+    !!user?.id &&
+    (generationMode === "scratch" ||
+      (generationMode === "fromExample" &&
+        selectedCarousel &&
+        generatedSlideContents &&
+        generatedSlideContents.length > 0));
 
   // Extract reference images from selected carousel
   const referenceCarouselImages = useMemo(() => {
@@ -123,7 +163,10 @@ export default function GeradorCarrosseis() {
       if (generationMode === "fromExample") {
         if (!selectedCarousel) {
           toast.error("Selecione um carrossel de referência para continuar");
-        } else if (!generatedSlideContents || generatedSlideContents.length === 0) {
+        } else if (
+          !generatedSlideContents ||
+          generatedSlideContents.length === 0
+        ) {
           toast.error("Gere o conteúdo com IA antes de criar o carrossel");
         }
       } else {
@@ -137,15 +180,15 @@ export default function GeradorCarrosseis() {
   const handleGenerationFinished = (carouselId?: string) => {
     // Invalidate the carousel history cache to force a refetch
     queryClient.invalidateQueries({ queryKey: ["carousel-history"] });
-    
+
     // Also increment key as backup
     setHistoryKey((prev) => prev + 1);
-    
+
     // Store the generated carousel ID to display it
     if (carouselId) {
       setLastGeneratedCarouselId(carouselId);
     }
-    
+
     // Close the modal after a short delay to allow the user to see the success message
     setTimeout(() => {
       setIsModalOpen(false);
@@ -189,20 +232,28 @@ export default function GeradorCarrosseis() {
       // Get image URLs from carousel children
       const images = selectedCarousel.children
         .filter((c) => c.media_type === "IMAGE" || c.thumbnail_url)
-        .map((c) => c.media_type === "IMAGE" ? c.media_url : c.thumbnail_url!);
+        .map((c) =>
+          c.media_type === "IMAGE" ? c.media_url : c.thumbnail_url!,
+        );
 
       // Call the analyze-carousel-slides function to get theme suggestions
-      const { data, error } = await supabase.functions.invoke("analyze-carousel-slides", {
-        body: { clientId: selectedClientId, images },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "analyze-carousel-slides",
+        {
+          body: { clientId: selectedClientId, images },
+        },
+      );
 
       if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || "Falha ao analisar slides");
+      if (!data?.success)
+        throw new Error(data?.error || "Falha ao analisar slides");
 
       setThemeSuggestions(data.themeSuggestions || []);
     } catch (err: unknown) {
       console.error("Error analyzing slides:", err);
-      toast.error(err?.message || "Erro ao analisar imagens");
+      if (!handleNoApiKeyError(err)) {
+        toast.error((err as Error)?.message || "Erro ao analisar imagens");
+      }
       setIsThemeModalOpen(false);
     } finally {
       setIsAnalyzing(false);
@@ -217,21 +268,29 @@ export default function GeradorCarrosseis() {
     try {
       const images = selectedCarousel.children
         .filter((c) => c.media_type === "IMAGE" || c.thumbnail_url)
-        .map((c) => c.media_type === "IMAGE" ? c.media_url : c.thumbnail_url!);
+        .map((c) =>
+          c.media_type === "IMAGE" ? c.media_url : c.thumbnail_url!,
+        );
 
-      const { data, error } = await supabase.functions.invoke("analyze-carousel-slides", {
-        body: { clientId: selectedClientId, images, selectedTheme },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "analyze-carousel-slides",
+        {
+          body: { clientId: selectedClientId, images, selectedTheme },
+        },
+      );
 
       if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || "Falha ao gerar conteúdo");
+      if (!data?.success)
+        throw new Error(data?.error || "Falha ao gerar conteúdo");
 
       setGeneratedSlideContents(data.slideContents || []);
       setIsThemeModalOpen(false);
       toast.success("Conteúdo gerado com sucesso!");
     } catch (err: unknown) {
       console.error("Error generating content:", err);
-      toast.error(err?.message || "Erro ao gerar conteúdo");
+      if (!handleNoApiKeyError(err)) {
+        toast.error((err as Error)?.message || "Erro ao gerar conteúdo");
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -262,7 +321,9 @@ export default function GeradorCarrosseis() {
               <Layers className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Gerador de Carrossel com IA</h1>
+              <h1 className="text-2xl font-bold">
+                Gerador de Carrossel com IA
+              </h1>
               <p className="text-muted-foreground">
                 Crie carrosseis para Instagram de forma rápida e simplificada
               </p>
@@ -304,7 +365,9 @@ export default function GeradorCarrosseis() {
                       value={selectedClientId}
                       onValueChange={handleClientChange}
                       placeholder="Selecione um cliente..."
-                      className={isLoadingClients ? "opacity-50 pointer-events-none" : ""}
+                      className={
+                        isLoadingClients ? "opacity-50 pointer-events-none" : ""
+                      }
                     />
                   </div>
 
@@ -313,7 +376,9 @@ export default function GeradorCarrosseis() {
                     <Label>Modo de Geração</Label>
                     <RadioGroup
                       value={generationMode}
-                      onValueChange={(v) => handleGenerationModeChange(v as GenerationMode)}
+                      onValueChange={(v) =>
+                        handleGenerationModeChange(v as GenerationMode)
+                      }
                       className="grid grid-cols-1 sm:grid-cols-2 gap-3"
                     >
                       <Label
@@ -332,7 +397,9 @@ export default function GeradorCarrosseis() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <Wand2 className="w-4 h-4 text-muted-foreground" />
-                            <span className="font-medium text-sm">Gerar do Zero</span>
+                            <span className="font-medium text-sm">
+                              Gerar do Zero
+                            </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
                             Crie um carrossel totalmente novo com IA
@@ -352,15 +419,19 @@ export default function GeradorCarrosseis() {
                           value="fromExample"
                           id="mode-fromExample"
                           className="mt-0.5"
-                          disabled={!selectedClient?.instagram_account?.instagram_id}
+                          disabled={
+                            !selectedClient?.instagram_account?.instagram_id
+                          }
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <Copy className="w-4 h-4 text-muted-foreground" />
-                            <span className="font-medium text-sm">Gerar a Partir de Exemplo</span>
+                            <span className="font-medium text-sm">
+                              Gerar a Partir de Exemplo
+                            </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {selectedClient?.instagram_account?.instagram_id 
+                            {selectedClient?.instagram_account?.instagram_id
                               ? "Use um carrossel existente do Instagram como referência"
                               : "Cliente sem Instagram configurado"}
                           </p>
@@ -375,7 +446,9 @@ export default function GeradorCarrosseis() {
                       <Label>Tipo de Carrossel</Label>
                       <RadioGroup
                         value={carouselType}
-                        onValueChange={(v) => setCarouselType(v as CarouselType)}
+                        onValueChange={(v) =>
+                          setCarouselType(v as CarouselType)
+                        }
                         className="grid grid-cols-1 sm:grid-cols-2 gap-3"
                       >
                         {CAROUSEL_TYPES.map((type) => {
@@ -398,7 +471,9 @@ export default function GeradorCarrosseis() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <Icon className="w-4 h-4 text-muted-foreground" />
-                                  <span className="font-medium text-sm">{type.label}</span>
+                                  <span className="font-medium text-sm">
+                                    {type.label}
+                                  </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
                                   {type.description}
@@ -412,43 +487,48 @@ export default function GeradorCarrosseis() {
                   )}
 
                   {/* Instagram Carousel Selector - Shows when mode is fromExample */}
-                  {generationMode === "fromExample" && selectedClient?.instagram_account?.instagram_id && (
-                    <div className="space-y-2">
-                      <Label>Carrossel de Referência *</Label>
-                      {selectedCarousel ? (
-                        <SelectedCarouselPreview
-                          carousel={selectedCarousel}
-                          onChangeClick={() => setIsCarouselSelectorOpen(true)}
-                          onRemove={() => {
-                            setSelectedCarousel(null);
-                            setGeneratedSlideContents(null);
-                          }}
-                          slideContents={generatedSlideContents}
-                          onSlideContentChange={handleSlideContentChange}
-                          onGenerateContentClick={handleGenerateContentClick}
-                          isAnalyzing={isAnalyzing}
-                        />
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full justify-start gap-2 h-auto py-3"
-                          onClick={() => setIsCarouselSelectorOpen(true)}
-                        >
-                          <Instagram className="w-4 h-4" />
-                          Selecionar Carrossel do Instagram
-                        </Button>
-                      )}
-                    </div>
-                  )}
+                  {generationMode === "fromExample" &&
+                    selectedClient?.instagram_account?.instagram_id && (
+                      <div className="space-y-2">
+                        <Label>Carrossel de Referência *</Label>
+                        {selectedCarousel ? (
+                          <SelectedCarouselPreview
+                            carousel={selectedCarousel}
+                            onChangeClick={() =>
+                              setIsCarouselSelectorOpen(true)
+                            }
+                            onRemove={() => {
+                              setSelectedCarousel(null);
+                              setGeneratedSlideContents(null);
+                            }}
+                            slideContents={generatedSlideContents}
+                            onSlideContentChange={handleSlideContentChange}
+                            onGenerateContentClick={handleGenerateContentClick}
+                            isAnalyzing={isAnalyzing}
+                          />
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full justify-start gap-2 h-auto py-3"
+                            onClick={() => setIsCarouselSelectorOpen(true)}
+                          >
+                            <Instagram className="w-4 h-4" />
+                            Selecionar Carrossel do Instagram
+                          </Button>
+                        )}
+                      </div>
+                    )}
 
                   {/* Visual Variation Options - Shows after content is generated in fromExample mode */}
-                  {generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0 && (
-                    <VisualVariationOptionsCard
-                      options={visualVariations}
-                      onChange={setVisualVariations}
-                    />
-                  )}
+                  {generationMode === "fromExample" &&
+                    generatedSlideContents &&
+                    generatedSlideContents.length > 0 && (
+                      <VisualVariationOptionsCard
+                        options={visualVariations}
+                        onChange={setVisualVariations}
+                      />
+                    )}
 
                   {/* Slides Count - HIDDEN when using example mode */}
                   {generationMode === "scratch" && (
@@ -483,7 +563,8 @@ export default function GeradorCarrosseis() {
                       className="min-h-[80px] resize-none"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Deixe em branco para a IA escolher o tema baseado no briefing do cliente
+                      Deixe em branco para a IA escolher o tema baseado no
+                      briefing do cliente
                     </p>
                   </div>
 
@@ -520,22 +601,31 @@ export default function GeradorCarrosseis() {
                     <div className="space-y-4">
                       <div className="flex gap-3">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">1</span>
+                          <span className="text-sm font-semibold text-primary">
+                            1
+                          </span>
                         </div>
                         <div>
-                          <p className="font-medium text-sm">Análise do Briefing</p>
+                          <p className="font-medium text-sm">
+                            Análise do Briefing
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            A IA analisa o briefing do cliente para entender o negócio
+                            A IA analisa o briefing do cliente para entender o
+                            negócio
                           </p>
                         </div>
                       </div>
 
                       <div className="flex gap-3">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">2</span>
+                          <span className="text-sm font-semibold text-primary">
+                            2
+                          </span>
                         </div>
                         <div>
-                          <p className="font-medium text-sm">Criação do Conteúdo</p>
+                          <p className="font-medium text-sm">
+                            Criação do Conteúdo
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Headlines e textos são criados para cada slide
                           </p>
@@ -544,10 +634,14 @@ export default function GeradorCarrosseis() {
 
                       <div className="flex gap-3">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">3</span>
+                          <span className="text-sm font-semibold text-primary">
+                            3
+                          </span>
                         </div>
                         <div>
-                          <p className="font-medium text-sm">Geração das Imagens</p>
+                          <p className="font-medium text-sm">
+                            Geração das Imagens
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Cada slide é renderizado com design profissional
                           </p>
@@ -556,10 +650,14 @@ export default function GeradorCarrosseis() {
 
                       <div className="flex gap-3">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">4</span>
+                          <span className="text-sm font-semibold text-primary">
+                            4
+                          </span>
                         </div>
                         <div>
-                          <p className="font-medium text-sm">Pronto para Publicar</p>
+                          <p className="font-medium text-sm">
+                            Pronto para Publicar
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Baixe, agende ou publique diretamente
                           </p>
@@ -571,9 +669,9 @@ export default function GeradorCarrosseis() {
                       <div className="p-4 rounded-lg bg-muted/50">
                         <p className="text-sm font-medium mb-2">💡 Dica</p>
                         <p className="text-xs text-muted-foreground">
-                          Carrosseis com 6-8 slides têm melhor performance. 
-                          Escolha o tipo que melhor se adequa ao objetivo: 
-                          tutoriais para educar, comparações para converter, 
+                          Carrosseis com 6-8 slides têm melhor performance.
+                          Escolha o tipo que melhor se adequa ao objetivo:
+                          tutoriais para educar, comparações para converter,
                           bastidores para humanizar.
                         </p>
                       </div>
@@ -598,12 +696,20 @@ export default function GeradorCarrosseis() {
             companyId={companyId}
             userId={user.id}
             // Only pass carouselType when generating from scratch
-            carouselType={generationMode === "scratch" ? carouselType : undefined}
+            carouselType={
+              generationMode === "scratch" ? carouselType : undefined
+            }
             // Only pass references and pre-generated slides when generating from example
-            referenceCarouselImages={generationMode === "fromExample" ? referenceCarouselImages : undefined}
+            referenceCarouselImages={
+              generationMode === "fromExample"
+                ? referenceCarouselImages
+                : undefined
+            }
             preGeneratedSlides={
-              generationMode === "fromExample" && generatedSlideContents && generatedSlideContents.length > 0
-                ? generatedSlideContents.map(s => ({
+              generationMode === "fromExample" &&
+              generatedSlideContents &&
+              generatedSlideContents.length > 0
+                ? generatedSlideContents.map((s) => ({
                     slideNumber: s.slideNumber,
                     type: s.type,
                     headline: s.headline,
@@ -613,7 +719,9 @@ export default function GeradorCarrosseis() {
                   }))
                 : undefined
             }
-            visualVariations={generationMode === "fromExample" ? visualVariations : undefined}
+            visualVariations={
+              generationMode === "fromExample" ? visualVariations : undefined
+            }
             onFinished={handleGenerationFinished}
           />
         )}

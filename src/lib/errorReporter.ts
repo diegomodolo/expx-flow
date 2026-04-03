@@ -52,6 +52,8 @@ function isIgnoredError(message: string): boolean {
     "Failed to fetch",
     "Failed to send a request to the Edge Function",
     "FunctionsFetchError",
+    "NO_API_KEY",
+    "Chave OpenRouter não configurada",
     "Load failed",
     "NetworkError",
     "AbortError",

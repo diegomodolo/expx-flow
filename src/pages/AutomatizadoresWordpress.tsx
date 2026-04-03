@@ -45,6 +45,7 @@ import { ManageWordpressSitesDialog } from "@/components/wordpress/ManageWordpre
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -149,7 +150,9 @@ export default function AutomatizadoresWordpress() {
     },
     onError: (error: unknown) => {
       console.error("Error creating config:", error);
-      toast.error("Erro ao criar automação");
+      if (!handleNoApiKeyError(error)) {
+        toast.error("Erro ao criar automação");
+      }
     },
   });
 

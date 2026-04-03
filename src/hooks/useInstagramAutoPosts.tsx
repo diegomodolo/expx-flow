@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 interface InstagramAutoPostConfig {
   id: string;
@@ -29,7 +30,7 @@ interface InstagramAutoPost {
   company_id: string;
   image_url: string;
   caption: string;
-  status: 'pending' | 'publishing' | 'published' | 'failed';
+  status: "pending" | "publishing" | "published" | "failed";
   scheduled_at: string;
   published_at: string | null;
   instagram_media_id: string | null;
@@ -41,19 +42,23 @@ export function useInstagramAutoPostConfig(clientId: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: config, isLoading, error } = useQuery({
-    queryKey: ['instagram-auto-post-config', clientId],
+  const {
+    data: config,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["instagram-auto-post-config", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('instagram_auto_post_configs')
-        .select('*')
-        .eq('client_id', clientId)
+        .from("instagram_auto_post_configs")
+        .select("*")
+        .eq("client_id", clientId)
         .maybeSingle();
 
       if (error) throw error;
       return data as InstagramAutoPostConfig | null;
     },
-    enabled: !!clientId
+    enabled: !!clientId,
   });
 
   const createConfigMutation = useMutation({
@@ -70,11 +75,11 @@ export function useInstagramAutoPostConfig(clientId: string) {
     }) => {
       // First create the config
       const { data, error } = await supabase
-        .from('instagram_auto_post_configs')
+        .from("instagram_auto_post_configs")
         .insert({
           client_id: clientId,
           ...configData,
-          is_enabled: true
+          is_enabled: true,
         })
         .select()
         .single();
@@ -82,44 +87,53 @@ export function useInstagramAutoPostConfig(clientId: string) {
       if (error) throw error;
 
       // Then generate the first post
-      const { error: generateError } = await supabase.functions.invoke('generate-instagram-auto-post', {
-        body: {
-          configId: data.id,
-          clientId: clientId,
-          companyId: configData.company_id
-        }
-      });
+      const { error: generateError } = await supabase.functions.invoke(
+        "generate-instagram-auto-post",
+        {
+          body: {
+            configId: data.id,
+            clientId: clientId,
+            companyId: configData.company_id,
+          },
+        },
+      );
 
       if (generateError) {
-        console.error('Error generating first post:', generateError);
+        console.error("Error generating first post:", generateError);
         // Don't throw - config was created successfully
       }
 
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-post-config', clientId] });
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-post-config", clientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
+      });
       toast({
-        title: 'Configuração criada!',
-        description: 'Postagens automáticas ativadas. Gerando primeiro post...',
+        title: "Configuração criada!",
+        description: "Postagens automáticas ativadas. Gerando primeiro post...",
       });
     },
     onError: (error: unknown) => {
-      toast({
-        title: 'Erro ao criar configuração',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao criar configuração",
+          description: (error as Error).message,
+          variant: "destructive",
+        });
+      }
+    },
   });
 
   const updateConfigMutation = useMutation({
     mutationFn: async (updates: Partial<InstagramAutoPostConfig>) => {
       const { data, error } = await supabase
-        .from('instagram_auto_post_configs')
+        .from("instagram_auto_post_configs")
         .update(updates)
-        .eq('client_id', clientId)
+        .eq("client_id", clientId)
         .select()
         .single();
 
@@ -127,44 +141,50 @@ export function useInstagramAutoPostConfig(clientId: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-post-config', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-post-config", clientId],
+      });
       toast({
-        title: 'Configuração atualizada!',
+        title: "Configuração atualizada!",
       });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao atualizar',
+        title: "Erro ao atualizar",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const deleteConfigMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from('instagram_auto_post_configs')
+        .from("instagram_auto_post_configs")
         .delete()
-        .eq('client_id', clientId);
+        .eq("client_id", clientId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-post-config', clientId] });
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-post-config", clientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
+      });
       toast({
-        title: 'Configuração removida',
-        description: 'Postagens automáticas desativadas.',
+        title: "Configuração removida",
+        description: "Postagens automáticas desativadas.",
       });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao remover',
+        title: "Erro ao remover",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
-    }
+    },
   });
 
   return {
@@ -176,7 +196,7 @@ export function useInstagramAutoPostConfig(clientId: string) {
     deleteConfig: deleteConfigMutation.mutate,
     isCreating: createConfigMutation.isPending,
     isUpdating: updateConfigMutation.isPending,
-    isDeleting: deleteConfigMutation.isPending
+    isDeleting: deleteConfigMutation.isPending,
   };
 }
 
@@ -184,178 +204,235 @@ export function useInstagramAutoPosts(clientId: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: posts, isLoading, error } = useQuery({
-    queryKey: ['instagram-auto-posts', clientId],
+  const {
+    data: posts,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["instagram-auto-posts", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('instagram_auto_posts')
-        .select('*')
-        .eq('client_id', clientId)
-        .order('scheduled_at', { ascending: true })
+        .from("instagram_auto_posts")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("scheduled_at", { ascending: true })
         .limit(100);
 
       if (error) throw error;
       return data as InstagramAutoPost[];
     },
-    enabled: !!clientId
+    enabled: !!clientId,
   });
 
   // Get all pending posts sorted by scheduled_at
-  const pendingPosts = posts?.filter(p => p.status === 'pending').sort((a, b) => 
-    new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
-  ) || [];
-  
+  const pendingPosts =
+    posts
+      ?.filter((p) => p.status === "pending")
+      .sort(
+        (a, b) =>
+          new Date(a.scheduled_at).getTime() -
+          new Date(b.scheduled_at).getTime(),
+      ) || [];
+
   const nextPost = pendingPosts[0] || null;
-  const publishedPosts = posts?.filter(p => p.status === 'published').sort((a, b) => 
-    new Date(b.published_at || b.scheduled_at).getTime() - new Date(a.published_at || a.scheduled_at).getTime()
-  ) || [];
+  const publishedPosts =
+    posts
+      ?.filter((p) => p.status === "published")
+      .sort(
+        (a, b) =>
+          new Date(b.published_at || b.scheduled_at).getTime() -
+          new Date(a.published_at || a.scheduled_at).getTime(),
+      ) || [];
 
   const regeneratePostMutation = useMutation({
-    mutationFn: async ({ configId, postId }: { configId: string; postId: string }) => {
+    mutationFn: async ({
+      configId,
+      postId,
+    }: {
+      configId: string;
+      postId: string;
+    }) => {
       // Delete the specific pending post
-      await supabase
-        .from('instagram_auto_posts')
-        .delete()
-        .eq('id', postId);
+      await supabase.from("instagram_auto_posts").delete().eq("id", postId);
 
       // Get company_id from config
       const { data: config } = await supabase
-        .from('instagram_auto_post_configs')
-        .select('company_id')
-        .eq('id', configId)
+        .from("instagram_auto_post_configs")
+        .select("company_id")
+        .eq("id", configId)
         .single();
 
       // Generate new post for the same slot
-      const { error } = await supabase.functions.invoke('generate-instagram-auto-post', {
-        body: {
-          configId,
-          clientId,
-          companyId: config?.company_id
-        }
-      });
+      const { error } = await supabase.functions.invoke(
+        "generate-instagram-auto-post",
+        {
+          body: {
+            configId,
+            clientId,
+            companyId: config?.company_id,
+          },
+        },
+      );
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
+      });
       toast({
-        title: 'Post regenerado!',
-        description: 'Novo post gerado com sucesso.',
+        title: "Post regenerado!",
+        description: "Novo post gerado com sucesso.",
       });
     },
     onError: (error: unknown) => {
-      toast({
-        title: 'Erro ao regenerar',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao regenerar",
+          description: (error as Error).message,
+          variant: "destructive",
+        });
+      }
+    },
   });
 
   // Generate next post for the next available slot
   const generateNextPostMutation = useMutation({
-    mutationFn: async ({ configId, companyId }: { configId: string; companyId: string }) => {
-      const { error } = await supabase.functions.invoke('generate-instagram-auto-post', {
-        body: {
-          configId,
-          clientId,
-          companyId
-        }
-      });
+    mutationFn: async ({
+      configId,
+      companyId,
+    }: {
+      configId: string;
+      companyId: string;
+    }) => {
+      const { error } = await supabase.functions.invoke(
+        "generate-instagram-auto-post",
+        {
+          body: {
+            configId,
+            clientId,
+            companyId,
+          },
+        },
+      );
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
+      });
       toast({
-        title: 'Post gerado!',
-        description: 'Nova postagem gerada para o próximo horário.',
+        title: "Post gerado!",
+        description: "Nova postagem gerada para o próximo horário.",
       });
     },
     onError: (error: unknown) => {
-      toast({
-        title: 'Erro ao gerar post',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao gerar post",
+          description: (error as Error).message,
+          variant: "destructive",
+        });
+      }
+    },
   });
 
   // Delete a pending post
   const deletePostMutation = useMutation({
     mutationFn: async (postId: string) => {
       const { error } = await supabase
-        .from('instagram_auto_posts')
+        .from("instagram_auto_posts")
         .delete()
-        .eq('id', postId);
+        .eq("id", postId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
+      });
       toast({
-        title: 'Post removido',
+        title: "Post removido",
       });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao remover',
+        title: "Erro ao remover",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const updateCaptionMutation = useMutation({
-    mutationFn: async ({ postId, caption }: { postId: string; caption: string }) => {
+    mutationFn: async ({
+      postId,
+      caption,
+    }: {
+      postId: string;
+      caption: string;
+    }) => {
       const { error } = await supabase
-        .from('instagram_auto_posts')
+        .from("instagram_auto_posts")
         .update({ caption })
-        .eq('id', postId);
+        .eq("id", postId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
+      });
       toast({
-        title: 'Legenda atualizada!',
+        title: "Legenda atualizada!",
       });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao atualizar legenda',
+        title: "Erro ao atualizar legenda",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
-    }
+    },
   });
 
   // Publish a post immediately
   const publishNowMutation = useMutation({
     mutationFn: async (postId: string) => {
-      const { data, error } = await supabase.functions.invoke('publish-instagram-auto-post', {
-        body: { postId }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "publish-instagram-auto-post",
+        {
+          body: { postId },
+        },
+      );
 
       if (error) throw error;
-      if (data && !data.success) throw new Error(data.error || 'Erro ao publicar');
+      if (data && !data.success)
+        throw new Error(data.error || "Erro ao publicar");
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
+      });
       toast({
-        title: 'Post publicado!',
-        description: 'O post foi publicado no Instagram com sucesso.',
+        title: "Post publicado!",
+        description: "O post foi publicado no Instagram com sucesso.",
       });
     },
     onError: (error: unknown) => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
-      toast({
-        title: 'Erro ao publicar',
-        description: error.message,
-        variant: 'destructive',
+      queryClient.invalidateQueries({
+        queryKey: ["instagram-auto-posts", clientId],
       });
-    }
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao publicar",
+          description: (error as Error).message,
+          variant: "destructive",
+        });
+      }
+    },
   });
 
   return {
@@ -374,6 +451,6 @@ export function useInstagramAutoPosts(clientId: string) {
     isGeneratingNext: generateNextPostMutation.isPending,
     isDeleting: deletePostMutation.isPending,
     isUpdatingCaption: updateCaptionMutation.isPending,
-    isPublishing: publishNowMutation.isPending
+    isPublishing: publishNowMutation.isPending,
   };
 }

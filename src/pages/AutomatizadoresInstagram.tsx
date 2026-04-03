@@ -3,11 +3,24 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,24 +28,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Instagram, Plus, ArrowLeft, Loader2, Settings, Clock, Calendar, MessageSquare } from "lucide-react";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
+import {
+  Instagram,
+  Plus,
+  ArrowLeft,
+  Loader2,
+  Settings,
+  Clock,
+  Calendar,
+  MessageSquare,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { InstagramKeywordAutomation } from "@/components/instagram/InstagramKeywordAutomation";
 
 const DAYS_OF_WEEK = [
-  { value: 0, label: 'Dom' },
-  { value: 1, label: 'Seg' },
-  { value: 2, label: 'Ter' },
-  { value: 3, label: 'Qua' },
-  { value: 4, label: 'Qui' },
-  { value: 5, label: 'Sex' },
-  { value: 6, label: 'Sáb' },
+  { value: 0, label: "Dom" },
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sáb" },
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => ({
   value: i,
-  label: `${String(i).padStart(2, '0')}:00`
+  label: `${String(i).padStart(2, "0")}:00`,
 }));
 
 export default function AutomatizadoresInstagram() {
@@ -51,55 +74,57 @@ export default function AutomatizadoresInstagram() {
 
   // Fetch all instagram automations for this company
   const { data: automations, isLoading } = useQuery({
-    queryKey: ['instagram-automations', activeCompany?.company_id],
+    queryKey: ["instagram-automations", activeCompany?.company_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('instagram_auto_post_configs')
-        .select(`
+        .from("instagram_auto_post_configs")
+        .select(
+          `
           *,
           instagram_accounts!instagram_auto_post_configs_instagram_account_id_fkey (
             id,
             username,
             profile_picture_url
           )
-        `)
-        .eq('company_id', activeCompany?.company_id ?? '')
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .eq("company_id", activeCompany?.company_id ?? "")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!activeCompany?.company_id
+    enabled: !!activeCompany?.company_id,
   });
 
   // Fetch all instagram accounts for this company
   const { data: instagramAccounts } = useQuery({
-    queryKey: ['company-instagram-accounts', activeCompany?.company_id],
+    queryKey: ["company-instagram-accounts", activeCompany?.company_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('instagram_accounts')
-        .select('id, username')
-        .eq('company_id', activeCompany?.company_id ?? '');
+        .from("instagram_accounts")
+        .select("id, username")
+        .eq("company_id", activeCompany?.company_id ?? "");
 
       if (error) throw error;
       return data;
     },
-    enabled: !!activeCompany?.company_id
+    enabled: !!activeCompany?.company_id,
   });
 
   const createAutomationMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
-        .from('instagram_auto_post_configs')
+        .from("instagram_auto_post_configs")
         .insert({
           name,
           instagram_account_id: selectedAccount,
           post_briefing: briefing,
           scheduled_days: selectedDays,
           scheduled_hours: selectedHours,
-          company_id: activeCompany?.company_id ?? '',
-          created_by: user?.id ?? '',
-          is_enabled: true
+          company_id: activeCompany?.company_id ?? "",
+          created_by: user?.id ?? "",
+          is_enabled: true,
         })
         .select()
         .single();
@@ -107,32 +132,34 @@ export default function AutomatizadoresInstagram() {
       if (error) throw error;
 
       // Generate first post
-      await supabase.functions.invoke('generate-instagram-auto-post', {
+      await supabase.functions.invoke("generate-instagram-auto-post", {
         body: {
           configId: data.id,
-          companyId: activeCompany?.company_id
-        }
+          companyId: activeCompany?.company_id,
+        },
       });
 
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['instagram-automations'] });
+      queryClient.invalidateQueries({ queryKey: ["instagram-automations"] });
       toast({
-        title: 'Automação criada!',
-        description: 'Gerando o primeiro post...',
+        title: "Automação criada!",
+        description: "Gerando o primeiro post...",
       });
       setIsCreateOpen(false);
       resetForm();
       navigate(`/automatizadores/instagram/${data.id}`);
     },
     onError: (error: unknown) => {
-      toast({
-        title: 'Erro ao criar automação',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao criar automação",
+          description: (error as Error).message,
+          variant: "destructive",
+        });
+      }
+    },
   });
 
   const resetForm = () => {
@@ -144,18 +171,18 @@ export default function AutomatizadoresInstagram() {
   };
 
   const handleDayToggle = (day: number) => {
-    setSelectedDays(prev => 
-      prev.includes(day) 
-        ? prev.filter(d => d !== day)
-        : [...prev, day].sort((a, b) => a - b)
+    setSelectedDays((prev) =>
+      prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day].sort((a, b) => a - b),
     );
   };
 
   const handleHourToggle = (hour: number) => {
-    setSelectedHours(prev => 
-      prev.includes(hour) 
-        ? prev.filter(h => h !== hour)
-        : [...prev, hour].sort((a, b) => a - b)
+    setSelectedHours((prev) =>
+      prev.includes(hour)
+        ? prev.filter((h) => h !== hour)
+        : [...prev, hour].sort((a, b) => a - b),
     );
   };
 
@@ -164,7 +191,11 @@ export default function AutomatizadoresInstagram() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/automatizadores')}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/automatizadores")}
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
@@ -173,7 +204,9 @@ export default function AutomatizadoresInstagram() {
                 <Instagram className="w-6 h-6" />
                 Automatizadores Instagram
               </h1>
-              <p className="text-muted-foreground">Gerencie suas automações do Instagram</p>
+              <p className="text-muted-foreground">
+                Gerencie suas automações do Instagram
+              </p>
             </div>
           </div>
         </div>
@@ -205,14 +238,20 @@ export default function AutomatizadoresInstagram() {
                   <Card
                     key={automation.id}
                     className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(`/automatizadores/instagram/${automation.id}`)}
+                    onClick={() =>
+                      navigate(`/automatizadores/instagram/${automation.id}`)
+                    }
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {automation.instagram_accounts?.profile_picture_url ? (
+                          {automation.instagram_accounts
+                            ?.profile_picture_url ? (
                             <img
-                              src={automation.instagram_accounts.profile_picture_url}
+                              src={
+                                automation.instagram_accounts
+                                  .profile_picture_url
+                              }
                               alt=""
                               className="w-10 h-10 rounded-full"
                             />
@@ -223,16 +262,22 @@ export default function AutomatizadoresInstagram() {
                           )}
                           <div>
                             <CardTitle className="text-base">
-                              {automation.name || `@${automation.instagram_accounts?.username}`}
+                              {automation.name ||
+                                `@${automation.instagram_accounts?.username}`}
                             </CardTitle>
-                            {automation.name && automation.instagram_accounts?.username && (
-                              <p className="text-sm text-muted-foreground">
-                                @{automation.instagram_accounts.username}
-                              </p>
-                            )}
+                            {automation.name &&
+                              automation.instagram_accounts?.username && (
+                                <p className="text-sm text-muted-foreground">
+                                  @{automation.instagram_accounts.username}
+                                </p>
+                              )}
                           </div>
                         </div>
-                        <Badge variant={automation.is_enabled ? "default" : "secondary"}>
+                        <Badge
+                          variant={
+                            automation.is_enabled ? "default" : "secondary"
+                          }
+                        >
                           {automation.is_enabled ? "Ativo" : "Inativo"}
                         </Badge>
                       </div>
@@ -253,7 +298,12 @@ export default function AutomatizadoresInstagram() {
                       </div>
                       {automation.last_post_at && (
                         <p className="text-xs text-muted-foreground">
-                          Último post: {format(new Date(automation.last_post_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                          Último post:{" "}
+                          {format(
+                            new Date(automation.last_post_at),
+                            "dd/MM 'às' HH:mm",
+                            { locale: ptBR },
+                          )}
                         </p>
                       )}
                     </CardContent>
@@ -266,9 +316,12 @@ export default function AutomatizadoresInstagram() {
                   <div className="p-4 rounded-full bg-muted mb-4">
                     <Instagram className="w-8 h-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-medium mb-2">Nenhuma automação criada</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    Nenhuma automação criada
+                  </h3>
                   <p className="text-muted-foreground text-center mb-4">
-                    Crie sua primeira automação para começar a postar automaticamente no Instagram
+                    Crie sua primeira automação para começar a postar
+                    automaticamente no Instagram
                   </p>
                   <Button onClick={() => setIsCreateOpen(true)}>
                     <Plus className="w-4 h-4 mr-2" />
@@ -283,7 +336,6 @@ export default function AutomatizadoresInstagram() {
             <InstagramKeywordAutomation />
           </TabsContent>
         </Tabs>
-
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -309,7 +361,10 @@ export default function AutomatizadoresInstagram() {
               <div className="space-y-2">
                 <Label>Conta do Instagram</Label>
                 {instagramAccounts && instagramAccounts.length > 0 ? (
-                  <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                  <Select
+                    value={selectedAccount}
+                    onValueChange={setSelectedAccount}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a conta" />
                     </SelectTrigger>
@@ -323,7 +378,8 @@ export default function AutomatizadoresInstagram() {
                   </Select>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Nenhuma conta do Instagram vinculada. Vincule uma conta em Configurações.
+                    Nenhuma conta do Instagram vinculada. Vincule uma conta em
+                    Configurações.
                   </p>
                 )}
               </div>
@@ -343,15 +399,15 @@ export default function AutomatizadoresInstagram() {
               <div className="space-y-2">
                 <Label>Dias da Semana</Label>
                 <div className="flex flex-wrap gap-2">
-                  {DAYS_OF_WEEK.map(day => (
+                  {DAYS_OF_WEEK.map((day) => (
                     <button
                       key={day.value}
                       type="button"
                       onClick={() => handleDayToggle(day.value)}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         selectedDays.includes(day.value)
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted hover:bg-muted/80'
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
                       }`}
                     >
                       {day.label}
@@ -364,15 +420,15 @@ export default function AutomatizadoresInstagram() {
               <div className="space-y-2">
                 <Label>Horários de Publicação</Label>
                 <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
-                  {HOURS.map(hour => (
+                  {HOURS.map((hour) => (
                     <button
                       key={hour.value}
                       type="button"
                       onClick={() => handleHourToggle(hour.value)}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         selectedHours.includes(hour.value)
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted hover:bg-muted/80'
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
                       }`}
                     >
                       {hour.label}

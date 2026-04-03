@@ -5,21 +5,43 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useBackgroundImageGeneration } from "@/hooks/useBackgroundImageGeneration";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Sparkles, 
-  Loader2, 
+import {
+  Sparkles,
+  Loader2,
   Check,
   ChevronsUpDown,
   ChevronDown,
@@ -47,9 +69,9 @@ import { EditableBudgetSection } from "./editable/EditableBudgetSection";
 import { EditableScheduleSection } from "./editable/EditableScheduleSection";
 import { EditableBiddingSection } from "./editable/EditableBiddingSection";
 import { EditableAdSetsSection } from "./editable/EditableAdSetsSection";
-import { 
-  EditableStrategy, 
-  EditableAdSet, 
+import {
+  EditableStrategy,
+  EditableAdSet,
   EditableCreative,
   CAMPAIGN_OBJECTIVES,
   createDefaultCreative,
@@ -57,21 +79,58 @@ import {
 } from "./editable/types";
 
 type FunnelStage = "topo" | "meio" | "fundo" | "retencao";
-type CampaignType = "awareness" | "traffic" | "leads" | "conversions" | "remarketing" | "retention";
+type CampaignType =
+  | "awareness"
+  | "traffic"
+  | "leads"
+  | "conversions"
+  | "remarketing"
+  | "retention";
 
 const FUNNEL_STAGES = [
-  { id: "topo" as FunnelStage, label: "Topo", icon: TrendingUp, description: "Awareness" },
-  { id: "meio" as FunnelStage, label: "Meio", icon: Users, description: "Consideração" },
-  { id: "fundo" as FunnelStage, label: "Fundo", icon: Target, description: "Conversão" },
-  { id: "retencao" as FunnelStage, label: "Retenção", icon: Heart, description: "Fidelização" },
+  {
+    id: "topo" as FunnelStage,
+    label: "Topo",
+    icon: TrendingUp,
+    description: "Awareness",
+  },
+  {
+    id: "meio" as FunnelStage,
+    label: "Meio",
+    icon: Users,
+    description: "Consideração",
+  },
+  {
+    id: "fundo" as FunnelStage,
+    label: "Fundo",
+    icon: Target,
+    description: "Conversão",
+  },
+  {
+    id: "retencao" as FunnelStage,
+    label: "Retenção",
+    icon: Heart,
+    description: "Fidelização",
+  },
 ];
 
-const CAMPAIGN_TYPES: Record<CampaignType, { title: string; icon: React.ElementType; suitableFor: FunnelStage[] }> = {
+const CAMPAIGN_TYPES: Record<
+  CampaignType,
+  { title: string; icon: React.ElementType; suitableFor: FunnelStage[] }
+> = {
   awareness: { title: "Brand Awareness", icon: Zap, suitableFor: ["topo"] },
   traffic: { title: "Tráfego", icon: Target, suitableFor: ["topo", "meio"] },
   leads: { title: "Geração de Leads", icon: Users, suitableFor: ["meio"] },
-  conversions: { title: "Conversões", icon: ShoppingBag, suitableFor: ["fundo"] },
-  remarketing: { title: "Remarketing", icon: RotateCcw, suitableFor: ["meio", "fundo", "retencao"] },
+  conversions: {
+    title: "Conversões",
+    icon: ShoppingBag,
+    suitableFor: ["fundo"],
+  },
+  remarketing: {
+    title: "Remarketing",
+    icon: RotateCcw,
+    suitableFor: ["meio", "fundo", "retencao"],
+  },
   retention: { title: "Retenção", icon: Heart, suitableFor: ["retencao"] },
 };
 
@@ -100,27 +159,40 @@ interface CampaignGeneratorSimplifiedProps {
   existingCampaign?: ExistingCampaign | null;
 }
 
-export function CampaignGeneratorSimplified({ onBack, existingCampaign }: CampaignGeneratorSimplifiedProps) {
+export function CampaignGeneratorSimplified({
+  onBack,
+  existingCampaign,
+}: CampaignGeneratorSimplifiedProps) {
   const { toast } = useToast();
   const { clients } = useClients();
   const { activeCompany } = useCompany();
-  const { progress: imageProgress, generateImagesInBackground, stopGeneration } = useBackgroundImageGeneration();
+  const {
+    progress: imageProgress,
+    generateImagesInBackground,
+    stopGeneration,
+  } = useBackgroundImageGeneration();
 
   // Determine if we're in edit mode
   const isEditMode = Boolean(existingCampaign);
   const [existingCampaignId] = useState(existingCampaign?.id);
 
   // Form state - initialize from existing campaign if available
-  const [selectedClientId, setSelectedClientId] = useState<string>(existingCampaign?.client_id || "");
+  const [selectedClientId, setSelectedClientId] = useState<string>(
+    existingCampaign?.client_id || "",
+  );
   const [funnelStage, setFunnelStage] = useState<FunnelStage | "">(
-    (existingCampaign?.funnel_stage as FunnelStage) || ""
+    (existingCampaign?.funnel_stage as FunnelStage) || "",
   );
   const [campaignType, setCampaignType] = useState<CampaignType | "">(
-    (existingCampaign?.campaign_type as CampaignType) || ""
+    (existingCampaign?.campaign_type as CampaignType) || "",
   );
   const [customObjective, setCustomObjective] = useState("");
-  const [dailyBudget, setDailyBudget] = useState(existingCampaign?.configuration?.dailyBudget || 100);
-  const [duration, setDuration] = useState(existingCampaign?.configuration?.duration || 30);
+  const [dailyBudget, setDailyBudget] = useState(
+    existingCampaign?.configuration?.dailyBudget || 100,
+  );
+  const [duration, setDuration] = useState(
+    existingCampaign?.configuration?.duration || 30,
+  );
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -128,75 +200,93 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editableStrategy, setEditableStrategy] = useState<EditableStrategy | null>(() => {
-    if (existingCampaign?.configuration) {
-      const config = existingCampaign.configuration;
-      return {
-        ...config,
-        startDate: new Date(config.startDate || Date.now()),
-        endDate: config.endDate ? new Date(config.endDate) : null,
-        hasEndDate: config.hasEndDate !== false,
-        // Ensure arrays exist to prevent "length" errors
-        adSets: (config.adSets || []).map((as: unknown) => ({
-          ...as,
-          creatives: as.creatives || [],
-          interests: as.interests || [],
-          behaviors: as.behaviors || [],
-          includedAudiences: as.includedAudiences || [],
-          excludedAudiences: as.excludedAudiences || [],
-        })),
-        recommendations: config.recommendations || [],
-      };
-    }
-    return null;
-  });
+  const [editableStrategy, setEditableStrategy] =
+    useState<EditableStrategy | null>(() => {
+      if (existingCampaign?.configuration) {
+        const config = existingCampaign.configuration;
+        return {
+          ...config,
+          startDate: new Date(config.startDate || Date.now()),
+          endDate: config.endDate ? new Date(config.endDate) : null,
+          hasEndDate: config.hasEndDate !== false,
+          // Ensure arrays exist to prevent "length" errors
+          adSets: (config.adSets || []).map((as: unknown) => ({
+            ...as,
+            creatives: as.creatives || [],
+            interests: as.interests || [],
+            behaviors: as.behaviors || [],
+            includedAudiences: as.includedAudiences || [],
+            excludedAudiences: as.excludedAudiences || [],
+          })),
+          recommendations: config.recommendations || [],
+        };
+      }
+      return null;
+    });
 
   // Callback to update creative with generated image
-  const handleCreativeImageUpdate = useCallback((adSetId: string, creativeId: string, imageUrl: string) => {
-    setEditableStrategy(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        adSets: prev.adSets.map(as =>
-          as.id === adSetId
-            ? {
-                ...as,
-                creatives: as.creatives.map(c =>
-                  c.id === creativeId ? { ...c, mediaUrls: [imageUrl] } : c
-                ),
-              }
-            : as
-        ),
-      };
-    });
-  }, []);
+  const handleCreativeImageUpdate = useCallback(
+    (adSetId: string, creativeId: string, imageUrl: string) => {
+      setEditableStrategy((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          adSets: prev.adSets.map((as) =>
+            as.id === adSetId
+              ? {
+                  ...as,
+                  creatives: as.creatives.map((c) =>
+                    c.id === creativeId ? { ...c, mediaUrls: [imageUrl] } : c,
+                  ),
+                }
+              : as,
+          ),
+        };
+      });
+    },
+    [],
+  );
 
   // Start background image generation when strategy is set
   useEffect(() => {
-    if (editableStrategy && selectedClientId && !isEditMode && !imageProgress.isGenerating) {
+    if (
+      editableStrategy &&
+      selectedClientId &&
+      !isEditMode &&
+      !imageProgress.isGenerating
+    ) {
       // Small delay to let UI render first
       const timer = setTimeout(() => {
-        generateImagesInBackground(editableStrategy, selectedClientId, handleCreativeImageUpdate);
+        generateImagesInBackground(
+          editableStrategy,
+          selectedClientId,
+          handleCreativeImageUpdate,
+        );
       }, 1000);
       return () => clearTimeout(timer);
     }
   }, [editableStrategy?.adSets.length, selectedClientId, isEditMode]);
 
   // Derived state
-  const selectedClient = useMemo(() => 
-    clients?.find(c => c.id === selectedClientId), 
-    [clients, selectedClientId]
+  const selectedClient = useMemo(
+    () => clients?.find((c) => c.id === selectedClientId),
+    [clients, selectedClientId],
   );
 
-  const activeClients = useMemo(() => 
-    (clients?.filter(c => !c.is_canceled) || []).sort((a, b) => a.name.localeCompare(b.name)), 
-    [clients]
+  const activeClients = useMemo(
+    () =>
+      (clients?.filter((c) => !c.is_canceled) || []).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [clients],
   );
 
   const availableCampaignTypes = useMemo(() => {
     if (!funnelStage) return [];
     return Object.entries(CAMPAIGN_TYPES)
-      .filter(([_, type]) => type.suitableFor.includes(funnelStage as FunnelStage))
+      .filter(([_, type]) =>
+        type.suitableFor.includes(funnelStage as FunnelStage),
+      )
       .map(([id, type]) => ({ id: id as CampaignType, ...type }));
   }, [funnelStage]);
 
@@ -222,22 +312,25 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
     setEditableStrategy(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-campaign-strategy', {
-        body: {
-          client: {
-            ...selectedClient,
-            monthly_budget: dailyBudget * duration,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-campaign-strategy",
+        {
+          body: {
+            client: {
+              ...selectedClient,
+              monthly_budget: dailyBudget * duration,
+            },
+            funnelStage,
+            campaignType,
+            step: "campaign_configuration",
+            customObjective,
+            budget: {
+              daily: dailyBudget,
+              duration,
+            },
           },
-          funnelStage,
-          campaignType,
-          step: 'campaign_configuration',
-          customObjective,
-          budget: {
-            daily: dailyBudget,
-            duration,
-          }
-        }
-      });
+        },
+      );
 
       if (error) throw error;
 
@@ -245,31 +338,38 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         const config = data.configuration;
         const startDate = new Date();
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() + (config.schedule?.duration || duration));
+        endDate.setDate(
+          endDate.getDate() + (config.schedule?.duration || duration),
+        );
 
         // Parse targeting data from AI response
         const aiInterests = config.targeting?.interests || [];
-        const aiBehaviors = config.targeting?.behaviors ? 
-          (Array.isArray(config.targeting.behaviors) ? config.targeting.behaviors : [config.targeting.behaviors]) : [];
+        const aiBehaviors = config.targeting?.behaviors
+          ? Array.isArray(config.targeting.behaviors)
+            ? config.targeting.behaviors
+            : [config.targeting.behaviors]
+          : [];
 
         // Create ad sets with targeting from AI
-        const aiAdSets: EditableAdSet[] = (config.adSets || []).map((as: unknown, i: number) => ({
-          id: crypto.randomUUID(),
-          name: as.name || `Conjunto ${i + 1}`,
-          ageMin: as.ageMin || 18,
-          ageMax: as.ageMax || 65,
-          genders: as.genders || ['all'],
-          interests: as.interests || aiInterests,
-          behaviors: as.behaviors || aiBehaviors,
-          includedAudiences: [],
-          excludedAudiences: [],
-          creatives: [createDefaultCreative()],
-        }));
+        const aiAdSets: EditableAdSet[] = (config.adSets || []).map(
+          (as: unknown, i: number) => ({
+            id: crypto.randomUUID(),
+            name: as.name || `Conjunto ${i + 1}`,
+            ageMin: as.ageMin || 18,
+            ageMax: as.ageMax || 65,
+            genders: as.genders || ["all"],
+            interests: as.interests || aiInterests,
+            behaviors: as.behaviors || aiBehaviors,
+            includedAudiences: [],
+            excludedAudiences: [],
+            creatives: [createDefaultCreative()],
+          }),
+        );
 
         // Ensure at least one ad set
         if (aiAdSets.length === 0) {
           aiAdSets.push({
-            ...createDefaultAdSet('Conjunto Principal', 0),
+            ...createDefaultAdSet("Conjunto Principal", 0),
             interests: aiInterests,
             behaviors: aiBehaviors,
           });
@@ -279,29 +379,32 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         const strategy: EditableStrategy = {
           dailyBudget: config.budget?.daily || dailyBudget,
           duration: config.schedule?.duration || duration,
-          totalBudget: (config.budget?.daily || dailyBudget) * (config.schedule?.duration || duration),
+          totalBudget:
+            (config.budget?.daily || dailyBudget) *
+            (config.schedule?.duration || duration),
           startDate,
           endDate,
           hasEndDate: true, // Default to having an end date
           useOptimalHours: true,
-          optimalHours: config.schedule?.optimalHours || '9h-21h',
-          bidStrategy: 'LOWEST_COST',
+          optimalHours: config.schedule?.optimalHours || "9h-21h",
+          bidStrategy: "LOWEST_COST",
           targetCPA: config.bidding?.targetCPA,
           recommendations: config.recommendations || [],
-          estimatedReach: config.targeting?.estimatedReach || '50k-100k',
+          estimatedReach: config.targeting?.estimatedReach || "50k-100k",
           adSets: aiAdSets,
         };
 
         // Now generate creative texts using AI
         try {
-          const { data: creativesData, error: creativesError } = await supabase.functions.invoke('generate-campaign-creatives', {
-            body: {
-              client: selectedClient,
-              funnelStage,
-              campaignType,
-              configuration: config,
-            }
-          });
+          const { data: creativesData, error: creativesError } =
+            await supabase.functions.invoke("generate-campaign-creatives", {
+              body: {
+                client: selectedClient,
+                funnelStage,
+                campaignType,
+                configuration: config,
+              },
+            });
 
           if (!creativesError && creativesData?.creatives) {
             // Fill creatives with AI-generated texts
@@ -313,10 +416,25 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
                   ...adSet,
                   creatives: adSet.creatives.map((creative, idx) => ({
                     ...creative,
-                    headline: idx === 0 ? aiCreative.headline : (aiCreative.variations?.headline?.[idx - 1] || creative.headline),
-                    body: idx === 0 ? aiCreative.primaryText : (aiCreative.variations?.primaryText?.[idx - 1] || creative.body),
-                    description: idx === 0 ? aiCreative.description : (aiCreative.variations?.description?.[idx - 1] || creative.description),
-                    callToAction: aiCreative.callToAction?.toUpperCase().replace(/\s+/g, '_') || creative.callToAction,
+                    headline:
+                      idx === 0
+                        ? aiCreative.headline
+                        : aiCreative.variations?.headline?.[idx - 1] ||
+                          creative.headline,
+                    body:
+                      idx === 0
+                        ? aiCreative.primaryText
+                        : aiCreative.variations?.primaryText?.[idx - 1] ||
+                          creative.body,
+                    description:
+                      idx === 0
+                        ? aiCreative.description
+                        : aiCreative.variations?.description?.[idx - 1] ||
+                          creative.description,
+                    callToAction:
+                      aiCreative.callToAction
+                        ?.toUpperCase()
+                        .replace(/\s+/g, "_") || creative.callToAction,
                     linkUrl: selectedClient.website_url || creative.linkUrl,
                   })),
                 };
@@ -325,22 +443,28 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
             });
           }
         } catch (creativesErr) {
-          console.warn('Erro ao gerar criativos, continuando com valores padrão:', creativesErr);
+          console.warn(
+            "Erro ao gerar criativos, continuando com valores padrão:",
+            creativesErr,
+          );
         }
 
         setEditableStrategy(strategy);
         toast({
           title: "Estratégia gerada!",
-          description: "Agora você pode editar todos os campos antes de publicar.",
+          description:
+            "Agora você pode editar todos os campos antes de publicar.",
         });
       }
     } catch (error: unknown) {
-      console.error('Erro ao gerar estratégia:', error);
-      toast({
-        title: "Erro ao gerar estratégia",
-        description: error.message || "Tente novamente",
-        variant: "destructive",
-      });
+      console.error("Erro ao gerar estratégia:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao gerar estratégia",
+          description: (error as Error).message || "Tente novamente",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -348,7 +472,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
 
   const validateBeforePublish = (): string[] => {
     const errors: string[] = [];
-    
+
     if (!selectedClient?.ad_account_id) {
       errors.push("Cliente não possui conta de anúncios Meta vinculada");
     }
@@ -404,7 +528,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
 
     try {
       const campaignName = `${selectedClient.name} - ${CAMPAIGN_TYPES[campaignType]?.title || campaignType}`;
-      const objective = CAMPAIGN_OBJECTIVES[campaignType] || 'OUTCOME_TRAFFIC';
+      const objective = CAMPAIGN_OBJECTIVES[campaignType] || "OUTCOME_TRAFFIC";
 
       // Build payload for create-meta-campaign-full
       const payload = {
@@ -413,22 +537,22 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           name: campaignName,
           objective,
           daily_budget: editableStrategy.dailyBudget,
-          status: 'PAUSED' as const, // Start paused for safety
+          status: "PAUSED" as const, // Start paused for safety
         },
-        adSets: editableStrategy.adSets.map(adSet => ({
+        adSets: editableStrategy.adSets.map((adSet) => ({
           name: adSet.name,
           targeting: {
             custom_audiences: adSet.includedAudiences,
             excluded_audiences: adSet.excludedAudiences,
             age_min: adSet.ageMin,
             age_max: adSet.ageMax,
-            genders: adSet.genders.includes('all') 
-              ? undefined 
-              : adSet.genders.map(g => g === 'male' ? 1 : 2),
+            genders: adSet.genders.includes("all")
+              ? undefined
+              : adSet.genders.map((g) => (g === "male" ? 1 : 2)),
             interests: adSet.interests,
             behaviors: adSet.behaviors,
           },
-          creatives: adSet.creatives.map(creative => ({
+          creatives: adSet.creatives.map((creative) => ({
             type: creative.type,
             media_urls: creative.mediaUrls,
             body: creative.body,
@@ -441,12 +565,16 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         })),
       };
 
-      const { data, error } = await supabase.functions.invoke('create-meta-campaign-full', {
-        body: payload,
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "create-meta-campaign-full",
+        {
+          body: payload,
+        },
+      );
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Erro ao criar campanha');
+      if (!data?.success)
+        throw new Error(data?.error || "Erro ao criar campanha");
 
       toast({
         title: "Campanha publicada!",
@@ -454,7 +582,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
       });
 
       // Save to generated_campaigns
-      await supabase.from('generated_campaigns').insert({
+      await supabase.from("generated_campaigns").insert({
         client_id: selectedClientId,
         company_id: activeCompany?.company_id,
         user_id: (await supabase.auth.getUser()).data.user?.id,
@@ -462,18 +590,22 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         funnel_stage: funnelStage,
         campaign_type: campaignType,
         configuration: editableStrategy as unknown,
-        creatives: editableStrategy.adSets.flatMap(as => as.creatives) as unknown,
-        status: 'published',
+        creatives: editableStrategy.adSets.flatMap(
+          (as) => as.creatives,
+        ) as unknown,
+        status: "published",
       });
 
       onBack();
     } catch (error: unknown) {
-      console.error('Erro ao publicar:', error);
-      toast({
-        title: "Erro ao publicar",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Erro ao publicar:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao publicar",
+          description: (error as Error).message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsPublishing(false);
     }
@@ -488,15 +620,18 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
 
       if (isEditMode && existingCampaignId) {
         // Update existing campaign
-        const { error } = await supabase.from('generated_campaigns')
+        const { error } = await supabase
+          .from("generated_campaigns")
           .update({
             title: campaignName,
             funnel_stage: funnelStage,
             campaign_type: campaignType,
             configuration: editableStrategy as unknown,
-            creatives: editableStrategy.adSets.flatMap(as => as.creatives) as unknown,
+            creatives: editableStrategy.adSets.flatMap(
+              (as) => as.creatives,
+            ) as unknown,
           })
-          .eq('id', existingCampaignId);
+          .eq("id", existingCampaignId);
 
         if (error) throw error;
 
@@ -506,7 +641,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         });
       } else {
         // Create new campaign
-        const { error } = await supabase.from('generated_campaigns').insert({
+        const { error } = await supabase.from("generated_campaigns").insert({
           client_id: selectedClientId,
           company_id: activeCompany?.company_id,
           user_id: (await supabase.auth.getUser()).data.user?.id,
@@ -514,8 +649,10 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           funnel_stage: funnelStage,
           campaign_type: campaignType,
           configuration: editableStrategy as unknown,
-          creatives: editableStrategy.adSets.flatMap(as => as.creatives) as unknown,
-          status: 'draft',
+          creatives: editableStrategy.adSets.flatMap(
+            (as) => as.creatives,
+          ) as unknown,
+          status: "draft",
         });
 
         if (error) throw error;
@@ -525,7 +662,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           description: "A campanha foi salva como rascunho.",
         });
       }
-      
+
       onBack();
     } catch (error: unknown) {
       toast({
@@ -547,7 +684,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            {isEditMode ? 'Editar Campanha' : 'Nova Campanha'}
+            {isEditMode ? "Editar Campanha" : "Nova Campanha"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -573,7 +710,9 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
                       <span>{selectedClient.name}</span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">Selecione um cliente...</span>
+                    <span className="text-muted-foreground">
+                      Selecione um cliente...
+                    </span>
                   )}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -594,7 +733,9 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
                               setClientSearchOpen(false);
                               setEditableStrategy(null);
                               if (client.monthly_budget) {
-                                setDailyBudget(Math.round(client.monthly_budget / 30));
+                                setDailyBudget(
+                                  Math.round(client.monthly_budget / 30),
+                                );
                               }
                             }}
                           >
@@ -607,7 +748,9 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
                               </Avatar>
                               <div className="flex flex-col">
                                 <span className="text-sm">{client.name}</span>
-                                <span className="text-xs text-muted-foreground">{client.sector}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {client.sector}
+                                </span>
                               </div>
                             </div>
                             {selectedClientId === client.id && (
@@ -661,7 +804,13 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
               disabled={!funnelStage}
             >
               <SelectTrigger>
-                <SelectValue placeholder={funnelStage ? "Selecione o tipo..." : "Selecione a etapa do funil primeiro"} />
+                <SelectValue
+                  placeholder={
+                    funnelStage
+                      ? "Selecione o tipo..."
+                      : "Selecione a etapa do funil primeiro"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {availableCampaignTypes.map((type) => {
@@ -682,12 +831,18 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           {/* Advanced Options */}
           <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-between"
+              >
                 <span className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Configurações Avançadas
                 </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+                />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-4">
@@ -742,8 +897,12 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
 
               <div className="p-3 bg-muted rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Orçamento Total Estimado</span>
-                  <span className="font-semibold">R$ {(dailyBudget * duration).toLocaleString('pt-BR')}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Orçamento Total Estimado
+                  </span>
+                  <span className="font-semibold">
+                    R$ {(dailyBudget * duration).toLocaleString("pt-BR")}
+                  </span>
                 </div>
               </div>
             </CollapsibleContent>
@@ -779,26 +938,38 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
             <div className="flex items-center gap-2">
               <Check className="w-5 h-5 text-green-500" />
               <span className="font-medium">
-                {isEditMode ? 'Editando Campanha' : 'Estratégia Gerada'}
+                {isEditMode ? "Editando Campanha" : "Estratégia Gerada"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               {!isEditMode && (
-                <Button variant="outline" size="sm" onClick={handleGenerate} disabled={isGenerating}>
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${isGenerating ? "animate-spin" : ""}`}
+                  />
                   Regenerar
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Save className="w-4 h-4 mr-2" />
                 )}
-                {isEditMode ? 'Salvar Alterações' : 'Salvar Rascunho'}
+                {isEditMode ? "Salvar Alterações" : "Salvar Rascunho"}
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={handlePublishToMeta}
                 disabled={isPublishing || validationErrors.length > 0}
               >

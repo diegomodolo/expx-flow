@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { Loader2, Copy, Save, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { ContentType } from "./ContentTypes";
 import { GenerationData } from "./ContentModal";
@@ -19,12 +20,12 @@ interface ResultStepProps {
   onContentGenerated: (content: string) => void;
 }
 
-export function ResultStep({ 
-  contentType, 
-  data, 
-  isGenerating, 
-  setIsGenerating, 
-  onContentGenerated 
+export function ResultStep({
+  contentType,
+  data,
+  isGenerating,
+  setIsGenerating,
+  onContentGenerated,
 }: ResultStepProps) {
   const [editedContent, setEditedContent] = useState("");
   const { user } = useAuth();
@@ -48,24 +49,29 @@ export function ResultStep({
     }
 
     setIsGenerating(true);
-    
+
     try {
-      const { data: result, error } = await supabase.functions.invoke('generate-content-ai', {
-        body: {
-          contentType: contentType.id,
-          clientId: data.clientId,
-          theme: data.theme,
-          companyId: activeCompany.company_id
-        }
-      });
+      const { data: result, error } = await supabase.functions.invoke(
+        "generate-content-ai",
+        {
+          body: {
+            contentType: contentType.id,
+            clientId: data.clientId,
+            theme: data.theme,
+            companyId: activeCompany.company_id,
+          },
+        },
+      );
 
       if (error) {
-        console.error('Error generating content:', error);
-        toast({
-          title: "Erro ao gerar conteúdo",
-          description: "Tente novamente em alguns segundos.",
-          variant: "destructive",
-        });
+        console.error("Error generating content:", error);
+        if (!handleNoApiKeyError(error)) {
+          toast({
+            title: "Erro ao gerar conteúdo",
+            description: "Tente novamente em alguns segundos.",
+            variant: "destructive",
+          });
+        }
         return;
       }
 
@@ -79,12 +85,14 @@ export function ResultStep({
         throw new Error("Nenhum conteúdo foi retornado");
       }
     } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Erro ao gerar conteúdo",
-        description: "Verifique sua conexão e tente novamente.",
-        variant: "destructive",
-      });
+      console.error("Error:", error);
+      if (!handleNoApiKeyError(error)) {
+        toast({
+          title: "Erro ao gerar conteúdo",
+          description: "Verifique sua conexão e tente novamente.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -117,20 +125,18 @@ export function ResultStep({
     }
 
     try {
-      const { error } = await supabase
-        .from('content_generations')
-        .insert({
-          user_id: user.id,
-          company_id: activeCompany.company_id,
-          client_id: data.clientId,
-          content_type: contentType.id,
-          theme: data.theme,
-          generated_content: editedContent,
-          status: 'saved'
-        });
+      const { error } = await supabase.from("content_generations").insert({
+        user_id: user.id,
+        company_id: activeCompany.company_id,
+        client_id: data.clientId,
+        content_type: contentType.id,
+        theme: data.theme,
+        generated_content: editedContent,
+        status: "saved",
+      });
 
       if (error) {
-        console.error('Error saving content:', error);
+        console.error("Error saving content:", error);
         toast({
           title: "Erro ao salvar",
           description: "Não foi possível salvar o conteúdo.",
@@ -144,7 +150,7 @@ export function ResultStep({
         description: "O conteúdo foi salvo como rascunho.",
       });
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       toast({
         title: "Erro ao salvar",
         description: "Verifique sua conexão e tente novamente.",
@@ -166,7 +172,8 @@ export function ResultStep({
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <h3 className="text-lg font-semibold mb-2">Gerando conteúdo...</h3>
           <p className="text-muted-foreground text-center">
-            Nossa IA está criando conteúdo personalizado baseado no cliente e tema selecionados.
+            Nossa IA está criando conteúdo personalizado baseado no cliente e
+            tema selecionados.
           </p>
         </CardContent>
       </Card>
@@ -218,12 +225,12 @@ export function ResultStep({
               <Copy className="w-4 h-4 mr-2" />
               Copiar
             </Button>
-            
+
             <Button onClick={handleSave} variant="outline">
               <Save className="w-4 h-4 mr-2" />
               Salvar como Rascunho
             </Button>
-            
+
             <Button variant="outline" disabled>
               <Plus className="w-4 h-4 mr-2" />
               Adicionar à Campanha
