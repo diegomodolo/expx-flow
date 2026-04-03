@@ -37,7 +37,7 @@ const PAGE_SIZE = 30;
 
 export function useWhatsAppAIChatMessages(
   conversationId: string | undefined,
-  companyId: string | undefined
+  companyId: string | undefined,
 ) {
   const queryClient = useQueryClient();
   const [hasMore, setHasMore] = useState(true);
@@ -49,13 +49,13 @@ export function useWhatsAppAIChatMessages(
     queryKey: ["whatsapp-ai-chat-messages", conversationId, "initial"],
     queryFn: async () => {
       if (!conversationId || !companyId) return [];
-      
+
       // Get total count first
       const { count } = await supabase
         .from("whatsapp_ai_chat_messages")
         .select("*", { count: "exact", head: true })
         .eq("conversation_id", conversationId);
-      
+
       // Fetch last PAGE_SIZE messages ordered by created_at DESC
       const { data, error } = await supabase
         .from("whatsapp_ai_chat_messages")
@@ -65,15 +65,15 @@ export function useWhatsAppAIChatMessages(
         .limit(PAGE_SIZE);
 
       if (error) throw error;
-      
+
       // Check if there are more messages
       const totalCount = count || 0;
       setHasMore(totalCount > PAGE_SIZE);
-      
+
       // Reverse to get chronological order for display
       const messagesInOrder = (data as AIMessage[]).reverse();
       setAllMessages(messagesInOrder);
-      
+
       return messagesInOrder;
     },
     enabled: !!conversationId && !!companyId,
@@ -81,13 +81,20 @@ export function useWhatsAppAIChatMessages(
 
   // Load more older messages
   const loadMoreMessages = useCallback(async () => {
-    if (!conversationId || !companyId || isLoadingMore || !hasMore || allMessages.length === 0) return;
-    
+    if (
+      !conversationId ||
+      !companyId ||
+      isLoadingMore ||
+      !hasMore ||
+      allMessages.length === 0
+    )
+      return;
+
     setIsLoadingMore(true);
-    
+
     try {
       const oldestMessage = allMessages[0];
-      
+
       // Fetch PAGE_SIZE messages older than the oldest we have
       const { data, error } = await supabase
         .from("whatsapp_ai_chat_messages")
@@ -98,15 +105,15 @@ export function useWhatsAppAIChatMessages(
         .limit(PAGE_SIZE);
 
       if (error) throw error;
-      
+
       const olderMessages = (data as AIMessage[]).reverse();
-      
+
       if (olderMessages.length < PAGE_SIZE) {
         setHasMore(false);
       }
-      
+
       if (olderMessages.length > 0) {
-        setAllMessages(prev => [...olderMessages, ...prev]);
+        setAllMessages((prev) => [...olderMessages, ...prev]);
       }
     } catch (error) {
       console.error("Error loading more messages:", error);
@@ -125,29 +132,38 @@ export function useWhatsAppAIChatMessages(
         throw new Error("Missing conversation or company ID");
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const { data, error } = await supabase
-        .from("whatsapp_ai_chat_messages")
-        .insert({
-          conversation_id: conversationId,
-          company_id: companyId,
-          user_id: user.id,
-          role: message.role,
-          content: message.content,
-          source_message_id: message.sourceMessageId || null,
-        })
-        .select()
-        .single();
+      const payload = {
+        conversation_id: conversationId,
+        company_id: companyId,
+        user_id: user.id,
+        role: message.role,
+        content: message.content,
+        source_message_id: message.sourceMessageId || null,
+      };
+
+      const isAnalysis = message.role === "analysis";
+      const query = isAnalysis
+        ? supabase
+            .from("whatsapp_ai_chat_messages")
+            .upsert(payload, { ignoreDuplicates: true })
+        : supabase.from("whatsapp_ai_chat_messages").insert(payload);
+
+      const { data, error } = await query.select().single();
 
       if (error) throw error;
       return data as AIMessage;
     },
     onSuccess: (newMessage) => {
       // Add new message directly to state for instant feedback
-      setAllMessages(prev => [...prev, newMessage]);
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-ai-chat-messages", conversationId] });
+      setAllMessages((prev) => [...prev, newMessage]);
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-ai-chat-messages", conversationId],
+      });
     },
   });
 
@@ -165,15 +181,21 @@ export function useWhatsAppAIChatMessages(
     onSuccess: () => {
       setAllMessages([]);
       setHasMore(false);
-      queryClient.invalidateQueries({ queryKey: ["whatsapp-ai-chat-messages", conversationId] });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp-ai-chat-messages", conversationId],
+      });
     },
   });
 
   const addMessage = useCallback(
-    (message: { role: "user" | "assistant" | "analysis"; content: string; sourceMessageId?: string }) => {
+    (message: {
+      role: "user" | "assistant" | "analysis";
+      content: string;
+      sourceMessageId?: string;
+    }) => {
       return addMessageMutation.mutateAsync(message);
     },
-    [addMessageMutation]
+    [addMessageMutation],
   );
 
   const addAnalysisMessage = useCallback(
@@ -183,7 +205,7 @@ export function useWhatsAppAIChatMessages(
         content: JSON.stringify(analysisContent),
       });
     },
-    [addMessageMutation]
+    [addMessageMutation],
   );
 
   const clearMessages = useCallback(() => {
