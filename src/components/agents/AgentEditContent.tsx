@@ -112,7 +112,7 @@ export function AgentEditContent({
         role: "Agente IA",
         status: "active",
         start_date: new Date().toISOString().split("T")[0],
-        user_id: user?.id,
+        user_id: agentId,
         ia_agent_id: agentId,
       } as unknown);
       if (error) {

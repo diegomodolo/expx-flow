@@ -71,6 +71,15 @@ function isIgnoredError(message: string): boolean {
     "Failed to execute 'removeChild'",
     "The node before which the new node is to be inserted",
     "The node to be removed is not a child",
+    "The object exceeded the maximum allowed size",
+    "The connection to the database timed out",
+    "404 Error: User attempted to access non-existent route",
+    "HTTP 400 error",
+    "Error downloading file",
+    "Error uploading file",
+    "Upload error",
+    "[WhatsAppReactionPicker] Error",
+    "[useWhatsAppMediaCache] Upload error",
   ];
   return ignored.some((pattern) => message.includes(pattern));
 }

@@ -148,7 +148,7 @@ export function useCalendarEvents({
             let query = supabase
               .from("tasks")
               .select(
-                "id, title, start_date, due_date, status, priority, user_id, responsible_name",
+                "id, title, start_date, due_date, status, priority, user_id, assigned_user_id, responsible_name",
               )
               .eq("company_id", companyId)
               .not("start_date", "is", null)
@@ -156,7 +156,9 @@ export function useCalendarEvents({
               .lte("start_date", to);
 
             if (selectedUserIds.length > 0) {
-              query = query.in("user_id", selectedUserIds);
+              query = query.or(
+                `user_id.in.(${selectedUserIds.join(",")}),assigned_user_id.in.(${selectedUserIds.join(",")})`,
+              );
             }
 
             const { data, error } = await query;
@@ -194,7 +196,7 @@ export function useCalendarEvents({
             let query = supabase
               .from("tasks")
               .select(
-                "id, title, due_date, status, priority, user_id, responsible_name",
+                "id, title, due_date, status, priority, user_id, assigned_user_id, responsible_name",
               )
               .eq("company_id", companyId)
               .not("due_date", "is", null)
@@ -202,7 +204,9 @@ export function useCalendarEvents({
               .lte("due_date", to);
 
             if (selectedUserIds.length > 0) {
-              query = query.in("user_id", selectedUserIds);
+              query = query.or(
+                `user_id.in.(${selectedUserIds.join(",")}),assigned_user_id.in.(${selectedUserIds.join(",")})`,
+              );
             }
 
             const { data, error } = await query;
