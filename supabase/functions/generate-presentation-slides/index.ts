@@ -101,27 +101,37 @@ Crie a estrutura de ${numberOfSlides} slides para este roteiro.`;
       companyId: resolvedCompanyId,
       systemPrompt,
       userPrompt,
+      responseFormat: { type: "json_object" },
+      maxTokens: 4000,
     });
 
     const aiContent = aiResult.content;
 
     console.log(
-      `[generate-presentation-slides] AI response received, parsing...`,
+      `[generate-presentation-slides] AI response received, parsing... length=${aiContent?.length}`,
     );
 
     // Parse JSON from AI response
     let slidesData;
     try {
-      // Extract JSON from response (may be wrapped in markdown code blocks)
+      slidesData = JSON.parse(aiContent);
+    } catch {
+      // Fallback: extract JSON from markdown code blocks or partial response
       const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error("No JSON found in response");
+        console.error("[generate-presentation-slides] Raw content:", aiContent);
+        throw new Error("Resposta da IA não contém JSON válido");
       }
-      slidesData = JSON.parse(jsonMatch[0]);
-    } catch (parseError) {
-      console.error("[generate-presentation-slides] Parse error:", parseError);
-      console.error("[generate-presentation-slides] Raw content:", aiContent);
-      throw new Error("Failed to parse AI response");
+      try {
+        slidesData = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error(
+          "[generate-presentation-slides] Parse error:",
+          parseError,
+        );
+        console.error("[generate-presentation-slides] Raw content:", aiContent);
+        throw new Error("Falha ao interpretar resposta da IA");
+      }
     }
 
     if (!slidesData.slides || !Array.isArray(slidesData.slides)) {

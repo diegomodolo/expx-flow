@@ -97,8 +97,8 @@ const FUNCTION_DEFAULTS: Record<
     fallback: "google/gemini-2.5-flash-image-preview",
   },
   "generate-presentation-slides": {
-    primary: "anthropic/claude-3.5-sonnet",
-    fallback: "google/gemini-2.5-pro",
+    primary: "google/gemini-2.5-flash",
+    fallback: "openai/gpt-4o-mini",
   },
   "generate-slide-design": {
     primary: "google/gemini-2.5-flash",
