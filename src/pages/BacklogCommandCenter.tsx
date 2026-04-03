@@ -5,11 +5,15 @@ import { BacklogHeader } from "@/components/backlog-center/BacklogHeader";
 import { BacklogClientSidebar } from "@/components/backlog-center/BacklogClientSidebar";
 import { BacklogBucket } from "@/components/backlog-center/BacklogBucket";
 import { BacklogFooterBar } from "@/components/backlog-center/BacklogFooterBar";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Radar, Inbox, Plus } from "lucide-react";
+import { Radar, Inbox, Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
@@ -58,18 +62,38 @@ export default function BacklogCommandCenterPage() {
 
   const handleDeleteSelected = async () => {
     const ids = Array.from(selectedTaskIds);
-    const { error } = await supabase.from('tasks').delete().in('id', ids);
+    const { error } = await supabase.from("tasks").delete().in("id", ids);
     if (error) {
       toast({ title: "Erro ao excluir tarefas", variant: "destructive" });
     } else {
-      toast({ title: `${ids.length} tarefa${ids.length > 1 ? 's' : ''} excluída${ids.length > 1 ? 's' : ''}` });
+      toast({
+        title: `${ids.length} tarefa${ids.length > 1 ? "s" : ""} excluída${ids.length > 1 ? "s" : ""}`,
+      });
       clearSelection();
-      // trigger refetch by clearing selection - data will refresh
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
+      queryClient.invalidateQueries({
+        queryKey: ["backlog-center-task-clients"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     }
   };
 
   const navigate = useNavigate();
+
+  if (!activeCompany?.company_id || tasksLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-130px)]">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Carregando backlog...
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -94,7 +118,7 @@ export default function BacklogCommandCenterPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/squad-command-center')}
+                onClick={() => navigate("/squad-command-center")}
                 className="gap-2"
               >
                 <Radar className="w-4 h-4" />
@@ -105,13 +129,19 @@ export default function BacklogCommandCenterPage() {
           title={
             <div className="flex items-center gap-2">
               <Inbox className="w-5 h-5 text-primary" />
-              <span className="text-base font-bold text-foreground tracking-tight">Backlog</span>
+              <span className="text-base font-bold text-foreground tracking-tight">
+                Backlog
+              </span>
             </div>
           }
         />
 
         {/* Main content: Sidebar + Bucket */}
-        <ResizablePanelGroup direction="horizontal" autoSaveId="backlog-panels" className="flex flex-1 min-h-0">
+        <ResizablePanelGroup
+          direction="horizontal"
+          autoSaveId="backlog-panels"
+          className="flex flex-1 min-h-0"
+        >
           <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
             <BacklogClientSidebar
               clients={backlogClients}
@@ -159,7 +189,9 @@ export default function BacklogCommandCenterPage() {
             team_id: selectedSquadId || data.team_id,
           });
           queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
-          queryClient.invalidateQueries({ queryKey: ["backlog-center-task-clients"] });
+          queryClient.invalidateQueries({
+            queryKey: ["backlog-center-task-clients"],
+          });
           setNewTaskDialogOpen(false);
         }}
       />
