@@ -50,6 +50,8 @@ function isIgnoredError(message: string): boolean {
     "Non-Error promise rejection",
     "Loading chunk",
     "Failed to fetch",
+    "Failed to send a request to the Edge Function",
+    "FunctionsFetchError",
     "Load failed",
     "NetworkError",
     "AbortError",
