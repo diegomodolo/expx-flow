@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const youtubeApiKey = Deno.env.get("YOUTUBE_API_KEY")!;
+const youtubeApiKey = Deno.env.get("YOUTUBE_API_KEY");
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -155,6 +155,20 @@ function calculateEngagementRate(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!youtubeApiKey) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error:
+          "YOUTUBE_API_KEY não configurada. Configure em Supabase Dashboard > Project Settings > Edge Functions > Secrets.",
+      }),
+      {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   try {
