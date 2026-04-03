@@ -153,14 +153,19 @@ export function useWhatsAppAIChatMessages(
             .upsert(payload, { ignoreDuplicates: true })
         : supabase.from("whatsapp_ai_chat_messages").insert(payload);
 
-      const { data, error } = await query.select().single();
+      const { data, error } = isAnalysis
+        ? await query.select().maybeSingle()
+        : await query.select().single();
 
       if (error) throw error;
-      return data as AIMessage;
+      return data as AIMessage | null;
     },
     onSuccess: (newMessage) => {
       // Add new message directly to state for instant feedback
-      setAllMessages((prev) => [...prev, newMessage]);
+      // newMessage can be null if upsert ignored duplicate (ignoreDuplicates: true)
+      if (newMessage) {
+        setAllMessages((prev) => [...prev, newMessage]);
+      }
       queryClient.invalidateQueries({
         queryKey: ["whatsapp-ai-chat-messages", conversationId],
       });
