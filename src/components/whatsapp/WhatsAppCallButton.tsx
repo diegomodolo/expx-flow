@@ -117,7 +117,16 @@ export function WhatsAppCallButton({
   );
 
   const handleCall = () => {
-    initiateCall({ companyId, conversationId, phone, contactName });
+    // Abre a extensão da API4Com para garantir que o webphone está ativo
+    window.open(
+      "chrome-extension://nmihkcakhpccmdhoifppbgeoapjaanno/index.html",
+      "api4com-webphone",
+      "width=420,height=620,left=100,top=100",
+    );
+    // Aguarda a extensão carregar antes de disparar a chamada
+    setTimeout(() => {
+      initiateCall({ companyId, conversationId, phone, contactName });
+    }, 2000);
     setOpen(false);
   };
 
