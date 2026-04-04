@@ -74,12 +74,12 @@ export function useWebphone(
       },
     });
 
-    globalWebphoneInstance.on("userAgent.registered", () => {
+    globalWebphoneInstance.on("registration.registered", () => {
       console.log("[useWebphone] SIP registrado!");
       setStatus("registered");
     });
 
-    globalWebphoneInstance.on("userAgent.unregistered", () => {
+    globalWebphoneInstance.on("registration.unregistered", () => {
       console.log("[useWebphone] SIP desregistrado");
       setStatus("disconnected");
     });
@@ -118,7 +118,7 @@ export function useWebphone(
       },
     );
 
-    globalWebphoneInstance.on("call.terminated", () => {
+    globalWebphoneInstance.on("call.ended", () => {
       currentCallRef.current = null;
       setIsMuted(false);
       setStatus("registered");
