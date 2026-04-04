@@ -105,14 +105,24 @@ export function useApi4ComConfig(companyId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("whatsapp_configs")
-        .select("api4com_token, api4com_extension")
+        .select(
+          "api4com_token, api4com_extension, api4com_domain, api4com_password",
+        )
         .eq("company_id", companyId!)
         .maybeSingle();
       if (error) throw error;
       return {
         hasConfig: !!(data?.api4com_token && data?.api4com_extension),
+        hasSipConfig: !!(
+          data?.api4com_token &&
+          data?.api4com_extension &&
+          data?.api4com_domain &&
+          data?.api4com_password
+        ),
         token: data?.api4com_token || "",
         extension: data?.api4com_extension || "",
+        domain: data?.api4com_domain || "",
+        password: data?.api4com_password || "",
       };
     },
     enabled: !!companyId,
