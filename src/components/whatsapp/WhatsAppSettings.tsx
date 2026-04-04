@@ -3,6 +3,7 @@ import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useCompany } from "@/contexts/CompanyContext";
 import { WhatsAppProviderTabs } from "./WhatsAppProviderTabs";
 import { WhatsAppInstancesList } from "./WhatsAppInstancesList";
+import { WhatsAppApi4ComSettings } from "./WhatsAppApi4ComSettings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Bell } from "lucide-react";
@@ -40,7 +41,11 @@ export function WhatsAppSettings() {
     setActiveProvider(provider);
   };
 
-  const handleSaveZapi = (data: { instance_id: string; token: string; client_token?: string }) => {
+  const handleSaveZapi = (data: {
+    instance_id: string;
+    token: string;
+    client_token?: string;
+  }) => {
     saveConfig({
       instance_id: data.instance_id,
       token: data.token,
@@ -49,7 +54,11 @@ export function WhatsAppSettings() {
     });
   };
 
-  const handleSaveUazapiBase = (data: { endpoint: string; token: string; admintoken: string }) => {
+  const handleSaveUazapiBase = (data: {
+    endpoint: string;
+    token: string;
+    admintoken: string;
+  }) => {
     saveUazapiConfig({
       endpoint: data.endpoint,
       token: data.token,
@@ -85,9 +94,12 @@ export function WhatsAppSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Integração WhatsApp</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Integração WhatsApp
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Configure a conexão com Z-API ou UazapiGO para envio de notificações via WhatsApp
+          Configure a conexão com Z-API ou UazapiGO para envio de notificações
+          via WhatsApp
         </p>
       </div>
 
@@ -103,17 +115,23 @@ export function WhatsAppSettings() {
         onSaveMeta={handleSaveMeta}
         onTestMeta={handleTestMeta}
         isSaving={isSavingConfig || isSavingUazapiConfig || isSavingMetaConfig}
-        isTesting={isTestingConnection || isTestingUazapiConnection || isTestingMetaConnection}
+        isTesting={
+          isTestingConnection ||
+          isTestingUazapiConnection ||
+          isTestingMetaConnection
+        }
       />
 
       {/* Instances List - Only show for UazapiGO */}
-      {activeProvider === "uazapi" && config?.uazapi_endpoint && config?.uazapi_admintoken && (
-        <WhatsAppInstancesList
-          companyId={activeCompany?.company_id}
-          baseEndpoint={config.uazapi_endpoint}
-          baseToken={config.uazapi_admintoken}
-        />
-      )}
+      {activeProvider === "uazapi" &&
+        config?.uazapi_endpoint &&
+        config?.uazapi_admintoken && (
+          <WhatsAppInstancesList
+            companyId={activeCompany?.company_id}
+            baseEndpoint={config.uazapi_endpoint}
+            baseToken={config.uazapi_admintoken}
+          />
+        )}
 
       {/* Link to Notifications Module */}
       <Card>
@@ -139,6 +157,9 @@ export function WhatsAppSettings() {
           </div>
         </CardContent>
       </Card>
+      {activeCompany?.company_id && (
+        <WhatsAppApi4ComSettings companyId={activeCompany.company_id} />
+      )}
     </div>
   );
 }
