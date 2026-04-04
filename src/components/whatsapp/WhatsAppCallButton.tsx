@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Phone, PhoneCall, PhoneOff, Clock, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -32,12 +34,8 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; icon: typeof Phone }
 > = {
-  initiated: {
-    label: "Iniciando...",
-    color: "text-yellow-500",
-    icon: PhoneCall,
-  },
-  ringing: { label: "Chamando...", color: "text-blue-500", icon: PhoneCall },
+  initiated: { label: "Iniciada", color: "text-yellow-500", icon: PhoneCall },
+  ringing: { label: "Realizada", color: "text-blue-500", icon: PhoneCall },
   completed: { label: "Concluída", color: "text-green-500", icon: Phone },
   busy: { label: "Ocupado", color: "text-red-500", icon: PhoneOff },
   failed: { label: "Falhou", color: "text-red-500", icon: PhoneOff },
@@ -111,13 +109,24 @@ export function WhatsAppCallButton({
   hasApi4ComConfig,
 }: WhatsAppCallButtonProps) {
   const [open, setOpen] = useState(false);
+  const [editablePhone, setEditablePhone] = useState(phone);
   const { calls, isLoading, initiateCall, isInitiating } = useVoiceCalls(
     companyId,
     conversationId,
   );
 
+  const handleOpen = () => {
+    setEditablePhone(phone);
+    setOpen(true);
+  };
+
   const handleCall = () => {
-    initiateCall({ companyId, conversationId, phone, contactName });
+    initiateCall({
+      companyId,
+      conversationId,
+      phone: editablePhone.trim(),
+      contactName,
+    });
     setOpen(false);
   };
 
@@ -130,7 +139,7 @@ export function WhatsAppCallButton({
             variant="ghost"
             size="icon"
             className="h-8 w-8 md:h-9 md:w-9"
-            onClick={() => setOpen(true)}
+            onClick={handleOpen}
           >
             <Phone className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </Button>
@@ -168,6 +177,19 @@ export function WhatsAppCallButton({
             </DialogDescription>
           </DialogHeader>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="call-phone" className="text-xs">
+              Número a discar
+            </Label>
+            <Input
+              id="call-phone"
+              value={editablePhone}
+              onChange={(e) => setEditablePhone(e.target.value)}
+              placeholder="Ex: 5521999999999"
+              disabled={!hasApi4ComConfig}
+            />
+          </div>
+
           {calls.length > 0 && (
             <div className="mt-2">
               <p className="text-xs font-medium text-muted-foreground mb-2">
@@ -187,7 +209,9 @@ export function WhatsAppCallButton({
             </Button>
             <Button
               onClick={handleCall}
-              disabled={!hasApi4ComConfig || isInitiating}
+              disabled={
+                !hasApi4ComConfig || isInitiating || !editablePhone.trim()
+              }
               className="gap-2"
             >
               <PhoneCall className="h-4 w-4" />
