@@ -57,6 +57,8 @@ export function useWebphone(
       callControl: { enabled: false },
       videoCanvas: { enabled: false },
       mediaPreviews: { enabled: false },
+      mediaDevices: { enabled: false },
+      audioContext: { enabled: false },
       userAgent: {
         renderTargets: [],
         transport: {
