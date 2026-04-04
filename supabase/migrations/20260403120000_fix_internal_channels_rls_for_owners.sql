@@ -9,6 +9,6 @@ WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.companies c
     WHERE c.id = company_id
-    AND c.user_id = auth.uid()
+    AND c.created_by = auth.uid()
   )
 );
