@@ -74,13 +74,27 @@ export function useWebphone(
       },
     });
 
-    globalWebphoneInstance.on("registration.registered", () => {
+    globalWebphoneInstance.on("userAgent.registration.registered", () => {
       console.log("[useWebphone] SIP registrado!");
       setStatus("registered");
     });
 
-    globalWebphoneInstance.on("registration.unregistered", () => {
+    globalWebphoneInstance.on("userAgent.registration.failed", () => {
+      console.log("[useWebphone] SIP falhou ao registrar");
+      setStatus("disconnected");
+    });
+
+    globalWebphoneInstance.on("userAgent.registration.unregistered", () => {
       console.log("[useWebphone] SIP desregistrado");
+      setStatus("disconnected");
+    });
+
+    globalWebphoneInstance.on("userAgent.connected", () => {
+      console.log("[useWebphone] WSS conectado");
+    });
+
+    globalWebphoneInstance.on("userAgent.disconnected", () => {
+      console.log("[useWebphone] WSS desconectado");
       setStatus("disconnected");
     });
 
