@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
           extension: config.api4com_extension,
           phone,
           metadata: {
+            gateway: "expxflow",
             voice_call_id: callRecord.id,
             company_id: companyId,
             conversation_id: conversationId || null,
