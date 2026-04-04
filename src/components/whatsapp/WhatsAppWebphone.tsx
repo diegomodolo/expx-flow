@@ -39,6 +39,9 @@ export function WhatsAppWebphone({
 
   const showControls = status === "ringing" || status === "in-call";
 
+  // Ocultar quando ainda não registrado (aguardando libwebphone.js real)
+  if (status === "disconnected" || status === "connecting") return null;
+
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-background/80 backdrop-blur-sm text-xs">
       <Phone
