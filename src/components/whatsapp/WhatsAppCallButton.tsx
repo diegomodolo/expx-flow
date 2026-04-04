@@ -117,38 +117,7 @@ export function WhatsAppCallButton({
   );
 
   const handleCall = () => {
-    const extensionUrl =
-      "chrome-extension://nmihkcakhpccmdhoifppbgeoapjaanno/index.html";
-    const storeUrl =
-      "https://chromewebstore.google.com/detail/api4com-extens%C3%A3o-para-nav/nmihkcakhpccmdhoifppbgeoapjaanno";
-
-    // Tenta abrir a extensão — se falhar (não instalada), abre a Chrome Web Store
-    const popup = window.open(
-      extensionUrl,
-      "api4com-webphone",
-      "width=420,height=620,left=100,top=100",
-    );
-
-    // Se o popup abriu mas a extensão não existe, o Chrome carrega uma página de erro
-    // Verificamos após um curto delay se o popup está acessível
-    setTimeout(() => {
-      try {
-        if (!popup || popup.closed || !popup.location.href) {
-          window.open(storeUrl, "_blank");
-          return;
-        }
-        // Extensão abriu — aguarda carregar e dispara a chamada
-        setTimeout(() => {
-          initiateCall({ companyId, conversationId, phone, contactName });
-        }, 1500);
-      } catch {
-        // Se a extensão não está instalada, o acesso ao popup lança erro de origem cruzada
-        // Isso significa que o Chrome está mostrando página de erro da extensão
-        // Abre a Chrome Web Store
-        window.open(storeUrl, "_blank");
-      }
-    }, 500);
-
+    initiateCall({ companyId, conversationId, phone, contactName });
     setOpen(false);
   };
 
@@ -176,10 +145,26 @@ export function WhatsAppCallButton({
               <Phone className="h-4 w-4" />
               Ligar para {contactName || phone}
             </DialogTitle>
-            <DialogDescription>
-              {hasApi4ComConfig
-                ? `Iniciar ligação para ${phone} via API4Com.`
-                : "Configure a API4Com em Configurações > WhatsApp antes de ligar."}
+            <DialogDescription className="space-y-1">
+              <span className="block">
+                {hasApi4ComConfig
+                  ? `Iniciar ligação para ${phone} via API4Com.`
+                  : "Configure a API4Com em Configurações > WhatsApp antes de ligar."}
+              </span>
+              {hasApi4ComConfig && (
+                <span className="block text-[11px] text-muted-foreground">
+                  Certifique-se que a{" "}
+                  <a
+                    href="https://chromewebstore.google.com/detail/api4com-extens%C3%A3o-para-nav/nmihkcakhpccmdhoifppbgeoapjaanno"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground"
+                  >
+                    extensão API4Com
+                  </a>{" "}
+                  está instalada e logada no Chrome.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
