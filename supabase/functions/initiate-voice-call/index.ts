@@ -54,6 +54,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log(
+      `[initiate-voice-call] config encontrada, criando registro de chamada`,
+    );
+
     // Criar registro de chamada no banco antes de iniciar
     const { data: callRecord, error: insertError } = await supabase
       .from("voice_calls")
@@ -69,7 +73,14 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error(
+        `[initiate-voice-call] Erro ao inserir voice_call:`,
+        JSON.stringify(insertError),
+      );
+      throw insertError;
+    }
+    console.log(`[initiate-voice-call] voice_call criado: ${callRecord.id}`);
 
     // Debug: verificar token e ramal
     console.log(
@@ -97,8 +108,12 @@ Deno.serve(async (req) => {
       },
     );
 
+    console.log(
+      `[initiate-voice-call] API4Com status: ${api4comResponse.status}`,
+    );
     if (!api4comResponse.ok) {
       const errorText = await api4comResponse.text();
+      console.error(`[initiate-voice-call] API4Com error body: ${errorText}`);
       await supabase
         .from("voice_calls")
         .update({ status: "failed" })
