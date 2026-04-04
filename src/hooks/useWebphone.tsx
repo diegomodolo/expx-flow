@@ -1,6 +1,3 @@
- 
-// @ts-ignore
-import * as Libwebphone from "@/lib/libwebphone";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 export type WebphoneStatus =
@@ -25,7 +22,7 @@ interface UseWebphoneReturn {
 }
 
 // Singleton global — impede múltiplas instâncias
- 
+
 let globalWebphoneInstance: any = null;
 
 export function useWebphone(
@@ -40,6 +37,10 @@ export function useWebphone(
       console.log("[useWebphone] sem credenciais");
       return;
     }
+    if (!window.libwebphone) {
+      console.log("[useWebphone] libwebphone não carregado");
+      return;
+    }
     if (globalWebphoneInstance) {
       console.log("[useWebphone] instância já existe, status atual:", status);
       return;
@@ -50,10 +51,7 @@ export function useWebphone(
 
     setStatus("connecting");
 
-    // CommonJS module — pode estar em .default ou direto
-     
-    const LWP = (Libwebphone as any).default || Libwebphone;
-    globalWebphoneInstance = new LWP({
+    globalWebphoneInstance = new window.libwebphone({
       userAgent: {
         renderTargets: [],
         transport: {
