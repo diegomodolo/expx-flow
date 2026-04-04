@@ -92,6 +92,7 @@ import { WhatsAppChatNoteModal } from "./WhatsAppChatNoteModal";
 import { WhatsAppChatNotes } from "./WhatsAppChatNotes";
 import { WhatsAppForwardDialog } from "./WhatsAppForwardDialog";
 import { WhatsAppCallButton } from "./WhatsAppCallButton";
+import { WhatsAppWebphone } from "@/components/whatsapp/WhatsAppWebphone";
 import { useApi4ComConfig } from "@/hooks/useVoiceCalls";
 
 interface WhatsAppChatWindowProps {
@@ -678,13 +679,22 @@ export function WhatsAppChatWindow({
 
             {/* Call button — só para contatos individuais */}
             {!isGroupConversation && (
-              <WhatsAppCallButton
-                companyId={companyId}
-                conversationId={conversation.id}
-                phone={conversation.phone}
-                contactName={conversation.contact_name || undefined}
-                hasApi4ComConfig={api4ComConfig?.hasConfig ?? false}
-              />
+              <>
+                {api4ComConfig?.hasSipConfig && (
+                  <WhatsAppWebphone
+                    domain={api4ComConfig.domain}
+                    extension={api4ComConfig.extension}
+                    password={api4ComConfig.password}
+                  />
+                )}
+                <WhatsAppCallButton
+                  companyId={companyId}
+                  conversationId={conversation.id}
+                  phone={conversation.phone}
+                  contactName={conversation.contact_name || undefined}
+                  hasApi4ComConfig={api4ComConfig?.hasConfig ?? false}
+                />
+              </>
             )}
 
             {/* Assignment picker */}
