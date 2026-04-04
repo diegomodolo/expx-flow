@@ -117,11 +117,8 @@ export function WhatsAppCallButton({
   );
 
   const handleCall = () => {
-    window.open("https://expx.api4com.com", "_blank", "noopener,noreferrer");
-    setTimeout(() => {
-      initiateCall({ companyId, conversationId, phone, contactName });
-      setOpen(false);
-    }, 2000);
+    initiateCall({ companyId, conversationId, phone, contactName });
+    setOpen(false);
   };
 
   return (
