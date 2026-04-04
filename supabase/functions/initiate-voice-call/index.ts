@@ -71,6 +71,11 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
+    // Debug: verificar token e ramal
+    console.log(
+      `[initiate-voice-call] token_prefix=${config.api4com_token?.substring(0, 10)}... extension=${config.api4com_extension}`,
+    );
+
     // Chamar API4Com
     const api4comResponse = await fetch(
       "https://api.api4com.com/api/v1/dialer",
