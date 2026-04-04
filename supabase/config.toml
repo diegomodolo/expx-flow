@@ -710,3 +710,9 @@ verify_jwt = true
 
 [functions.validate-text-grammar]
 verify_jwt = true
+
+[functions.initiate-voice-call]
+verify_jwt = true
+
+[functions.api4com-webhook]
+verify_jwt = false
