@@ -26,13 +26,18 @@ export function WhatsAppApi4ComSettings({
   const { data: config } = useApi4ComConfig(companyId);
   const [token, setToken] = useState("");
   const [extension, setExtension] = useState("");
+  const [domain, setDomain] = useState("");
+  const [password, setPassword] = useState("");
   const [showToken, setShowToken] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (config) {
       setToken(config.token);
       setExtension(config.extension);
+      setDomain(config.domain);
+      setPassword(config.password);
     }
   }, [config]);
 
@@ -48,6 +53,8 @@ export function WhatsAppApi4ComSettings({
           company_id: companyId,
           api4com_token: token.trim(),
           api4com_extension: extension.trim(),
+          api4com_domain: domain.trim() || null,
+          api4com_password: password.trim() || null,
         },
         { onConflict: "company_id" },
       );
@@ -69,7 +76,7 @@ export function WhatsAppApi4ComSettings({
         <CardTitle className="flex items-center gap-2 text-base">
           <Phone className="h-4 w-4" />
           Ligações — API4Com
-          {config?.hasConfig && (
+          {config?.hasSipConfig && (
             <CheckCircle2 className="h-4 w-4 text-green-500 ml-auto" />
           )}
         </CardTitle>
@@ -121,8 +128,49 @@ export function WhatsAppApi4ComSettings({
             placeholder="Ex: 1000"
           />
           <p className="text-xs text-muted-foreground">
-            Número do ramal configurado na API4Com (aparece como chamador nas
-            ligações).
+            Número do ramal configurado na API4Com.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="api4com-domain">Domínio SIP</Label>
+          <Input
+            id="api4com-domain"
+            type="text"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            placeholder="Ex: expx.api4com.com"
+          />
+          <p className="text-xs text-muted-foreground">
+            Domínio da sua conta API4Com (termina com .api4com.com). Necessário
+            para o webphone embutido.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="api4com-password">Senha do ramal SIP</Label>
+          <div className="relative">
+            <Input
+              id="api4com-password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Senha do ramal (gerada automaticamente pela API4Com)"
+              className="pr-10"
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Senha SIP do ramal. Encontrada em Configurar Ramal no painel
+            API4Com.
           </p>
         </div>
         <Button onClick={handleSave} disabled={isSaving} className="w-full">
