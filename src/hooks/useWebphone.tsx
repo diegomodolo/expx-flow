@@ -42,6 +42,7 @@ export function useWebphone(
 
     globalWebphoneInstance = new window.libwebphone({
       userAgent: {
+        renderTargets: [],
         transport: {
           sockets: [`wss://${domain}:6443`],
           recovery_max_interval: 30,
