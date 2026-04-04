@@ -117,16 +117,38 @@ export function WhatsAppCallButton({
   );
 
   const handleCall = () => {
-    // Abre a extensão da API4Com para garantir que o webphone está ativo
-    window.open(
-      "chrome-extension://nmihkcakhpccmdhoifppbgeoapjaanno/index.html",
+    const extensionUrl =
+      "chrome-extension://nmihkcakhpccmdhoifppbgeoapjaanno/index.html";
+    const storeUrl =
+      "https://chromewebstore.google.com/detail/api4com-extens%C3%A3o-para-nav/nmihkcakhpccmdhoifppbgeoapjaanno";
+
+    // Tenta abrir a extensão — se falhar (não instalada), abre a Chrome Web Store
+    const popup = window.open(
+      extensionUrl,
       "api4com-webphone",
       "width=420,height=620,left=100,top=100",
     );
-    // Aguarda a extensão carregar antes de disparar a chamada
+
+    // Se o popup abriu mas a extensão não existe, o Chrome carrega uma página de erro
+    // Verificamos após um curto delay se o popup está acessível
     setTimeout(() => {
-      initiateCall({ companyId, conversationId, phone, contactName });
-    }, 2000);
+      try {
+        if (!popup || popup.closed || !popup.location.href) {
+          window.open(storeUrl, "_blank");
+          return;
+        }
+        // Extensão abriu — aguarda carregar e dispara a chamada
+        setTimeout(() => {
+          initiateCall({ companyId, conversationId, phone, contactName });
+        }, 1500);
+      } catch {
+        // Se a extensão não está instalada, o acesso ao popup lança erro de origem cruzada
+        // Isso significa que o Chrome está mostrando página de erro da extensão
+        // Abre a Chrome Web Store
+        window.open(storeUrl, "_blank");
+      }
+    }, 500);
+
     setOpen(false);
   };
 
