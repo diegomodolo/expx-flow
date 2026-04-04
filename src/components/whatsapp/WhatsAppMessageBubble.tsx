@@ -1,6 +1,7 @@
 import { WhatsAppMessage } from "@/hooks/useWhatsAppMessages";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, isThisWeek, isToday } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   Check,
   CheckCheck,
@@ -833,7 +834,13 @@ export function WhatsAppMessageBubble({
                 <span className="text-xs italic">editada</span>
               )}
               <span className="text-xs">
-                {format(new Date(message.sent_at), "HH:mm")}
+                {(() => {
+                  const d = new Date(message.sent_at);
+                  if (isToday(d)) return format(d, "HH:mm");
+                  if (isThisWeek(d, { locale: ptBR }))
+                    return format(d, "EEE HH:mm", { locale: ptBR });
+                  return format(d, "dd/MM HH:mm");
+                })()}
               </span>
               {isOutgoing && <MessageStatus status={message.status} />}
             </div>
