@@ -52,8 +52,12 @@ export function useWebphone(
     setStatus("connecting");
 
     globalWebphoneInstance = new window.libwebphone({
+      dialpad: { enabled: false },
+      callList: { enabled: false },
+      callControl: { enabled: false },
+      videoCanvas: { enabled: false },
+      mediaPreviews: { enabled: false },
       userAgent: {
-        renderTargets: [],
         transport: {
           sockets: [`wss://${domain}:6443`],
           recovery_max_interval: 30,
