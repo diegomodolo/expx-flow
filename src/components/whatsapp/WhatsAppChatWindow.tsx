@@ -91,6 +91,8 @@ import { WhatsAppQuickTaskModal } from "./WhatsAppQuickTaskModal";
 import { WhatsAppChatNoteModal } from "./WhatsAppChatNoteModal";
 import { WhatsAppChatNotes } from "./WhatsAppChatNotes";
 import { WhatsAppForwardDialog } from "./WhatsAppForwardDialog";
+import { WhatsAppCallButton } from "./WhatsAppCallButton";
+import { useApi4ComConfig } from "@/hooks/useVoiceCalls";
 
 interface WhatsAppChatWindowProps {
   conversation: WhatsAppConversation;
@@ -205,6 +207,7 @@ export function WhatsAppChatWindow({
     companyId,
   );
   const queryClient = useQueryClient();
+  const { data: api4ComConfig } = useApi4ComConfig(companyId);
 
   // Check if realtime analysis is forced globally
   const forceRealtimeAnalysis = aiAgentConfig?.force_realtime_analysis ?? false;
@@ -672,6 +675,17 @@ export function WhatsAppChatWindow({
                 setLinkedClientLogo(clientLogoUrl || null);
               }}
             />
+
+            {/* Call button — só para contatos individuais */}
+            {!isGroupConversation && (
+              <WhatsAppCallButton
+                companyId={companyId}
+                conversationId={conversation.id}
+                phone={conversation.phone}
+                contactName={conversation.contact_name || undefined}
+                hasApi4ComConfig={api4ComConfig?.hasConfig ?? false}
+              />
+            )}
 
             {/* Assignment picker */}
             <WhatsAppAssignmentPicker
