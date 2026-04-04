@@ -58,6 +58,7 @@ export function useWebphone(
       videoCanvas: { enabled: false },
       mediaPreviews: { enabled: false },
       userAgent: {
+        renderTargets: [],
         transport: {
           sockets: [`wss://${domain}:6443`],
           recovery_max_interval: 30,
