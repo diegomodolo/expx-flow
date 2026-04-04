@@ -33,10 +33,21 @@ export function useWebphone(
   const currentCallRef = useRef<unknown>(null);
 
   useEffect(() => {
-    if (!credentials || !window.libwebphone) return;
-    if (globalWebphoneInstance) return; // já inicializado
+    if (!credentials) {
+      console.log("[useWebphone] sem credenciais");
+      return;
+    }
+    if (!window.libwebphone) {
+      console.log("[useWebphone] libwebphone não carregado");
+      return;
+    }
+    if (globalWebphoneInstance) {
+      console.log("[useWebphone] instância já existe, status atual:", status);
+      return;
+    }
 
     const { domain, extension, password } = credentials;
+    console.log(`[useWebphone] iniciando SIP: ${extension}@${domain}`);
 
     setStatus("connecting");
 
@@ -64,11 +75,17 @@ export function useWebphone(
     });
 
     globalWebphoneInstance.on("userAgent.registered", () => {
+      console.log("[useWebphone] SIP registrado!");
       setStatus("registered");
     });
 
     globalWebphoneInstance.on("userAgent.unregistered", () => {
+      console.log("[useWebphone] SIP desregistrado");
       setStatus("disconnected");
+    });
+
+    globalWebphoneInstance.onAny((event: string) => {
+      console.log("[useWebphone] evento:", event);
     });
 
     globalWebphoneInstance.on(
