@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInHours, subDays } from "date-fns";
 
-export type TaskState = 'backlog' | 'planejamento' | 'execucao';
+export type TaskState = "backlog" | "planejamento" | "execucao";
 
 export interface BacklogTask {
   id: string;
@@ -46,8 +46,12 @@ export function useBacklogCommandCenter() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"urgency" | "type" | "client">("client");
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [viewMode, setViewMode] = useState<"urgency" | "type" | "client">(
+    "client",
+  );
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
 
   // Fetch squads
@@ -71,6 +75,7 @@ export function useBacklogCommandCenter() {
     queryKey: ["backlog-center-tasks", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
+      console.log("[BacklogCC] company_id:", activeCompany.company_id);
       // First fetch all backlog tasks
       const { data: parentTasks, error: e1 } = await (supabase as unknown)
         .from("tasks")
@@ -78,6 +83,7 @@ export function useBacklogCommandCenter() {
         .eq("company_id", activeCompany.company_id)
         .eq("task_state", "backlog")
         .order("created_at", { ascending: true });
+      console.log("[BacklogCC] parentTasks:", parentTasks, "error:", e1);
       if (e1) throw e1;
       const parents = (parentTasks || []) as BacklogTask[];
       const parentIds = parents.map((t) => t.id);
@@ -144,7 +150,9 @@ export function useBacklogCommandCenter() {
       const threeDaysAgo = subDays(new Date(), 3).toISOString();
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, related_client_id, start_date, completed_at, created_at, status")
+        .select(
+          "id, related_client_id, start_date, completed_at, created_at, status",
+        )
         .eq("company_id", activeCompany.company_id)
         .gte("created_at", threeDaysAgo);
       if (error) throw error;
@@ -196,7 +204,10 @@ export function useBacklogCommandCenter() {
       });
       // Tasks without clients go to "unassigned"
       if (clientIds.length === 0) {
-        const existing = clientMap.get("unassigned") || { minutes: 0, count: 0 };
+        const existing = clientMap.get("unassigned") || {
+          minutes: 0,
+          count: 0,
+        };
         existing.minutes += minutes;
         existing.count += 1;
         clientMap.set("unassigned", existing);
@@ -212,21 +223,31 @@ export function useBacklogCommandCenter() {
       // Temperature calc - based on distribution flow
       const twoDaysAgo = subDays(new Date(), 2);
       const clientRecentDistributed = recentActivity.filter(
-        (t: unknown) => t.related_client_id === client.id && t.start_date && t.status !== 'todo'
+        (t: unknown) =>
+          t.related_client_id === client.id &&
+          t.start_date &&
+          t.status !== "todo",
       );
       const clientRecentCreated = recentActivity.filter(
-        (t: unknown) => t.related_client_id === client.id
+        (t: unknown) => t.related_client_id === client.id,
       );
       const lastDistributed = clientRecentDistributed.sort(
-        (a: unknown, b: unknown) => new Date(b.start_date!).getTime() - new Date(a.start_date!).getTime()
+        (a: unknown, b: unknown) =>
+          new Date(b.start_date!).getTime() - new Date(a.start_date!).getTime(),
       )[0];
 
       let temperature: "blue" | "orange" | "red" = "blue";
       // Only mark as red if there ARE distributed tasks but the last one is older than 2 days
       // New clients with only backlog tasks stay blue
-      if (lastDistributed && new Date(lastDistributed.start_date!) < twoDaysAgo) {
+      if (
+        lastDistributed &&
+        new Date(lastDistributed.start_date!) < twoDaysAgo
+      ) {
         temperature = "red";
-      } else if (clientRecentDistributed.length > 0 && clientRecentCreated.length > clientRecentDistributed.length * 1.5) {
+      } else if (
+        clientRecentDistributed.length > 0 &&
+        clientRecentCreated.length > clientRecentDistributed.length * 1.5
+      ) {
         temperature = "orange";
       }
 
@@ -324,27 +345,38 @@ export function useBacklogCommandCenter() {
   // Selected tasks stats
   const selectionStats = useMemo(() => {
     const selected = backlogTasks.filter((t) => selectedTaskIds.has(t.id));
-    const totalMinutes = selected.reduce((sum, t) => sum + (t.ai_estimated_minutes || 18), 0);
+    const totalMinutes = selected.reduce(
+      (sum, t) => sum + (t.ai_estimated_minutes || 18),
+      0,
+    );
     const capacityPercent = Math.round((totalMinutes / 360) * 100);
     return { count: selected.length, totalMinutes, capacityPercent };
   }, [selectedTaskIds, backlogTasks]);
 
   // Readiness check
   const getReadiness = (task: BacklogTask) => {
-    const hasDescription = !!task.description && task.description.trim().length > 0;
-    const hasEstimate = !!task.ai_estimated_minutes && task.ai_estimated_minutes > 0;
+    const hasDescription =
+      !!task.description && task.description.trim().length > 0;
+    const hasEstimate =
+      !!task.ai_estimated_minutes && task.ai_estimated_minutes > 0;
     const hasClient = (taskToClients.get(task.id) || []).length > 0;
-    return { ready: hasDescription && hasEstimate && hasClient, hasDescription, hasEstimate, hasClient };
+    return {
+      ready: hasDescription && hasEstimate && hasClient,
+      hasDescription,
+      hasEstimate,
+      hasClient,
+    };
   };
 
-  const getAgingHours = (createdAt: string) => differenceInHours(new Date(), new Date(createdAt));
+  const getAgingHours = (createdAt: string) =>
+    differenceInHours(new Date(), new Date(createdAt));
 
   // Bulk release mutation
   const releaseToLeadersMutation = useMutation({
     mutationFn: async (taskIds: string[]) => {
       const { error } = await (supabase as unknown)
         .from("tasks")
-        .update({ 
+        .update({
           task_state: "planejamento",
         })
         .in("id", taskIds);
@@ -355,16 +387,31 @@ export function useBacklogCommandCenter() {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["board-tasks"] });
       clearSelection();
-      toast({ title: "Tarefas liberadas", description: "Tarefas liberadas para os líderes." });
+      toast({
+        title: "Tarefas liberadas",
+        description: "Tarefas liberadas para os líderes.",
+      });
     },
     onError: () => {
-      toast({ title: "Erro", description: "Erro ao liberar tarefas.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Erro ao liberar tarefas.",
+        variant: "destructive",
+      });
     },
   });
 
   // Bulk assign mutation
   const bulkAssignMutation = useMutation({
-    mutationFn: async ({ taskIds, userId, userName }: { taskIds: string[]; userId: string; userName: string }) => {
+    mutationFn: async ({
+      taskIds,
+      userId,
+      userName,
+    }: {
+      taskIds: string[];
+      userId: string;
+      userName: string;
+    }) => {
       const { error } = await (supabase as unknown)
         .from("tasks")
         .update({
@@ -381,17 +428,27 @@ export function useBacklogCommandCenter() {
       queryClient.invalidateQueries({ queryKey: ["backlog-center-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       clearSelection();
-      toast({ title: "Tarefas atribuídas", description: "Tarefas atribuídas com sucesso." });
+      toast({
+        title: "Tarefas atribuídas",
+        description: "Tarefas atribuídas com sucesso.",
+      });
     },
     onError: () => {
-      toast({ title: "Erro", description: "Erro ao atribuir tarefas.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Erro ao atribuir tarefas.",
+        variant: "destructive",
+      });
     },
   });
 
   // Total backlog stats (only parent tasks, consistent with sidebar)
   const totalStats = useMemo(() => {
     const parents = backlogTasks.filter((t) => !t.parent_task_id);
-    const totalMinutes = parents.reduce((sum, t) => sum + (t.ai_estimated_minutes || 18), 0);
+    const totalMinutes = parents.reduce(
+      (sum, t) => sum + (t.ai_estimated_minutes || 18),
+      0,
+    );
     const totalHours = Math.round(totalMinutes / 60);
     return { totalTasks: parents.length, totalMinutes, totalHours };
   }, [backlogTasks]);
@@ -412,7 +469,8 @@ export function useBacklogCommandCenter() {
     getAgingHours,
     viewMode,
     setViewMode,
-    releaseToLeaders: (ids: string[]) => releaseToLeadersMutation.mutateAsync(ids),
+    releaseToLeaders: (ids: string[]) =>
+      releaseToLeadersMutation.mutateAsync(ids),
     bulkAssign: (ids: string[], userId: string, userName: string) =>
       bulkAssignMutation.mutateAsync({ taskIds: ids, userId, userName }),
     taskToClients,
