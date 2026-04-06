@@ -75,17 +75,18 @@ export function useBacklogCommandCenter() {
     queryKey: ["backlog-center-tasks", activeCompany?.company_id],
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
-      console.log("[BacklogCC] company_id:", activeCompany.company_id);
       // First fetch all backlog tasks
       const { data: parentTasks, error: e1 } = await (supabase as unknown)
         .from("tasks")
         .select("*")
         .eq("company_id", activeCompany.company_id)
         .eq("task_state", "backlog")
+        .is("parent_task_id", null)
         .order("created_at", { ascending: true });
-      console.log("[BacklogCC] parentTasks:", parentTasks, "error:", e1);
       if (e1) throw e1;
-      const parents = (parentTasks || []) as BacklogTask[];
+      const parents = ((parentTasks || []) as BacklogTask[]).filter(
+        (t) => t.task_state === "backlog" && !t.parent_task_id,
+      );
       const parentIds = parents.map((t) => t.id);
       if (parentIds.length === 0) return parents;
       // Fetch subtasks whose parent is in backlog, only those still in backlog
