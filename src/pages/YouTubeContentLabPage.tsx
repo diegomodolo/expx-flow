@@ -53,9 +53,10 @@ export default function YouTubeContentLabPage() {
     enabled: !!labId,
   });
 
-  const clientId = lab?.client_id || "";
+  // For client-linked labs: use client_id. For standalone labs: use labId as the key.
+  const clientId = lab?.client_id || labId || "";
   const companyId = lab?.company_id || "";
-  // labId from useParams is the actual lab ID — use it directly for thumbnail configs
+  // Always use the actual labId for thumbnail configs (which now use lab_id as FK)
   const thumbnailLabId = labId || "";
 
   const [activeTab, setActiveTab] = useState("channels");
