@@ -53,10 +53,10 @@ export default function YouTubeContentLabPage() {
     enabled: !!labId,
   });
 
-  // Use the lab's client_id (if any) as a proxy for the existing hooks
-  // The hooks still query by client_id + company_id, but we use the lab's context
-  const clientId = lab?.client_id || labId || "";
+  const clientId = lab?.client_id || "";
   const companyId = lab?.company_id || "";
+  // labId from useParams is the actual lab ID — use it directly for thumbnail configs
+  const thumbnailLabId = labId || "";
 
   const [activeTab, setActiveTab] = useState("channels");
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
@@ -77,7 +77,7 @@ export default function YouTubeContentLabPage() {
   const analyticsHook = useYouTubeAnalytics(clientId, companyId);
   const suggestionsHook = useYouTubeSuggestions(clientId, companyId);
   const scriptsHook = useYouTubeScripts(clientId, companyId);
-  const thumbnailsHook = useYouTubeThumbnails(clientId, companyId);
+  const thumbnailsHook = useYouTubeThumbnails(thumbnailLabId, companyId);
   const categoriesHook = useYouTubeCategories(clientId, companyId);
 
   const categoryChannelIds =
@@ -329,7 +329,7 @@ export default function YouTubeContentLabPage() {
 
             <TabsContent value="thumbnails" className="mt-6">
               <YouTubeThumbnailConfig
-                clientId={clientId}
+                labId={thumbnailLabId}
                 companyId={companyId}
               />
             </TabsContent>

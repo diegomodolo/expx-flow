@@ -5,7 +5,8 @@ import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 
 export interface ThumbnailConfig {
   id: string;
-  client_id: string;
+  lab_id: string | null;
+  client_id: string | null;
   company_id: string;
   model_photos: string[];
   reference_thumbnails: string[];
@@ -14,7 +15,7 @@ export interface ThumbnailConfig {
   updated_at: string;
 }
 
-export function useYouTubeThumbnails(clientId: string, companyId: string) {
+export function useYouTubeThumbnails(labId: string, companyId: string) {
   const [config, setConfig] = useState<ThumbnailConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,13 +23,13 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
   const { toast } = useToast();
 
   const fetchConfig = useCallback(async () => {
-    if (!clientId || !companyId) return;
+    if (!labId || !companyId) return;
 
     try {
       const { data, error } = await supabase
         .from("youtube_thumbnail_configs")
         .select("*")
-        .eq("client_id", clientId)
+        .eq("lab_id", labId)
         .eq("company_id", companyId)
         .maybeSingle();
 
@@ -44,13 +45,15 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
             ? (data.reference_thumbnails as unknown as string[])
             : [],
         });
+      } else {
+        setConfig(null);
       }
     } catch (error) {
       console.error("Error fetching thumbnail config:", error);
     } finally {
       setLoading(false);
     }
-  }, [clientId, companyId]);
+  }, [labId, companyId]);
 
   useEffect(() => {
     fetchConfig();
@@ -62,7 +65,7 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
   ): Promise<string | null> => {
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${clientId}/${type}/${Date.now()}.${fileExt}`;
+      const fileName = `${labId}/${type}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("visual-creatives")
@@ -105,13 +108,14 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
         // Create new
         const { data, error } = await supabase
           .from("youtube_thumbnail_configs")
+           
           .insert({
-            client_id: clientId,
+            lab_id: labId,
             company_id: companyId,
             model_photos: updates.model_photos || [],
             reference_thumbnails: updates.reference_thumbnails || [],
             style_notes: updates.style_notes || null,
-          })
+          } as any)
           .select()
           .single();
 
@@ -140,7 +144,8 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
       toast({
         title: "Erro ao salvar",
         description:
-          error.message || "Não foi possível salvar as configurações.",
+          (error as Error).message ||
+          "Não foi possível salvar as configurações.",
         variant: "destructive",
       });
     } finally {
@@ -164,7 +169,7 @@ export function useYouTubeThumbnails(clientId: string, companyId: string) {
             title,
             scriptContent,
             suggestedTitles,
-            clientId,
+            labId,
             companyId,
             modelPhotos: config?.model_photos || [],
             referenceThumbnails: config?.reference_thumbnails || [],

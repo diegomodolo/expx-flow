@@ -26,16 +26,16 @@ import {
 import { cn } from "@/lib/utils";
 
 interface YouTubeThumbnailConfigProps {
-  clientId: string;
+  labId: string;
   companyId: string;
 }
 
 export function YouTubeThumbnailConfig({
-  clientId,
+  labId,
   companyId,
 }: YouTubeThumbnailConfigProps) {
   const { config, loading, saving, uploadImage, saveConfig } =
-    useYouTubeThumbnails(clientId, companyId);
+    useYouTubeThumbnails(labId, companyId);
 
   const [modelPhotos, setModelPhotos] = useState<string[]>(
     config?.model_photos || [],
