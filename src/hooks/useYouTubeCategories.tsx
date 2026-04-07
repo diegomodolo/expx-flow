@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface YouTubeCategory {
   id: string;
@@ -14,22 +14,23 @@ export interface YouTubeCategory {
   channel_ids: string[];
 }
 
-export function useYouTubeCategories(clientId: string, companyId: string) {
+export function useYouTubeCategories(labId: string, companyId: string) {
   const [categories, setCategories] = useState<YouTubeCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchCategories = useCallback(async () => {
-    if (!clientId || !companyId) return;
+    if (!labId || !companyId) return;
 
+    setLoading(true);
     try {
       // Fetch categories
       const { data: catData, error: catError } = await supabase
-        .from('youtube_channel_categories')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('company_id', companyId)
-        .order('name', { ascending: true });
+        .from("youtube_channel_categories")
+        .select("*")
+        .eq("lab_id", labId)
+        .eq("company_id", companyId)
+        .order("name", { ascending: true });
 
       if (catError) throw catError;
 
@@ -38,9 +39,9 @@ export function useYouTubeCategories(clientId: string, companyId: string) {
       let links: unknown[] = [];
       if (categoryIds.length > 0) {
         const { data: linkData, error: linkError } = await supabase
-          .from('youtube_channel_category_links')
-          .select('*')
-          .in('category_id', categoryIds);
+          .from("youtube_channel_category_links")
+          .select("*")
+          .in("category_id", categoryIds);
 
         if (linkError) throw linkError;
         links = linkData || [];
@@ -49,7 +50,7 @@ export function useYouTubeCategories(clientId: string, companyId: string) {
       // Map categories with their channel_ids
       const mapped: YouTubeCategory[] = (catData || []).map((c: unknown) => ({
         ...c,
-        color: c.color || '#6366f1',
+        color: c.color || "#6366f1",
         channel_ids: links
           .filter((l: unknown) => l.category_id === c.id)
           .map((l: unknown) => l.channel_id),
@@ -57,112 +58,121 @@ export function useYouTubeCategories(clientId: string, companyId: string) {
 
       setCategories(mapped);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error("Error fetching categories:", error);
     } finally {
       setLoading(false);
     }
-  }, [clientId, companyId]);
+  }, [labId, companyId]);
 
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
-  const createCategory = async (name: string, description?: string, color?: string) => {
+  const createCategory = async (
+    name: string,
+    description?: string,
+    color?: string,
+  ) => {
     try {
       const { data, error } = await supabase
-        .from('youtube_channel_categories')
+        .from("youtube_channel_categories")
         .insert({
-          client_id: clientId,
+          lab_id: labId,
           company_id: companyId,
           name,
           description: description || null,
-          color: color || '#6366f1',
+          color: color || "#6366f1",
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      toast({ title: 'Categoria criada!' });
+      toast({ title: "Categoria criada!" });
       await fetchCategories();
       return data;
     } catch (error: unknown) {
-      console.error('Error creating category:', error);
-      toast({ title: 'Erro ao criar categoria', variant: 'destructive' });
+      console.error("Error creating category:", error);
+      toast({ title: "Erro ao criar categoria", variant: "destructive" });
       return null;
     }
   };
 
-  const updateCategory = async (categoryId: string, updates: { name?: string; description?: string; color?: string }) => {
+  const updateCategory = async (
+    categoryId: string,
+    updates: { name?: string; description?: string; color?: string },
+  ) => {
     try {
       const { error } = await supabase
-        .from('youtube_channel_categories')
+        .from("youtube_channel_categories")
         .update(updates)
-        .eq('id', categoryId);
+        .eq("id", categoryId);
 
       if (error) throw error;
 
-      toast({ title: 'Categoria atualizada!' });
+      toast({ title: "Categoria atualizada!" });
       await fetchCategories();
     } catch (error) {
-      console.error('Error updating category:', error);
-      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
+      console.error("Error updating category:", error);
+      toast({ title: "Erro ao atualizar", variant: "destructive" });
     }
   };
 
   const deleteCategory = async (categoryId: string) => {
     try {
       const { error } = await supabase
-        .from('youtube_channel_categories')
+        .from("youtube_channel_categories")
         .delete()
-        .eq('id', categoryId);
+        .eq("id", categoryId);
 
       if (error) throw error;
 
-      toast({ title: 'Categoria excluída' });
-      setCategories(prev => prev.filter(c => c.id !== categoryId));
+      toast({ title: "Categoria excluída" });
+      setCategories((prev) => prev.filter((c) => c.id !== categoryId));
     } catch (error) {
-      console.error('Error deleting category:', error);
-      toast({ title: 'Erro ao excluir', variant: 'destructive' });
+      console.error("Error deleting category:", error);
+      toast({ title: "Erro ao excluir", variant: "destructive" });
     }
   };
 
   const linkChannel = async (categoryId: string, channelId: string) => {
     try {
       const { error } = await supabase
-        .from('youtube_channel_category_links')
+        .from("youtube_channel_category_links")
         .insert({ category_id: categoryId, channel_id: channelId });
 
       if (error) throw error;
       await fetchCategories();
     } catch (error: unknown) {
       // Ignore duplicate
-      if (error?.code === '23505') return;
-      console.error('Error linking channel:', error);
-      toast({ title: 'Erro ao vincular canal', variant: 'destructive' });
+      if (error?.code === "23505") return;
+      console.error("Error linking channel:", error);
+      toast({ title: "Erro ao vincular canal", variant: "destructive" });
     }
   };
 
   const unlinkChannel = async (categoryId: string, channelId: string) => {
     try {
       const { error } = await supabase
-        .from('youtube_channel_category_links')
+        .from("youtube_channel_category_links")
         .delete()
-        .eq('category_id', categoryId)
-        .eq('channel_id', channelId);
+        .eq("category_id", categoryId)
+        .eq("channel_id", channelId);
 
       if (error) throw error;
       await fetchCategories();
     } catch (error) {
-      console.error('Error unlinking channel:', error);
-      toast({ title: 'Erro ao desvincular canal', variant: 'destructive' });
+      console.error("Error unlinking channel:", error);
+      toast({ title: "Erro ao desvincular canal", variant: "destructive" });
     }
   };
 
   // Get channel IDs for a specific category
-  const getChannelIdsForCategory = (categoryId: string | null): string[] | null => {
+  const getChannelIdsForCategory = (
+    categoryId: string | null,
+  ): string[] | null => {
     if (!categoryId) return null; // null means "all"
-    const cat = categories.find(c => c.id === categoryId);
+    const cat = categories.find((c) => c.id === categoryId);
     return cat?.channel_ids || [];
   };
 

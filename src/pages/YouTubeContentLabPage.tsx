@@ -53,11 +53,9 @@ export default function YouTubeContentLabPage() {
     enabled: !!labId,
   });
 
-  // For client-linked labs: use client_id. For standalone labs: use labId as the key.
-  const clientId = lab?.client_id || labId || "";
+  const clientId = lab?.client_id || "";
   const companyId = lab?.company_id || "";
-  // Always use the actual labId for thumbnail configs (which now use lab_id as FK)
-  const thumbnailLabId = labId || "";
+  const activeLabId = labId || "";
 
   const [activeTab, setActiveTab] = useState("channels");
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
@@ -72,14 +70,13 @@ export default function YouTubeContentLabPage() {
   const [refreshFinished, setRefreshFinished] = useState(false);
   const [newScriptDialogOpen, setNewScriptDialogOpen] = useState(false);
 
-  // For now hooks still use clientId - they'll work for client-linked labs
-  // For standalone labs, we pass labId as clientId (queries will return empty, which is correct for new labs)
-  const channelsHook = useYouTubeChannels(clientId, companyId);
-  const analyticsHook = useYouTubeAnalytics(clientId, companyId);
-  const suggestionsHook = useYouTubeSuggestions(clientId, companyId);
-  const scriptsHook = useYouTubeScripts(clientId, companyId);
-  const thumbnailsHook = useYouTubeThumbnails(thumbnailLabId, companyId);
-  const categoriesHook = useYouTubeCategories(clientId, companyId);
+  // All hooks now use labId as the primary key (works for both client-linked and standalone labs)
+  const channelsHook = useYouTubeChannels(activeLabId, companyId);
+  const analyticsHook = useYouTubeAnalytics(activeLabId, companyId);
+  const suggestionsHook = useYouTubeSuggestions(activeLabId, companyId);
+  const scriptsHook = useYouTubeScripts(activeLabId, companyId);
+  const thumbnailsHook = useYouTubeThumbnails(activeLabId, companyId);
+  const categoriesHook = useYouTubeCategories(activeLabId, companyId);
 
   const categoryChannelIds =
     categoriesHook.getChannelIdsForCategory(selectedCategoryId);

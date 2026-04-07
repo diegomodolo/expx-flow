@@ -18,19 +18,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { clientId, companyId, clientContext, count = 5 } = await req.json();
+    const { labId, companyId, clientContext, count = 5 } = await req.json();
 
-    console.log("Generating video suggestions for client:", clientId);
+    console.log("Generating video suggestions for lab:", labId);
 
-    if (!clientId || !companyId) {
-      throw new Error("Client ID and Company ID are required");
+    if (!labId || !companyId) {
+      throw new Error("Lab ID and Company ID are required");
     }
 
     // Fetch top performing videos from monitored channels
     const { data: topVideos } = await supabase
       .from("youtube_video_analyses")
       .select("*")
-      .eq("client_id", clientId)
+      .eq("lab_id", labId)
       .order("engagement_rate", { ascending: false })
       .limit(20);
 
@@ -105,7 +105,7 @@ Retorne em JSON:
       const { data: saved, error } = await supabase
         .from("youtube_content_suggestions")
         .insert({
-          client_id: clientId,
+          lab_id: labId,
           company_id: companyId,
           title: suggestion.title,
           description: suggestion.description,

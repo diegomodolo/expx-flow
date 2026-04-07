@@ -19,20 +19,21 @@ export interface YouTubeChannel {
   created_at: string;
 }
 
-export function useYouTubeChannels(clientId: string, companyId: string) {
+export function useYouTubeChannels(labId: string, companyId: string) {
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const { toast } = useToast();
 
   const fetchChannels = useCallback(async () => {
-    if (!clientId || !companyId) return;
+    if (!labId || !companyId) return;
 
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from("youtube_monitored_channels")
         .select("*")
-        .eq("client_id", clientId)
+        .eq("lab_id", labId)
         .eq("company_id", companyId)
         .eq("is_active", true)
         .order("created_at", { ascending: false });
@@ -49,7 +50,7 @@ export function useYouTubeChannels(clientId: string, companyId: string) {
     } finally {
       setLoading(false);
     }
-  }, [clientId, companyId, toast]);
+  }, [labId, companyId, toast]);
 
   useEffect(() => {
     fetchChannels();
@@ -72,7 +73,7 @@ export function useYouTubeChannels(clientId: string, companyId: string) {
         {
           body: {
             channelUrl,
-            clientId,
+            labId,
             companyId,
             periodDays,
           },
@@ -117,7 +118,7 @@ export function useYouTubeChannels(clientId: string, companyId: string) {
         {
           body: {
             channelUrl: channel.channel_url,
-            clientId,
+            labId,
             companyId,
             periodDays,
           },

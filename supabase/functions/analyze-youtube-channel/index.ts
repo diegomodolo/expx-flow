@@ -172,12 +172,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const {
-      channelUrl,
-      clientId,
-      companyId,
-      periodDays = 30,
-    } = await req.json();
+    const { channelUrl, labId, companyId, periodDays = 30 } = await req.json();
 
     console.log("Analyzing YouTube channel:", channelUrl);
 
@@ -185,8 +180,8 @@ Deno.serve(async (req) => {
       throw new Error("Channel URL is required");
     }
 
-    if (!clientId || !companyId) {
-      throw new Error("Client ID and Company ID are required");
+    if (!labId || !companyId) {
+      throw new Error("Lab ID and Company ID are required");
     }
 
     // Extract channel info from URL
@@ -262,7 +257,7 @@ Deno.serve(async (req) => {
 
     // Save/update channel in database
     const channelData = {
-      client_id: clientId,
+      lab_id: labId,
       company_id: companyId,
       channel_id: channel.id,
       channel_url: channelUrl,
@@ -280,7 +275,7 @@ Deno.serve(async (req) => {
     const { data: savedChannel, error: saveError } = await supabase
       .from("youtube_monitored_channels")
       .upsert(channelData, {
-        onConflict: "client_id,channel_id",
+        onConflict: "lab_id,channel_id",
       })
       .select()
       .single();
@@ -296,7 +291,7 @@ Deno.serve(async (req) => {
     for (const video of processedVideos) {
       const videoData = {
         channel_id: savedChannel.id,
-        client_id: clientId,
+        lab_id: labId,
         company_id: companyId,
         ...video,
         analyzed_at: new Date().toISOString(),

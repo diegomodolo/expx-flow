@@ -38,20 +38,21 @@ export interface ScriptMessage {
   created_at: string;
 }
 
-export function useYouTubeScripts(clientId: string, companyId: string) {
+export function useYouTubeScripts(labId: string, companyId: string) {
   const [scripts, setScripts] = useState<YouTubeScript[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
 
   const fetchScripts = useCallback(async () => {
-    if (!clientId || !companyId) return;
+    if (!labId || !companyId) return;
 
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from("youtube_scripts")
         .select("*, youtube_content_suggestions(based_on_videos)")
-        .eq("client_id", clientId)
+        .eq("lab_id", labId)
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
@@ -86,7 +87,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
             "title, view_count, like_count, comment_count, engagement_rate, thumbnail_url, channel_id",
           )
           .in("title", uniqueTitles)
-          .eq("client_id", clientId);
+          .eq("lab_id", labId);
 
         if (videosData && videosData.length > 0) {
           // Fetch channel names
@@ -155,7 +156,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
     } finally {
       setLoading(false);
     }
-  }, [clientId, companyId]);
+  }, [labId, companyId]);
 
   useEffect(() => {
     fetchScripts();
@@ -179,7 +180,7 @@ export function useYouTubeScripts(clientId: string, companyId: string) {
         {
           body: {
             topic,
-            clientId,
+            labId,
             companyId,
             suggestionId: options?.suggestionId,
             clientContext: options?.clientContext,

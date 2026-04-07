@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
   try {
     const {
       topic,
-      clientId,
+      labId,
       companyId,
       suggestionId,
       clientContext,
@@ -161,8 +161,8 @@ Deno.serve(async (req) => {
 
     console.log("Generating script for topic:", topic);
 
-    if (!topic || !clientId || !companyId) {
-      throw new Error("Topic, Client ID and Company ID are required");
+    if (!topic || !labId || !companyId) {
+      throw new Error("Topic, Lab ID and Company ID are required");
     }
 
     // Fetch reference videos if provided
@@ -177,11 +177,11 @@ Deno.serve(async (req) => {
         referenceVideos = videos;
       }
     } else {
-      // Get top performing videos from client's monitored channels
+      // Get top performing videos from this lab's monitored channels
       const { data: videos } = await supabase
         .from("youtube_video_analyses")
         .select("*")
-        .eq("client_id", clientId)
+        .eq("lab_id", labId)
         .order("engagement_rate", { ascending: false })
         .limit(5);
 
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
     const { data: script, error: saveError } = await supabase
       .from("youtube_scripts")
       .insert({
-        client_id: clientId,
+        lab_id: labId,
         company_id: companyId,
         suggestion_id: suggestionId || null,
         source_video_id: sourceVideoTitle || null,

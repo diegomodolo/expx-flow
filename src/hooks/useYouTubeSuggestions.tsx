@@ -17,20 +17,21 @@ export interface YouTubeSuggestion {
   updated_at: string;
 }
 
-export function useYouTubeSuggestions(clientId: string, companyId: string) {
+export function useYouTubeSuggestions(labId: string, companyId: string) {
   const [suggestions, setSuggestions] = useState<YouTubeSuggestion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
 
   const fetchSuggestions = useCallback(async () => {
-    if (!clientId || !companyId) return;
+    if (!labId || !companyId) return;
 
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from("youtube_content_suggestions")
         .select("*")
-        .eq("client_id", clientId)
+        .eq("lab_id", labId)
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
@@ -51,7 +52,7 @@ export function useYouTubeSuggestions(clientId: string, companyId: string) {
     } finally {
       setLoading(false);
     }
-  }, [clientId, companyId]);
+  }, [labId, companyId]);
 
   useEffect(() => {
     fetchSuggestions();
@@ -64,7 +65,7 @@ export function useYouTubeSuggestions(clientId: string, companyId: string) {
         "generate-video-suggestions",
         {
           body: {
-            clientId,
+            labId,
             companyId,
             clientContext,
             count,
