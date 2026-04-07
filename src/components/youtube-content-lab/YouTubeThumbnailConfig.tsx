@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -51,14 +51,14 @@ export function YouTubeThumbnailConfig({
   const modelInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync state when config loads
-  useState(() => {
+  // Sync state when config loads from the server
+  useEffect(() => {
     if (config) {
       setModelPhotos(config.model_photos);
       setReferenceThumbnails(config.reference_thumbnails);
       setStyleNotes(config.style_notes || "");
     }
-  });
+  }, [config]);
 
   const handleUpload = async (file: File, type: "model" | "reference") => {
     setUploading(type);
