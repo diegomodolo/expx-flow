@@ -17,7 +17,7 @@ export interface ThumbnailConfig {
 
 export function useYouTubeThumbnails(labId: string, companyId: string) {
   const [config, setConfig] = useState<ThumbnailConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
@@ -25,6 +25,7 @@ export function useYouTubeThumbnails(labId: string, companyId: string) {
   const fetchConfig = useCallback(async () => {
     if (!labId || !companyId) return;
 
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from("youtube_thumbnail_configs")
@@ -108,7 +109,7 @@ export function useYouTubeThumbnails(labId: string, companyId: string) {
         // Create new
         const { data, error } = await supabase
           .from("youtube_thumbnail_configs")
-           
+
           .insert({
             lab_id: labId,
             company_id: companyId,
