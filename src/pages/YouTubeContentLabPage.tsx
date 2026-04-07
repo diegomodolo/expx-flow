@@ -327,7 +327,7 @@ export default function YouTubeContentLabPage() {
 
             <TabsContent value="thumbnails" className="mt-6">
               <YouTubeThumbnailConfig
-                labId={thumbnailLabId}
+                labId={activeLabId}
                 companyId={companyId}
               />
             </TabsContent>
