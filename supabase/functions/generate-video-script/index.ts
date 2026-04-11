@@ -159,10 +159,24 @@ Deno.serve(async (req) => {
       sourceContent,
     } = await req.json();
 
-    console.log("Generating script for topic:", topic);
+    console.log(
+      "Generating script for topic:",
+      topic,
+      "labId:",
+      labId,
+      "companyId:",
+      companyId,
+    );
 
     if (!topic || !labId || !companyId) {
-      throw new Error("Topic, Lab ID and Company ID are required");
+      console.error("Missing required fields:", {
+        topic: !!topic,
+        labId: !!labId,
+        companyId: !!companyId,
+      });
+      throw new Error(
+        `Topic, Lab ID and Company ID are required. Got: topic=${topic}, labId=${labId}, companyId=${companyId}`,
+      );
     }
 
     // Fetch reference videos if provided
