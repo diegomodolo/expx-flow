@@ -265,7 +265,14 @@ async function resolveConfig(
   const fallbackApiKey = Deno.env.get("OPENROUTER_API_KEY") || "";
   const fnDefault = FUNCTION_DEFAULTS[functionName];
 
+  console.log(
+    `[AI Gateway] Resolving config for ${functionName}:${companyId || "no-company"} | fallbackApiKey=${fallbackApiKey ? "set" : "NOT SET"}`,
+  );
+
   if (!companyId) {
+    console.log(
+      `[AI Gateway] No companyId, using defaults: ${fnDefault?.primary || DEFAULT_MODEL}`,
+    );
     return {
       primaryModel: fnDefault?.primary || DEFAULT_MODEL,
       fallbackModel: fnDefault?.fallback || null,
@@ -430,7 +437,14 @@ export async function callAI(options: CallAIOptions): Promise<CallAIResponse> {
 
   const config = await resolveConfig(functionName, companyId);
 
+  console.log(
+    `[AI Gateway] Config resolved: model=${config.primaryModel}, hasApiKey=${!!config.apiKey}`,
+  );
+
   if (!config.apiKey) {
+    console.error(
+      `[AI Gateway] ERROR: No API key found for ${functionName}:${companyId || "no-company"}`,
+    );
     throw Object.assign(
       new Error(
         "Chave OpenRouter não configurada para esta empresa. Acesse Configurações > IA para adicionar sua chave.",

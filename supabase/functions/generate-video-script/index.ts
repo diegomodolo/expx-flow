@@ -212,23 +212,39 @@ Deno.serve(async (req) => {
     console.log("Using", referenceVideos.length, "reference videos");
 
     // Generate script (first LLM call)
-    const scriptContent = await generateScript(
-      topic,
-      clientContext || "Canal de conteúdo educativo e informativo",
-      referenceVideos,
-      durationTarget,
-      companyId,
-      sourceContent,
-    );
+    let scriptContent: string;
+    try {
+      scriptContent = await generateScript(
+        topic,
+        clientContext || "Canal de conteúdo educativo e informativo",
+        referenceVideos,
+        durationTarget,
+        companyId,
+        sourceContent,
+      );
+    } catch (scriptError) {
+      const errorMsg =
+        scriptError instanceof Error
+          ? scriptError.message
+          : String(scriptError);
+      console.error("Error generating script:", errorMsg);
+      throw new Error(`Erro ao gerar roteiro: ${errorMsg}`);
+    }
 
     console.log("Script generated, length:", scriptContent.length);
 
     // Generate title suggestions (second LLM call)
-    const suggestedTitles = await generateTitles(
-      topic,
-      referenceVideos,
-      companyId,
-    );
+    let suggestedTitles: string[];
+    try {
+      suggestedTitles = await generateTitles(topic, referenceVideos, companyId);
+    } catch (titlesError) {
+      const errorMsg =
+        titlesError instanceof Error
+          ? titlesError.message
+          : String(titlesError);
+      console.error("Error generating titles:", errorMsg);
+      throw new Error(`Erro ao gerar títulos: ${errorMsg}`);
+    }
     console.log("Generated", suggestedTitles.length, "title suggestions");
 
     // Get reference thumbnails
@@ -294,11 +310,12 @@ Deno.serve(async (req) => {
       },
     );
   } catch (error: unknown) {
-    console.error("Error in generate-video-script:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("Error in generate-video-script:", errorMsg);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMsg,
       }),
       {
         status: 400,
