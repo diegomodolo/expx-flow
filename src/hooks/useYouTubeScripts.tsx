@@ -175,12 +175,6 @@ export function useYouTubeScripts(labId: string, companyId: string) {
   ) => {
     setGenerating(true);
     try {
-      console.log("STEP 1: generateScript called with:", {
-        topic,
-        labId,
-        companyId,
-      });
-
       const requestBody = {
         topic,
         labId,
@@ -192,38 +186,23 @@ export function useYouTubeScripts(labId: string, companyId: string) {
         sourceVideoTitle: options?.sourceVideoTitle,
         sourceContent: options?.sourceContent,
       };
-      console.log("STEP 2: Request body prepared:", requestBody);
 
-      console.log("STEP 3: About to invoke edge function...");
-      const response = await supabase.functions.invoke(
+      const { data, error } = await supabase.functions.invoke(
         "generate-video-script",
         {
           body: requestBody,
         },
       );
-      console.log("STEP 4: Raw response received:", response);
-
-      const { data, error } = response;
-      console.log(
-        "STEP 5: Destructured response - data:",
-        data,
-        "error:",
-        error,
-      );
 
       if (error) {
-        console.error("STEP 6: Supabase error object:", error);
         throw error;
       }
 
-      console.log("STEP 7: Checking data.success:", data?.success);
       if (!data?.success) {
         const errorMsg = data?.error || "Failed to generate script";
-        console.error("STEP 8: Script generation failed:", errorMsg);
         throw new Error(errorMsg);
       }
 
-      console.log("STEP 9: Success! Data:", data);
       toast({
         title: "Roteiro gerado!",
         description: "O roteiro foi criado com sucesso.",
@@ -240,9 +219,24 @@ export function useYouTubeScripts(labId: string, companyId: string) {
             : String(error);
       console.error("FINAL ERROR:", errorMsg);
       console.error("Full error object:", error);
+
+      // Detectar erro de créditos insuficientes
+      const isInsufficientCreditsError =
+        errorMsg.includes("requires more credits") ||
+        errorMsg.includes("can only afford") ||
+        errorMsg.includes("402");
+
+      let description = errorMsg || "Não foi possível gerar o roteiro.";
+      if (isInsufficientCreditsError) {
+        description =
+          "Créditos insuficientes no OpenRouter. Acesse https://openrouter.ai/settings/credits para adicionar mais créditos à sua conta.";
+      } else if (errorMsg.includes("OpenRouter")) {
+        description = `Erro ao conectar com OpenRouter: ${errorMsg}. Verifique sua chave de API em Configurações > IA.`;
+      }
+
       toast({
         title: "Erro ao gerar roteiro",
-        description: errorMsg || "Não foi possível gerar o roteiro.",
+        description,
         variant: "destructive",
       });
       return null;
