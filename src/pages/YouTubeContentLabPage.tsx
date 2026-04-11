@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { CompanyContext } from "@/contexts/CompanyContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useYouTubeChannels } from "@/hooks/useYouTubeChannels";
 import { useYouTubeAnalytics } from "@/hooks/useYouTubeAnalytics";
@@ -36,6 +37,7 @@ import { useQuery } from "@tanstack/react-query";
 export default function YouTubeContentLabPage() {
   const { labId } = useParams<{ labId: string }>();
   const navigate = useNavigate();
+  const { activeCompany } = useContext(CompanyContext);
 
   // Fetch lab details
   const { data: lab, isLoading: labLoading } = useQuery({
@@ -53,8 +55,12 @@ export default function YouTubeContentLabPage() {
     enabled: !!labId,
   });
 
-  const clientId = lab?.client_id || "";
-  const companyId = lab?.company_id || "";
+  const clientId = (lab as Record<string, unknown>)?.client_id || "";
+  // Use lab company_id, fallback to activeCompany.company_id as per CLAUDE.md
+  const companyId =
+    (lab as Record<string, unknown>)?.company_id ||
+    activeCompany?.company_id ||
+    "";
   const activeLabId = labId || "";
 
   const [activeTab, setActiveTab] = useState("channels");
