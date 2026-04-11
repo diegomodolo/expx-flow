@@ -175,36 +175,55 @@ export function useYouTubeScripts(labId: string, companyId: string) {
   ) => {
     setGenerating(true);
     try {
-      console.log("generateScript called with:", { topic, labId, companyId });
-      const { data, error } = await supabase.functions.invoke(
+      console.log("STEP 1: generateScript called with:", {
+        topic,
+        labId,
+        companyId,
+      });
+
+      const requestBody = {
+        topic,
+        labId,
+        companyId,
+        suggestionId: options?.suggestionId,
+        clientContext: options?.clientContext,
+        referenceVideoIds: options?.referenceVideoIds,
+        durationTarget: options?.durationTarget || 600,
+        sourceVideoTitle: options?.sourceVideoTitle,
+        sourceContent: options?.sourceContent,
+      };
+      console.log("STEP 2: Request body prepared:", requestBody);
+
+      console.log("STEP 3: About to invoke edge function...");
+      const response = await supabase.functions.invoke(
         "generate-video-script",
         {
-          body: {
-            topic,
-            labId,
-            companyId,
-            suggestionId: options?.suggestionId,
-            clientContext: options?.clientContext,
-            referenceVideoIds: options?.referenceVideoIds,
-            durationTarget: options?.durationTarget || 600,
-            sourceVideoTitle: options?.sourceVideoTitle,
-            sourceContent: options?.sourceContent,
-          },
+          body: requestBody,
         },
       );
+      console.log("STEP 4: Raw response received:", response);
 
-      console.log("Edge function response:", { data, error });
+      const { data, error } = response;
+      console.log(
+        "STEP 5: Destructured response - data:",
+        data,
+        "error:",
+        error,
+      );
 
       if (error) {
-        console.error("Supabase error:", error);
+        console.error("STEP 6: Supabase error object:", error);
         throw error;
       }
+
+      console.log("STEP 7: Checking data.success:", data?.success);
       if (!data?.success) {
         const errorMsg = data?.error || "Failed to generate script";
-        console.error("Script generation failed:", errorMsg);
+        console.error("STEP 8: Script generation failed:", errorMsg);
         throw new Error(errorMsg);
       }
 
+      console.log("STEP 9: Success! Data:", data);
       toast({
         title: "Roteiro gerado!",
         description: "O roteiro foi criado com sucesso.",
@@ -219,7 +238,8 @@ export function useYouTubeScripts(labId: string, companyId: string) {
           : typeof error === "object" && error !== null && "message" in error
             ? String((error as Record<string, unknown>).message)
             : String(error);
-      console.error("Error generating script:", errorMsg);
+      console.error("FINAL ERROR:", errorMsg);
+      console.error("Full error object:", error);
       toast({
         title: "Erro ao gerar roteiro",
         description: errorMsg || "Não foi possível gerar o roteiro.",
