@@ -169,13 +169,18 @@ Deno.serve(async (req) => {
     );
 
     if (!topic || !labId || !companyId) {
-      console.error("Missing required fields:", {
-        topic: !!topic,
-        labId: !!labId,
-        companyId: !!companyId,
-      });
+      const errorDetails = {
+        topic: { provided: !!topic, value: topic, type: typeof topic },
+        labId: { provided: !!labId, value: labId, type: typeof labId },
+        companyId: {
+          provided: !!companyId,
+          value: companyId,
+          type: typeof companyId,
+        },
+      };
+      console.error("Missing required fields:", errorDetails);
       throw new Error(
-        `Topic, Lab ID and Company ID are required. Got: topic=${topic}, labId=${labId}, companyId=${companyId}`,
+        `Topic, Lab ID and Company ID are required. Got: ${JSON.stringify(errorDetails)}`,
       );
     }
 

@@ -175,6 +175,7 @@ export function useYouTubeScripts(labId: string, companyId: string) {
   ) => {
     setGenerating(true);
     try {
+      console.log("generateScript called with:", { topic, labId, companyId });
       const { data, error } = await supabase.functions.invoke(
         "generate-video-script",
         {
