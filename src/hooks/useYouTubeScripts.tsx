@@ -193,9 +193,17 @@ export function useYouTubeScripts(labId: string, companyId: string) {
         },
       );
 
-      if (error) throw error;
-      if (!data?.success)
-        throw new Error(data?.error || "Failed to generate script");
+      console.log("Edge function response:", { data, error });
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+      if (!data?.success) {
+        const errorMsg = data?.error || "Failed to generate script";
+        console.error("Script generation failed:", errorMsg);
+        throw new Error(errorMsg);
+      }
 
       toast({
         title: "Roteiro gerado!",
@@ -205,10 +213,16 @@ export function useYouTubeScripts(labId: string, companyId: string) {
       await fetchScripts();
       return data.script;
     } catch (error: unknown) {
-      console.error("Error generating script:", error);
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null && "message" in error
+            ? String((error as Record<string, unknown>).message)
+            : String(error);
+      console.error("Error generating script:", errorMsg);
       toast({
         title: "Erro ao gerar roteiro",
-        description: error.message || "Não foi possível gerar o roteiro.",
+        description: errorMsg || "Não foi possível gerar o roteiro.",
         variant: "destructive",
       });
       return null;
