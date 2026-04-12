@@ -23,6 +23,7 @@ import {
   CarouselStyle,
 } from "@/components/carousel-studio/types";
 import { supabase } from "@/integrations/supabase/client";
+import { useClients } from "@/hooks/useClients";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -51,6 +52,16 @@ export default function CarouselStudio() {
   const queryClient = useQueryClient();
   const updateClient = useUpdateStudioProjectClient();
   const updateProject = useUpdateStudioProject();
+
+  // Resolve foto do cliente para usar como fallback no badge
+  const { clients } = useClients();
+  const clientBadgeUrl = React.useMemo(() => {
+    if (!project?.client_id) return null;
+    const client = clients.find((c) => c.id === project.client_id);
+    return (
+      client?.instagram_account?.profile_picture_url ?? client?.avatar ?? null
+    );
+  }, [project?.client_id, clients]);
 
   React.useEffect(() => {
     if (!slides) return;
@@ -332,6 +343,7 @@ export default function CarouselStudio() {
                           project={project}
                           sharedBgIndex={sharedBgIndex >= 0 ? sharedBgIndex : 0}
                           sharedBgTotal={sharedTotal}
+                          clientBadgeUrl={clientBadgeUrl}
                         />
                       </div>
                     </button>

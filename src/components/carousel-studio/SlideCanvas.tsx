@@ -46,6 +46,8 @@ interface SlideCanvasProps {
   sharedBgIndex?: number;
   /** Total de slides que usam a imagem compartilhada */
   sharedBgTotal?: number;
+  /** URL da foto do cliente — usada como fallback quando badge_photo_url está vazio */
+  clientBadgeUrl?: string | null;
 }
 
 export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
@@ -57,6 +59,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
       className = "",
       sharedBgIndex = 0,
       sharedBgTotal = 1,
+      clientBadgeUrl = null,
     },
     ref,
   ) => {
@@ -188,8 +191,10 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
 
         {/* Badge de perfil + nome + handle juntos */}
         {slide.badge_enabled &&
-          slide.badge_photo_url &&
           (() => {
+            const effectiveBadgeUrl =
+              slide.badge_photo_url || clientBadgeUrl || null;
+            if (!effectiveBadgeUrl) return null;
             const handlePos = slide.badge_handle_position ?? "below";
             const handleFontSize = slide.badge_handle_font_size ?? 28;
             const showHandle =
@@ -312,7 +317,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                 }}
               >
                 <img
-                  src={slide.badge_photo_url}
+                  src={effectiveBadgeUrl}
                   className="rounded-full object-cover flex-shrink-0"
                   style={{
                     width: slide.badge_size ?? 80,
