@@ -176,16 +176,12 @@ export function RegenerateModal({
       if (patchError) throw patchError;
 
       const { data, error } = await supabase.functions.invoke(
-        "generate-carousel-caption",
+        "regenerate-carousel-slides",
         {
           body: {
             project_id: project.id,
             prompt,
             slides_count: slidesCount,
-            image_mode: imageMode,
-            font_pair: fontPair,
-            accent_color: accentColor,
-            regenerate_all: true,
           },
         },
       );
@@ -193,15 +189,8 @@ export function RegenerateModal({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Falha ao gerar");
 
-      const { data: newSlides, error: slidesError } = await supabase
-        .from("carousel_studio_slides")
-        .select("*")
-        .eq("project_id", project.id)
-        .order("slide_number");
-      if (slidesError) throw slidesError;
-
       onProjectPatched({ ...projectPatch, status: "ready" });
-      onSlidesRegenerated(newSlides as StudioSlide[]);
+      onSlidesRegenerated(data.slides as StudioSlide[]);
 
       toast.success("Carrossel regenerado com sucesso!");
       onOpenChange(false);

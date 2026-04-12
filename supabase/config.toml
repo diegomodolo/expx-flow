@@ -36,6 +36,9 @@ verify_jwt = true
 [functions.generate-carousel-prompt]
 verify_jwt = true
 
+[functions.regenerate-carousel-slides]
+verify_jwt = true
+
 [functions.rollback-automation-action]
 verify_jwt = true
 
