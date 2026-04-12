@@ -43,6 +43,7 @@ export default function CarouselStudio() {
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [userZoom, setUserZoom] = useState(620 / 1350);
 
   const slideRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
@@ -225,8 +226,7 @@ export default function CarouselStudio() {
   // Slides são 1080×1350px (4:5 Instagram)
   const SLIDE_W = 1080;
   const SLIDE_H = 1350;
-  const PREVIEW_HEIGHT = 620;
-  const scale = PREVIEW_HEIGHT / SLIDE_H;
+  const scale = userZoom;
 
   return (
     <DashboardLayout noPadding>
@@ -278,8 +278,8 @@ export default function CarouselStudio() {
                       onClick={() => setActiveIndex(i)}
                       className={`flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
                         isActive
-                          ? "border-primary shadow-xl shadow-primary/20"
-                          : "border-transparent opacity-60 hover:opacity-80"
+                          ? "border-green-500 shadow-lg shadow-green-500/20"
+                          : "border-transparent"
                       }`}
                       style={{
                         width: SLIDE_W * displayScale,
@@ -317,6 +317,8 @@ export default function CarouselStudio() {
           onDownloadZip={handleDownloadZip}
           isExporting={isExporting}
           exportProgress={exportProgress}
+          zoom={userZoom}
+          onZoomChange={setUserZoom}
         />
       </div>
 
