@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Download, Calendar, Layers, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Eye,
+  Download,
+  Calendar,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { CarouselPreviewModal } from "./CarouselPreviewModal";
 import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 
@@ -28,6 +35,8 @@ type CarouselItem = {
   } | null;
 };
 
+// Nota: carrosseis criados no Studio aparecem na aba "Editor Visual" em GeradorCarrosseis.
+// Este histórico exibe apenas carrosseis gerados pelo fluxo automático (carousel_generation_queue).
 export function CarouselHistoryList() {
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id;
@@ -35,7 +44,9 @@ export function CarouselHistoryList() {
   const { clients, loading: isLoadingClients } = useClients();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [page, setPage] = useState(0);
-  const [previewCarousel, setPreviewCarousel] = useState<CarouselItem | null>(null);
+  const [previewCarousel, setPreviewCarousel] = useState<CarouselItem | null>(
+    null,
+  );
   const pageSize = 12;
 
   // Fetch carousels
@@ -57,7 +68,7 @@ export function CarouselHistoryList() {
           caption,
           clients:client_id (id, name, avatar)
         `,
-          { count: "exact" }
+          { count: "exact" },
         )
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
@@ -88,7 +99,11 @@ export function CarouselHistoryList() {
     switch (status) {
       case "approved":
       case "published":
-        return <Badge className="bg-primary/10 text-primary border-primary/20">Publicado</Badge>;
+        return (
+          <Badge className="bg-primary/10 text-primary border-primary/20">
+            Publicado
+          </Badge>
+        );
       case "pending":
         return <Badge variant="secondary">Pendente</Badge>;
       case "rejected":
@@ -194,8 +209,14 @@ export function CarouselHistoryList() {
                   </div>
                   {/* Slide count badge */}
                   <div className="absolute top-2 right-2">
-                    <Badge variant="secondary" className="bg-black/60 text-white border-0">
-                      {Array.isArray(carousel.slides) ? carousel.slides.length : 0} slides
+                    <Badge
+                      variant="secondary"
+                      className="bg-black/60 text-white border-0"
+                    >
+                      {Array.isArray(carousel.slides)
+                        ? carousel.slides.length
+                        : 0}{" "}
+                      slides
                     </Badge>
                   </div>
                 </div>
@@ -210,14 +231,20 @@ export function CarouselHistoryList() {
                   </div>
 
                   {carousel.client && (
-                    <p className="text-sm font-medium truncate">{carousel.client.name}</p>
+                    <p className="text-sm font-medium truncate">
+                      {carousel.client.name}
+                    </p>
                   )}
 
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
-                    {format(new Date(carousel.created_at), "dd MMM yyyy 'às' HH:mm", {
-                      locale: ptBR,
-                    })}
+                    {format(
+                      new Date(carousel.created_at),
+                      "dd MMM yyyy 'às' HH:mm",
+                      {
+                        locale: ptBR,
+                      },
+                    )}
                   </div>
                 </CardContent>
               </Card>

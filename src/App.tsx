@@ -41,7 +41,9 @@ const Tarefas = React.lazy(() => import("./pages/Tarefas"));
 const TarefasAguardandoRevisao = React.lazy(
   () => import("./pages/TarefasAguardandoRevisao"),
 );
-const TarefasRecorrentes = React.lazy(() => import("./pages/TarefasRecorrentes"));
+const TarefasRecorrentes = React.lazy(
+  () => import("./pages/TarefasRecorrentes"),
+);
 const Relatorios = React.lazy(() => import("./pages/Relatorios"));
 const RelatorioExecutivo = React.lazy(
   () => import("./pages/reports/RelatorioExecutivo"),
@@ -135,9 +137,15 @@ const DashboardFabricaCriativos = React.lazy(
 const RevisaoDiariaCriativos = React.lazy(
   () => import("./pages/geradores/RevisaoDiariaCriativos"),
 );
-const ConfiguracaoFabricaCriativos = React.lazy(() => import("./pages/geradores/ConfiguracaoFabricaCriativos"));
-const TemasFabricaCriativos = React.lazy(() => import("./pages/geradores/TemasFabricaCriativos"));
-const HistoricoGeracoesCriativos = React.lazy(() => import("./pages/geradores/HistoricoGeracoesCriativos"));
+const ConfiguracaoFabricaCriativos = React.lazy(
+  () => import("./pages/geradores/ConfiguracaoFabricaCriativos"),
+);
+const TemasFabricaCriativos = React.lazy(
+  () => import("./pages/geradores/TemasFabricaCriativos"),
+);
+const HistoricoGeracoesCriativos = React.lazy(
+  () => import("./pages/geradores/HistoricoGeracoesCriativos"),
+);
 import CriativosPublicados from "./pages/geradores/CriativosPublicados";
 import FabricaCarrosseis from "./pages/geradores/FabricaCarrosseis";
 import DashboardFabricaCarrosseis from "./pages/geradores/DashboardFabricaCarrosseis";
@@ -148,6 +156,7 @@ import HistoricoGeracoesCarrosseis from "./pages/geradores/HistoricoGeracoesCarr
 import CarrosseisPublicados from "./pages/geradores/CarrosseisPublicados";
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
 import GeradorCarrosseis from "./pages/GeradorCarrosseis";
+const CarouselStudio = React.lazy(() => import("./pages/CarouselStudio"));
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
 import AgentEdit from "./pages/AgentEdit";
@@ -800,6 +809,14 @@ const App = () => {
                       element={
                         <PermissionProtectedRoute requiredPermission="geradores">
                           <GeradorCarrosseis />
+                        </PermissionProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/geradores/carrosseis/studio/:projectId"
+                      element={
+                        <PermissionProtectedRoute requiredPermission="geradores">
+                          <CarouselStudio />
                         </PermissionProtectedRoute>
                       }
                     />

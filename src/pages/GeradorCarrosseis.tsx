@@ -27,7 +27,14 @@ import {
   Instagram,
   Wand2,
   Copy,
+  Edit3,
 } from "lucide-react";
+import { StudioWizardModal } from "@/components/carousel-studio/StudioWizardModal";
+import { WizardConfig } from "@/components/carousel-studio/types";
+import {
+  useCreateStudioProject,
+  useCarouselStudioProjects,
+} from "@/hooks/useCarouselStudioProject";
 import { toast } from "sonner";
 import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -125,6 +132,13 @@ export default function GeradorCarrosseis() {
   const [lastGeneratedCarouselId, setLastGeneratedCarouselId] = useState<
     string | null
   >(null);
+
+  // Studio state
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const createProject = useCreateStudioProject();
+  const { data: studioProjects } = useCarouselStudioProjects(
+    activeCompany?.company_id,
+  );
 
   const { clients, loading: isLoadingClients } = useClients();
 
@@ -302,6 +316,33 @@ export default function GeradorCarrosseis() {
     updated[index] = content;
     setGeneratedSlideContents(updated);
   };
+
+  const handleWizardComplete = async (config: WizardConfig) => {
+    if (!activeCompany?.company_id || !user?.id) return;
+    try {
+      const projectId = await createProject.mutateAsync({
+        companyId: activeCompany.company_id,
+        userId: user.id,
+        config,
+      });
+
+      // Criar slides diretamente via supabase client
+      const slideRows = Array.from({ length: config.slidesCount }, (_, i) => ({
+        project_id: projectId,
+        slide_number: i + 1,
+      }));
+      const { error } = await supabase
+        .from("carousel_studio_slides")
+        .insert(slideRows);
+      if (error) throw error;
+
+      setWizardOpen(false);
+      navigate(`/geradores/carrosseis/studio/${projectId}`);
+    } catch (err) {
+      toast.error("Erro ao criar projeto");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -332,10 +373,14 @@ export default function GeradorCarrosseis() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="generate" className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
               Gerar Novo
+            </TabsTrigger>
+            <TabsTrigger value="studio" className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4" />
+              Editor Visual
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="w-4 h-4" />
@@ -680,6 +725,78 @@ export default function GeradorCarrosseis() {
                 </Card>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="studio" className="mt-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Edit3 className="w-5 h-5 text-primary" />
+                    Editor Visual de Carrossel
+                  </CardTitle>
+                  <CardDescription>
+                    Crie carrosseis com editor visual em tempo real — textos,
+                    imagens e design completo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => setWizardOpen(true)}
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Criar no Editor Visual
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {studioProjects && studioProjects.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                    Projetos recentes
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {studioProjects.map((p) => (
+                      <Card
+                        key={p.id}
+                        className="cursor-pointer hover:border-primary transition-colors"
+                        onClick={() =>
+                          navigate(`/geradores/carrosseis/studio/${p.id}`)
+                        }
+                      >
+                        <CardContent className="p-4">
+                          {p.thumbnail_url && (
+                            <img
+                              src={p.thumbnail_url}
+                              className="w-full h-24 object-cover rounded mb-3"
+                              alt=""
+                            />
+                          )}
+                          <div className="font-medium text-sm truncate">
+                            {p.title}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {p.slides_count} slides •{" "}
+                            {p.style === "minimalist"
+                              ? "Minimalista"
+                              : "Profile"}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <StudioWizardModal
+              open={wizardOpen}
+              onOpenChange={setWizardOpen}
+              onComplete={handleWizardComplete}
+              isCreating={createProject.isPending}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">
