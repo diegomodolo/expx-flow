@@ -162,7 +162,7 @@ export default function CarouselStudio() {
   const scale = PREVIEW_HEIGHT / SLIDE_H;
 
   return (
-    <DashboardLayout>
+    <DashboardLayout noPadding>
       <div className="flex flex-col h-[calc(100vh-4rem)] bg-background overflow-hidden">
         <StudioTopBar
           style={project.style as CarouselStyle}
