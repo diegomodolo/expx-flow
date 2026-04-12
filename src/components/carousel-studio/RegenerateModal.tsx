@@ -130,31 +130,21 @@ export function RegenerateModal({
         return;
       }
 
-      const briefingContext = briefingParts.join("\n");
-
-      const { data, error } = await supabase.functions.invoke("ai-gateway", {
-        body: {
-          messages: [
-            {
-              role: "user",
-              content: `Com base no briefing do cliente abaixo, crie um prompt detalhado para gerar um carrossel de Instagram com ${slidesCount} slides.\n\nO prompt deve descrever: tema principal, ângulo de abordagem, tom de voz, público-alvo e objetivo de conversão. Deve ser específico e orientado a resultados. Responda APENAS com o prompt, sem introdução ou explicação.\n\n${briefingContext}`,
-            },
-          ],
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 400,
+      const { data, error } = await supabase.functions.invoke(
+        "generate-carousel-prompt",
+        {
+          body: {
+            briefing: briefingParts.join("\n"),
+            slides_count: slidesCount,
+          },
         },
-      });
+      );
 
       if (error) throw error;
+      if (!data?.success)
+        throw new Error(data?.error || "Resposta vazia da IA");
 
-      const generated =
-        data?.content?.[0]?.text ||
-        data?.choices?.[0]?.message?.content ||
-        null;
-
-      if (!generated) throw new Error("Resposta vazia da IA");
-
-      setPrompt(generated.trim());
+      setPrompt(data.prompt);
       toast.success("Prompt gerado com base no briefing do cliente");
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erro ao gerar prompt");
