@@ -192,9 +192,9 @@ export const TEXT_POSITION_CLASSES: Record<TextPosition, string> = {
 
 export const OVERLAY_GRADIENTS: Record<OverlayStyle, string> = {
   none: "none",
-  base: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)",
+  base: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)",
   top_strong:
-    "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)",
+    "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)",
   base_strong:
     "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)",
 };
