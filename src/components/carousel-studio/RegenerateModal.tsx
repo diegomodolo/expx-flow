@@ -9,9 +9,29 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import {
+  Check,
+  ChevronsUpDown,
+  Sparkles,
+  RefreshCw,
+  Wand2,
+} from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useClients, Client } from "@/hooks/useClients";
 import {
   StudioProject,
   StudioSlide,
@@ -53,12 +73,20 @@ export function RegenerateModal({
   onSlidesRegenerated,
   onProjectPatched,
 }: Props) {
+  const { clients, loading: loadingClients } = useClients();
+
   const [prompt, setPrompt] = useState("");
   const [slidesCount, setSlidesCount] = useState(6);
   const [imageMode, setImageMode] = useState<ImageMode>("background");
   const [fontPair, setFontPair] = useState<FontPair>("space_inter");
   const [accentColor, setAccentColor] = useState("#FFD700");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  const selectedClient: Client | null =
+    clients.find((c) => c.id === selectedClientId) ?? null;
 
   // Inicializa com os dados atuais do projeto
   useEffect(() => {
@@ -68,8 +96,72 @@ export function RegenerateModal({
       setImageMode((project.image_mode as ImageMode) ?? "background");
       setFontPair((project.font_pair as FontPair) ?? "space_inter");
       setAccentColor(project.accent_color ?? "#FFD700");
+      setSelectedClientId(project.client_id ?? null);
     }
   }, [open, project]);
+
+  const handleGeneratePrompt = async () => {
+    if (!selectedClient) {
+      toast.error("Selecione um cliente antes de gerar o prompt");
+      return;
+    }
+
+    setIsGeneratingPrompt(true);
+    try {
+      // Monta contexto do briefing do cliente
+      const briefingParts: string[] = [];
+      if (selectedClient.name)
+        briefingParts.push(`Cliente: ${selectedClient.name}`);
+      if (selectedClient.sector)
+        briefingParts.push(`Setor: ${selectedClient.sector}`);
+      if (selectedClient.product_name)
+        briefingParts.push(`Produto/Serviço: ${selectedClient.product_name}`);
+      if (selectedClient.target_audience)
+        briefingParts.push(`Público-alvo: ${selectedClient.target_audience}`);
+      if (selectedClient.voice_tone)
+        briefingParts.push(`Tom de voz: ${selectedClient.voice_tone}`);
+      if (selectedClient.objectives)
+        briefingParts.push(`Objetivos: ${selectedClient.objectives}`);
+      if (selectedClient.ai_briefing)
+        briefingParts.push(`Briefing completo: ${selectedClient.ai_briefing}`);
+
+      if (briefingParts.length === 0) {
+        toast.error("Este cliente não possui dados de briefing cadastrados");
+        return;
+      }
+
+      const briefingContext = briefingParts.join("\n");
+
+      const { data, error } = await supabase.functions.invoke("ai-gateway", {
+        body: {
+          messages: [
+            {
+              role: "user",
+              content: `Com base no briefing do cliente abaixo, crie um prompt detalhado para gerar um carrossel de Instagram com ${slidesCount} slides.\n\nO prompt deve descrever: tema principal, ângulo de abordagem, tom de voz, público-alvo e objetivo de conversão. Deve ser específico e orientado a resultados. Responda APENAS com o prompt, sem introdução ou explicação.\n\n${briefingContext}`,
+            },
+          ],
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 400,
+        },
+      });
+
+      if (error) throw error;
+
+      const generated =
+        data?.content?.[0]?.text ||
+        data?.choices?.[0]?.message?.content ||
+        null;
+
+      if (!generated) throw new Error("Resposta vazia da IA");
+
+      setPrompt(generated.trim());
+      toast.success("Prompt gerado com base no briefing do cliente");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erro ao gerar prompt");
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -78,7 +170,6 @@ export function RegenerateModal({
     }
     setIsGenerating(true);
     try {
-      // 1. Atualiza o projeto com as novas configs
       const projectPatch: Partial<StudioProject> = {
         prompt,
         slides_count: slidesCount,
@@ -86,6 +177,7 @@ export function RegenerateModal({
         font_pair: fontPair,
         accent_color: accentColor,
         status: "generating",
+        ...(selectedClientId !== undefined && { client_id: selectedClientId }),
       };
       const { error: patchError } = await supabase
         .from("carousel_studio_projects")
@@ -93,7 +185,6 @@ export function RegenerateModal({
         .eq("id", project.id);
       if (patchError) throw patchError;
 
-      // 2. Chama a edge function de geração de slides
       const { data, error } = await supabase.functions.invoke(
         "generate-carousel-caption",
         {
@@ -112,7 +203,6 @@ export function RegenerateModal({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Falha ao gerar");
 
-      // 3. Busca os slides atualizados
       const { data: newSlides, error: slidesError } = await supabase
         .from("carousel_studio_slides")
         .select("*")
@@ -143,18 +233,117 @@ export function RegenerateModal({
         </DialogHeader>
 
         <div className="space-y-5 pt-1">
+          {/* Cliente */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Cliente</Label>
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between text-sm h-9"
+                  disabled={loadingClients}
+                >
+                  <span className="truncate">
+                    {selectedClient
+                      ? selectedClient.name
+                      : "Selecionar cliente..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[340px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar cliente..." />
+                  <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                  <CommandGroup className="max-h-56 overflow-y-auto">
+                    {selectedClientId && (
+                      <CommandItem
+                        value="__none__"
+                        onSelect={() => {
+                          setSelectedClientId(null);
+                          setClientPickerOpen(false);
+                        }}
+                        className="text-muted-foreground text-xs"
+                      >
+                        Remover seleção
+                      </CommandItem>
+                    )}
+                    {clients.map((client) => (
+                      <CommandItem
+                        key={client.id}
+                        value={client.name}
+                        onSelect={() => {
+                          setSelectedClientId(client.id);
+                          setClientPickerOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedClientId === client.id
+                              ? "opacity-100"
+                              : "opacity-0",
+                          )}
+                        />
+                        <span className="truncate">{client.name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            {selectedClient && (
+              <div className="flex items-center gap-2 px-1">
+                {(selectedClient.instagram_account?.profile_picture_url ||
+                  selectedClient.avatar) && (
+                  <img
+                    src={
+                      selectedClient.instagram_account?.profile_picture_url ||
+                      selectedClient.avatar
+                    }
+                    className="w-6 h-6 rounded-full object-cover shrink-0"
+                    alt=""
+                  />
+                )}
+                <span className="text-xs text-muted-foreground truncate">
+                  {selectedClient.product_name || selectedClient.sector || ""}
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* Prompt */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Tema / Prompt</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Tema / Prompt</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-primary gap-1 px-2"
+                onClick={handleGeneratePrompt}
+                disabled={isGeneratingPrompt || !selectedClient}
+                title={
+                  selectedClient
+                    ? "Gerar prompt com base no briefing do cliente"
+                    : "Selecione um cliente primeiro"
+                }
+              >
+                {isGeneratingPrompt ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Wand2 className="w-3 h-3" />
+                )}
+                {isGeneratingPrompt ? "Gerando..." : "Gerar pelo briefing"}
+              </Button>
+            </div>
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Descreva o tema do carrossel, público-alvo, tom de voz..."
               className="min-h-[100px] text-sm resize-none"
             />
-            <p className="text-xs text-muted-foreground">
-              Edite o prompt original ou reescreva para mudar o conteúdo gerado.
-            </p>
           </div>
 
           {/* Nº de slides */}
