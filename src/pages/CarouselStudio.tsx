@@ -189,7 +189,7 @@ export default function CarouselStudio() {
           />
 
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 flex items-center justify-center overflow-auto p-4 gap-4">
+            <div className="flex-1 flex items-center overflow-auto px-8 py-4 gap-4">
               {slides.map((slide, i) => {
                 const isActive = i === activeIndex;
                 const displayScale = isActive ? scale : scale * 0.6;
