@@ -93,7 +93,7 @@ export function BackgroundSection({
       </Button>
 
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">
+        <Label className="text-xs text-muted-foreground">
           Posição X: {slide.bg_position_x}%
         </Label>
         <Slider
@@ -105,7 +105,7 @@ export function BackgroundSection({
         />
       </div>
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">
+        <Label className="text-xs text-muted-foreground">
           Posição Y: {slide.bg_position_y}%
         </Label>
         <Slider
@@ -117,7 +117,9 @@ export function BackgroundSection({
         />
       </div>
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">Zoom: {slide.bg_zoom}%</Label>
+        <Label className="text-xs text-muted-foreground">
+          Zoom: {slide.bg_zoom}%
+        </Label>
         <Slider
           value={[slide.bg_zoom]}
           onValueChange={([v]) => onChange({ bg_zoom: v })}

@@ -39,11 +39,13 @@ export function FontsSection({
               className={`p-2 rounded border cursor-pointer transition-colors ${
                 isSelected
                   ? "border-primary bg-primary/10"
-                  : "border-white/10 hover:border-white/30"
+                  : "border-border hover:border-primary/50"
               }`}
             >
-              <div className="text-white text-xs font-bold">{labels.title}</div>
-              <div className="text-white/50 text-xs italic">
+              <div className="text-foreground text-xs font-bold">
+                {labels.title}
+              </div>
+              <div className="text-muted-foreground text-xs italic">
                 {labels.subtitle}
               </div>
             </div>
@@ -52,7 +54,7 @@ export function FontsSection({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">
+        <Label className="text-xs text-muted-foreground">
           Tamanho título: {slide.font_size_title}px
         </Label>
         <Slider
@@ -64,7 +66,7 @@ export function FontsSection({
         />
       </div>
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">
+        <Label className="text-xs text-muted-foreground">
           Tamanho subtítulo: {slide.font_size_subtitle}px
         </Label>
         <Slider
@@ -76,7 +78,7 @@ export function FontsSection({
         />
       </div>
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">
+        <Label className="text-xs text-muted-foreground">
           Espaçamento: {slide.line_spacing}%
         </Label>
         <Slider
@@ -96,7 +98,7 @@ export function FontsSection({
         />
         <Label
           htmlFor="apply-to-next"
-          className="text-xs text-white/60 cursor-pointer"
+          className="text-xs text-muted-foreground cursor-pointer"
         >
           Aplicar configurações no próximo slide
         </Label>

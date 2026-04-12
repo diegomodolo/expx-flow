@@ -155,12 +155,15 @@ export default function CarouselStudio() {
     );
   }
 
-  const PREVIEW_HEIGHT = 500;
-  const scale = PREVIEW_HEIGHT / 1080;
+  // Slides são 1080×1350px (4:5 Instagram)
+  const SLIDE_W = 1080;
+  const SLIDE_H = 1350;
+  const PREVIEW_HEIGHT = 480;
+  const scale = PREVIEW_HEIGHT / SLIDE_H;
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-4rem)] bg-[#0a0a0a] overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-4rem)] bg-background overflow-hidden">
         <StudioTopBar
           style={project.style as CarouselStyle}
           onStyleChange={() => {}}
@@ -186,7 +189,7 @@ export default function CarouselStudio() {
           />
 
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 flex items-center justify-center overflow-auto p-8 gap-6">
+            <div className="flex-1 flex items-center justify-center overflow-auto p-4 gap-4">
               {slides.map((slide, i) => {
                 const isActive = i === activeIndex;
                 const displayScale = isActive ? scale : scale * 0.6;
@@ -200,14 +203,14 @@ export default function CarouselStudio() {
                         : "border-transparent opacity-60 hover:opacity-80"
                     }`}
                     style={{
-                      width: 1080 * displayScale,
-                      height: 1080 * displayScale,
+                      width: SLIDE_W * displayScale,
+                      height: SLIDE_H * displayScale,
                     }}
                   >
                     <div
                       style={{
-                        width: 1080,
-                        height: 1080,
+                        width: SLIDE_W,
+                        height: SLIDE_H,
                         transform: `scale(${displayScale})`,
                         transformOrigin: "top left",
                       }}
@@ -225,7 +228,7 @@ export default function CarouselStudio() {
               })}
             </div>
 
-            <div className="border-t border-white/10 overflow-x-auto">
+            <div className="border-t border-border overflow-x-auto">
               <SlideStrip
                 slides={slides}
                 project={project}

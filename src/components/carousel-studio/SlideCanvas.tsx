@@ -48,7 +48,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
         className={`relative overflow-hidden bg-gray-900 ${className}`}
         style={{
           width: 1080,
-          height: 1080,
+          height: 1350,
           transform: scale !== 1 ? `scale(${scale})` : undefined,
           transformOrigin: "top left",
           flexShrink: 0,

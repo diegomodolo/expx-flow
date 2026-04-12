@@ -104,14 +104,14 @@ export function StudioWizardModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden bg-[#111] border-white/10 text-white">
+      <DialogContent className="max-w-lg p-0 overflow-hidden">
         {/* Indicador de progresso */}
         <div className="flex justify-center gap-2 pt-6">
           {Array.from({ length: STEPS }).map((_, i) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full transition-colors ${
-                i + 1 <= step ? "bg-primary" : "bg-white/20"
+                i + 1 <= step ? "bg-primary" : "bg-muted"
               }`}
             />
           ))}
@@ -123,7 +123,7 @@ export function StudioWizardModal({
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-2xl font-bold">Escolha o Estilo</h2>
-                <p className="text-white/50 text-sm mt-1">
+                <p className="text-muted-foreground text-sm mt-1">
                   Como você quer que seus posts apareçam
                 </p>
               </div>
@@ -148,19 +148,21 @@ export function StudioWizardModal({
                     className={`p-4 rounded-xl border-2 transition-colors text-left relative ${
                       config.style === value
                         ? "border-primary bg-primary/10"
-                        : "border-white/10 hover:border-white/30"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     {config.style === value && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs">
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs">
                         ✓
                       </div>
                     )}
-                    <div className="w-full h-20 bg-white/5 rounded-lg mb-3 flex items-center justify-center text-white/20">
+                    <div className="w-full h-20 bg-muted rounded-lg mb-3 flex items-center justify-center text-muted-foreground">
                       {value === "minimalist" ? "▬" : "▤"}
                     </div>
                     <div className="font-semibold text-sm">{label}</div>
-                    <div className="text-white/40 text-xs mt-1">{desc}</div>
+                    <div className="text-muted-foreground text-xs mt-1">
+                      {desc}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -172,7 +174,7 @@ export function StudioWizardModal({
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-2xl font-bold">Como deseja começar?</h2>
-                <p className="text-white/50 text-sm mt-1">
+                <p className="text-muted-foreground text-sm mt-1">
                   Deixe a IA fazer o trabalho pesado ou comece do zero
                 </p>
               </div>
@@ -182,12 +184,12 @@ export function StudioWizardModal({
                   className={`p-6 rounded-xl border-2 transition-colors text-center ${
                     config.useAI
                       ? "border-primary bg-primary/10"
-                      : "border-white/10 hover:border-white/30"
+                      : "border-border hover:border-primary/50"
                   }`}
                 >
                   <Sparkles className="w-8 h-8 mx-auto mb-3 text-primary" />
                   <div className="font-semibold">Usar IA</div>
-                  <div className="text-white/40 text-xs mt-1">
+                  <div className="text-muted-foreground text-xs mt-1">
                     Dê um tópico e criamos slides com conteúdo, layout e imagens
                     automaticamente
                   </div>
@@ -197,12 +199,12 @@ export function StudioWizardModal({
                   className={`p-6 rounded-xl border-2 transition-colors text-center ${
                     !config.useAI
                       ? "border-primary bg-primary/10"
-                      : "border-white/10 hover:border-white/30"
+                      : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <PenLine className="w-8 h-8 mx-auto mb-3 text-white/60" />
+                  <PenLine className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
                   <div className="font-semibold">Criação Manual</div>
-                  <div className="text-white/40 text-xs mt-1">
+                  <div className="text-muted-foreground text-xs mt-1">
                     Comece do zero. Adicione slides, escreva textos e faça
                     upload de imagens
                   </div>
@@ -216,25 +218,25 @@ export function StudioWizardModal({
             <div className="space-y-5">
               <div className="text-center">
                 <h2 className="text-2xl font-bold">Configurar IA</h2>
-                <p className="text-white/50 text-sm mt-1">
+                <p className="text-muted-foreground text-sm mt-1">
                   Diga sobre o que é o conteúdo e como quer o carrossel
                 </p>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-white/60">
+                <Label className="text-xs text-muted-foreground">
                   SOBRE O QUE É O CONTEÚDO?
                 </Label>
                 <Textarea
                   value={config.prompt}
                   onChange={(e) => update({ prompt: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white min-h-[80px] resize-none"
+                  className="min-h-[80px] resize-none"
                   placeholder="Ex: 5 prompts ultra realistas para foto de perfil com IA..."
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs text-white/60">
+                <Label className="text-xs text-muted-foreground">
                   NÚMERO DE SLIDES
                 </Label>
                 <div className="grid grid-cols-5 gap-1">
@@ -244,8 +246,8 @@ export function StudioWizardModal({
                       onClick={() => update({ slidesCount: n })}
                       className={`py-2 rounded text-sm transition-colors ${
                         config.slidesCount === n
-                          ? "bg-primary text-white"
-                          : "bg-white/5 text-white/60 hover:bg-white/10"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >
                       {n}
@@ -255,7 +257,7 @@ export function StudioWizardModal({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs text-white/60">
+                <Label className="text-xs text-muted-foreground">
                   IMAGENS NO CARROSSEL
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -265,8 +267,8 @@ export function StudioWizardModal({
                       onClick={() => update({ imageMode: m.value })}
                       className={`py-2 px-3 rounded text-xs transition-colors ${
                         config.imageMode === m.value
-                          ? "bg-primary text-white"
-                          : "bg-white/5 text-white/60 hover:bg-white/10"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >
                       {m.label}
@@ -284,7 +286,7 @@ export function StudioWizardModal({
                   />
                   <Label
                     htmlFor="gen-ai-imgs"
-                    className="text-xs text-white/60 cursor-pointer"
+                    className="text-xs text-muted-foreground cursor-pointer"
                   >
                     Gerar imagens com IA (Nano Banana Pro)
                   </Label>
@@ -292,13 +294,13 @@ export function StudioWizardModal({
               )}
 
               <div className="space-y-1">
-                <Label className="text-xs text-white/60">
+                <Label className="text-xs text-muted-foreground">
                   ESTILO DAS IMAGENS (OPCIONAL)
                 </Label>
                 <Input
                   value={config.imageStyle}
                   onChange={(e) => update({ imageStyle: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white text-sm"
+                  className="text-sm"
                   placeholder="Ex: pessoas realistas, fundo claro, foco no rosto..."
                 />
               </div>
@@ -310,25 +312,25 @@ export function StudioWizardModal({
             <div className="space-y-5">
               <div className="text-center">
                 <h2 className="text-2xl font-bold">Personalizar</h2>
-                <p className="text-white/50 text-sm mt-1">
+                <p className="text-muted-foreground text-sm mt-1">
                   Identidade visual do seu carrossel
                 </p>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-white/60">
+                <Label className="text-xs text-muted-foreground">
                   @ DO INSTAGRAM (OPCIONAL)
                 </Label>
                 <Input
                   value={config.instagramHandle}
                   onChange={(e) => update({ instagramHandle: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white text-sm"
+                  className="text-sm"
                   placeholder="@seuperfil"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs text-white/60">
+                <Label className="text-xs text-muted-foreground">
                   COMBINAÇÃO DE FONTES
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -341,13 +343,13 @@ export function StudioWizardModal({
                         className={`p-3 rounded border text-left transition-colors ${
                           config.fontPair === pair
                             ? "border-primary bg-primary/10"
-                            : "border-white/10 hover:border-white/30"
+                            : "border-border hover:border-primary/50"
                         }`}
                       >
-                        <div className="text-sm font-bold text-white">
+                        <div className="text-sm font-bold text-foreground">
                           {labels.title}
                         </div>
-                        <div className="text-xs text-white/40 italic">
+                        <div className="text-xs text-muted-foreground italic">
                           {labels.subtitle}
                         </div>
                       </button>
@@ -357,7 +359,7 @@ export function StudioWizardModal({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs text-white/60">
+                <Label className="text-xs text-muted-foreground">
                   COR DE DESTAQUE (PALAVRAS EM EVIDÊNCIA)
                 </Label>
                 <div className="flex gap-2 flex-wrap">
@@ -367,7 +369,7 @@ export function StudioWizardModal({
                       onClick={() => update({ accentColor: color })}
                       className={`w-7 h-7 rounded-full border-2 transition-colors ${
                         config.accentColor === color
-                          ? "border-white"
+                          ? "border-foreground"
                           : "border-transparent"
                       }`}
                       style={{ backgroundColor: color }}
@@ -377,7 +379,7 @@ export function StudioWizardModal({
                 <Input
                   value={config.accentColor}
                   onChange={(e) => update({ accentColor: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white text-sm font-mono"
+                  className="text-sm font-mono"
                   placeholder="#FFD700 ou vazio para nenhuma"
                 />
               </div>
@@ -391,7 +393,7 @@ export function StudioWizardModal({
             <Button
               variant="ghost"
               onClick={handleBack}
-              className="text-white/60"
+              className="text-muted-foreground"
             >
               <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
             </Button>

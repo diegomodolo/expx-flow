@@ -24,7 +24,7 @@ export function CornersSection({ slide, onChange }: Props) {
         value={slide.corner_style}
         onValueChange={(v) => onChange({ corner_style: v as CornerStyle })}
       >
-        <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs">
+        <SelectTrigger className="bg-background border-border text-foreground text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -38,7 +38,7 @@ export function CornersSection({ slide, onChange }: Props) {
       </Select>
 
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">
+        <Label className="text-xs text-muted-foreground">
           Opacidade: {slide.corner_opacity}%
         </Label>
         <Slider
@@ -55,12 +55,12 @@ export function CornersSection({ slide, onChange }: Props) {
           checked={slide.glass_enabled}
           onCheckedChange={(v) => onChange({ glass_enabled: v })}
         />
-        <Label className="text-xs text-white/60">Estilo glass</Label>
+        <Label className="text-xs text-muted-foreground">Estilo glass</Label>
       </div>
 
       {slide.glass_enabled && (
         <div className="space-y-2">
-          <Label className="text-xs text-white/60">
+          <Label className="text-xs text-muted-foreground">
             Arredondamento: {slide.glass_radius}px
           </Label>
           <Slider

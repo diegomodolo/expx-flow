@@ -33,7 +33,7 @@ export function StudioSidebar({
   const [applyToNext, setApplyToNext] = useState(false);
 
   return (
-    <div className="w-[280px] flex-shrink-0 bg-[#111] border-r border-white/10 flex flex-col h-full overflow-y-auto">
+    <div className="w-[280px] flex-shrink-0 bg-card border-r border-border flex flex-col h-full overflow-y-auto">
       <BackgroundSection
         slide={slide}
         onChange={onSlideChange}

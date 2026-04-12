@@ -45,7 +45,7 @@ export function useSlideExport() {
         useCORS: true,
         allowTaint: false,
         width: 1080,
-        height: 1080,
+        height: 1350,
         logging: false,
       });
 

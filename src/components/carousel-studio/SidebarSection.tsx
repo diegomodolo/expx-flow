@@ -14,9 +14,9 @@ export function SidebarSection({
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-white/10">
+    <div className="border-b border-border">
       <button
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
         onClick={() => setOpen((v) => !v)}
       >
         {title}

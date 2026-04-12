@@ -23,7 +23,7 @@ export function StudioTopBar({
   onOpenCaption,
 }: Props) {
   return (
-    <div className="h-12 flex items-center justify-between px-4 border-b border-white/10 bg-[#111] flex-shrink-0">
+    <div className="h-12 flex items-center justify-between px-4 border-b border-border bg-card flex-shrink-0">
       <div className="flex gap-1">
         {(["minimalist", "profile"] as CarouselStyle[]).map((s) => (
           <button
@@ -31,8 +31,8 @@ export function StudioTopBar({
             onClick={() => onStyleChange(s)}
             className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
               style === s
-                ? "bg-primary text-white"
-                : "text-white/60 hover:text-white hover:bg-white/5"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
             {s === "minimalist" ? "Minimalista" : "Profile"}
@@ -40,11 +40,11 @@ export function StudioTopBar({
         ))}
       </div>
 
-      <div className="flex items-center gap-2 text-white/60 text-sm">
+      <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <button
           onClick={onPrev}
           disabled={slideIndex === 0}
-          className="disabled:opacity-30 hover:text-white transition-colors"
+          className="disabled:opacity-30 hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -52,7 +52,7 @@ export function StudioTopBar({
         <button
           onClick={onNext}
           disabled={slideIndex === slidesTotal - 1}
-          className="disabled:opacity-30 hover:text-white transition-colors"
+          className="disabled:opacity-30 hover:text-foreground transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -61,7 +61,7 @@ export function StudioTopBar({
       <Button
         variant="ghost"
         size="sm"
-        className="text-white/60 text-xs hover:text-white"
+        className="text-muted-foreground text-xs hover:text-foreground"
         onClick={onOpenCaption}
       >
         <FileText className="w-4 h-4 mr-1" />

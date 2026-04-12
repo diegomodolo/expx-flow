@@ -10,11 +10,15 @@ interface Props {
 }
 
 export function SlideStrip({ slides, project, activeIndex, onSelect }: Props) {
-  const PREVIEW_SIZE = 120;
-  const scale = PREVIEW_SIZE / 1080;
+  // Slides são 1080×1350px (4:5 Instagram)
+  const SLIDE_W = 1080;
+  const SLIDE_H = 1350;
+  const THUMB_H = 96;
+  const scale = THUMB_H / SLIDE_H;
+  const thumbW = Math.round(SLIDE_W * scale);
 
   return (
-    <div className="flex gap-3 overflow-x-auto px-4 py-3 items-start bg-[#111]">
+    <div className="flex gap-3 overflow-x-auto px-4 py-3 items-start bg-card">
       {slides.map((slide, i) => (
         <button
           key={slide.id}
@@ -22,14 +26,14 @@ export function SlideStrip({ slides, project, activeIndex, onSelect }: Props) {
           className={`flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
             i === activeIndex
               ? "border-primary"
-              : "border-transparent hover:border-white/30"
+              : "border-transparent hover:border-border"
           }`}
-          style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
+          style={{ width: thumbW, height: THUMB_H }}
         >
           <div
             style={{
-              width: 1080,
-              height: 1080,
+              width: SLIDE_W,
+              height: SLIDE_H,
               transform: `scale(${scale})`,
               transformOrigin: "top left",
             }}

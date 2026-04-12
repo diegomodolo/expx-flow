@@ -23,7 +23,7 @@ export function OverlaySection({ slide, onChange }: Props) {
         value={slide.overlay_style}
         onValueChange={(v) => onChange({ overlay_style: v as OverlayStyle })}
       >
-        <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs">
+        <SelectTrigger className="bg-background border-border text-foreground text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -34,7 +34,7 @@ export function OverlaySection({ slide, onChange }: Props) {
         </SelectContent>
       </Select>
       <div className="space-y-2">
-        <Label className="text-xs text-white/60">
+        <Label className="text-xs text-muted-foreground">
           Opacidade: {slide.overlay_opacity}%
         </Label>
         <Slider

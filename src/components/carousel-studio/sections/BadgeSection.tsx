@@ -19,7 +19,7 @@ export function BadgeSection({ slide, onChange }: Props) {
           checked={slide.badge_enabled}
           onCheckedChange={(v) => onChange({ badge_enabled: v })}
         />
-        <Label className="text-xs text-white/60">Exibir badge</Label>
+        <Label className="text-xs text-muted-foreground">Exibir badge</Label>
       </div>
 
       {slide.badge_enabled && (
@@ -39,7 +39,7 @@ export function BadgeSection({ slide, onChange }: Props) {
             }}
           />
           <button
-            className="w-full py-2 border border-white/10 rounded text-xs text-white/60 hover:bg-white/5"
+            className="w-full py-2 border border-border rounded text-xs text-muted-foreground hover:bg-muted/50"
             onClick={() => fileRef.current?.click()}
           >
             {slide.badge_photo_url

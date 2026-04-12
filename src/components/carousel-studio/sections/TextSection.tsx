@@ -34,7 +34,7 @@ export function TextSection({
   return (
     <SidebarSection title="Título & Subtítulo" defaultOpen>
       <div>
-        <Label className="text-xs text-white/60 mb-2 block">
+        <Label className="text-xs text-muted-foreground mb-2 block">
           Posição do texto
         </Label>
         <div className="grid grid-cols-3 gap-1">
@@ -45,7 +45,7 @@ export function TextSection({
               className={`h-8 rounded text-sm transition-colors ${
                 slide.text_position === p.value
                   ? "bg-primary text-white"
-                  : "bg-white/5 text-white/50 hover:bg-white/10"
+                  : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
               }`}
             >
               {p.label}
@@ -62,7 +62,7 @@ export function TextSection({
             className={`flex-1 py-1 rounded text-xs transition-colors ${
               slide.text_alignment === a
                 ? "bg-primary text-white"
-                : "bg-white/5 text-white/50"
+                : "bg-muted/40 text-muted-foreground"
             }`}
           >
             {a === "left" ? "ESQ" : a === "center" ? "CTR" : "DIR"}
@@ -71,21 +71,21 @@ export function TextSection({
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs text-white/60">Título</Label>
+        <Label className="text-xs text-muted-foreground">Título</Label>
         <Textarea
           value={slide.headline ?? ""}
           onChange={(e) => onChange({ headline: e.target.value })}
-          className="bg-white/5 border-white/10 text-white text-sm min-h-[60px] resize-none"
+          className="bg-background border-border text-foreground text-sm min-h-[60px] resize-none"
           placeholder="Título do slide..."
         />
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs text-white/60">Subtítulo</Label>
+        <Label className="text-xs text-muted-foreground">Subtítulo</Label>
         <Textarea
           value={slide.subtitle ?? ""}
           onChange={(e) => onChange({ subtitle: e.target.value })}
-          className="bg-white/5 border-white/10 text-white text-sm min-h-[60px] resize-none"
+          className="bg-background border-border text-foreground text-sm min-h-[60px] resize-none"
           placeholder="Subtítulo..."
         />
       </div>

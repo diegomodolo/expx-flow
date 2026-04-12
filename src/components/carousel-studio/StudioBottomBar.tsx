@@ -16,15 +16,15 @@ export function StudioBottomBar({
   exportProgress,
 }: Props) {
   return (
-    <div className="h-12 flex items-center justify-between px-4 border-t border-white/10 bg-[#111] flex-shrink-0">
-      <div className="flex items-center gap-3 text-xs text-white/50">
+    <div className="h-12 flex items-center justify-between px-4 border-t border-border bg-card flex-shrink-0">
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
         {generationProgress && (
           <>
             <span>
               Slide {generationProgress.current} de {generationProgress.total} —
               gerando imagem
             </span>
-            <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="w-32 h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all"
                 style={{
@@ -37,7 +37,7 @@ export function StudioBottomBar({
         {isExporting && (
           <>
             <span>Exportando ZIP... {exportProgress}%</span>
-            <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="w-32 h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all"
                 style={{ width: `${exportProgress}%` }}
