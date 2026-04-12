@@ -85,8 +85,11 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER update_carousel_studio_projects_updated_at
   BEFORE UPDATE ON public.carousel_studio_projects
-  FOR EACH ROW EXECUTE PROCEDURE update_carousel_studio_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION update_carousel_studio_updated_at();
 
 CREATE TRIGGER update_carousel_studio_slides_updated_at
   BEFORE UPDATE ON public.carousel_studio_slides
-  FOR EACH ROW EXECUTE PROCEDURE update_carousel_studio_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION update_carousel_studio_updated_at();
+
+CREATE INDEX idx_carousel_studio_slides_project_id
+  ON public.carousel_studio_slides (project_id);
