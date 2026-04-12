@@ -79,14 +79,22 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           ? "text-right"
           : "text-left";
 
-    // Parse highlight **palavra** → <span> com accent_color
+    // Parse highlight **palavra** → <span> com highlight_color (ou accent_color) e highlight_weight
+    const highlightColor = slide.highlight_color ?? project.accent_color;
+    const highlightWeight = slide.highlight_weight ?? undefined;
     const renderWithHighlight = (text: string | null) => {
       if (!text) return null;
       const parts = text.split(/(\*\*[^*]+\*\*)/g);
       return parts.map((part, i) => {
         if (part.startsWith("**") && part.endsWith("**")) {
           return (
-            <span key={i} style={{ color: project.accent_color }}>
+            <span
+              key={i}
+              style={{
+                color: highlightColor,
+                fontWeight: highlightWeight,
+              }}
+            >
               {part.slice(2, -2)}
             </span>
           );

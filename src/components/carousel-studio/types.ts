@@ -122,6 +122,10 @@ export interface StudioSlide {
   badge_offset_x: number;
   /** Deslocamento vertical do badge a partir do canto (px) */
   badge_offset_y: number;
+  /** Peso da fonte das palavras destacadas (**palavra**). Ex: '700', '900'. Default null = herda do título */
+  highlight_weight: string | null;
+  /** Cor das palavras destacadas (**palavra**). Null = usa accent_color do projeto */
+  highlight_color: string | null;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;
