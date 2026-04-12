@@ -190,6 +190,26 @@ export const TEXT_POSITION_CLASSES: Record<TextPosition, string> = {
   bottom_right: "bottom-16 right-8",
 };
 
+// Returns the CSS gradient string with alpha values scaled by `opacity` (0–100).
+// Using inline alpha instead of CSS `opacity` ensures the extreme (100%) is
+// truly opaque black even when the slider is at max.
+export function getOverlayGradient(
+  style: OverlayStyle,
+  opacity: number,
+): string {
+  if (style === "none") return "none";
+  const o = opacity / 100;
+  switch (style) {
+    case "base":
+      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${o * 0.1}) 60%, transparent 100%)`;
+    case "top_strong":
+      return `linear-gradient(to bottom, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${o * 0.2}) 50%, transparent 100%)`;
+    case "base_strong":
+      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${o * 0.45}) 50%, transparent 100%)`;
+  }
+}
+
+// Legacy map kept for any static reference — use getOverlayGradient() at render time
 export const OVERLAY_GRADIENTS: Record<OverlayStyle, string> = {
   none: "none",
   base: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)",

@@ -3,7 +3,7 @@ import {
   StudioSlide,
   StudioProject,
   TextPosition,
-  OVERLAY_GRADIENTS,
+  getOverlayGradient,
   BADGE_POSITION_STYLES,
   FONT_PAIR_CSS,
 } from "./types";
@@ -47,7 +47,10 @@ interface SlideCanvasProps {
 export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
   ({ slide, project, scale = 1, className = "" }, ref) => {
     const fonts = FONT_PAIR_CSS[project.font_pair];
-    const overlayGradient = OVERLAY_GRADIENTS[slide.overlay_style];
+    const overlayGradient = getOverlayGradient(
+      slide.overlay_style,
+      slide.overlay_opacity,
+    );
     const textPx = slide.text_padding_x ?? 64;
     const textPy = slide.text_padding_y ?? 64;
     const textPositionStyle = getTextPositionStyle(
@@ -107,10 +110,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
         {overlayGradient !== "none" && (
           <div
             className="absolute inset-0"
-            style={{
-              background: overlayGradient,
-              opacity: slide.overlay_opacity / 100,
-            }}
+            style={{ background: overlayGradient }}
           />
         )}
 
