@@ -5,7 +5,7 @@ import { TextSection } from "./sections/TextSection";
 import { FontsSection } from "./sections/FontsSection";
 import { BadgeSection } from "./sections/BadgeSection";
 import { CornersSection } from "./sections/CornersSection";
-import { ClientSection } from "./sections/ClientSection";
+import { ClientSection, ClientDefaults } from "./sections/ClientSection";
 import { StudioSlide, StudioProject } from "./types";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -19,7 +19,10 @@ interface Props {
   onGenerateContent: () => void;
   isGeneratingContent: boolean;
   onDownloadSlide: () => void;
-  onClientChange: (clientId: string | null) => void;
+  onClientChange: (
+    clientId: string | null,
+    defaults: ClientDefaults | null,
+  ) => void;
 }
 
 export function StudioSidebar({

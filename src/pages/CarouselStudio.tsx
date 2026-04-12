@@ -5,7 +5,9 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   useCarouselStudioProject,
   useUpdateStudioProjectClient,
+  useUpdateStudioProject,
 } from "@/hooks/useCarouselStudioProject";
+import { ClientDefaults } from "@/components/carousel-studio/sections/ClientSection";
 import { useCarouselStudioSlides } from "@/hooks/useCarouselStudioSlides";
 import { useSlideExport } from "@/hooks/useSlideExport";
 import { SlideCanvas } from "@/components/carousel-studio/SlideCanvas";
@@ -40,6 +42,7 @@ export default function CarouselStudio() {
   const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
     useSlideExport();
   const updateClient = useUpdateStudioProjectClient();
+  const updateProject = useUpdateStudioProject();
 
   React.useEffect(() => {
     if (!slides) return;
@@ -140,11 +143,34 @@ export default function CarouselStudio() {
   }, [slides, project, exportAllAsZip]);
 
   const handleClientChange = useCallback(
-    (clientId: string | null) => {
+    (clientId: string | null, defaults: ClientDefaults | null) => {
       if (!project) return;
+
+      // Salva o client_id no projeto
       updateClient.mutate({ projectId: project.id, clientId });
+
+      // Aplica defaults do cliente ao projeto (cor destaque, instagram handle)
+      if (
+        defaults?.projectPatch &&
+        Object.keys(defaults.projectPatch).length > 0
+      ) {
+        updateProject.mutate({
+          projectId: project.id,
+          patch: defaults.projectPatch,
+        });
+      }
+
+      // Aplica defaults do cliente ao slide ativo (badge foto de perfil)
+      if (
+        defaults?.slidePatch &&
+        activeSlide &&
+        Object.keys(defaults.slidePatch).length > 0
+      ) {
+        updateSlide(activeSlide.id, defaults.slidePatch);
+        toast.success("Configurações do cliente aplicadas ao carrossel");
+      }
     },
-    [project, updateClient],
+    [project, activeSlide, updateClient, updateProject, updateSlide],
   );
 
   if (loadingProject || loadingSlides) {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useClients } from "@/hooks/useClients";
+import { useClients, Client } from "@/hooks/useClients";
 import { Check, ChevronsUpDown, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +15,42 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { StudioProject, StudioSlide } from "../types";
+
+export interface ClientDefaults {
+  projectPatch: Partial<StudioProject>;
+  slidePatch: Partial<StudioSlide>;
+}
+
+/** Extrai configurações automáticas do cliente para o carrossel */
+function extractClientDefaults(client: Client): ClientDefaults {
+  const projectPatch: Partial<StudioProject> = {};
+  const slidePatch: Partial<StudioSlide> = {};
+
+  // Instagram handle
+  if (client.instagram_account?.username) {
+    projectPatch.instagram_handle = client.instagram_account.username;
+  }
+
+  // Cor de destaque: usa a cor da equipe se disponível
+  if (client.team?.color) {
+    projectPatch.accent_color = client.team.color;
+  }
+
+  // Badge: foto de perfil do Instagram ou avatar
+  const badgeUrl =
+    client.instagram_account?.profile_picture_url || client.avatar || null;
+  if (badgeUrl) {
+    slidePatch.badge_enabled = true;
+    slidePatch.badge_photo_url = badgeUrl;
+  }
+
+  return { projectPatch, slidePatch };
+}
 
 interface Props {
   clientId: string | null;
-  onChange: (clientId: string | null) => void;
+  onChange: (clientId: string | null, defaults: ClientDefaults | null) => void;
 }
 
 export function ClientSection({ clientId, onChange }: Props) {
@@ -26,6 +58,17 @@ export function ClientSection({ clientId, onChange }: Props) {
   const [open, setOpen] = useState(false);
 
   const selected = clients.find((c) => c.id === clientId) ?? null;
+
+  const handleSelect = (client: Client) => {
+    const defaults = extractClientDefaults(client);
+    onChange(client.id, defaults);
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    onChange(null, null);
+    setOpen(false);
+  };
 
   return (
     <div className="px-4 py-3 border-b border-border">
@@ -59,10 +102,7 @@ export function ClientSection({ clientId, onChange }: Props) {
               {clientId && (
                 <CommandItem
                   value="__none__"
-                  onSelect={() => {
-                    onChange(null);
-                    setOpen(false);
-                  }}
+                  onSelect={handleClear}
                   className="text-muted-foreground text-xs"
                 >
                   Remover seleção
@@ -72,10 +112,7 @@ export function ClientSection({ clientId, onChange }: Props) {
                 <CommandItem
                   key={client.id}
                   value={client.name}
-                  onSelect={() => {
-                    onChange(client.id);
-                    setOpen(false);
-                  }}
+                  onSelect={() => handleSelect(client)}
                 >
                   <Check
                     className={cn(
@@ -91,17 +128,36 @@ export function ClientSection({ clientId, onChange }: Props) {
         </PopoverContent>
       </Popover>
 
+      {/* Preview do cliente selecionado */}
       {selected && (
-        <div className="mt-2 text-xs text-muted-foreground truncate">
-          {selected.company && (
-            <span className="font-medium text-foreground">
-              {selected.company}
-            </span>
+        <div className="mt-2 flex items-center gap-2">
+          {(selected.instagram_account?.profile_picture_url ||
+            selected.avatar) && (
+            <img
+              src={
+                selected.instagram_account?.profile_picture_url ||
+                selected.avatar
+              }
+              className="w-7 h-7 rounded-full object-cover shrink-0"
+              alt=""
+            />
           )}
-          {selected.instagram_account?.username && (
-            <span className="ml-1">
-              · @{selected.instagram_account.username}
-            </span>
+          <div className="min-w-0">
+            <div className="text-xs font-medium text-foreground truncate">
+              {selected.name}
+            </div>
+            {selected.instagram_account?.username && (
+              <div className="text-xs text-muted-foreground truncate">
+                @{selected.instagram_account.username}
+              </div>
+            )}
+          </div>
+          {selected.team?.color && (
+            <div
+              className="w-3 h-3 rounded-full shrink-0 ml-auto"
+              style={{ backgroundColor: selected.team.color }}
+              title={`Cor da equipe: ${selected.team.color}`}
+            />
           )}
         </div>
       )}
