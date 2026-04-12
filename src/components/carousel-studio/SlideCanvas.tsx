@@ -4,6 +4,7 @@ import {
   StudioProject,
   OVERLAY_GRADIENTS,
   TEXT_POSITION_CLASSES,
+  BADGE_POSITION_STYLES,
   FONT_PAIR_CSS,
 } from "./types";
 
@@ -88,13 +89,19 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           </div>
         )}
 
-        {/* Badge de perfil no topo direito */}
+        {/* Badge de perfil */}
         {slide.badge_enabled && slide.badge_photo_url && (
-          <div className="absolute top-6 right-6">
+          <div
+            className="absolute"
+            style={BADGE_POSITION_STYLES[slide.badge_position ?? "top_right"]}
+          >
             <img
               src={slide.badge_photo_url}
               className="rounded-full object-cover"
-              style={{ width: 56, height: 56 }}
+              style={{
+                width: slide.badge_size ?? 80,
+                height: slide.badge_size ?? 80,
+              }}
               crossOrigin="anonymous"
               alt="perfil"
             />

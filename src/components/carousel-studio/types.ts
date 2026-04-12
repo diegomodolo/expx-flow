@@ -20,6 +20,17 @@ export type TextPosition =
   | "bottom_left"
   | "bottom_center"
   | "bottom_right";
+
+export type BadgePosition =
+  | "top_left"
+  | "top_center"
+  | "top_right"
+  | "mid_left"
+  | "center"
+  | "mid_right"
+  | "bottom_left"
+  | "bottom_center"
+  | "bottom_right";
 export type TextAlignment = "left" | "center" | "right";
 export type ProjectStatus = "draft" | "generating" | "ready";
 
@@ -73,6 +84,8 @@ export interface StudioSlide {
   glass_radius: number;
   badge_enabled: boolean;
   badge_photo_url: string | null;
+  badge_position: BadgePosition;
+  badge_size: number;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;
@@ -133,6 +146,21 @@ export const FONT_PAIR_CSS: Record<
     titleFont: "'Outfit', sans-serif",
     subtitleFont: "'Caveat', cursive",
   },
+};
+
+export const BADGE_POSITION_STYLES: Record<
+  BadgePosition,
+  Record<string, string | number>
+> = {
+  top_left: { top: 24, left: 24 },
+  top_center: { top: 24, left: "50%", transform: "translateX(-50%)" },
+  top_right: { top: 24, right: 24 },
+  mid_left: { top: "50%", left: 24, transform: "translateY(-50%)" },
+  center: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
+  mid_right: { top: "50%", right: 24, transform: "translateY(-50%)" },
+  bottom_left: { bottom: 64, left: 24 },
+  bottom_center: { bottom: 64, left: "50%", transform: "translateX(-50%)" },
+  bottom_right: { bottom: 64, right: 24 },
 };
 
 export const TEXT_POSITION_CLASSES: Record<TextPosition, string> = {
