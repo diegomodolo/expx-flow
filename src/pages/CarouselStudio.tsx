@@ -2,7 +2,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useCarouselStudioProject } from "@/hooks/useCarouselStudioProject";
+import {
+  useCarouselStudioProject,
+  useUpdateStudioProjectClient,
+} from "@/hooks/useCarouselStudioProject";
 import { useCarouselStudioSlides } from "@/hooks/useCarouselStudioSlides";
 import { useSlideExport } from "@/hooks/useSlideExport";
 import { SlideCanvas } from "@/components/carousel-studio/SlideCanvas";
@@ -36,6 +39,7 @@ export default function CarouselStudio() {
   const slideRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
     useSlideExport();
+  const updateClient = useUpdateStudioProjectClient();
 
   React.useEffect(() => {
     if (!slides) return;
@@ -135,6 +139,14 @@ export default function CarouselStudio() {
     await exportAllAsZip(elMap, slides, project.title);
   }, [slides, project, exportAllAsZip]);
 
+  const handleClientChange = useCallback(
+    (clientId: string | null) => {
+      if (!project) return;
+      updateClient.mutate({ projectId: project.id, clientId });
+    },
+    [project, updateClient],
+  );
+
   if (loadingProject || loadingSlides) {
     return (
       <DashboardLayout>
@@ -186,6 +198,7 @@ export default function CarouselStudio() {
             onGenerateContent={handleGenerateContent}
             isGeneratingContent={isGeneratingContent}
             onDownloadSlide={handleDownloadSlide}
+            onClientChange={handleClientChange}
           />
 
           <div className="flex-1 flex flex-col overflow-hidden">

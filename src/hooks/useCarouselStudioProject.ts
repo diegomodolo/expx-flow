@@ -76,6 +76,30 @@ export function useCreateStudioProject() {
   });
 }
 
+export function useUpdateStudioProjectClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      clientId,
+    }: {
+      projectId: string;
+      clientId: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("carousel_studio_projects")
+        .update({ client_id: clientId })
+        .eq("id", projectId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["carousel-studio-project", projectId],
+      });
+    },
+  });
+}
+
 export function useUpdateStudioProjectStatus() {
   const queryClient = useQueryClient();
   return useMutation({

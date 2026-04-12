@@ -5,6 +5,7 @@ import { TextSection } from "./sections/TextSection";
 import { FontsSection } from "./sections/FontsSection";
 import { BadgeSection } from "./sections/BadgeSection";
 import { CornersSection } from "./sections/CornersSection";
+import { ClientSection } from "./sections/ClientSection";
 import { StudioSlide, StudioProject } from "./types";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -18,6 +19,7 @@ interface Props {
   onGenerateContent: () => void;
   isGeneratingContent: boolean;
   onDownloadSlide: () => void;
+  onClientChange: (clientId: string | null) => void;
 }
 
 export function StudioSidebar({
@@ -29,11 +31,13 @@ export function StudioSidebar({
   onGenerateContent,
   isGeneratingContent,
   onDownloadSlide,
+  onClientChange,
 }: Props) {
   const [applyToNext, setApplyToNext] = useState(false);
 
   return (
     <div className="w-[280px] flex-shrink-0 bg-card border-r border-border flex flex-col h-full overflow-y-auto">
+      <ClientSection clientId={project.client_id} onChange={onClientChange} />
       <BackgroundSection
         slide={slide}
         onChange={onSlideChange}
