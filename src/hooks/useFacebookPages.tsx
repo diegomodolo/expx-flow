@@ -73,7 +73,7 @@ export const useFacebookPages = () => {
         .from("instagram_accounts")
         .select(
           `
-          id, instagram_id, username, profile_picture_url, is_active, connected_at, is_token_valid, company_id,
+          id, instagram_id, username, profile_picture_url, followers_count, is_active, company_id, source, business_id, created_at, updated_at,
           facebook_page:facebook_pages(id, page_id, page_name, is_active)
         `,
         )
