@@ -309,6 +309,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
             const op = (slide.corner_opacity ?? 100) / 100;
             const color = `rgba(255,255,255,${op})`;
             const size = 220; // tamanho do canto em px
+            const mask = slide.corner_mask ?? 15; // bit0=TL, bit1=TR, bit2=BL, bit3=BR
+            // bit index matches: 0=TL(top/left), 1=TR(top/right), 2=BL(bottom/left), 3=BR(bottom/right)
             const corners: Array<React.CSSProperties> = [
               { top: 0, left: 0 },
               { top: 0, right: 0 },
@@ -316,6 +318,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
               { bottom: 0, right: 0 },
             ];
             return corners.map((pos, ci) => {
+              // Skip if this corner's bit is not set
+              if (!(mask & (1 << ci))) return null;
               const isRight = "right" in pos;
               const isBottom = "bottom" in pos;
               let svgContent: React.ReactNode = null;
