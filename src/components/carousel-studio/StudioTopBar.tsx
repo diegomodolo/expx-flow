@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { CarouselStyle } from "./types";
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   onPrev: () => void;
   onNext: () => void;
   onOpenCaption: () => void;
+  onOpenRegenerate: () => void;
 }
 
 export function StudioTopBar({
@@ -21,6 +22,7 @@ export function StudioTopBar({
   onPrev,
   onNext,
   onOpenCaption,
+  onOpenRegenerate,
 }: Props) {
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-border bg-card flex-shrink-0">
@@ -58,15 +60,26 @@ export function StudioTopBar({
         </button>
       </div>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground text-xs hover:text-foreground"
-        onClick={onOpenCaption}
-      >
-        <FileText className="w-4 h-4 mr-1" />
-        Gerar Legenda
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground text-xs hover:text-foreground"
+          onClick={onOpenRegenerate}
+        >
+          <Sparkles className="w-4 h-4 mr-1" />
+          Prompt IA
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground text-xs hover:text-foreground"
+          onClick={onOpenCaption}
+        >
+          <FileText className="w-4 h-4 mr-1" />
+          Legenda
+        </Button>
+      </div>
     </div>
   );
 }

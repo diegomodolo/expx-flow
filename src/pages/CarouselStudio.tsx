@@ -1,5 +1,6 @@
 // src/pages/CarouselStudio.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
@@ -15,7 +16,12 @@ import { StudioSidebar } from "@/components/carousel-studio/StudioSidebar";
 import { StudioTopBar } from "@/components/carousel-studio/StudioTopBar";
 import { StudioBottomBar } from "@/components/carousel-studio/StudioBottomBar";
 import { CaptionModal } from "@/components/carousel-studio/CaptionModal";
-import { StudioSlide, CarouselStyle } from "@/components/carousel-studio/types";
+import { RegenerateModal } from "@/components/carousel-studio/RegenerateModal";
+import {
+  StudioSlide,
+  StudioProject,
+  CarouselStyle,
+} from "@/components/carousel-studio/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,12 +40,14 @@ export default function CarouselStudio() {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [captionOpen, setCaptionOpen] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
 
   const slideRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
     useSlideExport();
+  const queryClient = useQueryClient();
   const updateClient = useUpdateStudioProjectClient();
   const updateProject = useUpdateStudioProject();
 
@@ -211,6 +219,7 @@ export default function CarouselStudio() {
             setActiveIndex((i) => Math.min(slides.length - 1, i + 1))
           }
           onOpenCaption={() => setCaptionOpen(true)}
+          onOpenRegenerate={() => setRegenerateOpen(true)}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -281,6 +290,26 @@ export default function CarouselStudio() {
         onOpenChange={setCaptionOpen}
         projectId={project.id}
         slides={slides}
+      />
+
+      <RegenerateModal
+        open={regenerateOpen}
+        onOpenChange={setRegenerateOpen}
+        project={project}
+        onSlidesRegenerated={(newSlides) => {
+          queryClient.setQueryData(
+            ["carousel-studio-slides", projectId],
+            newSlides,
+          );
+          setActiveIndex(0);
+        }}
+        onProjectPatched={(patch) => {
+          queryClient.setQueryData(
+            ["carousel-studio-project", projectId],
+            (prev: StudioProject | undefined) =>
+              prev ? { ...prev, ...patch } : prev,
+          );
+        }}
       />
     </DashboardLayout>
   );

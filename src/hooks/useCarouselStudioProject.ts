@@ -61,6 +61,9 @@ export function useCreateStudioProject() {
           instagram_handle: config.instagramHandle || null,
           slides_count: config.slidesCount,
           image_mode: config.imageMode,
+          prompt: config.prompt || null,
+          image_style: config.imageStyle || null,
+          generate_ai_images: config.generateAIImages,
           status: "draft",
         })
         .select("id")

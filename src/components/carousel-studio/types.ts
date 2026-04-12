@@ -56,6 +56,9 @@ export interface StudioProject {
   instagram_handle: string | null;
   slides_count: number;
   image_mode: ImageMode;
+  prompt: string | null;
+  image_style: string | null;
+  generate_ai_images: boolean;
   status: ProjectStatus;
   thumbnail_url: string | null;
   created_at: string;
