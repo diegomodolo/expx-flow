@@ -339,6 +339,7 @@ export default function GeradorCarrosseis() {
       setWizardOpen(false);
       navigate(`/geradores/carrosseis/studio/${projectId}`);
     } catch (err) {
+      console.error("Erro ao criar projeto no Studio:", err);
       toast.error("Erro ao criar projeto");
     }
   };
