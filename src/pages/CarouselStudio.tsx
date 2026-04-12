@@ -14,7 +14,6 @@ import { SlideCanvas } from "@/components/carousel-studio/SlideCanvas";
 import { StudioSidebar } from "@/components/carousel-studio/StudioSidebar";
 import { StudioTopBar } from "@/components/carousel-studio/StudioTopBar";
 import { StudioBottomBar } from "@/components/carousel-studio/StudioBottomBar";
-import { SlideStrip } from "@/components/carousel-studio/SlideStrip";
 import { CaptionModal } from "@/components/carousel-studio/CaptionModal";
 import { StudioSlide, CarouselStyle } from "@/components/carousel-studio/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -196,7 +195,7 @@ export default function CarouselStudio() {
   // Slides são 1080×1350px (4:5 Instagram)
   const SLIDE_W = 1080;
   const SLIDE_H = 1350;
-  const PREVIEW_HEIGHT = 480;
+  const PREVIEW_HEIGHT = 620;
   const scale = PREVIEW_HEIGHT / SLIDE_H;
 
   return (
@@ -265,15 +264,6 @@ export default function CarouselStudio() {
                   </button>
                 );
               })}
-            </div>
-
-            <div className="border-t border-border overflow-x-auto">
-              <SlideStrip
-                slides={slides}
-                project={project}
-                activeIndex={activeIndex}
-                onSelect={setActiveIndex}
-              />
             </div>
           </div>
         </div>
