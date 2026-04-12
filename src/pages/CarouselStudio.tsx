@@ -262,42 +262,52 @@ export default function CarouselStudio() {
 
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 flex items-center overflow-auto px-8 py-4 gap-4">
-              {slides.map((slide, i) => {
-                const isActive = i === activeIndex;
-                const displayScale = isActive ? scale : scale * 0.6;
-                return (
-                  <button
-                    key={slide.id}
-                    onClick={() => setActiveIndex(i)}
-                    className={`flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
-                      isActive
-                        ? "border-primary shadow-xl shadow-primary/20"
-                        : "border-transparent opacity-60 hover:opacity-80"
-                    }`}
-                    style={{
-                      width: SLIDE_W * displayScale,
-                      height: SLIDE_H * displayScale,
-                    }}
-                  >
-                    <div
+              {(() => {
+                // Calcula índice panorâmico: posição de cada slide na sequência de slides com use_shared_bg
+                const sharedIds = slides
+                  .filter((s) => s.use_shared_bg)
+                  .map((s) => s.id);
+                const sharedTotal = sharedIds.length;
+                return slides.map((slide, i) => {
+                  const isActive = i === activeIndex;
+                  const displayScale = isActive ? scale : scale * 0.6;
+                  const sharedBgIndex = sharedIds.indexOf(slide.id);
+                  return (
+                    <button
+                      key={slide.id}
+                      onClick={() => setActiveIndex(i)}
+                      className={`flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                        isActive
+                          ? "border-primary shadow-xl shadow-primary/20"
+                          : "border-transparent opacity-60 hover:opacity-80"
+                      }`}
                       style={{
-                        width: SLIDE_W,
-                        height: SLIDE_H,
-                        transform: `scale(${displayScale})`,
-                        transformOrigin: "top left",
+                        width: SLIDE_W * displayScale,
+                        height: SLIDE_H * displayScale,
                       }}
                     >
-                      <SlideCanvas
-                        ref={(el) => {
-                          if (el) slideRefs.current.set(slide.id, el);
+                      <div
+                        style={{
+                          width: SLIDE_W,
+                          height: SLIDE_H,
+                          transform: `scale(${displayScale})`,
+                          transformOrigin: "top left",
                         }}
-                        slide={slide}
-                        project={project}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
+                      >
+                        <SlideCanvas
+                          ref={(el) => {
+                            if (el) slideRefs.current.set(slide.id, el);
+                          }}
+                          slide={slide}
+                          project={project}
+                          sharedBgIndex={sharedBgIndex >= 0 ? sharedBgIndex : 0}
+                          sharedBgTotal={sharedTotal}
+                        />
+                      </div>
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>

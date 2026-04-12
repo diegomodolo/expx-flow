@@ -42,10 +42,24 @@ interface SlideCanvasProps {
   project: StudioProject;
   scale?: number;
   className?: string;
+  /** Posição deste slide na sequência de slides que usam a imagem compartilhada (0-based) */
+  sharedBgIndex?: number;
+  /** Total de slides que usam a imagem compartilhada */
+  sharedBgTotal?: number;
 }
 
 export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
-  ({ slide, project, scale = 1, className = "" }, ref) => {
+  (
+    {
+      slide,
+      project,
+      scale = 1,
+      className = "",
+      sharedBgIndex = 0,
+      sharedBgTotal = 1,
+    },
+    ref,
+  ) => {
     const fonts = FONT_PAIR_CSS[project.font_pair];
     const overlayGradient = getOverlayGradient(
       slide.overlay_style,
@@ -97,25 +111,48 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
         {(() => {
           const useShared =
             slide.use_shared_bg && !!project.shared_bg_image_url;
-          const bgUrl = useShared
-            ? project.shared_bg_image_url!
-            : slide.bg_image_url;
-          const bgZoom = useShared
-            ? (project.shared_bg_zoom ?? 100)
-            : slide.bg_zoom;
-          const bgX = useShared
-            ? (project.shared_bg_position_x ?? 50)
-            : slide.bg_position_x;
-          const bgY = useShared
-            ? (project.shared_bg_position_y ?? 50)
-            : slide.bg_position_y;
-          return bgUrl ? (
+
+          if (useShared) {
+            // Panorâmica: a imagem ocupa N slides lado a lado.
+            // Cada slide é uma "janela" de 1/N da largura total da imagem.
+            // backgroundSize: zoom% relativo a N*1080px de largura → zoom*N% do elemento
+            // backgroundPosition X: fatia do slide dentro da imagem total
+            const n = Math.max(1, sharedBgTotal);
+            const zoom = project.shared_bg_zoom ?? 100;
+            const bgY = project.shared_bg_position_y ?? 50;
+            // A imagem total tem n colunas de 1080px. O tamanho em % relativo ao elemento (1080px):
+            const bgSizeX = zoom * n;
+            // posX: qual % da imagem total está alinhado ao início do slide.
+            // slide i começa no pixel i*1080 da imagem total → fração = i/n
+            // CSS background-position em % não é simplesmente i/n:
+            // position% = offset / (imgWidth - containerWidth) * 100
+            // imgWidth = bgSizeX/100 * 1080, containerWidth = 1080
+            // offset = sharedBgIndex * 1080
+            const imgW = (bgSizeX / 100) * 1080;
+            const maxOffset = imgW - 1080;
+            const posX =
+              maxOffset <= 0 ? 0 : ((sharedBgIndex * 1080) / maxOffset) * 100;
+
+            return (
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url(${project.shared_bg_image_url!})`,
+                  backgroundSize: `${bgSizeX}% auto`,
+                  backgroundPosition: `${posX}% ${bgY}%`,
+                  backgroundRepeat: "no-repeat",
+                }}
+              />
+            );
+          }
+
+          return slide.bg_image_url ? (
             <div
               className="absolute inset-0"
               style={{
-                backgroundImage: `url(${bgUrl})`,
-                backgroundSize: `${bgZoom}%`,
-                backgroundPosition: `${bgX}% ${bgY}%`,
+                backgroundImage: `url(${slide.bg_image_url})`,
+                backgroundSize: `${slide.bg_zoom}%`,
+                backgroundPosition: `${slide.bg_position_x}% ${slide.bg_position_y}%`,
                 backgroundRepeat: "no-repeat",
               }}
             />

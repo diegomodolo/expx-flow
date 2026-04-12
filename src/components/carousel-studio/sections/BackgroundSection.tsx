@@ -227,23 +227,13 @@ export function BackgroundSection({
 
         {sharedBgUrl && (
           <>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              A imagem se estende horizontalmente pelos slides selecionados —
+              cada slide exibe uma fatia contínua.
+            </p>
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">
-                Posição X: {project.shared_bg_position_x ?? 50}%
-              </Label>
-              <Slider
-                value={[project.shared_bg_position_x ?? 50]}
-                onValueChange={([v]) =>
-                  onProjectChange({ shared_bg_position_x: v })
-                }
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                Posição Y: {project.shared_bg_position_y ?? 50}%
+                Posição vertical: {project.shared_bg_position_y ?? 50}%
               </Label>
               <Slider
                 value={[project.shared_bg_position_y ?? 50]}
@@ -262,8 +252,8 @@ export function BackgroundSection({
               <Slider
                 value={[project.shared_bg_zoom ?? 100]}
                 onValueChange={([v]) => onProjectChange({ shared_bg_zoom: v })}
-                min={50}
-                max={300}
+                min={10}
+                max={200}
                 step={1}
               />
             </div>
