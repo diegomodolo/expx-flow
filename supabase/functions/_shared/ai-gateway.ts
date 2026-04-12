@@ -114,6 +114,10 @@ const FUNCTION_DEFAULTS: Record<
   },
 
   // Imagens & Carrosséis
+  "generate-carousel-caption": {
+    primary: "anthropic/claude-haiku-4-5",
+    fallback: "openai/gpt-4o-mini",
+  },
   "generate-image-ai": {
     primary: "anthropic/claude-3.5-sonnet",
     fallback: "openai/gpt-4o-mini",
