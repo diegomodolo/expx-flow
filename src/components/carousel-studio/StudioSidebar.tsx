@@ -46,6 +46,7 @@ export function StudioSidebar({
     selectedClient?.instagram_account?.profile_picture_url ||
     selectedClient?.avatar ||
     null;
+  const clientName = selectedClient?.name ?? null;
 
   return (
     <div className="w-[280px] flex-shrink-0 bg-card border-r border-border flex flex-col h-full overflow-y-auto">
@@ -74,6 +75,7 @@ export function StudioSidebar({
         slide={slide}
         onChange={onSlideChange}
         clientBadgeUrl={clientBadgeUrl}
+        clientName={clientName}
       />
       <CornersSection slide={slide} onChange={onSlideChange} />
 

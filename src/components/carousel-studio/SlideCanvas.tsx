@@ -89,7 +89,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           </div>
         )}
 
-        {/* Badge de perfil + handle juntos */}
+        {/* Badge de perfil + nome + handle juntos */}
         {slide.badge_enabled &&
           slide.badge_photo_url &&
           (() => {
@@ -97,6 +97,11 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
             const handleFontSize = slide.badge_handle_font_size ?? 28;
             const showHandle =
               slide.badge_handle_enabled && project.instagram_handle;
+            const showName =
+              slide.badge_name_enabled &&
+              (slide.badge_name_text ?? "").trim().length > 0;
+            const nameFontSize = slide.badge_name_font_size ?? 32;
+            const nameFontWeight = slide.badge_name_font_weight ?? "600";
 
             // Direção do flex conforme posição do handle em relação ao badge
             const flexDir =
@@ -106,12 +111,48 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                   ? "column"
                   : handlePos === "left"
                     ? "row-reverse"
-                    : "row"; // right
+                    : "row";
 
-            const alignItems =
-              handlePos === "left" || handlePos === "right"
-                ? "center"
-                : "center";
+            // Bloco de texto (nome + @handle empilhados verticalmente)
+            const textBlock =
+              showName || showHandle ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    alignItems:
+                      handlePos === "left" || handlePos === "right"
+                        ? "flex-start"
+                        : "center",
+                  }}
+                >
+                  {showName && (
+                    <span
+                      className="text-white whitespace-nowrap"
+                      style={{
+                        fontFamily: fonts.subtitleFont,
+                        fontSize: nameFontSize,
+                        fontWeight: nameFontWeight,
+                      }}
+                    >
+                      {slide.badge_name_text}
+                    </span>
+                  )}
+                  {showHandle && (
+                    <span
+                      className="text-white/80 whitespace-nowrap"
+                      style={{
+                        fontFamily: fonts.subtitleFont,
+                        fontSize: handleFontSize,
+                        fontWeight: 400,
+                      }}
+                    >
+                      @{project.instagram_handle}
+                    </span>
+                  )}
+                </div>
+              ) : null;
 
             return (
               <div
@@ -121,7 +162,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                   display: "flex",
                   flexDirection:
                     flexDir as React.CSSProperties["flexDirection"],
-                  alignItems,
+                  alignItems: "center",
                   gap: 12,
                 }}
               >
@@ -135,17 +176,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                   crossOrigin="anonymous"
                   alt="perfil"
                 />
-                {showHandle && (
-                  <span
-                    className="text-white/90 font-medium whitespace-nowrap"
-                    style={{
-                      fontFamily: fonts.subtitleFont,
-                      fontSize: handleFontSize,
-                    }}
-                  >
-                    @{project.instagram_handle}
-                  </span>
-                )}
+                {textBlock}
               </div>
             );
           })()}

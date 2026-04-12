@@ -94,6 +94,10 @@ export interface StudioSlide {
   badge_handle_enabled: boolean;
   badge_handle_position: BadgeHandlePosition;
   badge_handle_font_size: number;
+  badge_name_enabled: boolean;
+  badge_name_text: string | null;
+  badge_name_font_size: number;
+  badge_name_font_weight: string;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;
