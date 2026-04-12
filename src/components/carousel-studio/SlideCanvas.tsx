@@ -94,17 +94,33 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
         }}
       >
         {/* Imagem de fundo */}
-        {slide.bg_image_url && (
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${slide.bg_image_url})`,
-              backgroundSize: `${slide.bg_zoom}%`,
-              backgroundPosition: `${slide.bg_position_x}% ${slide.bg_position_y}%`,
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-        )}
+        {(() => {
+          const useShared =
+            slide.use_shared_bg && !!project.shared_bg_image_url;
+          const bgUrl = useShared
+            ? project.shared_bg_image_url!
+            : slide.bg_image_url;
+          const bgZoom = useShared
+            ? (project.shared_bg_zoom ?? 100)
+            : slide.bg_zoom;
+          const bgX = useShared
+            ? (project.shared_bg_position_x ?? 50)
+            : slide.bg_position_x;
+          const bgY = useShared
+            ? (project.shared_bg_position_y ?? 50)
+            : slide.bg_position_y;
+          return bgUrl ? (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${bgUrl})`,
+                backgroundSize: `${bgZoom}%`,
+                backgroundPosition: `${bgX}% ${bgY}%`,
+                backgroundRepeat: "no-repeat",
+              }}
+            />
+          ) : null;
+        })()}
 
         {/* Overlay / Sombra */}
         {overlayGradient !== "none" && (

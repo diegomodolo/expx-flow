@@ -13,8 +13,11 @@ import { useClients } from "@/hooks/useClients";
 
 interface Props {
   slide: StudioSlide;
+  slides: StudioSlide[];
   project: StudioProject;
   onSlideChange: (patch: Partial<StudioSlide>) => void;
+  onProjectChange: (patch: Partial<StudioProject>) => void;
+  onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
   onGenerateAIImage: () => void;
   isGeneratingImage: boolean;
   onGenerateContent: () => void;
@@ -28,8 +31,11 @@ interface Props {
 
 export function StudioSidebar({
   slide,
+  slides,
   project,
   onSlideChange,
+  onProjectChange,
+  onSlidesBatchChange,
   onGenerateAIImage,
   isGeneratingImage,
   onGenerateContent,
@@ -53,7 +59,11 @@ export function StudioSidebar({
       <ClientSection clientId={project.client_id} onChange={onClientChange} />
       <BackgroundSection
         slide={slide}
+        slides={slides}
+        project={project}
         onChange={onSlideChange}
+        onProjectChange={onProjectChange}
+        onSlidesBatchChange={onSlidesBatchChange}
         onGenerateAIImage={onGenerateAIImage}
         isGeneratingImage={isGeneratingImage}
       />

@@ -233,9 +233,9 @@ export function BadgeSection({
                     </span>
                   </div>
                   <Slider
-                    min={0}
+                    min={-20}
                     max={48}
-                    step={2}
+                    step={1}
                     value={[nameLineHeight]}
                     onValueChange={([v]) =>
                       onChange({ badge_name_line_height: v })

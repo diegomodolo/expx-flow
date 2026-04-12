@@ -69,6 +69,28 @@ export default function CarouselStudio() {
     [activeSlide, updateSlide],
   );
 
+  const handleProjectChange = useCallback(
+    (patch: Partial<StudioProject>) => {
+      if (!project) return;
+      // Optimistic update no cache
+      queryClient.setQueryData(
+        ["carousel-studio-project", projectId],
+        (prev: StudioProject | undefined) =>
+          prev ? { ...prev, ...patch } : prev,
+      );
+      // Debounced persist via mutation
+      updateProject.mutate({ projectId: project.id, patch });
+    },
+    [project, projectId, queryClient, updateProject],
+  );
+
+  const handleSlidesBatchChange = useCallback(
+    (ids: string[], patch: Partial<StudioSlide>) => {
+      ids.forEach((id) => updateSlide(id, patch));
+    },
+    [updateSlide],
+  );
+
   const handleGenerateAIImage = useCallback(async () => {
     if (!activeSlide || !project) return;
     setIsGeneratingImage(true);
@@ -225,8 +247,11 @@ export default function CarouselStudio() {
         <div className="flex flex-1 overflow-hidden">
           <StudioSidebar
             slide={activeSlide}
+            slides={slides}
             project={project}
             onSlideChange={handleSlideChange}
+            onProjectChange={handleProjectChange}
+            onSlidesBatchChange={handleSlidesBatchChange}
             onGenerateAIImage={handleGenerateAIImage}
             isGeneratingImage={isGeneratingImage}
             onGenerateContent={handleGenerateContent}

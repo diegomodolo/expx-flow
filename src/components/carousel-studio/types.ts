@@ -69,6 +69,10 @@ export interface StudioProject {
   generate_ai_images: boolean;
   status: ProjectStatus;
   thumbnail_url: string | null;
+  shared_bg_image_url: string | null;
+  shared_bg_zoom: number;
+  shared_bg_position_x: number;
+  shared_bg_position_y: number;
   created_at: string;
   updated_at: string;
 }
@@ -109,6 +113,7 @@ export interface StudioSlide {
   text_padding_x: number;
   text_padding_y: number;
   badge_name_line_height: number;
+  use_shared_bg: boolean;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;
