@@ -31,6 +31,8 @@ export type BadgePosition =
   | "bottom_left"
   | "bottom_center"
   | "bottom_right";
+
+export type BadgeHandlePosition = "above" | "below" | "left" | "right";
 export type TextAlignment = "left" | "center" | "right";
 export type ProjectStatus = "draft" | "generating" | "ready";
 
@@ -86,6 +88,9 @@ export interface StudioSlide {
   badge_photo_url: string | null;
   badge_position: BadgePosition;
   badge_size: number;
+  badge_handle_enabled: boolean;
+  badge_handle_position: BadgeHandlePosition;
+  badge_handle_font_size: number;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;

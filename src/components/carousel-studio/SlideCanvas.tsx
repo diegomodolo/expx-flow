@@ -79,8 +79,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           />
         )}
 
-        {/* Instagram handle no topo esquerdo */}
-        {project.instagram_handle && (
+        {/* Instagram handle fixo (quando badge desativado) */}
+        {project.instagram_handle && !slide.badge_enabled && (
           <div
             className="absolute top-6 left-6 text-white/70 text-2xl"
             style={{ fontFamily: fonts.subtitleFont }}
@@ -89,24 +89,66 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           </div>
         )}
 
-        {/* Badge de perfil */}
-        {slide.badge_enabled && slide.badge_photo_url && (
-          <div
-            className="absolute"
-            style={BADGE_POSITION_STYLES[slide.badge_position ?? "top_right"]}
-          >
-            <img
-              src={slide.badge_photo_url}
-              className="rounded-full object-cover"
-              style={{
-                width: slide.badge_size ?? 80,
-                height: slide.badge_size ?? 80,
-              }}
-              crossOrigin="anonymous"
-              alt="perfil"
-            />
-          </div>
-        )}
+        {/* Badge de perfil + handle juntos */}
+        {slide.badge_enabled &&
+          slide.badge_photo_url &&
+          (() => {
+            const handlePos = slide.badge_handle_position ?? "below";
+            const handleFontSize = slide.badge_handle_font_size ?? 28;
+            const showHandle =
+              slide.badge_handle_enabled && project.instagram_handle;
+
+            // Direção do flex conforme posição do handle em relação ao badge
+            const flexDir =
+              handlePos === "above"
+                ? "column-reverse"
+                : handlePos === "below"
+                  ? "column"
+                  : handlePos === "left"
+                    ? "row-reverse"
+                    : "row"; // right
+
+            const alignItems =
+              handlePos === "left" || handlePos === "right"
+                ? "center"
+                : "center";
+
+            return (
+              <div
+                className="absolute"
+                style={{
+                  ...BADGE_POSITION_STYLES[slide.badge_position ?? "top_right"],
+                  display: "flex",
+                  flexDirection:
+                    flexDir as React.CSSProperties["flexDirection"],
+                  alignItems,
+                  gap: 12,
+                }}
+              >
+                <img
+                  src={slide.badge_photo_url}
+                  className="rounded-full object-cover flex-shrink-0"
+                  style={{
+                    width: slide.badge_size ?? 80,
+                    height: slide.badge_size ?? 80,
+                  }}
+                  crossOrigin="anonymous"
+                  alt="perfil"
+                />
+                {showHandle && (
+                  <span
+                    className="text-white/90 font-medium whitespace-nowrap"
+                    style={{
+                      fontFamily: fonts.subtitleFont,
+                      fontSize: handleFontSize,
+                    }}
+                  >
+                    @{project.instagram_handle}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
         {/* Bloco de texto */}
         <div className={`absolute max-w-[85%] ${positionClass} ${alignClass}`}>

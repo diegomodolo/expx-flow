@@ -3,7 +3,7 @@ import { SidebarSection } from "../SidebarSection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { StudioSlide, BadgePosition } from "../types";
+import { StudioSlide, BadgePosition, BadgeHandlePosition } from "../types";
 
 const POSITIONS: Array<{ value: BadgePosition; label: string }> = [
   { value: "top_left", label: "↖" },
@@ -17,6 +17,13 @@ const POSITIONS: Array<{ value: BadgePosition; label: string }> = [
   { value: "bottom_right", label: "↘" },
 ];
 
+const HANDLE_POSITIONS: Array<{ value: BadgeHandlePosition; label: string }> = [
+  { value: "above", label: "Cima" },
+  { value: "left", label: "Esq" },
+  { value: "right", label: "Dir" },
+  { value: "below", label: "Baixo" },
+];
+
 interface Props {
   slide: StudioSlide;
   onChange: (patch: Partial<StudioSlide>) => void;
@@ -27,10 +34,12 @@ interface Props {
 export function BadgeSection({ slide, onChange, clientBadgeUrl }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Usa foto específica do slide se disponível, senão cai no cliente selecionado
   const effectiveBadgeUrl = slide.badge_photo_url || clientBadgeUrl || null;
   const badgePosition = slide.badge_position ?? "top_right";
   const badgeSize = slide.badge_size ?? 80;
+  const handleEnabled = slide.badge_handle_enabled ?? true;
+  const handlePosition = slide.badge_handle_position ?? "below";
+  const handleFontSize = slide.badge_handle_font_size ?? 28;
 
   return (
     <SidebarSection title="Badge de Perfil">
@@ -83,7 +92,7 @@ export function BadgeSection({ slide, onChange, clientBadgeUrl }: Props) {
             </button>
           </div>
 
-          {/* Posição */}
+          {/* Posição do badge */}
           <div>
             <Label className="text-xs text-muted-foreground mb-2 block">
               Posição do badge
@@ -105,10 +114,12 @@ export function BadgeSection({ slide, onChange, clientBadgeUrl }: Props) {
             </div>
           </div>
 
-          {/* Tamanho */}
+          {/* Tamanho do badge */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label className="text-xs text-muted-foreground">Tamanho</Label>
+              <Label className="text-xs text-muted-foreground">
+                Tamanho do badge
+              </Label>
               <span className="text-xs text-muted-foreground">
                 {badgeSize}px
               </span>
@@ -120,6 +131,69 @@ export function BadgeSection({ slide, onChange, clientBadgeUrl }: Props) {
               value={[badgeSize]}
               onValueChange={([v]) => onChange({ badge_size: v })}
             />
+          </div>
+
+          {/* Separador */}
+          <div className="border-t border-border pt-2">
+            {/* Toggle exibir @handle */}
+            <div className="flex items-center gap-2 mb-3">
+              <Switch
+                checked={handleEnabled}
+                onCheckedChange={(v) => onChange({ badge_handle_enabled: v })}
+              />
+              <Label className="text-xs text-muted-foreground">
+                Exibir @perfil junto ao badge
+              </Label>
+            </div>
+
+            {handleEnabled && (
+              <>
+                {/* Posição relativa do handle */}
+                <div className="mb-3">
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    Posição do @perfil
+                  </Label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {HANDLE_POSITIONS.map((p) => (
+                      <button
+                        key={p.value}
+                        onClick={() =>
+                          onChange({ badge_handle_position: p.value })
+                        }
+                        className={`h-7 rounded text-xs transition-colors ${
+                          handlePosition === p.value
+                            ? "bg-primary text-white"
+                            : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tamanho da fonte do handle */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Tamanho da fonte
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {handleFontSize}px
+                    </span>
+                  </div>
+                  <Slider
+                    min={16}
+                    max={60}
+                    step={2}
+                    value={[handleFontSize]}
+                    onValueChange={([v]) =>
+                      onChange({ badge_handle_font_size: v })
+                    }
+                  />
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
