@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon, Clipboard } from "lucide-react";
+import { ImageIcon, Clipboard, X } from "lucide-react";
 import { StudioSlide, StudioProject } from "../types";
 
 interface Props {
@@ -131,6 +131,16 @@ export function BackgroundSection({
               <Clipboard className="w-3 h-3 mr-1" /> Colar
             </Button>
           </div>
+          {slide.bg_image_url && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs text-destructive hover:text-destructive"
+              onClick={() => onChange({ bg_image_url: null })}
+            >
+              <X className="w-3 h-3 mr-1" /> Remover imagem
+            </Button>
+          )}
 
           <Button
             variant="outline"
@@ -224,6 +234,16 @@ export function BackgroundSection({
             <Clipboard className="w-3 h-3 mr-1" /> Colar
           </Button>
         </div>
+        {sharedBgUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs text-destructive hover:text-destructive"
+            onClick={() => onProjectChange({ shared_bg_image_url: null })}
+          >
+            <X className="w-3 h-3 mr-1" /> Remover imagem compartilhada
+          </Button>
+        )}
 
         {sharedBgUrl && (
           <>

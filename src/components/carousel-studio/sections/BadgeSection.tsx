@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { X } from "lucide-react";
 import { SidebarSection } from "../SidebarSection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -88,7 +89,7 @@ export function BadgeSection({
             }}
           />
 
-          {/* Preview + botão */}
+          {/* Preview + botões */}
           <div className="flex items-center gap-3">
             {effectiveBadgeUrl && (
               <div className="flex flex-col items-center gap-1">
@@ -110,6 +111,15 @@ export function BadgeSection({
             >
               {effectiveBadgeUrl ? "Trocar foto" : "Adicionar foto"}
             </button>
+            {slide.badge_photo_url && (
+              <button
+                className="p-2 border border-border rounded text-destructive hover:bg-destructive/10 transition-colors"
+                onClick={() => onChange({ badge_photo_url: null })}
+                title="Remover foto"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
           {/* Posição do badge */}

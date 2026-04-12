@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { SidebarSection } from "../SidebarSection";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,11 @@ import {
 
 interface Props {
   slide: StudioSlide;
+  slides: StudioSlide[];
   project: StudioProject;
   onSlideChange: (patch: Partial<StudioSlide>) => void;
+  onProjectChange: (patch: Partial<StudioProject>) => void;
+  onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
   applyToNext: boolean;
   onApplyToNextChange: (v: boolean) => void;
 }
@@ -22,11 +25,31 @@ const FONT_PAIRS = Object.keys(FONT_PAIR_LABELS) as FontPair[];
 
 export function FontsSection({
   slide,
+  slides,
   project,
   onSlideChange,
+  onProjectChange,
+  onSlidesBatchChange,
   applyToNext,
   onApplyToNextChange,
 }: Props) {
+  // IDs de todos os slides que vêm depois do slide atual (inclusive todos se applyToNext)
+  const subsequentIds = useCallback((): string[] => {
+    const idx = slides.findIndex((s) => s.id === slide.id);
+    return slides.slice(idx + 1).map((s) => s.id);
+  }, [slides, slide.id]);
+
+  const handleChange = useCallback(
+    (patch: Partial<StudioSlide>) => {
+      onSlideChange(patch);
+      if (applyToNext) {
+        const ids = subsequentIds();
+        if (ids.length > 0) onSlidesBatchChange(ids, patch);
+      }
+    },
+    [applyToNext, onSlideChange, onSlidesBatchChange, subsequentIds],
+  );
+
   return (
     <SidebarSection title="Fontes">
       <div className="grid grid-cols-2 gap-2">
@@ -34,9 +57,10 @@ export function FontsSection({
           const labels = FONT_PAIR_LABELS[pair];
           const isSelected = project.font_pair === pair;
           return (
-            <div
+            <button
               key={pair}
-              className={`p-2 rounded border cursor-pointer transition-colors ${
+              onClick={() => onProjectChange({ font_pair: pair })}
+              className={`p-2 rounded border text-left transition-colors ${
                 isSelected
                   ? "border-primary bg-primary/10"
                   : "border-border hover:border-primary/50"
@@ -48,7 +72,7 @@ export function FontsSection({
               <div className="text-muted-foreground text-xs italic">
                 {labels.subtitle}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -59,7 +83,7 @@ export function FontsSection({
         </Label>
         <Slider
           value={[slide.font_size_title]}
-          onValueChange={([v]) => onSlideChange({ font_size_title: v })}
+          onValueChange={([v]) => handleChange({ font_size_title: v })}
           min={16}
           max={120}
           step={1}
@@ -71,7 +95,7 @@ export function FontsSection({
         </Label>
         <Slider
           value={[slide.font_size_subtitle]}
-          onValueChange={([v]) => onSlideChange({ font_size_subtitle: v })}
+          onValueChange={([v]) => handleChange({ font_size_subtitle: v })}
           min={12}
           max={60}
           step={1}
@@ -83,7 +107,7 @@ export function FontsSection({
         </Label>
         <Slider
           value={[slide.line_spacing]}
-          onValueChange={([v]) => onSlideChange({ line_spacing: v })}
+          onValueChange={([v]) => handleChange({ line_spacing: v })}
           min={100}
           max={200}
           step={5}
@@ -100,7 +124,7 @@ export function FontsSection({
           htmlFor="apply-to-next"
           className="text-xs text-muted-foreground cursor-pointer"
         >
-          Aplicar configurações no próximo slide
+          Aplicar nos slides seguintes
         </Label>
       </div>
     </SidebarSection>

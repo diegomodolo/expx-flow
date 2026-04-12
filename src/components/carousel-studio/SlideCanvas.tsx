@@ -303,6 +303,154 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           )}
         </div>
 
+        {/* Cantos decorativos */}
+        {slide.corner_style !== "none" &&
+          (() => {
+            const op = (slide.corner_opacity ?? 100) / 100;
+            const color = `rgba(255,255,255,${op})`;
+            const size = 220; // tamanho do canto em px
+            const corners: Array<React.CSSProperties> = [
+              { top: 0, left: 0 },
+              { top: 0, right: 0 },
+              { bottom: 0, left: 0 },
+              { bottom: 0, right: 0 },
+            ];
+            return corners.map((pos, ci) => {
+              const isRight = "right" in pos;
+              const isBottom = "bottom" in pos;
+              let svgContent: React.ReactNode = null;
+
+              if (slide.corner_style === "grid") {
+                const lines: React.ReactNode[] = [];
+                const spacing = 36;
+                const count = Math.ceil(size / spacing) + 1;
+                for (let i = 0; i < count; i++) {
+                  lines.push(
+                    <line
+                      key={`v${i}`}
+                      x1={i * spacing}
+                      y1={0}
+                      x2={i * spacing}
+                      y2={size}
+                      stroke={color}
+                      strokeWidth={1.5}
+                    />,
+                    <line
+                      key={`h${i}`}
+                      x1={0}
+                      y1={i * spacing}
+                      x2={size}
+                      y2={i * spacing}
+                      stroke={color}
+                      strokeWidth={1.5}
+                    />,
+                  );
+                }
+                svgContent = lines;
+              } else if (slide.corner_style === "dots") {
+                const spacing = 36;
+                const count = Math.ceil(size / spacing) + 1;
+                const dots: React.ReactNode[] = [];
+                for (let row = 0; row < count; row++) {
+                  for (let col = 0; col < count; col++) {
+                    dots.push(
+                      <circle
+                        key={`${row}-${col}`}
+                        cx={col * spacing}
+                        cy={row * spacing}
+                        r={3}
+                        fill={color}
+                      />,
+                    );
+                  }
+                }
+                svgContent = dots;
+              } else if (slide.corner_style === "horizontal_lines") {
+                const lines: React.ReactNode[] = [];
+                const spacing = 28;
+                const count = Math.ceil(size / spacing) + 1;
+                for (let i = 0; i < count; i++) {
+                  lines.push(
+                    <line
+                      key={i}
+                      x1={0}
+                      y1={i * spacing}
+                      x2={size}
+                      y2={i * spacing}
+                      stroke={color}
+                      strokeWidth={1.5}
+                    />,
+                  );
+                }
+                svgContent = lines;
+              } else if (slide.corner_style === "diagonal_lines") {
+                const lines: React.ReactNode[] = [];
+                const spacing = 28;
+                const count = Math.ceil((size * 2) / spacing) + 2;
+                for (let i = -count / 2; i < count; i++) {
+                  const offset = i * spacing;
+                  lines.push(
+                    <line
+                      key={i}
+                      x1={offset}
+                      y1={0}
+                      x2={offset + size}
+                      y2={size}
+                      stroke={color}
+                      strokeWidth={1.5}
+                    />,
+                  );
+                }
+                svgContent = lines;
+              } else if (slide.corner_style === "diagonal_shadow") {
+                const stops = [
+                  `rgba(0,0,0,${op}) 0%`,
+                  `rgba(0,0,0,0) 100%`,
+                ].join(", ");
+                // Each corner gets a gradient going from corner outward
+                const gradX = isRight ? "right" : "left";
+                const gradY = isBottom ? "bottom" : "top";
+                return (
+                  <div
+                    key={ci}
+                    className="absolute"
+                    style={{
+                      ...pos,
+                      width: size,
+                      height: size,
+                      background: `radial-gradient(ellipse at ${gradX} ${gradY}, rgba(0,0,0,${op}) 0%, transparent 70%)`,
+                      pointerEvents: "none",
+                    }}
+                  />
+                );
+              }
+
+              const transform =
+                [isRight ? "scaleX(-1)" : "", isBottom ? "scaleY(-1)" : ""]
+                  .filter(Boolean)
+                  .join(" ") || "none";
+
+              return (
+                <svg
+                  key={ci}
+                  className="absolute"
+                  style={{ ...pos, pointerEvents: "none" }}
+                  width={size}
+                  height={size}
+                  viewBox={`0 0 ${size} ${size}`}
+                  overflow="hidden"
+                >
+                  <g
+                    transform={transform}
+                    style={{ transformOrigin: `${size / 2}px ${size / 2}px` }}
+                  >
+                    {svgContent}
+                  </g>
+                </svg>
+              );
+            });
+          })()}
+
         {/* Indicadores de slide na base */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1">
           {Array.from({ length: 6 }).map((_, i) => (

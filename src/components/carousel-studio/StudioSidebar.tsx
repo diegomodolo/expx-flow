@@ -76,8 +76,11 @@ export function StudioSidebar({
       />
       <FontsSection
         slide={slide}
+        slides={slides}
         project={project}
         onSlideChange={onSlideChange}
+        onProjectChange={onProjectChange}
+        onSlidesBatchChange={onSlidesBatchChange}
         applyToNext={applyToNext}
         onApplyToNextChange={setApplyToNext}
       />
