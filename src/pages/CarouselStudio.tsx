@@ -270,7 +270,7 @@ export default function CarouselStudio() {
                 const sharedTotal = sharedIds.length;
                 return slides.map((slide, i) => {
                   const isActive = i === activeIndex;
-                  const displayScale = isActive ? scale : scale * 0.6;
+                  const displayScale = scale;
                   const sharedBgIndex = sharedIds.indexOf(slide.id);
                   return (
                     <button
