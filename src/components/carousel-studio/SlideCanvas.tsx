@@ -2,11 +2,40 @@ import React, { forwardRef } from "react";
 import {
   StudioSlide,
   StudioProject,
+  TextPosition,
   OVERLAY_GRADIENTS,
-  TEXT_POSITION_CLASSES,
   BADGE_POSITION_STYLES,
   FONT_PAIR_CSS,
 } from "./types";
+
+function getTextPositionStyle(
+  position: TextPosition,
+  px: number,
+  py: number,
+): React.CSSProperties {
+  const h = px;
+  const v = py;
+  switch (position) {
+    case "top_left":
+      return { top: v, left: h };
+    case "top_center":
+      return { top: v, left: "50%", transform: "translateX(-50%)" };
+    case "top_right":
+      return { top: v, right: h };
+    case "mid_left":
+      return { top: "50%", left: h, transform: "translateY(-50%)" };
+    case "center":
+      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+    case "mid_right":
+      return { top: "50%", right: h, transform: "translateY(-50%)" };
+    case "bottom_left":
+      return { bottom: v + 48, left: h };
+    case "bottom_center":
+      return { bottom: v + 48, left: "50%", transform: "translateX(-50%)" };
+    case "bottom_right":
+      return { bottom: v + 48, right: h };
+  }
+}
 
 interface SlideCanvasProps {
   slide: StudioSlide;
@@ -19,7 +48,13 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
   ({ slide, project, scale = 1, className = "" }, ref) => {
     const fonts = FONT_PAIR_CSS[project.font_pair];
     const overlayGradient = OVERLAY_GRADIENTS[slide.overlay_style];
-    const positionClass = TEXT_POSITION_CLASSES[slide.text_position];
+    const textPx = slide.text_padding_x ?? 64;
+    const textPy = slide.text_padding_y ?? 64;
+    const textPositionStyle = getTextPositionStyle(
+      slide.text_position,
+      textPx,
+      textPy,
+    );
     const alignClass =
       slide.text_alignment === "center"
         ? "text-center"
@@ -113,6 +148,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                     ? "row-reverse"
                     : "row";
 
+            const nameLineHeight = slide.badge_name_line_height ?? 4;
+
             // Bloco de texto (nome + @handle empilhados verticalmente)
             const textBlock =
               showName || showHandle ? (
@@ -120,7 +157,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: 4,
+                    gap: nameLineHeight,
                     alignItems:
                       handlePos === "left" || handlePos === "right"
                         ? "flex-start"
@@ -182,7 +219,10 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           })()}
 
         {/* Bloco de texto */}
-        <div className={`absolute max-w-[85%] ${positionClass} ${alignClass}`}>
+        <div
+          className={`absolute max-w-[85%] ${alignClass}`}
+          style={textPositionStyle}
+        >
           {slide.headline && (
             <h2
               className="font-black text-white leading-none mb-3"

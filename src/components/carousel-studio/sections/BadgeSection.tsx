@@ -59,6 +59,7 @@ export function BadgeSection({
   const nameText = slide.badge_name_text ?? "";
   const nameFontSize = slide.badge_name_font_size ?? 32;
   const nameFontWeight = slide.badge_name_font_weight ?? "600";
+  const nameLineHeight = slide.badge_name_line_height ?? 4;
 
   return (
     <SidebarSection title="Badge de Perfil">
@@ -220,6 +221,26 @@ export function BadgeSection({
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Espaçamento nome/@
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {nameLineHeight}px
+                    </span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={48}
+                    step={2}
+                    value={[nameLineHeight]}
+                    onValueChange={([v]) =>
+                      onChange({ badge_name_line_height: v })
+                    }
+                  />
                 </div>
               </>
             )}

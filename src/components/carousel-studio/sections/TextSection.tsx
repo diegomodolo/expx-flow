@@ -3,6 +3,7 @@ import { SidebarSection } from "../SidebarSection";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { StudioSlide, TextPosition, TextAlignment } from "../types";
 import { Sparkles } from "lucide-react";
 
@@ -88,6 +89,45 @@ export function TextSection({
           className="bg-background border-border text-foreground text-sm min-h-[60px] resize-none"
           placeholder="Subtítulo..."
         />
+      </div>
+
+      {/* Padding horizontal */}
+      <div className="border-t border-border pt-2 space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-xs text-muted-foreground">
+              Margem horizontal
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              {slide.text_padding_x ?? 64}px
+            </span>
+          </div>
+          <Slider
+            min={0}
+            max={300}
+            step={4}
+            value={[slide.text_padding_x ?? 64]}
+            onValueChange={([v]) => onChange({ text_padding_x: v })}
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-xs text-muted-foreground">
+              Margem vertical
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              {slide.text_padding_y ?? 64}px
+            </span>
+          </div>
+          <Slider
+            min={0}
+            max={400}
+            step={4}
+            value={[slide.text_padding_y ?? 64]}
+            onValueChange={([v]) => onChange({ text_padding_y: v })}
+          />
+        </div>
       </div>
 
       <Button
