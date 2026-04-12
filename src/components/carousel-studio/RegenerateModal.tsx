@@ -15,6 +15,7 @@ import {
   Sparkles,
   RefreshCw,
   Wand2,
+  Globe,
 } from "lucide-react";
 import {
   Command,
@@ -84,6 +85,8 @@ export function RegenerateModal({
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
 
   const selectedClient: Client | null =
     clients.find((c) => c.id === selectedClientId) ?? null;
@@ -99,6 +102,28 @@ export function RegenerateModal({
       setSelectedClientId(project.client_id ?? null);
     }
   }, [open, project]);
+
+  const handleFetchUrl = async () => {
+    if (!urlInput.trim()) return;
+    setIsFetchingUrl(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "fetch-webpage-content",
+        { body: { url: urlInput.trim() } },
+      );
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao buscar URL");
+
+      const context = `\n\n---\nConteúdo extraído de: ${data.url}\nTítulo: ${data.title}\n\n${data.content}`;
+      setPrompt((prev) => (prev.trim() ? prev + context : context.trim()));
+      setUrlInput("");
+      toast.success(`Conteúdo de "${data.title}" adicionado ao prompt`);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erro ao buscar conteúdo da URL");
+    } finally {
+      setIsFetchingUrl(false);
+    }
+  };
 
   const handleGeneratePrompt = async () => {
     if (!selectedClient) {
@@ -315,6 +340,38 @@ export function RegenerateModal({
                   <Wand2 className="w-3 h-3" />
                 )}
                 {isGeneratingPrompt ? "Gerando..." : "Gerar pelo briefing"}
+              </Button>
+            </div>
+            {/* URL para buscar conteúdo */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Globe className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleFetchUrl();
+                    }
+                  }}
+                  placeholder="Colar URL de artigo ou página..."
+                  className="w-full h-8 pl-7 pr-2 text-xs rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs px-2 shrink-0"
+                onClick={handleFetchUrl}
+                disabled={isFetchingUrl || !urlInput.trim()}
+              >
+                {isFetchingUrl ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  "Buscar"
+                )}
               </Button>
             </div>
             <Textarea

@@ -105,6 +105,31 @@ export function BackgroundSection({
 
       {!useShared && (
         <>
+          {/* Cor de fundo */}
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground flex-1">
+              Cor de fundo
+            </Label>
+            <div className="flex items-center gap-1">
+              <input
+                type="color"
+                value={slide.bg_color ?? "#111111"}
+                onChange={(e) => onChange({ bg_color: e.target.value })}
+                className="w-7 h-7 rounded cursor-pointer border border-border p-0.5 bg-background"
+                title="Cor de fundo"
+              />
+              {slide.bg_color && (
+                <button
+                  className="text-[10px] text-muted-foreground hover:text-destructive px-1"
+                  onClick={() => onChange({ bg_color: null })}
+                  title="Usar padrão (cinza escuro)"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {slide.bg_image_url && (
             <img
               src={slide.bg_image_url}

@@ -1,10 +1,11 @@
 import React, { useRef } from "react";
-import { X } from "lucide-react";
+import { X, CopyCheck } from "lucide-react";
 import { SidebarSection } from "../SidebarSection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { StudioSlide, BadgePosition, BadgeHandlePosition } from "../types";
 
 const POSITIONS: Array<{ value: BadgePosition; label: string }> = [
@@ -36,7 +37,9 @@ const FONT_WEIGHTS: Array<{ value: string; label: string }> = [
 
 interface Props {
   slide: StudioSlide;
+  slides: StudioSlide[];
   onChange: (patch: Partial<StudioSlide>) => void;
+  onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
   clientBadgeUrl?: string | null;
   /** Nome do cliente selecionado para usar como sugestão */
   clientName?: string | null;
@@ -44,7 +47,9 @@ interface Props {
 
 export function BadgeSection({
   slide,
+  slides,
   onChange,
+  onSlidesBatchChange,
   clientBadgeUrl,
   clientName,
 }: Props) {
@@ -53,6 +58,8 @@ export function BadgeSection({
   const effectiveBadgeUrl = slide.badge_photo_url || clientBadgeUrl || null;
   const badgePosition = slide.badge_position ?? "top_right";
   const badgeSize = slide.badge_size ?? 80;
+  const badgeOffsetX = slide.badge_offset_x ?? 24;
+  const badgeOffsetY = slide.badge_offset_y ?? 24;
   const handleEnabled = slide.badge_handle_enabled ?? true;
   const handlePosition = slide.badge_handle_position ?? "below";
   const handleFontSize = slide.badge_handle_font_size ?? 28;
@@ -160,6 +167,42 @@ export function BadgeSection({
               step={4}
               value={[badgeSize]}
               onValueChange={([v]) => onChange({ badge_size: v })}
+            />
+          </div>
+
+          {/* Padding do badge */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs text-muted-foreground">
+                Padding horizontal
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                {badgeOffsetX}px
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={120}
+              step={4}
+              value={[badgeOffsetX]}
+              onValueChange={([v]) => onChange({ badge_offset_x: v })}
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs text-muted-foreground">
+                Padding vertical
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                {badgeOffsetY}px
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={120}
+              step={4}
+              value={[badgeOffsetY]}
+              onValueChange={([v]) => onChange({ badge_offset_y: v })}
             />
           </div>
 
@@ -314,6 +357,39 @@ export function BadgeSection({
                 </div>
               </>
             )}
+          </div>
+
+          {/* Aplicar para todos os slides */}
+          <div className="border-t border-border pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => {
+                const allIds = slides
+                  .filter((s) => s.id !== slide.id)
+                  .map((s) => s.id);
+                if (allIds.length === 0) return;
+                const patch: Partial<StudioSlide> = {
+                  badge_enabled: slide.badge_enabled,
+                  badge_photo_url: slide.badge_photo_url,
+                  badge_position: slide.badge_position,
+                  badge_size: slide.badge_size,
+                  badge_handle_enabled: slide.badge_handle_enabled,
+                  badge_handle_position: slide.badge_handle_position,
+                  badge_handle_font_size: slide.badge_handle_font_size,
+                  badge_name_enabled: slide.badge_name_enabled,
+                  badge_name_text: slide.badge_name_text,
+                  badge_name_font_size: slide.badge_name_font_size,
+                  badge_name_font_weight: slide.badge_name_font_weight,
+                  badge_name_line_height: slide.badge_name_line_height,
+                };
+                onSlidesBatchChange(allIds, patch);
+              }}
+            >
+              <CopyCheck className="w-3 h-3 mr-1" />
+              Aplicar para todos os slides
+            </Button>
           </div>
         </>
       )}

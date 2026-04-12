@@ -116,6 +116,12 @@ export interface StudioSlide {
   use_shared_bg: boolean;
   /** Bitmask: bit0=TL, bit1=TR, bit2=BL, bit3=BR. Default 15 = todos os 4 cantos */
   corner_mask: number;
+  /** Cor de fundo do slide quando não há imagem (ex: '#1a1a2e'). Default null = cinza escuro */
+  bg_color: string | null;
+  /** Deslocamento horizontal do badge a partir do canto (px) */
+  badge_offset_x: number;
+  /** Deslocamento vertical do badge a partir do canto (px) */
+  badge_offset_y: number;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;

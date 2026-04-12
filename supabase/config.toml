@@ -30,6 +30,9 @@ verify_jwt = false
 [functions.daily-performance-snapshot]
 verify_jwt = false
 
+[functions.fetch-webpage-content]
+verify_jwt = true
+
 [functions.generate-carousel-caption]
 verify_jwt = true
 

@@ -96,15 +96,45 @@ export default function CarouselStudio() {
     if (!activeSlide || !project) return;
     setIsGeneratingImage(true);
     try {
-      toast.info(
-        "Funcionalidade de geração de imagem por slide em desenvolvimento",
+      const prompt = [
+        activeSlide.headline,
+        activeSlide.subtitle,
+        activeSlide.visual_description,
+        project.prompt,
+      ]
+        .filter(Boolean)
+        .join(" — ");
+
+      if (!prompt.trim()) {
+        toast.error("Adicione um texto ao slide antes de gerar imagem com IA");
+        return;
+      }
+
+      toast.info("Gerando imagem com IA...");
+      const { data, error } = await supabase.functions.invoke(
+        "generate-image-ai",
+        {
+          body: {
+            prompt,
+            company_id: project.company_id,
+            client_id: project.client_id,
+            style: project.image_style ?? "cinematic photography",
+          },
+        },
       );
+
+      if (error) throw error;
+      if (!data?.success || !data?.image_url)
+        throw new Error(data?.error || "Imagem não gerada");
+
+      updateSlide(activeSlide.id, { bg_image_url: data.image_url });
+      toast.success("Imagem gerada com sucesso!");
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erro ao gerar imagem");
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [activeSlide, project]);
+  }, [activeSlide, project, updateSlide]);
 
   const handleGenerateContent = useCallback(async () => {
     if (!activeSlide || !project) return;

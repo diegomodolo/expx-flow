@@ -98,10 +98,11 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
     return (
       <div
         ref={ref}
-        className={`relative overflow-hidden bg-gray-900 ${className}`}
+        className={`relative overflow-hidden ${className}`}
         style={{
           width: 1080,
           height: 1350,
+          backgroundColor: slide.bg_color ?? "#111111",
           transform: scale !== 1 ? `scale(${scale})` : undefined,
           transformOrigin: "top left",
           flexShrink: 0,
@@ -190,6 +191,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
               (slide.badge_name_text ?? "").trim().length > 0;
             const nameFontSize = slide.badge_name_font_size ?? 32;
             const nameFontWeight = slide.badge_name_font_weight ?? "600";
+            const box = slide.badge_offset_x ?? 24;
+            const boy = slide.badge_offset_y ?? 24;
 
             // Direção do flex conforme posição do handle em relação ao badge
             const flexDir =
@@ -244,11 +247,55 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                 </div>
               ) : null;
 
+            const badgePos = slide.badge_position ?? "top_right";
+            const badgePosStyle: React.CSSProperties = (() => {
+              switch (badgePos) {
+                case "top_left":
+                  return { top: boy, left: box };
+                case "top_center":
+                  return {
+                    top: boy,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                  };
+                case "top_right":
+                  return { top: boy, right: box };
+                case "mid_left":
+                  return {
+                    top: "50%",
+                    left: box,
+                    transform: "translateY(-50%)",
+                  };
+                case "center":
+                  return {
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                  };
+                case "mid_right":
+                  return {
+                    top: "50%",
+                    right: box,
+                    transform: "translateY(-50%)",
+                  };
+                case "bottom_left":
+                  return { bottom: boy + 48, left: box };
+                case "bottom_center":
+                  return {
+                    bottom: boy + 48,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                  };
+                case "bottom_right":
+                  return { bottom: boy + 48, right: box };
+              }
+            })();
+
             return (
               <div
                 className="absolute"
                 style={{
-                  ...BADGE_POSITION_STYLES[slide.badge_position ?? "top_right"],
+                  ...badgePosStyle,
                   display: "flex",
                   flexDirection:
                     flexDir as React.CSSProperties["flexDirection"],
