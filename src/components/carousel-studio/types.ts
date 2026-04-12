@@ -2,7 +2,15 @@
 
 export type CarouselStyle = "minimalist" | "profile";
 export type ImageMode = "none" | "background" | "grid" | "both";
-export type OverlayStyle = "base" | "top_strong" | "base_strong" | "none";
+export type OverlayStyle =
+  | "none"
+  | "base"
+  | "top_strong"
+  | "base_strong"
+  | "left"
+  | "right"
+  | "left_strong"
+  | "right_strong";
 export type CornerStyle =
   | "none"
   | "grid"
@@ -201,11 +209,19 @@ export function getOverlayGradient(
   const o = opacity / 100;
   switch (style) {
     case "base":
-      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${o * 0.1}) 60%, transparent 100%)`;
+      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.1).toFixed(3)}) 60%, transparent 100%)`;
     case "top_strong":
-      return `linear-gradient(to bottom, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${o * 0.2}) 50%, transparent 100%)`;
+      return `linear-gradient(to bottom, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 50%, transparent 100%)`;
     case "base_strong":
-      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${o * 0.45}) 50%, transparent 100%)`;
+      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.45).toFixed(3)}) 50%, transparent 100%)`;
+    case "left":
+      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.1).toFixed(3)}) 60%, transparent 100%)`;
+    case "left_strong":
+      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.45).toFixed(3)}) 50%, transparent 100%)`;
+    case "right":
+      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.1).toFixed(3)}) 60%, transparent 100%)`;
+    case "right_strong":
+      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.45).toFixed(3)}) 50%, transparent 100%)`;
   }
 }
 
@@ -217,4 +233,11 @@ export const OVERLAY_GRADIENTS: Record<OverlayStyle, string> = {
     "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)",
   base_strong:
     "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)",
+  left: "linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)",
+  left_strong:
+    "linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)",
+  right:
+    "linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)",
+  right_strong:
+    "linear-gradient(to left, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)",
 };

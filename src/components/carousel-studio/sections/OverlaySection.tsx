@@ -29,8 +29,12 @@ export function OverlaySection({ slide, onChange }: Props) {
         <SelectContent>
           <SelectItem value="none">Nenhum</SelectItem>
           <SelectItem value="base">Base</SelectItem>
-          <SelectItem value="top_strong">Topo Forte</SelectItem>
           <SelectItem value="base_strong">Base Forte</SelectItem>
+          <SelectItem value="top_strong">Topo Forte</SelectItem>
+          <SelectItem value="left">Esquerda</SelectItem>
+          <SelectItem value="left_strong">Esquerda Forte</SelectItem>
+          <SelectItem value="right">Direita</SelectItem>
+          <SelectItem value="right_strong">Direita Forte</SelectItem>
         </SelectContent>
       </Select>
       <div className="space-y-2">
