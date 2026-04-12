@@ -9,6 +9,7 @@ import { ClientSection, ClientDefaults } from "./sections/ClientSection";
 import { StudioSlide, StudioProject } from "./types";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { useClients } from "@/hooks/useClients";
 
 interface Props {
   slide: StudioSlide;
@@ -37,6 +38,14 @@ export function StudioSidebar({
   onClientChange,
 }: Props) {
   const [applyToNext, setApplyToNext] = useState(false);
+  const { clients } = useClients();
+  const selectedClient = project.client_id
+    ? (clients.find((c) => c.id === project.client_id) ?? null)
+    : null;
+  const clientBadgeUrl =
+    selectedClient?.instagram_account?.profile_picture_url ||
+    selectedClient?.avatar ||
+    null;
 
   return (
     <div className="w-[280px] flex-shrink-0 bg-card border-r border-border flex flex-col h-full overflow-y-auto">
@@ -61,7 +70,11 @@ export function StudioSidebar({
         applyToNext={applyToNext}
         onApplyToNextChange={setApplyToNext}
       />
-      <BadgeSection slide={slide} onChange={onSlideChange} />
+      <BadgeSection
+        slide={slide}
+        onChange={onSlideChange}
+        clientBadgeUrl={clientBadgeUrl}
+      />
       <CornersSection slide={slide} onChange={onSlideChange} />
 
       <div className="p-4 mt-auto">

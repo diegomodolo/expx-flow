@@ -7,10 +7,15 @@ import { StudioSlide } from "../types";
 interface Props {
   slide: StudioSlide;
   onChange: (patch: Partial<StudioSlide>) => void;
+  /** URL de fallback: foto de perfil do cliente selecionado no projeto */
+  clientBadgeUrl?: string | null;
 }
 
-export function BadgeSection({ slide, onChange }: Props) {
+export function BadgeSection({ slide, onChange, clientBadgeUrl }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Usa foto específica do slide se disponível, senão cai no cliente selecionado
+  const effectiveBadgeUrl = slide.badge_photo_url || clientBadgeUrl || null;
 
   return (
     <SidebarSection title="Badge de Perfil">
@@ -42,16 +47,23 @@ export function BadgeSection({ slide, onChange }: Props) {
             className="w-full py-2 border border-border rounded text-xs text-muted-foreground hover:bg-muted/50"
             onClick={() => fileRef.current?.click()}
           >
-            {slide.badge_photo_url
+            {effectiveBadgeUrl
               ? "Trocar foto de perfil"
               : "Adicionar foto de perfil"}
           </button>
-          {slide.badge_photo_url && (
-            <img
-              src={slide.badge_photo_url}
-              className="w-12 h-12 rounded-full object-cover mx-auto"
-              alt="badge"
-            />
+          {effectiveBadgeUrl && (
+            <div className="flex flex-col items-center gap-1">
+              <img
+                src={effectiveBadgeUrl}
+                className="w-12 h-12 rounded-full object-cover mx-auto"
+                alt="badge"
+              />
+              {!slide.badge_photo_url && clientBadgeUrl && (
+                <span className="text-xs text-muted-foreground">
+                  do cliente
+                </span>
+              )}
+            </div>
           )}
         </>
       )}
