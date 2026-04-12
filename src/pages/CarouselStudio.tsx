@@ -1,6 +1,6 @@
 // src/pages/CarouselStudio.tsx
-import React, { useCallback, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useCarouselStudioProject } from "@/hooks/useCarouselStudioProject";
 import { useCarouselStudioSlides } from "@/hooks/useCarouselStudioSlides";
@@ -18,7 +18,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CarouselStudio() {
   const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
 
   const { data: project, isLoading: loadingProject } =
     useCarouselStudioProject(projectId);
@@ -33,14 +32,18 @@ export default function CarouselStudio() {
   const [captionOpen, setCaptionOpen] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState<{
-    current: number;
-    total: number;
-  } | null>(null);
 
   const slideRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
     useSlideExport();
+
+  React.useEffect(() => {
+    if (!slides) return;
+    const currentIds = new Set(slides.map((s) => s.id));
+    slideRefs.current.forEach((_, id) => {
+      if (!currentIds.has(id)) slideRefs.current.delete(id);
+    });
+  }, [slides]);
 
   const activeSlide = slides?.[activeIndex] ?? null;
 
@@ -112,7 +115,8 @@ export default function CarouselStudio() {
           supabase
             .from("carousel_studio_projects")
             .update({ thumbnail_url: savedUrl })
-            .eq("id", project.id);
+            .eq("id", project.id)
+            .then(() => {});
         }
       });
       const a = document.createElement("a");
@@ -233,7 +237,7 @@ export default function CarouselStudio() {
         </div>
 
         <StudioBottomBar
-          generationProgress={generationProgress}
+          generationProgress={null}
           onDownloadZip={handleDownloadZip}
           isExporting={isExporting}
           exportProgress={exportProgress}
