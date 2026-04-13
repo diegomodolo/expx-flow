@@ -216,29 +216,51 @@ export default function CarouselStudio() {
           console.log(`[auto-generate] slide ${i + 1} prompt:`, prompt);
 
           try {
-            const { data: imgData, error: imgError } =
-              await supabase.functions.invoke("generate-image-ai", {
-                body: {
+            // Use fetch directly with a long timeout — supabase.functions.invoke
+            // may cut the connection before the image model finishes (60-90s).
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token ?? "";
+            const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image-ai`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 150_000);
+
+            let imgData: {
+              success: boolean;
+              image_url?: string;
+              error?: string;
+            } | null = null;
+            try {
+              const res = await fetch(fnUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? "",
+                },
+                body: JSON.stringify({
                   prompt,
                   company_id: companyId,
                   client_id: clientId,
                   style: config.imageStyle || "cinematic photography",
                   background_only: true,
                   aspect_ratio: "4:5",
-                },
+                }),
+                signal: controller.signal,
               });
+              imgData = await res.json();
+            } finally {
+              clearTimeout(timeoutId);
+            }
 
-            console.log(`[auto-generate] slide ${i + 1} result:`, {
-              imgData,
-              imgError,
-            });
+            console.log(`[auto-generate] slide ${i + 1} result:`, imgData);
 
-            if (!imgError && imgData?.success && imgData?.image_url) {
+            if (imgData?.success && imgData?.image_url) {
               updateSlide(slide.id, { bg_image_url: imgData.image_url });
             } else {
               console.error(
                 `[auto-generate] image slide ${i + 1} failed:`,
-                imgError ?? imgData?.error,
+                imgData?.error,
               );
             }
           } catch (err) {

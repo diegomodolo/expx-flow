@@ -650,6 +650,7 @@ verify_jwt = true
 
 [functions.generate-image-ai]
 verify_jwt = true
+timeout_seconds = 150
 
 [functions.generate-weekly-insights]
 verify_jwt = false
