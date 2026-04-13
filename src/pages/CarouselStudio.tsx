@@ -130,6 +130,7 @@ export default function CarouselStudio() {
             company_id: project.company_id,
             client_id: project.client_id,
             style: project.image_style ?? "cinematic photography",
+            background_only: true,
           },
         },
       );

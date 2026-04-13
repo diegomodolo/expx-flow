@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
     const clientId = body.client_id || body.clientId;
     const companyId = body.company_id || body.companyId;
     const style = body.style || "professional marketing";
+    const backgroundOnly = body.background_only === true;
 
     // Accept direct client context from agent parameters
     const directClientName = body.client_name || body.clientName || "";
@@ -131,10 +132,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Suffix applied when the image is meant to be used as a background (no text overlay)
+    const noTextSuffix = backgroundOnly
+      ? `
+
+REGRA ABSOLUTA — IMAGEM DE FUNDO:
+- NÃO inclua NENHUM texto, palavra, letra, número, logotipo ou símbolo escrito na imagem.
+- A imagem será usada como fundo de um carrossel; o texto será adicionado por cima depois.
+- Qualquer texto na imagem arruinará o resultado final. Gere APENAS elementos visuais e fotográficos.`
+      : "";
+
     // Build the message content - multimodal if we have reference images
     const textInstruction =
       referenceImageUrls.length > 0
-        ? `Crie uma imagem no estilo "${style}" para: ${prompt}. ${clientContext}. 
+        ? `Crie uma imagem no estilo "${style}" para: ${prompt}. ${clientContext}.
 
 INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
 - As imagens de referência anexadas são a PRINCIPAL GUIA. A imagem gerada DEVE parecer da mesma marca.
@@ -142,9 +153,8 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
 - SIGA o mesmo estilo visual: se as referências usam flat design, use flat design. Se usam foto, use foto.
 - REPLIQUE a tipografia, layout e elementos gráficos (ícones, formas, gradientes) das referências.
 - A nova imagem deve ser INDISTINGUÍVEL em estilo das referências — como se fosse parte da mesma campanha.
-- Alta qualidade, profissional, adequada para marketing em redes sociais.
-- IMPORTANTE: Todo texto na imagem DEVE estar em português brasileiro correto, sem erros de ortografia ou gramática.`
-        : `Create a ${style} image for: ${prompt}. ${clientContext}. High quality, professional, suitable for social media marketing. IMPORTANT: All text in the image MUST be in correct Brazilian Portuguese with no spelling or grammar errors.`;
+- Alta qualidade, profissional, adequada para marketing em redes sociais.${noTextSuffix}`
+        : `Create a ${style} image for: ${prompt}. ${clientContext}. High quality, professional, suitable for social media marketing.${noTextSuffix}`;
 
     // Build message content array
     const messageContent: Array<{
