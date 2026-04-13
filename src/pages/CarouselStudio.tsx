@@ -293,47 +293,156 @@ export default function CarouselStudio() {
             visualPrompt,
           );
 
+          // Imagem de fundo → IA (gera única e cinematográfica)
+          // Imagem de conteúdo → Pexels (foto pronta, economiza tokens)
+          const useSource: "ai" | "pexels" =
+            target.kind === "background" ? "ai" : "pexels";
+
           setGenerationProgress({
             current: i + 1,
             total,
-            statusMessage: `Gerando imagem com IA — slide ${i + 1} de ${total}...`,
+            statusMessage:
+              useSource === "ai"
+                ? `Gerando imagem com IA — slide ${i + 1} de ${total}...`
+                : `Buscando no Pexels — slide ${i + 1} de ${total}...`,
           });
 
           try {
-            const { data: imgData, error: imgError } =
-              await supabase.functions.invoke("generate-image-ai", {
-                body: {
-                  prompt: visualPrompt,
-                  company_id: companyId,
-                  client_id: clientId,
-                  style: config.imageStyle || "cinematic photography",
-                  background_only: true,
-                  aspect_ratio: target.kind === "content" ? "16:9" : "4:5",
-                },
+            let generatedImageUrl: string | null = null;
+            let sourceError: string | null = null;
+
+            if (useSource === "ai") {
+              const { data: imgData, error: imgError } =
+                await supabase.functions.invoke("generate-image-ai", {
+                  body: {
+                    prompt: visualPrompt,
+                    company_id: companyId,
+                    client_id: clientId,
+                    style: config.imageStyle || "cinematic photography",
+                    background_only: true,
+                    aspect_ratio: "4:5",
+                  },
+                });
+
+              console.log(`[auto-generate] slide ${i + 1} AI result:`, {
+                imgData,
+                imgError,
               });
 
-            console.log(`[auto-generate] slide ${i + 1} result:`, {
-              imgData,
-              imgError,
-            });
-
-            if (imgError) {
-              let msg = imgError.message;
-              try {
-                const ctx = imgError as { context?: Response };
-                if (ctx.context) {
-                  const body = await ctx.context.json();
-                  msg = body?.error ?? msg;
+              if (imgError) {
+                let msg = imgError.message;
+                try {
+                  const ctx = imgError as { context?: Response };
+                  if (ctx.context) {
+                    const body = await ctx.context.json();
+                    msg = body?.error ?? msg;
+                  }
+                } catch {
+                  // ignore
                 }
-              } catch {
-                // ignore
+                sourceError = msg;
+              } else if (imgData?.success && imgData?.image_url) {
+                generatedImageUrl = imgData.image_url;
+              } else {
+                sourceError = imgData?.error || "Imagem não gerada";
               }
-              console.error(`[auto-generate] slide ${i + 1} HTTP error:`, msg);
-              toast.error(`Slide ${i + 1}: ${msg}`);
-            } else if (imgData?.success && imgData?.image_url) {
+            } else {
+              // Buscar no Pexels — usa a headline + subtitle + prompt como query simples
+              const queryParts = [
+                allSlidesSummary[i].headline,
+                allSlidesSummary[i].subtitle,
+                config.prompt,
+              ].filter(Boolean);
+              const pexelsQuery =
+                queryParts.join(" ").slice(0, 120) || `slide ${i + 1}`;
+
+              const { data: pexelsData, error: pexelsError } =
+                await supabase.functions.invoke("search-pexels-photos", {
+                  body: {
+                    company_id: companyId,
+                    query: pexelsQuery,
+                    per_page: 10,
+                    orientation: "landscape",
+                  },
+                });
+
+              console.log(`[auto-generate] slide ${i + 1} Pexels result:`, {
+                pexelsData,
+                pexelsError,
+              });
+
+              if (pexelsError) {
+                let msg = pexelsError.message;
+                try {
+                  const ctx = pexelsError as { context?: Response };
+                  if (ctx.context) {
+                    const body = await ctx.context.json();
+                    msg = body?.error ?? msg;
+                  }
+                } catch {
+                  // ignore
+                }
+                sourceError = msg;
+              } else if (
+                pexelsData?.success &&
+                Array.isArray(pexelsData.photos) &&
+                pexelsData.photos.length > 0
+              ) {
+                // Pega a primeira foto (melhor resultado)
+                generatedImageUrl = pexelsData.photos[0].large;
+              } else {
+                sourceError =
+                  pexelsData?.error ||
+                  `Nenhuma foto encontrada no Pexels para "${pexelsQuery}"`;
+              }
+            }
+
+            // Fallback: imagem de conteúdo que falhou no Pexels → tenta IA
+            if (
+              !generatedImageUrl &&
+              target.kind === "content" &&
+              useSource === "pexels"
+            ) {
+              console.warn(
+                `[auto-generate] slide ${i + 1} Pexels falhou, fallback para IA`,
+              );
+              setGenerationProgress({
+                current: i + 1,
+                total,
+                statusMessage: `Pexels indisponível, gerando com IA — slide ${i + 1} de ${total}...`,
+              });
+              const { data: fbData, error: fbError } =
+                await supabase.functions.invoke("generate-image-ai", {
+                  body: {
+                    prompt: visualPrompt,
+                    company_id: companyId,
+                    client_id: clientId,
+                    style: config.imageStyle || "cinematic photography",
+                    background_only: true,
+                    aspect_ratio: "16:9",
+                  },
+                });
+              if (!fbError && fbData?.success && fbData?.image_url) {
+                generatedImageUrl = fbData.image_url;
+                sourceError = null;
+              } else {
+                console.error(
+                  `[auto-generate] slide ${i + 1} IA fallback failed:`,
+                  fbError ?? fbData?.error,
+                );
+              }
+            }
+
+            if (sourceError && !generatedImageUrl) {
+              console.error(
+                `[auto-generate] slide ${i + 1} ${useSource} error:`,
+                sourceError,
+              );
+              toast.error(`Slide ${i + 1}: ${sourceError}`);
+            } else if (generatedImageUrl) {
               if (target.kind === "background") {
                 const bgPatch: Partial<StudioSlide> = {
-                  bg_image_url: imgData.image_url,
+                  bg_image_url: generatedImageUrl,
                 };
                 // Slides com imagem de fundo que NÃO são o slide 1:
                 // texto bottom_left, 252px vertical, overlay base_strong 100%
@@ -347,7 +456,7 @@ export default function CarouselStudio() {
                 updateSlide(slide.id, bgPatch);
               } else {
                 const contentPatch: Partial<StudioSlide> = {
-                  content_image_urls: imgData.image_url,
+                  content_image_urls: generatedImageUrl,
                   content_image_layout: "1_thumb_16_9",
                   content_image_position: target.position,
                 };
@@ -371,10 +480,6 @@ export default function CarouselStudio() {
                 }
                 updateSlide(slide.id, contentPatch);
               }
-            } else {
-              const errMsg = imgData?.error || "Imagem não gerada";
-              console.error(`[auto-generate] slide ${i + 1} failed:`, errMsg);
-              toast.error(`Slide ${i + 1}: ${errMsg}`);
             }
           } catch (err) {
             console.error(`[auto-generate] slide ${i + 1} exception:`, err);
