@@ -136,17 +136,15 @@ Regras:
 - imageMode "grid": conteúdo com produtos, pessoas, lugares, exemplos visuais
 - imageMode "both": conteúdo misto com informação + apelo visual`;
 
-    const aiResponse = await callAI({
+    const aiResult = await callAI({
       functionName: "analyze-carousel-from-url",
-      companyId: company_id ?? null,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
+      companyId: company_id ?? undefined,
+      systemPrompt,
+      userPrompt,
       temperature: 0.3,
     });
 
-    const aiText = aiResponse.trim();
+    const aiText = aiResult.content.trim();
     // Remove possível markdown code block
     const jsonText = aiText
       .replace(/^```(?:json)?\n?/, "")
