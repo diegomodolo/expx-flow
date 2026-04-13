@@ -168,7 +168,7 @@ export default function CarouselStudio() {
             };
 
             // Margem vertical baseada na posição
-            if (textPosition.startsWith("bottom_")) patch.text_padding_y = 64;
+            if (textPosition.startsWith("bottom_")) patch.text_padding_y = 150;
             else if (textPosition.startsWith("top_"))
               patch.text_padding_y = 132;
 
