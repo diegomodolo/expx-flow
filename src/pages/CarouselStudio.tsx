@@ -216,59 +216,52 @@ export default function CarouselStudio() {
           console.log(`[auto-generate] slide ${i + 1} prompt:`, prompt);
 
           try {
-            // Use fetch directly with a long timeout — supabase.functions.invoke
-            // may cut the connection before the image model finishes (60-90s).
-            const session = await supabase.auth.getSession();
-            const token = session.data.session?.access_token ?? "";
-            const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image-ai`;
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 150_000);
-
-            let imgData: {
-              success: boolean;
-              image_url?: string;
-              error?: string;
-            } | null = null;
-            try {
-              const res = await fetch(fnUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? "",
-                },
-                body: JSON.stringify({
+            // Use supabase.functions.invoke — delega autenticação/headers ao client
+            const { data: imgData, error: imgError } =
+              await supabase.functions.invoke("generate-image-ai", {
+                body: {
                   prompt,
                   company_id: companyId,
                   client_id: clientId,
                   style: config.imageStyle || "cinematic photography",
                   background_only: true,
                   aspect_ratio: "4:5",
-                }),
-                signal: controller.signal,
+                },
               });
-              imgData = await res.json();
-            } finally {
-              clearTimeout(timeoutId);
-            }
 
-            console.log(`[auto-generate] slide ${i + 1} result:`, imgData);
+            console.log(`[auto-generate] slide ${i + 1} result:`, {
+              imgData,
+              imgError,
+            });
 
-            if (imgData?.success && imgData?.image_url) {
+            // FunctionsHttpError: extrair mensagem real do body
+            if (imgError) {
+              let msg = imgError.message;
+              try {
+                const ctx = imgError as { context?: Response };
+                if (ctx.context) {
+                  const body = await ctx.context.json();
+                  msg = body?.error ?? msg;
+                }
+              } catch {
+                // ignore
+              }
+              console.error(`[auto-generate] slide ${i + 1} HTTP error:`, msg);
+              toast.error(`Slide ${i + 1}: ${msg}`);
+            } else if (imgData?.success && imgData?.image_url) {
               updateSlide(slide.id, { bg_image_url: imgData.image_url });
             } else {
-              console.error(
-                `[auto-generate] image slide ${i + 1} failed:`,
-                imgData?.error,
-              );
+              const errMsg = imgData?.error || "Imagem não gerada";
+              console.error(`[auto-generate] slide ${i + 1} failed:`, errMsg);
+              toast.error(`Slide ${i + 1}: ${errMsg}`);
             }
           } catch (err) {
-            console.error(
-              `[auto-generate] image generation failed for slide ${i + 1}:`,
-              err,
-            );
+            console.error(`[auto-generate] slide ${i + 1} exception:`, err);
+            toast.error(`Slide ${i + 1}: ${(err as Error).message ?? "erro"}`);
           }
+
+          // Pequeno delay entre chamadas para não saturar rate-limit do OpenRouter
+          await new Promise((r) => setTimeout(r, 500));
         }
       }
 
