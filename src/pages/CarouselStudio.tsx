@@ -172,8 +172,12 @@ export default function CarouselStudio() {
             else if (textPosition.startsWith("top_"))
               patch.text_padding_y = 132;
 
-            // Slide 1 (capa): fonte maior
-            if (idx === 0) patch.font_size_title = 80;
+            // Slide 1 (capa): fonte maior + overlay base 100% no bottom
+            if (idx === 0) {
+              patch.font_size_title = 80;
+              patch.overlay_style = "base";
+              patch.overlay_opacity = 100;
+            }
             if (s.headline != null) patch.headline = s.headline;
             if (s.subtitle != null) patch.subtitle = s.subtitle;
             updateSlide(s.id, patch);
