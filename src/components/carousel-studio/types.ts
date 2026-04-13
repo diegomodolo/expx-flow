@@ -246,19 +246,19 @@ export function getOverlayGradient(
   const o = opacity / 100;
   switch (style) {
     case "base":
-      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.1).toFixed(3)}) 60%, transparent 100%)`;
+      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
     case "top_strong":
-      return `linear-gradient(to bottom, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 50%, transparent 100%)`;
+      return `linear-gradient(to bottom, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
     case "base_strong":
-      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.45).toFixed(3)}) 50%, transparent 100%)`;
+      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.85).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.5).toFixed(3)}) 65%, rgba(0,0,0,${+(o * 0.15).toFixed(3)}) 85%, transparent 100%)`;
     case "left":
-      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.1).toFixed(3)}) 60%, transparent 100%)`;
+      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
     case "left_strong":
-      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.45).toFixed(3)}) 50%, transparent 100%)`;
+      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.85).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.5).toFixed(3)}) 65%, rgba(0,0,0,${+(o * 0.15).toFixed(3)}) 85%, transparent 100%)`;
     case "right":
-      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.1).toFixed(3)}) 60%, transparent 100%)`;
+      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
     case "right_strong":
-      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.45).toFixed(3)}) 50%, transparent 100%)`;
+      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.85).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.5).toFixed(3)}) 65%, rgba(0,0,0,${+(o * 0.15).toFixed(3)}) 85%, transparent 100%)`;
   }
 }
 
