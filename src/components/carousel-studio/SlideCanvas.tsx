@@ -438,10 +438,11 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
 
               {slide.headline && (
                 <h2
-                  className="font-black text-white leading-none mb-3"
+                  className="text-white leading-none mb-3"
                   style={{
                     fontFamily: fonts.titleFont,
                     fontSize: slide.font_size_title,
+                    fontWeight: 900,
                     lineHeight: `${slide.line_spacing}%`,
                     wordBreak: "break-word",
                   }}
