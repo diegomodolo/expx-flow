@@ -275,11 +275,19 @@ export default function CarouselStudio() {
               if (target.kind === "background") {
                 updateSlide(slide.id, { bg_image_url: imgData.image_url });
               } else {
-                updateSlide(slide.id, {
+                const contentPatch: Partial<StudioSlide> = {
                   content_image_urls: imgData.image_url,
                   content_image_layout: "1_thumb_16_9",
                   content_image_position: target.position,
-                });
+                };
+                // Quando imagem de conteúdo fica acima do título,
+                // o texto vai para bottom_left com margem 276px para não colidir
+                if (target.position === "above_title") {
+                  contentPatch.text_position = "bottom_left";
+                  contentPatch.text_alignment = "left";
+                  contentPatch.text_padding_y = 276;
+                }
+                updateSlide(slide.id, contentPatch);
               }
             } else {
               const errMsg = imgData?.error || "Imagem não gerada";
