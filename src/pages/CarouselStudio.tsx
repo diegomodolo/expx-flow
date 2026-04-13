@@ -296,7 +296,7 @@ export default function CarouselStudio() {
           setGenerationProgress({
             current: i + 1,
             total,
-            statusMessage: `Gerando imagem slide ${i + 1} de ${total}...`,
+            statusMessage: `Gerando imagem com IA — slide ${i + 1} de ${total}...`,
           });
 
           try {

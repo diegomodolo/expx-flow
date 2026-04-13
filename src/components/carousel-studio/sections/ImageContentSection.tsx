@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
-import { X, Upload, Sparkles, Copy } from "lucide-react";
+import { X, Upload, Sparkles, Copy, ImageIcon } from "lucide-react";
+import { PexelsSearchModal, PexelsPhoto } from "../PexelsSearchModal";
 import { SidebarSection } from "../SidebarSection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -67,6 +68,7 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
   const [generatingSlot, setGeneratingSlot] = useState<number | null>(null);
   const [noTextInImage, setNoTextInImage] = useState(true);
   const [modalSlot, setModalSlot] = useState<number | null>(null);
+  const [pexelsSlot, setPexelsSlot] = useState<number | null>(null);
 
   const basePrompt = [
     slide.headline,
@@ -136,6 +138,15 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
     next[index] = bgImageUrl;
     setUrls(next);
     toast.success("Imagem de fundo copiada");
+  };
+
+  const handlePexelsSelect = (photo: PexelsPhoto) => {
+    if (pexelsSlot === null) return;
+    const next = [...urls];
+    next[pexelsSlot] = photo.large;
+    setUrls(next);
+    setPexelsSlot(null);
+    toast.success("Foto do Pexels adicionada");
   };
 
   const handleGenerateAI = async (index: number, extraPrompt?: string) => {
@@ -321,6 +332,15 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
                     <Copy className="w-3 h-3" />
                     Usar imagem de fundo
                   </button>
+
+                  {/* Botão: buscar no Pexels */}
+                  <button
+                    onClick={() => setPexelsSlot(i)}
+                    className="mt-1 w-full py-1 rounded border border-border text-[10px] text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <ImageIcon className="w-3 h-3" />
+                    Buscar no Pexels
+                  </button>
                 </div>
               );
             })}
@@ -437,6 +457,23 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
           setModalSlot(null);
           handleGenerateAI(idx, extraPrompt);
         }}
+      />
+
+      <PexelsSearchModal
+        open={pexelsSlot !== null}
+        onOpenChange={(v) => {
+          if (!v) setPexelsSlot(null);
+        }}
+        companyId={project.company_id}
+        initialQuery={slide.headline ?? ""}
+        orientation={
+          layout === "2_vertical"
+            ? "portrait"
+            : layout === "1_square" || layout === "4_square_2x2"
+              ? "square"
+              : "landscape"
+        }
+        onSelect={handlePexelsSelect}
       />
     </>
   );

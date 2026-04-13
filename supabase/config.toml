@@ -654,6 +654,9 @@ verify_jwt = true
 [functions.generate-carousel-slide-image-prompt]
 verify_jwt = true
 
+[functions.search-pexels-photos]
+verify_jwt = true
+
 [functions.generate-weekly-insights]
 verify_jwt = false
 
