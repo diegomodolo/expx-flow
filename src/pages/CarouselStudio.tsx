@@ -159,7 +159,7 @@ export default function CarouselStudio() {
             };
             const textPosition: StudioSlide["text_position"] =
               idx === 0
-                ? "mid_left"
+                ? "bottom_left"
                 : LEFT_POSITIONS[idx % LEFT_POSITIONS.length];
 
             const patch: Partial<StudioSlide> = {
@@ -167,15 +167,16 @@ export default function CarouselStudio() {
               text_position: textPosition,
             };
 
-            // Margem vertical baseada na posição
+            // Margem vertical baseada na posição (padrão geral)
             if (textPosition.startsWith("bottom_")) patch.text_padding_y = 150;
             else if (textPosition.startsWith("top_"))
               patch.text_padding_y = 132;
 
-            // Slide 1 (capa): fonte maior + overlay base 100% no bottom
+            // Slide 1 (capa): bottom_left 196px, fonte 80px, overlay base_strong 100%
             if (idx === 0) {
               patch.font_size_title = 80;
-              patch.overlay_style = "base";
+              patch.text_padding_y = 196;
+              patch.overlay_style = "base_strong";
               patch.overlay_opacity = 100;
             }
             if (s.headline != null) patch.headline = s.headline;
