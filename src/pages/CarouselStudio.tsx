@@ -81,6 +81,7 @@ export default function CarouselStudio() {
   }, [slides]);
 
   // Auto-generation: triggered when navigating from wizard with autoGenerate flag
+  // Depends only on project/slides being loaded (not on slides content changing)
   useEffect(() => {
     const navState = location.state as {
       autoGenerate?: boolean;
@@ -91,25 +92,37 @@ export default function CarouselStudio() {
     if (autoGenerateStarted.current) return;
     autoGenerateStarted.current = true;
 
+    // Capture stable references — must not close over changing `slides` state
+    const projectId = project.id;
+    const companyId = project.company_id;
+    const clientId = project.client_id;
+    const initialSlides = slides; // snapshot at generation start
     const config = navState.config;
-    const generateAll = async () => {
-      const total = slides.length;
 
-      // Phase 1: generate text for all slides via regenerate-carousel-slides
+    const generateAll = async () => {
+      const total = initialSlides.length;
+
+      // Phase 1: generate text for all slides at once
       setGenerationProgress({
         current: 0,
         total,
         statusMessage: "Gerando textos dos slides...",
       });
 
+      // textSlides: map id → { headline, subtitle } after text generation
+      const textSlides: Record<
+        string,
+        { headline: string | null; subtitle: string | null }
+      > = {};
+
       try {
         const { data: textData, error: textError } =
           await supabase.functions.invoke("regenerate-carousel-slides", {
             body: {
-              project_id: project.id,
+              project_id: projectId,
               prompt: config.prompt,
               slides_count: total,
-              company_id: project.company_id,
+              company_id: companyId,
             },
           });
 
@@ -120,6 +133,10 @@ export default function CarouselStudio() {
             headline: string | null;
             subtitle: string | null;
           }>) {
+            textSlides[s.id] = {
+              headline: s.headline,
+              subtitle: s.subtitle,
+            };
             const patch: Partial<StudioSlide> = {};
             if (s.headline != null) patch.headline = s.headline;
             if (s.subtitle != null) patch.subtitle = s.subtitle;
@@ -130,26 +147,21 @@ export default function CarouselStudio() {
         console.error("[auto-generate] text generation failed:", err);
       }
 
-      // Phase 2: generate images slide by slide (only if imageMode requires images)
+      // Phase 2: generate images slide by slide (only if needed)
       if (config.imageMode !== "none" && config.generateAIImages) {
-        // Re-read slides from cache after text update
-        const latestSlides =
-          queryClient.getQueryData<StudioSlide[]>([
-            "carousel-studio-slides",
-            project.id,
-          ]) ?? slides;
-
-        for (let i = 0; i < latestSlides.length; i++) {
-          const slide = latestSlides[i];
+        for (let i = 0; i < initialSlides.length; i++) {
+          const slide = initialSlides[i];
           setGenerationProgress({
             current: i + 1,
             total,
             statusMessage: `Gerando imagem slide ${i + 1} de ${total}...`,
           });
 
+          // Use texts from phase 1 result directly (not from React state)
+          const texts = textSlides[slide.id];
           const prompt = [
-            slide.headline,
-            slide.subtitle,
+            texts?.headline ?? slide.headline,
+            texts?.subtitle ?? slide.subtitle,
             slide.visual_description,
             config.prompt,
           ]
@@ -163,8 +175,8 @@ export default function CarouselStudio() {
               await supabase.functions.invoke("generate-image-ai", {
                 body: {
                   prompt,
-                  company_id: project.company_id,
-                  client_id: project.client_id,
+                  company_id: companyId,
+                  client_id: clientId,
                   style: config.imageStyle || "cinematic photography",
                   background_only: true,
                   aspect_ratio: "4:5",
@@ -173,6 +185,11 @@ export default function CarouselStudio() {
 
             if (!imgError && imgData?.success && imgData?.image_url) {
               updateSlide(slide.id, { bg_image_url: imgData.image_url });
+            } else {
+              console.error(
+                `[auto-generate] image slide ${i + 1} failed:`,
+                imgError ?? imgData?.error,
+              );
             }
           } catch (err) {
             console.error(
@@ -188,7 +205,8 @@ export default function CarouselStudio() {
     };
 
     generateAll();
-  }, [project, slides, location.state, queryClient, updateSlide]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!project, !!slides?.length]);
 
   const activeSlide = slides?.[activeIndex] ?? null;
 
