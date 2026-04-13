@@ -154,6 +154,28 @@ export function StudioWizardModal({
     }
   };
 
+  // As cores das equipes são salvas como classes Tailwind — mapeia para hex
+  const TEAM_COLOR_TO_HEX: Record<string, string> = {
+    "bg-yellow-100 text-yellow-800": "#EAB308",
+    "bg-blue-100 text-blue-800": "#3B82F6",
+    "bg-red-100 text-red-800": "#EF4444",
+    "bg-green-100 text-green-800": "#22C55E",
+    "bg-purple-100 text-purple-800": "#A855F7",
+    "bg-pink-100 text-pink-800": "#EC4899",
+    "bg-orange-100 text-orange-800": "#F97316",
+    "bg-cyan-100 text-cyan-800": "#06B6D4",
+    "bg-indigo-100 text-indigo-800": "#6366F1",
+    "bg-teal-100 text-teal-800": "#14B8A6",
+    "bg-gray-100 text-gray-800": "#6B7280",
+  };
+
+  const resolveTeamColor = (raw: string): string => {
+    if (!raw) return "";
+    // Já é hex
+    if (raw.startsWith("#")) return raw;
+    return TEAM_COLOR_TO_HEX[raw] ?? "";
+  };
+
   const handleSelectClient = (clientId: string | null) => {
     setClientPickerOpen(false);
     if (!clientId) {
@@ -170,9 +192,10 @@ export function StudioWizardModal({
       patch.instagramHandle = client.instagram_account.username;
     }
 
-    // Cor de destaque: usa a cor da equipe
+    // Cor de destaque: converte classe Tailwind para hex
     if (client.team?.color) {
-      patch.accentColor = client.team.color;
+      const hex = resolveTeamColor(client.team.color);
+      if (hex) patch.accentColor = hex;
     }
 
     update(patch);
@@ -512,14 +535,17 @@ export function StudioWizardModal({
                             <span className="truncate flex-1">
                               {client.name}
                             </span>
-                            {client.team?.color && (
-                              <span
-                                className="w-3 h-3 rounded-full shrink-0 ml-2"
-                                style={{
-                                  backgroundColor: client.team.color,
-                                }}
-                              />
-                            )}
+                            {client.team?.color &&
+                              resolveTeamColor(client.team.color) && (
+                                <span
+                                  className="w-3 h-3 rounded-full shrink-0 ml-2"
+                                  style={{
+                                    backgroundColor: resolveTeamColor(
+                                      client.team.color,
+                                    ),
+                                  }}
+                                />
+                              )}
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -555,11 +581,13 @@ export function StudioWizardModal({
                             </div>
                           )}
                         </div>
-                        {c.team?.color && (
+                        {c.team?.color && resolveTeamColor(c.team.color) && (
                           <div className="flex items-center gap-1 shrink-0">
                             <div
                               className="w-4 h-4 rounded-full"
-                              style={{ backgroundColor: c.team.color }}
+                              style={{
+                                backgroundColor: resolveTeamColor(c.team.color),
+                              }}
                             />
                           </div>
                         )}
