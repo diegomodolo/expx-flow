@@ -13,7 +13,9 @@ import {
   WizardConfig,
   FONT_PAIR_LABELS,
 } from "./types";
-import { Sparkles, PenLine, ChevronLeft } from "lucide-react";
+import { Sparkles, PenLine, ChevronLeft, Globe, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -63,6 +65,9 @@ export function StudioWizardModal({
 }: Props) {
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState<WizardConfig>(DEFAULT_CONFIG);
+  const [urlInput, setUrlInput] = useState("");
+  const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
+  const [urlRationale, setUrlRationale] = useState<string | null>(null);
 
   const update = (patch: Partial<WizardConfig>) =>
     setConfig((c) => ({ ...c, ...patch }));
@@ -93,9 +98,41 @@ export function StudioWizardModal({
     setStep((s) => Math.max(1, s - 1));
   };
 
+  const handleAnalyzeUrl = async () => {
+    if (!urlInput.trim()) return;
+    setIsAnalyzingUrl(true);
+    setUrlRationale(null);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "analyze-carousel-from-url",
+        { body: { url: urlInput.trim() } },
+      );
+      if (error) throw error;
+      if (!data?.success)
+        throw new Error(data?.error || "Erro ao analisar URL");
+
+      const s = data.suggestion;
+      update({
+        prompt: s.prompt,
+        slidesCount: s.slidesCount,
+        imageMode: s.imageMode as ImageMode,
+        imageStyle: s.imageStyle,
+      });
+      setUrlRationale(s.rationale);
+      setUrlInput("");
+      toast.success(`Conteúdo de "${data.pageTitle}" analisado com sucesso!`);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erro ao analisar URL");
+    } finally {
+      setIsAnalyzingUrl(false);
+    }
+  };
+
   const handleReset = () => {
     setStep(1);
     setConfig(DEFAULT_CONFIG);
+    setUrlInput("");
+    setUrlRationale(null);
   };
 
   React.useEffect(() => {
@@ -221,6 +258,45 @@ export function StudioWizardModal({
                 <p className="text-muted-foreground text-sm mt-1">
                   Diga sobre o que é o conteúdo e como quer o carrossel
                 </p>
+              </div>
+
+              {/* Campo URL para análise automática */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  IMPORTAR CONTEÚDO DE UMA URL (OPCIONAL)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAnalyzeUrl()}
+                    placeholder="https://..."
+                    className="text-sm flex-1"
+                    disabled={isAnalyzingUrl}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAnalyzeUrl}
+                    disabled={!urlInput.trim() || isAnalyzingUrl}
+                    className="shrink-0 gap-1"
+                  >
+                    {isAnalyzingUrl ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Globe className="w-4 h-4" />
+                    )}
+                    {isAnalyzingUrl ? "Analisando..." : "Analisar"}
+                  </Button>
+                </div>
+                {urlRationale && (
+                  <div className="flex items-start gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-2">
+                    <Sparkles className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                    <p className="text-xs text-primary leading-relaxed">
+                      {urlRationale}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">
