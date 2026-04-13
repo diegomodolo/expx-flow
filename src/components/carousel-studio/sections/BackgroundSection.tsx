@@ -23,6 +23,7 @@ interface Props {
   onProjectChange: (patch: Partial<StudioProject>) => void;
   onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
   onGenerateAIImage: (aspectRatio?: string) => void;
+  onGenerateSharedAIImage: (aspectRatio?: string) => void;
   isGeneratingImage: boolean;
 }
 
@@ -34,6 +35,7 @@ export function BackgroundSection({
   onProjectChange,
   onSlidesBatchChange,
   onGenerateAIImage,
+  onGenerateSharedAIImage,
   isGeneratingImage,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -300,6 +302,38 @@ export function BackgroundSection({
             <X className="w-3 h-3 mr-1" /> Remover imagem compartilhada
           </Button>
         )}
+
+        {/* Aspect ratio + Gerar com IA para imagem compartilhada */}
+        <div>
+          <Label className="text-xs text-muted-foreground mb-2 block">
+            Proporção da imagem gerada
+          </Label>
+          <div className="grid grid-cols-1 gap-1">
+            {ASPECT_RATIOS.map((ar) => (
+              <button
+                key={ar.value}
+                onClick={() => setAiAspectRatio(ar.value)}
+                className={`px-3 py-1.5 rounded text-xs text-left transition-colors ${
+                  aiAspectRatio === ar.value
+                    ? "bg-primary text-white"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                }`}
+              >
+                {ar.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => onGenerateSharedAIImage(aiAspectRatio)}
+          disabled={isGeneratingImage}
+        >
+          {isGeneratingImage ? "Gerando..." : "✨ Gerar com IA"}
+        </Button>
 
         {sharedBgUrl && (
           <>

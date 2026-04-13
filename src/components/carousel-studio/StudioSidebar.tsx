@@ -20,6 +20,7 @@ interface Props {
   onProjectChange: (patch: Partial<StudioProject>) => void;
   onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
   onGenerateAIImage: (aspectRatio?: string) => void;
+  onGenerateSharedAIImage: (aspectRatio?: string) => void;
   isGeneratingImage: boolean;
   onGenerateContent: () => void;
   isGeneratingContent: boolean;
@@ -38,6 +39,7 @@ export function StudioSidebar({
   onProjectChange,
   onSlidesBatchChange,
   onGenerateAIImage,
+  onGenerateSharedAIImage,
   isGeneratingImage,
   onGenerateContent,
   isGeneratingContent,
@@ -66,6 +68,7 @@ export function StudioSidebar({
         onProjectChange={onProjectChange}
         onSlidesBatchChange={onSlidesBatchChange}
         onGenerateAIImage={onGenerateAIImage}
+        onGenerateSharedAIImage={onGenerateSharedAIImage}
         isGeneratingImage={isGeneratingImage}
       />
       <OverlaySection slide={slide} onChange={onSlideChange} />
