@@ -210,41 +210,92 @@ export default function CarouselStudio() {
           return { kind: "content", position: "above_title" };
         };
 
+        // Summary de todos os slides para dar contexto completo à LLM
+        const allSlidesSummary = initialSlides.map((s, i) => {
+          const t = textSlides[s.id];
+          return {
+            slide_number: i + 1,
+            headline: t?.headline ?? s.headline,
+            subtitle: t?.subtitle ?? s.subtitle,
+          };
+        });
+
         for (let i = 0; i < initialSlides.length; i++) {
           const slide = initialSlides[i];
+          const target = getTarget(i);
+
+          setGenerationProgress({
+            current: i + 1,
+            total,
+            statusMessage: `Gerando prompt visual slide ${i + 1} de ${total}...`,
+          });
+
+          const imageTypeKey: "background" | "content_below" | "content_above" =
+            target.kind === "background"
+              ? "background"
+              : target.position === "below_subtitle"
+                ? "content_below"
+                : "content_above";
+
+          // Passo 1: gerar prompt visual específico para este slide
+          let visualPrompt = "";
+          try {
+            const { data: promptData, error: promptError } =
+              await supabase.functions.invoke(
+                "generate-carousel-slide-image-prompt",
+                {
+                  body: {
+                    company_id: companyId,
+                    carousel_prompt: config.prompt,
+                    image_style: config.imageStyle,
+                    all_slides: allSlidesSummary,
+                    current_slide_number: i + 1,
+                    image_type: imageTypeKey,
+                  },
+                },
+              );
+            if (!promptError && promptData?.success && promptData?.prompt) {
+              visualPrompt = promptData.prompt;
+            } else {
+              console.warn(
+                `[auto-generate] slide ${i + 1} prompt fallback:`,
+                promptError ?? promptData?.error,
+              );
+            }
+          } catch (err) {
+            console.warn(`[auto-generate] slide ${i + 1} prompt error:`, err);
+          }
+
+          // Fallback: concatenação local caso a LLM falhe
+          if (!visualPrompt.trim()) {
+            const parts = [
+              allSlidesSummary[i].headline,
+              allSlidesSummary[i].subtitle,
+              slide.visual_description,
+              config.prompt,
+            ].filter(Boolean);
+            visualPrompt =
+              parts.length > 0 ? parts.join(" — ") : `Slide ${i + 1}`;
+          }
+
+          console.log(
+            `[auto-generate] slide ${i + 1} target:`,
+            target,
+            "prompt:",
+            visualPrompt,
+          );
+
           setGenerationProgress({
             current: i + 1,
             total,
             statusMessage: `Gerando imagem slide ${i + 1} de ${total}...`,
           });
 
-          // Use texts from phase 1 result — fall back to config.prompt alone
-          const texts = textSlides[slide.id];
-          const promptParts = [
-            texts?.headline ?? slide.headline,
-            texts?.subtitle ?? slide.subtitle,
-            slide.visual_description,
-            config.prompt,
-          ].filter(Boolean);
-
-          const prompt =
-            promptParts.length > 0
-              ? promptParts.join(" — ")
-              : `Imagem para slide ${i + 1}`;
-
-          const target = getTarget(i);
-          console.log(
-            `[auto-generate] slide ${i + 1} target:`,
-            target,
-            "prompt:",
-            prompt,
-          );
-
           try {
             const { data: imgData, error: imgError } =
               await supabase.functions.invoke("generate-image-ai", {
                 body: {
-                  prompt,
+                  prompt: visualPrompt,
                   company_id: companyId,
                   client_id: clientId,
                   style: config.imageStyle || "cinematic photography",
