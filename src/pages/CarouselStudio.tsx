@@ -103,50 +103,56 @@ export default function CarouselStudio() {
     [updateSlide],
   );
 
-  const handleGenerateAIImage = useCallback(async () => {
-    if (!activeSlide || !project) return;
-    setIsGeneratingImage(true);
-    try {
-      const prompt = [
-        activeSlide.headline,
-        activeSlide.subtitle,
-        activeSlide.visual_description,
-        project.prompt,
-      ]
-        .filter(Boolean)
-        .join(" — ");
+  const handleGenerateAIImage = useCallback(
+    async (aspectRatio?: string) => {
+      if (!activeSlide || !project) return;
+      setIsGeneratingImage(true);
+      try {
+        const prompt = [
+          activeSlide.headline,
+          activeSlide.subtitle,
+          activeSlide.visual_description,
+          project.prompt,
+        ]
+          .filter(Boolean)
+          .join(" — ");
 
-      if (!prompt.trim()) {
-        toast.error("Adicione um texto ao slide antes de gerar imagem com IA");
-        return;
-      }
+        if (!prompt.trim()) {
+          toast.error(
+            "Adicione um texto ao slide antes de gerar imagem com IA",
+          );
+          return;
+        }
 
-      toast.info("Gerando imagem com IA...");
-      const { data, error } = await supabase.functions.invoke(
-        "generate-image-ai",
-        {
-          body: {
-            prompt,
-            company_id: project.company_id,
-            client_id: project.client_id,
-            style: project.image_style ?? "cinematic photography",
-            background_only: true,
+        toast.info("Gerando imagem com IA...");
+        const { data, error } = await supabase.functions.invoke(
+          "generate-image-ai",
+          {
+            body: {
+              prompt,
+              company_id: project.company_id,
+              client_id: project.client_id,
+              style: project.image_style ?? "cinematic photography",
+              background_only: true,
+              aspect_ratio: aspectRatio ?? "4:5",
+            },
           },
-        },
-      );
+        );
 
-      if (error) throw error;
-      if (!data?.success || !data?.image_url)
-        throw new Error(data?.error || "Imagem não gerada");
+        if (error) throw error;
+        if (!data?.success || !data?.image_url)
+          throw new Error(data?.error || "Imagem não gerada");
 
-      updateSlide(activeSlide.id, { bg_image_url: data.image_url });
-      toast.success("Imagem gerada com sucesso!");
-    } catch (err: unknown) {
-      toast.error((err as Error).message || "Erro ao gerar imagem");
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  }, [activeSlide, project, updateSlide]);
+        updateSlide(activeSlide.id, { bg_image_url: data.image_url });
+        toast.success("Imagem gerada com sucesso!");
+      } catch (err: unknown) {
+        toast.error((err as Error).message || "Erro ao gerar imagem");
+      } finally {
+        setIsGeneratingImage(false);
+      }
+    },
+    [activeSlide, project, updateSlide],
+  );
 
   const handleGenerateContent = useCallback(async () => {
     if (!activeSlide || !project) return;

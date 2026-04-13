@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { SidebarSection } from "../SidebarSection";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,14 @@ import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Clipboard, X } from "lucide-react";
 import { StudioSlide, StudioProject } from "../types";
 
+const ASPECT_RATIOS = [
+  { value: "4:5", label: "4:5 (Instagram)" },
+  { value: "1:1", label: "1:1 (Quadrado)" },
+  { value: "16:9", label: "16:9 (Horizontal)" },
+  { value: "9:16", label: "9:16 (Stories)" },
+  { value: "3:4", label: "3:4 (Vertical)" },
+];
+
 interface Props {
   slide: StudioSlide;
   slides: StudioSlide[];
@@ -14,7 +22,7 @@ interface Props {
   onChange: (patch: Partial<StudioSlide>) => void;
   onProjectChange: (patch: Partial<StudioProject>) => void;
   onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
-  onGenerateAIImage: () => void;
+  onGenerateAIImage: (aspectRatio?: string) => void;
   isGeneratingImage: boolean;
 }
 
@@ -30,6 +38,7 @@ export function BackgroundSection({
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const sharedFileRef = useRef<HTMLInputElement>(null);
+  const [aiAspectRatio, setAiAspectRatio] = useState("4:5");
 
   const handleFile = (file: File, shared = false) => {
     const reader = new FileReader();
@@ -167,11 +176,33 @@ export function BackgroundSection({
             </Button>
           )}
 
+          {/* Aspect ratio para geração IA */}
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">
+              Proporção da imagem gerada
+            </Label>
+            <div className="grid grid-cols-1 gap-1">
+              {ASPECT_RATIOS.map((ar) => (
+                <button
+                  key={ar.value}
+                  onClick={() => setAiAspectRatio(ar.value)}
+                  className={`px-3 py-1.5 rounded text-xs text-left transition-colors ${
+                    aiAspectRatio === ar.value
+                      ? "bg-primary text-white"
+                      : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                  }`}
+                >
+                  {ar.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <Button
             variant="outline"
             size="sm"
             className="w-full text-xs"
-            onClick={onGenerateAIImage}
+            onClick={() => onGenerateAIImage(aiAspectRatio)}
             disabled={isGeneratingImage}
           >
             {isGeneratingImage ? "Gerando..." : "✨ Gerar com IA"}

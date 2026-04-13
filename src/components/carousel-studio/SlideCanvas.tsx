@@ -3,10 +3,78 @@ import {
   StudioSlide,
   StudioProject,
   TextPosition,
+  ContentImageLayout,
   getOverlayGradient,
   BADGE_POSITION_STYLES,
   FONT_PAIR_CSS,
 } from "./types";
+
+/** Monta o bloco de imagens de conteúdo */
+function ContentImageBlock({
+  urls,
+  layout,
+  radius,
+  width,
+  gap,
+}: {
+  urls: string[];
+  layout: ContentImageLayout;
+  radius: number;
+  width: number;
+  gap: number;
+}) {
+  if (urls.length === 0) return null;
+
+  const aspect =
+    layout === "1_thumb_16_9" || layout === "2_thumb_16_9"
+      ? "16/9"
+      : layout === "2_vertical"
+        ? "9/16"
+        : "1/1";
+
+  const isGrid4 = layout === "4_square_2x2";
+  const isDouble = layout === "2_vertical" || layout === "2_thumb_16_9";
+
+  const containerStyle: React.CSSProperties = {
+    width: `${width}%`,
+    display: "flex",
+    flexWrap: isGrid4 ? "wrap" : "nowrap",
+    gap,
+    marginLeft: "auto",
+    marginRight: "auto",
+  };
+
+  const slotCount = isGrid4 ? 4 : isDouble ? 2 : 1;
+  const slots = Array.from({ length: slotCount });
+
+  return (
+    <div style={containerStyle}>
+      {slots.map((_, i) => {
+        const url = urls[i] ?? null;
+        const slotStyle: React.CSSProperties = {
+          flex: isGrid4 ? "1 1 calc(50% - " + gap / 2 + "px)" : "1",
+          aspectRatio: aspect,
+          borderRadius: radius,
+          overflow: "hidden",
+          backgroundColor: "#222",
+          flexShrink: 0,
+        };
+        return (
+          <div key={i} style={slotStyle}>
+            {url && (
+              <img
+                src={url}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                crossOrigin="anonymous"
+                alt=""
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function getTextPositionStyle(
   position: TextPosition,
@@ -332,36 +400,75 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           })()}
 
         {/* Bloco de texto */}
-        <div
-          className={`absolute max-w-[85%] ${alignClass}`}
-          style={textPositionStyle}
-        >
-          {slide.headline && (
-            <h2
-              className="font-black text-white leading-none mb-3"
+        {(() => {
+          const ciUrls = (slide.content_image_urls ?? "")
+            .split(",")
+            .map((u) => u.trim())
+            .filter(Boolean);
+          const ciLayout = slide.content_image_layout ?? "1_thumb_16_9";
+          const ciPos = slide.content_image_position ?? "below_subtitle";
+          const ciRadius = slide.content_image_radius ?? 12;
+          const ciWidth = slide.content_image_width ?? 100;
+          const ciGap = slide.content_image_gap ?? 12;
+          const hasContentImage = ciUrls.length > 0;
+
+          const imageBlock = hasContentImage ? (
+            <div
               style={{
-                fontFamily: fonts.titleFont,
-                fontSize: slide.font_size_title,
-                lineHeight: `${slide.line_spacing}%`,
-                wordBreak: "break-word",
+                marginBottom: ciPos === "above_title" ? 24 : 0,
+                marginTop: ciPos !== "above_title" ? 24 : 0,
               }}
             >
-              {renderWithHighlight(slide.headline)}
-            </h2>
-          )}
-          {slide.subtitle && (
-            <p
-              className="text-white/90"
-              style={{
-                fontFamily: fonts.subtitleFont,
-                fontSize: slide.font_size_subtitle,
-                lineHeight: `${slide.line_spacing}%`,
-              }}
+              <ContentImageBlock
+                urls={ciUrls}
+                layout={ciLayout}
+                radius={ciRadius}
+                width={ciWidth}
+                gap={ciGap}
+              />
+            </div>
+          ) : null;
+
+          return (
+            <div
+              className={`absolute max-w-[85%] ${alignClass}`}
+              style={textPositionStyle}
             >
-              {slide.subtitle}
-            </p>
-          )}
-        </div>
+              {hasContentImage && ciPos === "above_title" && imageBlock}
+
+              {slide.headline && (
+                <h2
+                  className="font-black text-white leading-none mb-3"
+                  style={{
+                    fontFamily: fonts.titleFont,
+                    fontSize: slide.font_size_title,
+                    lineHeight: `${slide.line_spacing}%`,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {renderWithHighlight(slide.headline)}
+                </h2>
+              )}
+
+              {hasContentImage && ciPos === "between" && imageBlock}
+
+              {slide.subtitle && (
+                <p
+                  className="text-white/90"
+                  style={{
+                    fontFamily: fonts.subtitleFont,
+                    fontSize: slide.font_size_subtitle,
+                    lineHeight: `${slide.line_spacing}%`,
+                  }}
+                >
+                  {slide.subtitle}
+                </p>
+              )}
+
+              {hasContentImage && ciPos === "below_subtitle" && imageBlock}
+            </div>
+          );
+        })()}
 
         {/* Cantos decorativos */}
         {slide.corner_style !== "none" &&

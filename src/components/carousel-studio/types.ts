@@ -29,6 +29,14 @@ export type TextPosition =
   | "bottom_center"
   | "bottom_right";
 
+export type ContentImagePosition = "above_title" | "between" | "below_subtitle";
+export type ContentImageLayout =
+  | "1_thumb_16_9"
+  | "1_square"
+  | "2_vertical"
+  | "2_thumb_16_9"
+  | "4_square_2x2";
+
 export type BadgePosition =
   | "top_left"
   | "top_center"
@@ -126,6 +134,18 @@ export interface StudioSlide {
   highlight_weight: string | null;
   /** Cor das palavras destacadas (**palavra**). Null = usa accent_color do projeto */
   highlight_color: string | null;
+  /** URL(s) da imagem de conteúdo (até 4, separadas por vírgula) */
+  content_image_urls: string | null;
+  /** Layout das imagens de conteúdo */
+  content_image_layout: ContentImageLayout;
+  /** Posição em relação ao texto */
+  content_image_position: ContentImagePosition;
+  /** Border radius das imagens (px) */
+  content_image_radius: number;
+  /** Largura em % relativa ao bloco de texto (10-100) */
+  content_image_width: number;
+  /** Gap entre imagens múltiplas (px) */
+  content_image_gap: number;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;

@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
     const companyId = body.company_id || body.companyId;
     const style = body.style || "professional marketing";
     const backgroundOnly = body.background_only === true;
+    const aspectRatio = body.aspect_ratio || "4:5";
 
     // Accept direct client context from agent parameters
     const directClientName = body.client_name || body.clientName || "";
@@ -139,8 +140,11 @@ Deno.serve(async (req) => {
 REGRA ABSOLUTA — IMAGEM DE FUNDO:
 - NÃO inclua NENHUM texto, palavra, letra, número, logotipo ou símbolo escrito na imagem.
 - A imagem será usada como fundo de um carrossel; o texto será adicionado por cima depois.
-- Qualquer texto na imagem arruinará o resultado final. Gere APENAS elementos visuais e fotográficos.`
-      : "";
+- Qualquer texto na imagem arruinará o resultado final. Gere APENAS elementos visuais e fotográficos.
+- Proporção (aspect ratio) obrigatória: ${aspectRatio}. A imagem deve respeitar exatamente essa proporção.`
+      : `
+
+Proporção (aspect ratio): ${aspectRatio}.`;
 
     // Build the message content - multimodal if we have reference images
     const textInstruction =

@@ -4,6 +4,7 @@ import { OverlaySection } from "./sections/OverlaySection";
 import { TextSection } from "./sections/TextSection";
 import { FontsSection } from "./sections/FontsSection";
 import { BadgeSection } from "./sections/BadgeSection";
+import { ImageContentSection } from "./sections/ImageContentSection";
 import { CornersSection } from "./sections/CornersSection";
 import { ClientSection, ClientDefaults } from "./sections/ClientSection";
 import { StudioSlide, StudioProject } from "./types";
@@ -18,7 +19,7 @@ interface Props {
   onSlideChange: (patch: Partial<StudioSlide>) => void;
   onProjectChange: (patch: Partial<StudioProject>) => void;
   onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
-  onGenerateAIImage: () => void;
+  onGenerateAIImage: (aspectRatio?: string) => void;
   isGeneratingImage: boolean;
   onGenerateContent: () => void;
   isGeneratingContent: boolean;
@@ -73,6 +74,11 @@ export function StudioSidebar({
         onChange={onSlideChange}
         onGenerateContent={onGenerateContent}
         isGenerating={isGeneratingContent}
+      />
+      <ImageContentSection
+        slide={slide}
+        project={project}
+        onChange={onSlideChange}
       />
       <FontsSection
         slide={slide}
