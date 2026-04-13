@@ -18,6 +18,7 @@ import { StudioBottomBar } from "@/components/carousel-studio/StudioBottomBar";
 import { CaptionModal } from "@/components/carousel-studio/CaptionModal";
 import { RegenerateModal } from "@/components/carousel-studio/RegenerateModal";
 import { SendToContentPlanModal } from "@/components/carousel-studio/SendToContentPlanModal";
+import { PublishCarouselModal } from "@/components/generators/PublishCarouselModal";
 import {
   StudioSlide,
   StudioProject,
@@ -48,6 +49,24 @@ export default function CarouselStudio() {
   const [captionOpen, setCaptionOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [sendToPlanOpen, setSendToPlanOpen] = useState(false);
+  const [publishCarousel, setPublishCarousel] = useState<{
+    id: string;
+    carousel_type: string;
+    slides: Array<{
+      slide_number: number;
+      image_url: string;
+      headline: string | null;
+      body_text: string | null;
+    }>;
+    caption: string | null;
+    hashtags: string | null;
+    cta_text: string | null;
+    theme: string | null;
+    status: string;
+    client_id: string;
+    company_id: string;
+  } | null>(null);
+  const [preparingPublish, setPreparingPublish] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [userZoom, setUserZoom] = useState(620 / 1350);
@@ -805,6 +824,89 @@ export default function CarouselStudio() {
     [slides, project, flushAll, exportSlide, updateExportedUrl],
   );
 
+  const handleOpenPublish = useCallback(async () => {
+    if (!slides || !project) return;
+    if (!project.client_id) {
+      toast.error(
+        "Defina o cliente no editor antes de publicar (sidebar → Cliente)",
+      );
+      return;
+    }
+
+    setPreparingPublish(true);
+    try {
+      await flushAll();
+
+      // Re-exporta cada slide para garantir que a imagem reflete o editor
+      const slidesWithImages: Array<{
+        slide_number: number;
+        image_url: string;
+        headline: string | null;
+        body_text: string | null;
+      }> = [];
+
+      for (let i = 0; i < slides.length; i++) {
+        const s = slides[i];
+        const el = slideRefs.current.get(s.id);
+        if (!el) continue;
+        const url = await exportSlide(el, s, project.id, (savedUrl) => {
+          updateExportedUrl(s.id, savedUrl);
+        });
+        if (url) {
+          slidesWithImages.push({
+            slide_number: s.slide_number,
+            image_url: url,
+            headline: s.headline,
+            body_text: s.subtitle,
+          });
+        }
+      }
+
+      if (slidesWithImages.length === 0) {
+        throw new Error("Nenhuma imagem foi exportada");
+      }
+
+      // Gera caption
+      let caption = "";
+      try {
+        const { data: capData } = await supabase.functions.invoke(
+          "generate-carousel-caption",
+          {
+            body: {
+              project_id: project.id,
+              slides: slides.map((s) => ({
+                headline: s.headline,
+                subtitle: s.subtitle,
+              })),
+            },
+          },
+        );
+        caption = (capData?.caption as string) ?? "";
+      } catch (err) {
+        console.warn("[publish] caption gen failed:", err);
+      }
+
+      setPublishCarousel({
+        id: project.id,
+        carousel_type: "carousel",
+        slides: slidesWithImages,
+        caption: caption || null,
+        hashtags: null,
+        cta_text: null,
+        theme: project.prompt,
+        status: "ready",
+        client_id: project.client_id,
+        company_id: project.company_id,
+      });
+    } catch (err: unknown) {
+      toast.error(
+        (err as Error).message || "Erro ao preparar carrossel para publicação",
+      );
+    } finally {
+      setPreparingPublish(false);
+    }
+  }, [slides, project, flushAll, exportSlide, updateExportedUrl]);
+
   const handleClientChange = useCallback(
     (clientId: string | null, defaults: ClientDefaults | null) => {
       if (!project) return;
@@ -876,6 +978,8 @@ export default function CarouselStudio() {
           onOpenCaption={() => setCaptionOpen(true)}
           onOpenRegenerate={() => setRegenerateOpen(true)}
           onOpenSendToPlan={() => setSendToPlanOpen(true)}
+          onOpenPublish={handleOpenPublish}
+          isPreparingPublish={preparingPublish}
           onSave={flushAll}
         />
 
@@ -993,6 +1097,18 @@ export default function CarouselStudio() {
         clientId={project.client_id}
         onSend={handleSendToPlan}
       />
+
+      {publishCarousel && (
+        <PublishCarouselModal
+          carousel={publishCarousel}
+          open={!!publishCarousel}
+          onOpenChange={(open) => !open && setPublishCarousel(null)}
+          onSuccess={() => {
+            setPublishCarousel(null);
+            toast.success("Publicação agendada!");
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }

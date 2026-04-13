@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Save,
   CalendarPlus,
+  Send,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,6 +24,8 @@ interface Props {
   onOpenCaption: () => void;
   onOpenRegenerate: () => void;
   onOpenSendToPlan: () => void;
+  onOpenPublish: () => void;
+  isPreparingPublish?: boolean;
   onSave: () => Promise<void>;
 }
 
@@ -36,6 +39,8 @@ export function StudioTopBar({
   onOpenCaption,
   onOpenRegenerate,
   onOpenSendToPlan,
+  onOpenPublish,
+  isPreparingPublish,
   onSave,
 }: Props) {
   const navigate = useNavigate();
@@ -128,6 +133,16 @@ export function StudioTopBar({
         >
           <CalendarPlus className="w-4 h-4 mr-1" />
           Enviar ao Planejamento
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground text-xs hover:text-foreground"
+          onClick={onOpenPublish}
+          disabled={isPreparingPublish}
+        >
+          <Send className="w-4 h-4 mr-1" />
+          {isPreparingPublish ? "Preparando..." : "Publicar"}
         </Button>
 
         <div className="w-px h-4 bg-border mx-1" />
