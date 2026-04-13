@@ -7,15 +7,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import {
   CarouselStyle,
   FontPair,
   ImageMode,
   WizardConfig,
   FONT_PAIR_LABELS,
 } from "./types";
-import { Sparkles, PenLine, ChevronLeft, Globe, Loader2 } from "lucide-react";
+import {
+  Sparkles,
+  PenLine,
+  ChevronLeft,
+  Globe,
+  Loader2,
+  ChevronsUpDown,
+  Check,
+  User,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useClients } from "@/hooks/useClients";
 
 interface Props {
   open: boolean;
@@ -38,6 +61,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   instagramHandle: "",
   fontPair: "space_inter",
   accentColor: "#FFD700",
+  clientId: null,
 };
 
 const ACCENT_COLORS = [
@@ -68,6 +92,8 @@ export function StudioWizardModal({
   const [urlInput, setUrlInput] = useState("");
   const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
   const [urlRationale, setUrlRationale] = useState<string | null>(null);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const { clients, loading: loadingClients } = useClients();
 
   const update = (patch: Partial<WizardConfig>) =>
     setConfig((c) => ({ ...c, ...patch }));
@@ -128,11 +154,36 @@ export function StudioWizardModal({
     }
   };
 
+  const handleSelectClient = (clientId: string | null) => {
+    setClientPickerOpen(false);
+    if (!clientId) {
+      update({ clientId: null });
+      return;
+    }
+    const client = clients.find((c) => c.id === clientId);
+    if (!client) return;
+
+    const patch: Partial<WizardConfig> = { clientId };
+
+    // Instagram handle
+    if (client.instagram_account?.username) {
+      patch.instagramHandle = client.instagram_account.username;
+    }
+
+    // Cor de destaque: usa a cor da equipe
+    if (client.team?.color) {
+      patch.accentColor = client.team.color;
+    }
+
+    update(patch);
+  };
+
   const handleReset = () => {
     setStep(1);
     setConfig(DEFAULT_CONFIG);
     setUrlInput("");
     setUrlRationale(null);
+    setClientPickerOpen(false);
   };
 
   React.useEffect(() => {
@@ -391,6 +442,130 @@ export function StudioWizardModal({
                 <p className="text-muted-foreground text-sm mt-1">
                   Identidade visual do seu carrossel
                 </p>
+              </div>
+
+              {/* Seletor de cliente */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  CLIENTE (OPCIONAL)
+                </Label>
+                <Popover
+                  open={clientPickerOpen}
+                  onOpenChange={setClientPickerOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between text-sm h-9"
+                      disabled={loadingClients}
+                    >
+                      <span className="truncate">
+                        {config.clientId
+                          ? (clients.find((c) => c.id === config.clientId)
+                              ?.name ?? "Cliente selecionado")
+                          : "Selecionar cliente..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[360px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar cliente..." />
+                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                      <CommandGroup className="max-h-52 overflow-y-auto">
+                        {config.clientId && (
+                          <CommandItem
+                            value="__none__"
+                            onSelect={() => handleSelectClient(null)}
+                            className="text-muted-foreground text-xs"
+                          >
+                            Remover seleção
+                          </CommandItem>
+                        )}
+                        {clients.map((client) => (
+                          <CommandItem
+                            key={client.id}
+                            value={client.name}
+                            onSelect={() => handleSelectClient(client.id)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4 shrink-0",
+                                config.clientId === client.id
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {(client.instagram_account?.profile_picture_url ||
+                              client.avatar) && (
+                              <img
+                                src={
+                                  client.instagram_account
+                                    ?.profile_picture_url || client.avatar
+                                }
+                                className="w-5 h-5 rounded-full object-cover mr-2 shrink-0"
+                                alt=""
+                              />
+                            )}
+                            <span className="truncate flex-1">
+                              {client.name}
+                            </span>
+                            {client.team?.color && (
+                              <span
+                                className="w-3 h-3 rounded-full shrink-0 ml-2"
+                                style={{
+                                  backgroundColor: client.team.color,
+                                }}
+                              />
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Preview do cliente selecionado */}
+                {config.clientId &&
+                  (() => {
+                    const c = clients.find((cl) => cl.id === config.clientId);
+                    if (!c) return null;
+                    return (
+                      <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
+                        {(c.instagram_account?.profile_picture_url ||
+                          c.avatar) && (
+                          <img
+                            src={
+                              c.instagram_account?.profile_picture_url ||
+                              c.avatar
+                            }
+                            className="w-8 h-8 rounded-full object-cover shrink-0"
+                            alt=""
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-medium truncate">
+                            {c.name}
+                          </div>
+                          {c.instagram_account?.username && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              @{c.instagram_account.username}
+                            </div>
+                          )}
+                        </div>
+                        {c.team?.color && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <div
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: c.team.color }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
               </div>
 
               <div className="space-y-1">

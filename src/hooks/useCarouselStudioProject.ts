@@ -59,6 +59,7 @@ export function useCreateStudioProject() {
           font_pair: config.fontPair,
           accent_color: config.accentColor,
           instagram_handle: config.instagramHandle || null,
+          client_id: config.clientId || null,
           slides_count: config.slidesCount,
           image_mode: config.imageMode,
           prompt: config.prompt || null,

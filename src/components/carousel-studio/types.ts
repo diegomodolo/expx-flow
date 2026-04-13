@@ -168,6 +168,7 @@ export interface WizardConfig {
   instagramHandle: string;
   fontPair: FontPair;
   accentColor: string;
+  clientId: string | null;
 }
 
 export const FONT_PAIR_LABELS: Record<
