@@ -198,18 +198,22 @@ export default function CarouselStudio() {
             statusMessage: `Gerando imagem slide ${i + 1} de ${total}...`,
           });
 
-          // Use texts from phase 1 result directly (not from React state)
+          // Use texts from phase 1 result — fall back to config.prompt alone
           const texts = textSlides[slide.id];
-          const prompt = [
+          const promptParts = [
             texts?.headline ?? slide.headline,
             texts?.subtitle ?? slide.subtitle,
             slide.visual_description,
             config.prompt,
-          ]
-            .filter(Boolean)
-            .join(" — ");
+          ].filter(Boolean);
 
-          if (!prompt.trim()) continue;
+          // Always have at least the config prompt — should never be empty
+          const prompt =
+            promptParts.length > 0
+              ? promptParts.join(" — ")
+              : `Imagem para slide ${i + 1}`;
+
+          console.log(`[auto-generate] slide ${i + 1} prompt:`, prompt);
 
           try {
             const { data: imgData, error: imgError } =
@@ -223,6 +227,11 @@ export default function CarouselStudio() {
                   aspect_ratio: "4:5",
                 },
               });
+
+            console.log(`[auto-generate] slide ${i + 1} result:`, {
+              imgData,
+              imgError,
+            });
 
             if (!imgError && imgData?.success && imgData?.image_url) {
               updateSlide(slide.id, { bg_image_url: imgData.image_url });
