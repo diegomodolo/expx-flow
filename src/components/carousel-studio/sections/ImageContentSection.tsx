@@ -63,6 +63,8 @@ function layoutAspect(layout: ContentImageLayout): string {
 export function ImageContentSection({ slide, project, onChange }: Props) {
   const fileRefs = useRef<Map<number, HTMLInputElement>>(new Map());
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+  const [generatingSlot, setGeneratingSlot] = useState<number | null>(null);
+  const [noTextInImage, setNoTextInImage] = useState(true);
 
   const urls: string[] = (slide.content_image_urls ?? "")
     .split(",")
@@ -123,6 +125,7 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
       return;
     }
 
+    setGeneratingSlot(index);
     toast.info("Gerando imagem com IA...");
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -133,7 +136,7 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
             company_id: project.company_id,
             client_id: project.client_id,
             style: project.image_style ?? "cinematic photography",
-            background_only: false,
+            background_only: noTextInImage,
           },
         },
       );
@@ -147,6 +150,8 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
       toast.success("Imagem gerada!");
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erro ao gerar imagem");
+    } finally {
+      setGeneratingSlot(null);
     }
   };
 
@@ -273,15 +278,24 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
                 {/* Botão IA */}
                 <button
                   onClick={() => handleGenerateAI(i)}
-                  className="mt-1 w-full py-1 rounded border border-border text-[10px] text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors"
+                  disabled={generatingSlot === i}
+                  className="mt-1 w-full py-1 rounded border border-border text-[10px] text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                 >
                   <Sparkles className="w-3 h-3" />
-                  Gerar com IA
+                  {generatingSlot === i ? "Gerando..." : "Gerar com IA"}
                 </button>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {/* Toggle sem texto na IA */}
+      <div className="flex items-center gap-2">
+        <Switch checked={noTextInImage} onCheckedChange={setNoTextInImage} />
+        <Label className="text-xs text-muted-foreground cursor-pointer">
+          Gerar sem texto na imagem
+        </Label>
       </div>
 
       {/* Controles visuais */}
