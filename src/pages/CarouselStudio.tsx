@@ -183,8 +183,9 @@ export default function CarouselStudio() {
         console.error("[auto-generate] text generation failed:", err);
       }
 
-      // Phase 2: generate images slide by slide (only if needed)
-      if (config.imageMode !== "none" && config.generateAIImages) {
+      // Phase 2: generate images slide by slide
+      // generateAIImages defaults to true — treat undefined as true
+      if (config.generateAIImages !== false) {
         for (let i = 0; i < initialSlides.length; i++) {
           const slide = initialSlides[i];
           setGenerationProgress({
