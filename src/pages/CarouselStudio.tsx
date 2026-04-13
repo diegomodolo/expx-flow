@@ -273,7 +273,19 @@ export default function CarouselStudio() {
               toast.error(`Slide ${i + 1}: ${msg}`);
             } else if (imgData?.success && imgData?.image_url) {
               if (target.kind === "background") {
-                updateSlide(slide.id, { bg_image_url: imgData.image_url });
+                const bgPatch: Partial<StudioSlide> = {
+                  bg_image_url: imgData.image_url,
+                };
+                // Slides com imagem de fundo que NÃO são o slide 1:
+                // texto bottom_left, 252px vertical, overlay base_strong 100%
+                if (i !== 0) {
+                  bgPatch.text_position = "bottom_left";
+                  bgPatch.text_alignment = "left";
+                  bgPatch.text_padding_y = 252;
+                  bgPatch.overlay_style = "base_strong";
+                  bgPatch.overlay_opacity = 100;
+                }
+                updateSlide(slide.id, bgPatch);
               } else {
                 const contentPatch: Partial<StudioSlide> = {
                   content_image_urls: imgData.image_url,
