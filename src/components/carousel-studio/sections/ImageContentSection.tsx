@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { X, Upload, Sparkles } from "lucide-react";
 import { SidebarSection } from "../SidebarSection";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +12,19 @@ import {
   ContentImageLayout,
   ContentImagePosition,
 } from "../types";
+
+const BUCKET = "visual-creatives";
+
+async function uploadImageFile(file: File): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `carousel-content/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
 
 interface Props {
   slide: StudioSlide;
@@ -49,6 +62,7 @@ function layoutAspect(layout: ContentImageLayout): string {
 
 export function ImageContentSection({ slide, project, onChange }: Props) {
   const fileRefs = useRef<Map<number, HTMLInputElement>>(new Map());
+  const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
 
   const urls: string[] = (slide.content_image_urls ?? "")
     .split(",")
@@ -67,19 +81,25 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
     onChange({ content_image_urls: next.filter(Boolean).join(",") || null });
   };
 
-  const handleFileChange = (
+  const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+    setUploadingSlot(index);
+    try {
+      const url = await uploadImageFile(file);
       const next = [...urls];
-      next[index] = ev.target?.result as string;
+      next[index] = url;
       setUrls(next);
-    };
-    reader.readAsDataURL(file);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erro ao fazer upload da imagem");
+    } finally {
+      setUploadingSlot(null);
+    }
   };
 
   const handleRemove = (index: number) => {
@@ -210,7 +230,16 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
                   onChange={(e) => handleFileChange(e, i)}
                 />
 
-                {url ? (
+                {uploadingSlot === i ? (
+                  <div
+                    className="w-full bg-muted/30 border border-border rounded flex items-center justify-center"
+                    style={{ aspectRatio: aspect, borderRadius: radius }}
+                  >
+                    <span className="text-[10px] text-muted-foreground animate-pulse">
+                      Enviando...
+                    </span>
+                  </div>
+                ) : url ? (
                   <div className="relative">
                     <img
                       src={url}
