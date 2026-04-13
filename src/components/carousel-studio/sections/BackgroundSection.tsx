@@ -4,9 +4,10 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon, Clipboard, X } from "lucide-react";
+import { ImageIcon, Clipboard, X, Search } from "lucide-react";
 import { StudioSlide, StudioProject } from "../types";
 import { AIImagePromptModal } from "../AIImagePromptModal";
+import { PexelsSearchModal, PexelsPhoto } from "../PexelsSearchModal";
 
 const ASPECT_RATIOS = [
   { value: "4:5", label: "4:5 (Instagram)" },
@@ -43,6 +44,9 @@ export function BackgroundSection({
   const sharedFileRef = useRef<HTMLInputElement>(null);
   const [aiAspectRatio, setAiAspectRatio] = useState("4:5");
   const [modalOpen, setModalOpen] = useState<"individual" | "shared" | null>(
+    null,
+  );
+  const [pexelsOpen, setPexelsOpen] = useState<"individual" | "shared" | null>(
     null,
   );
 
@@ -104,6 +108,24 @@ export function BackgroundSection({
       slides.map((s) => s.id),
       { use_shared_bg: !allOn },
     );
+  };
+
+  // Mapeia aspect ratio selecionado para orientação do Pexels
+  const pexelsOrientation: "landscape" | "portrait" | "square" =
+    aiAspectRatio === "1:1"
+      ? "square"
+      : aiAspectRatio === "16:9" || aiAspectRatio === "3:4"
+        ? "landscape"
+        : "portrait";
+
+  const handlePexelsSelect = (photo: PexelsPhoto) => {
+    const url = photo.original || photo.large;
+    if (pexelsOpen === "shared") {
+      onProjectChange({ shared_bg_image_url: url });
+    } else {
+      onChange({ bg_image_url: url });
+    }
+    setPexelsOpen(null);
   };
 
   return (
@@ -222,6 +244,15 @@ export function BackgroundSection({
               disabled={isGeneratingImage}
             >
               {isGeneratingImage ? "Gerando..." : "✨ Gerar com IA"}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => setPexelsOpen("individual")}
+            >
+              <Search className="w-3 h-3 mr-1" /> Buscar no Pexels
             </Button>
 
             <div className="space-y-2">
@@ -349,6 +380,15 @@ export function BackgroundSection({
             {isGeneratingImage ? "Gerando..." : "✨ Gerar com IA"}
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={() => setPexelsOpen("shared")}
+          >
+            <Search className="w-3 h-3 mr-1" /> Buscar no Pexels
+          </Button>
+
           {sharedBgUrl && (
             <>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
@@ -435,6 +475,17 @@ export function BackgroundSection({
           }
           setModalOpen(null);
         }}
+      />
+
+      <PexelsSearchModal
+        open={pexelsOpen !== null}
+        onOpenChange={(v) => {
+          if (!v) setPexelsOpen(null);
+        }}
+        companyId={project.company_id}
+        initialQuery={slide.headline ?? project.prompt ?? ""}
+        orientation={pexelsOrientation}
+        onSelect={handlePexelsSelect}
       />
     </>
   );
