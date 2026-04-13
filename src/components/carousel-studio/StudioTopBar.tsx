@@ -7,6 +7,7 @@ import {
   Sparkles,
   ArrowLeft,
   Save,
+  CalendarPlus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ interface Props {
   onNext: () => void;
   onOpenCaption: () => void;
   onOpenRegenerate: () => void;
+  onOpenSendToPlan: () => void;
   onSave: () => Promise<void>;
 }
 
@@ -33,6 +35,7 @@ export function StudioTopBar({
   onNext,
   onOpenCaption,
   onOpenRegenerate,
+  onOpenSendToPlan,
   onSave,
 }: Props) {
   const navigate = useNavigate();
@@ -116,6 +119,15 @@ export function StudioTopBar({
         >
           <FileText className="w-4 h-4 mr-1" />
           Legenda
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground text-xs hover:text-foreground"
+          onClick={onOpenSendToPlan}
+        >
+          <CalendarPlus className="w-4 h-4 mr-1" />
+          Enviar ao Planejamento
         </Button>
 
         <div className="w-px h-4 bg-border mx-1" />

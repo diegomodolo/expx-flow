@@ -17,6 +17,7 @@ import { StudioTopBar } from "@/components/carousel-studio/StudioTopBar";
 import { StudioBottomBar } from "@/components/carousel-studio/StudioBottomBar";
 import { CaptionModal } from "@/components/carousel-studio/CaptionModal";
 import { RegenerateModal } from "@/components/carousel-studio/RegenerateModal";
+import { SendToContentPlanModal } from "@/components/carousel-studio/SendToContentPlanModal";
 import {
   StudioSlide,
   StudioProject,
@@ -45,6 +46,7 @@ export default function CarouselStudio() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [captionOpen, setCaptionOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [sendToPlanOpen, setSendToPlanOpen] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [userZoom, setUserZoom] = useState(620 / 1350);
@@ -589,6 +591,100 @@ export default function CarouselStudio() {
     await exportAllAsZip(elMap, slides, project.title);
   }, [slides, project, exportAllAsZip]);
 
+  const handleSendToPlan = useCallback(
+    async (planId: string) => {
+      if (!slides || !project) throw new Error("Projeto não carregado");
+
+      // 1. Garantir que todas as edições pendentes estão salvas
+      await flushAll();
+
+      // 2. Exportar cada slide para storage (ou usar exported_image_url existente)
+      const slideImages: Array<{ order: number; url: string }> = [];
+      for (let i = 0; i < slides.length; i++) {
+        const s = slides[i];
+        let url = s.exported_image_url ?? null;
+        if (!url) {
+          const el = slideRefs.current.get(s.id);
+          if (!el) continue;
+          url = await exportSlide(el, s, project.id, (savedUrl) => {
+            updateExportedUrl(s.id, savedUrl);
+          });
+        }
+        if (url) slideImages.push({ order: i, url });
+      }
+
+      if (slideImages.length === 0) {
+        throw new Error("Nenhuma imagem foi exportada");
+      }
+
+      // 3. Gerar caption via edge function
+      let caption = "";
+      try {
+        const { data: capData } = await supabase.functions.invoke(
+          "generate-carousel-caption",
+          {
+            body: {
+              project_id: project.id,
+              slides: slides.map((s) => ({
+                headline: s.headline,
+                subtitle: s.subtitle,
+              })),
+            },
+          },
+        );
+        caption = (capData?.caption as string) ?? "";
+      } catch (err) {
+        console.warn("[send-to-plan] caption gen failed:", err);
+      }
+
+      // 4. Descobrir próximo order_index no plano
+      const { data: existingPosts } = await supabase
+        .from("content_plan_posts")
+        .select("order_index")
+        .eq("content_plan_id", planId)
+        .order("order_index", { ascending: false })
+        .limit(1);
+      const nextOrderIndex =
+        existingPosts && existingPosts.length > 0
+          ? (existingPosts[0].order_index ?? 0) + 1
+          : 0;
+
+      // 5. Criar post tipo carrossel
+      const { data: postData, error: postError } = await supabase
+        .from("content_plan_posts")
+        .insert({
+          content_plan_id: planId,
+          post_type: "carrossel",
+          order_index: nextOrderIndex,
+          caption: caption || null,
+          headline: slides[0]?.headline ?? null,
+          subheadline: slides[0]?.subtitle ?? null,
+          image_url: slideImages[0]?.url ?? null,
+          status: "rascunho",
+        })
+        .select("id")
+        .single();
+
+      if (postError) throw postError;
+
+      // 6. Inserir slides do carrossel
+      const slideRows = slideImages.map((si, idx) => ({
+        post_id: postData.id as string,
+        order_index: idx,
+        headline: slides[si.order]?.headline ?? null,
+        content: slides[si.order]?.subtitle ?? null,
+        image_url: si.url,
+      }));
+
+      const { error: slidesError } = await supabase
+        .from("content_plan_slides")
+        .insert(slideRows);
+
+      if (slidesError) throw slidesError;
+    },
+    [slides, project, flushAll, exportSlide, updateExportedUrl],
+  );
+
   const handleClientChange = useCallback(
     (clientId: string | null, defaults: ClientDefaults | null) => {
       if (!project) return;
@@ -659,6 +755,7 @@ export default function CarouselStudio() {
           }
           onOpenCaption={() => setCaptionOpen(true)}
           onOpenRegenerate={() => setRegenerateOpen(true)}
+          onOpenSendToPlan={() => setSendToPlanOpen(true)}
           onSave={flushAll}
         />
 
@@ -767,6 +864,13 @@ export default function CarouselStudio() {
               prev ? { ...prev, ...patch } : prev,
           );
         }}
+      />
+
+      <SendToContentPlanModal
+        open={sendToPlanOpen}
+        onOpenChange={setSendToPlanOpen}
+        clientId={project.client_id}
+        onSend={handleSendToPlan}
       />
     </DashboardLayout>
   );
