@@ -298,6 +298,17 @@ export default function CarouselStudio() {
                   contentPatch.text_position = "bottom_left";
                   contentPatch.text_alignment = "left";
                   contentPatch.text_padding_y = 276;
+                  // Bolinhas em TL + BR (bit0 + bit3 = 9), opacidade 18%
+                  contentPatch.corner_style = "dots";
+                  contentPatch.corner_mask = 9;
+                  contentPatch.corner_opacity = 18;
+                }
+                // Quando imagem de conteúdo fica abaixo do subtítulo:
+                // Bolinhas em TR + BL (bit1 + bit2 = 6), opacidade 18%
+                if (target.position === "below_subtitle") {
+                  contentPatch.corner_style = "dots";
+                  contentPatch.corner_mask = 6;
+                  contentPatch.corner_opacity = 18;
                 }
                 updateSlide(slide.id, contentPatch);
               }
