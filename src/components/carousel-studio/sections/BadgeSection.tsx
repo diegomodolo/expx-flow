@@ -6,7 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StudioSlide, BadgePosition, BadgeHandlePosition } from "../types";
+import {
+  StudioSlide,
+  StudioProject,
+  BadgePosition,
+  BadgeHandlePosition,
+} from "../types";
 
 const POSITIONS: Array<{ value: BadgePosition; label: string }> = [
   { value: "top_left", label: "↖" },
@@ -38,7 +43,9 @@ const FONT_WEIGHTS: Array<{ value: string; label: string }> = [
 interface Props {
   slide: StudioSlide;
   slides: StudioSlide[];
+  project: StudioProject;
   onChange: (patch: Partial<StudioSlide>) => void;
+  onProjectChange: (patch: Partial<StudioProject>) => void;
   onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
   clientBadgeUrl?: string | null;
   /** Nome do cliente selecionado para usar como sugestão */
@@ -48,7 +55,9 @@ interface Props {
 export function BadgeSection({
   slide,
   slides,
+  project,
   onChange,
+  onProjectChange,
   onSlidesBatchChange,
   clientBadgeUrl,
   clientName,
@@ -313,6 +322,16 @@ export function BadgeSection({
 
             {handleEnabled && (
               <>
+                {/* Texto do @handle */}
+                <Input
+                  value={project.instagram_handle ?? ""}
+                  onChange={(e) =>
+                    onProjectChange({ instagram_handle: e.target.value })
+                  }
+                  placeholder="@seu.perfil"
+                  className="h-8 text-xs font-mono"
+                />
+
                 <div>
                   <Label className="text-xs text-muted-foreground mb-2 block">
                     Posição do texto

@@ -87,7 +87,9 @@ export function StudioSidebar({
       <BadgeSection
         slide={slide}
         slides={slides}
+        project={project}
         onChange={onSlideChange}
+        onProjectChange={onProjectChange}
         onSlidesBatchChange={onSlidesBatchChange}
         clientBadgeUrl={clientBadgeUrl}
         clientName={clientName}
