@@ -189,7 +189,26 @@ export default function CarouselStudio() {
 
       // Phase 2: generate images slide by slide
       // generateAIImages defaults to true — treat undefined as true
-      if (config.generateAIImages !== false) {
+      if (config.generateAIImages !== false && config.imageMode !== "none") {
+        // Modo "both": intercalar — ciclo de 3 posições por slide
+        // 0: bg_image_url | 1: content below_subtitle | 2: content above_title
+        type SlideTarget =
+          | { kind: "background" }
+          | { kind: "content"; position: "below_subtitle" | "above_title" };
+
+        const getTarget = (idx: number): SlideTarget => {
+          if (config.imageMode === "background") return { kind: "background" };
+          if (config.imageMode === "grid") {
+            return { kind: "content", position: "below_subtitle" };
+          }
+          // "both" → intercala
+          const cycle = idx % 3;
+          if (cycle === 0) return { kind: "background" };
+          if (cycle === 1)
+            return { kind: "content", position: "below_subtitle" };
+          return { kind: "content", position: "above_title" };
+        };
+
         for (let i = 0; i < initialSlides.length; i++) {
           const slide = initialSlides[i];
           setGenerationProgress({
@@ -207,16 +226,20 @@ export default function CarouselStudio() {
             config.prompt,
           ].filter(Boolean);
 
-          // Always have at least the config prompt — should never be empty
           const prompt =
             promptParts.length > 0
               ? promptParts.join(" — ")
               : `Imagem para slide ${i + 1}`;
 
-          console.log(`[auto-generate] slide ${i + 1} prompt:`, prompt);
+          const target = getTarget(i);
+          console.log(
+            `[auto-generate] slide ${i + 1} target:`,
+            target,
+            "prompt:",
+            prompt,
+          );
 
           try {
-            // Use supabase.functions.invoke — delega autenticação/headers ao client
             const { data: imgData, error: imgError } =
               await supabase.functions.invoke("generate-image-ai", {
                 body: {
@@ -225,7 +248,7 @@ export default function CarouselStudio() {
                   client_id: clientId,
                   style: config.imageStyle || "cinematic photography",
                   background_only: true,
-                  aspect_ratio: "4:5",
+                  aspect_ratio: target.kind === "content" ? "16:9" : "4:5",
                 },
               });
 
@@ -234,7 +257,6 @@ export default function CarouselStudio() {
               imgError,
             });
 
-            // FunctionsHttpError: extrair mensagem real do body
             if (imgError) {
               let msg = imgError.message;
               try {
@@ -249,7 +271,15 @@ export default function CarouselStudio() {
               console.error(`[auto-generate] slide ${i + 1} HTTP error:`, msg);
               toast.error(`Slide ${i + 1}: ${msg}`);
             } else if (imgData?.success && imgData?.image_url) {
-              updateSlide(slide.id, { bg_image_url: imgData.image_url });
+              if (target.kind === "background") {
+                updateSlide(slide.id, { bg_image_url: imgData.image_url });
+              } else {
+                updateSlide(slide.id, {
+                  content_image_urls: imgData.image_url,
+                  content_image_layout: "1_thumb_16_9",
+                  content_image_position: target.position,
+                });
+              }
             } else {
               const errMsg = imgData?.error || "Imagem não gerada";
               console.error(`[auto-generate] slide ${i + 1} failed:`, errMsg);
@@ -260,7 +290,6 @@ export default function CarouselStudio() {
             toast.error(`Slide ${i + 1}: ${(err as Error).message ?? "erro"}`);
           }
 
-          // Pequeno delay entre chamadas para não saturar rate-limit do OpenRouter
           await new Promise((r) => setTimeout(r, 500));
         }
       }
