@@ -2,27 +2,106 @@ import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StudioSlide } from "@/components/carousel-studio/types";
 
+// Todas as famílias usadas em FONT_PAIR_CSS. Injetamos o <link> do Google
+// Fonts (idempotente) e aguardamos document.fonts.ready para garantir que
+// os pesos usados no preview estejam carregados antes do html2canvas capturar.
+const FONT_LINK_ID = "carousel-studio-fonts-link";
+const FONT_LINK_HREF =
+  "https://fonts.googleapis.com/css2?" +
+  [
+    "family=Caveat:wght@400;500;600;700",
+    "family=DM+Sans:wght@400;500;700;900",
+    "family=Inter:wght@400;500;600;700;800;900",
+    "family=Oswald:wght@400;500;600;700",
+    "family=Outfit:wght@400;500;600;700;800;900",
+    "family=Playfair+Display:wght@400;500;600;700;800;900",
+    "family=Raleway:wght@400;500;600;700;800;900",
+    "family=Space+Grotesk:wght@400;500;600;700",
+    "family=Syne:wght@400;500;600;700;800",
+  ].join("&") +
+  "&display=swap";
+
 async function preloadFonts() {
-  const fontFaces = [
-    new FontFace(
-      "Space Grotesk",
-      "url(https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gx9dA.woff2)",
-    ),
-    new FontFace(
-      "Playfair Display",
-      "url(https://fonts.gstatic.com/s/playfairdisplay/v36/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff2)",
-    ),
-    new FontFace(
-      "Inter",
-      "url(https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2)",
-    ),
-  ];
+  if (typeof document === "undefined") return;
+  if (!document.getElementById(FONT_LINK_ID)) {
+    const link = document.createElement("link");
+    link.id = FONT_LINK_ID;
+    link.rel = "stylesheet";
+    link.href = FONT_LINK_HREF;
+    document.head.appendChild(link);
+  }
+  // Aguarda todas as fontes declaradas via CSS ficarem prontas
+  await document.fonts.ready;
+  // Força o browser a reconhecer que as fontes estão disponíveis
+  // carregando explicitamente alguns pesos chave
   await Promise.allSettled(
-    fontFaces.map(async (ff) => {
-      await ff.load();
-      document.fonts.add(ff);
-    }),
+    [
+      "700 48px 'Space Grotesk'",
+      "400 48px 'Playfair Display'",
+      "700 48px 'Syne'",
+      "700 48px 'Oswald'",
+      "700 48px 'Raleway'",
+      "700 48px 'Outfit'",
+      "500 48px 'Caveat'",
+      "500 48px 'Inter'",
+      "500 48px 'DM Sans'",
+    ].map((spec) => document.fonts.load(spec)),
   );
+}
+
+const SLIDE_WIDTH = 1080;
+const SLIDE_HEIGHT = 1350;
+
+// Renderiza o slide em um container off-screen sem transform ancestral
+// (o preview usa transform:scale() que confundiria o html2canvas) e
+// aguarda todas as imagens carregarem antes de capturar.
+async function renderSlideElementToCanvas(
+   
+  html2canvas: any,
+  slideEl: HTMLElement,
+): Promise<HTMLCanvasElement> {
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-99999px";
+  container.style.top = "0";
+  container.style.width = `${SLIDE_WIDTH}px`;
+  container.style.height = `${SLIDE_HEIGHT}px`;
+  container.style.overflow = "hidden";
+  container.style.pointerEvents = "none";
+
+  const clone = slideEl.cloneNode(true) as HTMLElement;
+  clone.style.transform = "none";
+  clone.style.width = `${SLIDE_WIDTH}px`;
+  clone.style.height = `${SLIDE_HEIGHT}px`;
+  container.appendChild(clone);
+  document.body.appendChild(container);
+
+  const imgs = Array.from(clone.querySelectorAll("img"));
+  await Promise.allSettled(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete && img.naturalHeight > 0) return resolve();
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+          setTimeout(resolve, 8000);
+        }),
+    ),
+  );
+
+  try {
+    return await html2canvas(clone, {
+      scale: 1,
+      useCORS: true,
+      allowTaint: true,
+      width: SLIDE_WIDTH,
+      height: SLIDE_HEIGHT,
+      backgroundColor: null,
+      logging: false,
+    });
+  } finally {
+    document.body.removeChild(container);
+  }
 }
 
 export function useSlideExport() {
@@ -40,54 +119,7 @@ export function useSlideExport() {
       await preloadFonts();
       await document.fonts.ready;
 
-      // Clona o slide em container off-screen sem transform escalado —
-      // isso garante que o html2canvas capture o tamanho 1080×1350 real
-      // e não a versão escalada usada no preview.
-      const container = document.createElement("div");
-      container.style.position = "fixed";
-      container.style.left = "-99999px";
-      container.style.top = "0";
-      container.style.width = "1080px";
-      container.style.height = "1350px";
-      container.style.overflow = "hidden";
-      container.style.pointerEvents = "none";
-
-      const clone = slideEl.cloneNode(true) as HTMLElement;
-      clone.style.transform = "none";
-      clone.style.width = "1080px";
-      clone.style.height = "1350px";
-      container.appendChild(clone);
-      document.body.appendChild(container);
-
-      // Aguarda as imagens do clone carregarem completamente
-      const imgs = Array.from(clone.querySelectorAll("img"));
-      await Promise.allSettled(
-        imgs.map(
-          (img) =>
-            new Promise<void>((resolve) => {
-              if (img.complete && img.naturalHeight > 0) return resolve();
-              img.addEventListener("load", () => resolve(), { once: true });
-              img.addEventListener("error", () => resolve(), { once: true });
-              // timeout de segurança
-              setTimeout(resolve, 8000);
-            }),
-        ),
-      );
-
-      let canvas: HTMLCanvasElement;
-      try {
-        canvas = await html2canvas(clone, {
-          scale: 1,
-          useCORS: true,
-          allowTaint: true,
-          width: 1080,
-          height: 1350,
-          backgroundColor: null,
-          logging: false,
-        });
-      } finally {
-        document.body.removeChild(container);
-      }
+      const canvas = await renderSlideElementToCanvas(html2canvas, slideEl);
 
       const blob = await new Promise<Blob>((resolve) =>
         canvas.toBlob((b) => resolve(b!), "image/png"),
@@ -130,14 +162,7 @@ export function useSlideExport() {
         const el = slideEls.get(slide.id);
         if (!el) continue;
 
-        const canvas = await html2canvas(el, {
-          scale: 1,
-          useCORS: true,
-          allowTaint: false,
-          width: 1080,
-          height: 1080,
-          logging: false,
-        });
+        const canvas = await renderSlideElementToCanvas(html2canvas, el);
         const blob = await new Promise<Blob>((resolve) =>
           canvas.toBlob((b) => resolve(b!), "image/png"),
         );
