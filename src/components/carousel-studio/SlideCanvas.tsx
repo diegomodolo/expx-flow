@@ -419,8 +419,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           const imageBlock = hasContentImage ? (
             <div
               style={{
-                marginTop: ciPos === "above_title" ? 0 : ciMarginTop,
-                marginBottom: ciPos === "above_title" ? ciMarginBottom : 0,
+                marginTop: ciMarginTop,
+                marginBottom: ciMarginBottom,
               }}
             >
               <ContentImageBlock
