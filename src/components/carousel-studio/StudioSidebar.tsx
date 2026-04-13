@@ -6,6 +6,7 @@ import { FontsSection } from "./sections/FontsSection";
 import { BadgeSection } from "./sections/BadgeSection";
 import { ImageContentSection } from "./sections/ImageContentSection";
 import { CornersSection } from "./sections/CornersSection";
+import { BulletsSection } from "./sections/BulletsSection";
 import { ClientSection, ClientDefaults } from "./sections/ClientSection";
 import { StudioSlide, StudioProject } from "./types";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,11 @@ export function StudioSidebar({
         onChange={onSlideChange}
         onGenerateContent={onGenerateContent}
         isGenerating={isGeneratingContent}
+      />
+      <BulletsSection
+        slide={slide}
+        project={project}
+        onChange={onSlideChange}
       />
       <ImageContentSection
         slide={slide}

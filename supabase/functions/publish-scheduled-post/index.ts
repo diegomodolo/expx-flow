@@ -202,7 +202,9 @@ async function publishToInstagram(
           childBody.video_url = mediaUrl;
           childBody.media_type = "VIDEO";
         } else {
-          childBody.image_url = mediaUrl;
+          // Strip query params (cache busters) — Instagram requires clean URLs
+          const cleanUrl = mediaUrl.split("?")[0];
+          childBody.image_url = cleanUrl;
         }
 
         const childResponse = await fetch(containerEndpoint, {
@@ -211,10 +213,34 @@ async function publishToInstagram(
           body: JSON.stringify(childBody),
         });
 
-        if (childResponse.ok) {
-          const childData = await childResponse.json();
+        const childData = await childResponse.json();
+        if (childResponse.ok && childData.id) {
           childrenIds.push(childData.id);
+        } else {
+          console.error(
+            `[publish-instagram] failed to create child container for ${mediaUrl}:`,
+            childData,
+          );
         }
+      }
+
+      if (childrenIds.length === 0) {
+        const durationMs = Date.now() - startTime;
+        await logPublishAction(
+          supabase,
+          post.id,
+          "instagram",
+          "create_children",
+          "error",
+          null,
+          "Nenhum container filho criado — verifique se as imagens são acessíveis publicamente",
+          durationMs,
+        );
+        return {
+          success: false,
+          error:
+            "Não foi possível criar os containers das imagens no Instagram. Verifique se as imagens são públicas.",
+        };
       }
 
       containerBody.media_type = "CAROUSEL";
@@ -593,7 +619,7 @@ serve(async (req) => {
       errorMessages.push(`Facebook: ${results.facebook.error}`);
     if (results.instagram?.error)
       errorMessages.push(`Instagram: ${results.instagram.error}`);
-    if (noPlatformProcessed)
+    if (platformResults.length === 0)
       errorMessages.push("Nenhuma plataforma configurada para publicação");
 
     // Update post with results

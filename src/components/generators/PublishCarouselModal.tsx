@@ -207,25 +207,17 @@ export function PublishCarouselModal({
         }
       }
 
-      // Update carousel status
-      await supabase
-        .from("carousel_generation_queue")
-        .update({
-          status: "published",
-          published_at: new Date().toISOString(),
-        })
-        .eq("id", carousel.id);
-
       if (successes.length > 0) {
         toast.success(`Carrossel publicado em: ${successes.join(", ")}`);
-      }
-
-      if (errors.length > 0) {
+        onSuccess();
+        onOpenChange(false);
+      } else if (errors.length > 0) {
         toast.error(`Erros: ${errors.join("; ")}`);
+      } else {
+        toast.error(
+          "Nenhuma plataforma retornou resultado. Verifique os logs.",
+        );
       }
-
-      onSuccess();
-      onOpenChange(false);
     } catch (error: unknown) {
       console.error("Error publishing carousel:", error);
       toast.error("Erro ao publicar: " + error.message);

@@ -21,6 +21,7 @@ export function useCarouselStudioSlides(projectId: string | undefined) {
       return data as StudioSlide[];
     },
     enabled: !!projectId,
+    refetchOnWindowFocus: false,
   });
 
   const updateSlide = useCallback(

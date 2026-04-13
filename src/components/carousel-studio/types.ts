@@ -30,6 +30,14 @@ export type TextPosition =
   | "bottom_right";
 
 export type ContentImagePosition = "above_title" | "between" | "below_subtitle";
+export type BulletIcon =
+  | "none"
+  | "circle"
+  | "square"
+  | "dash"
+  | "arrow"
+  | "check"
+  | "star";
 export type ContentImageLayout =
   | "1_thumb_16_9"
   | "1_square"
@@ -126,6 +134,8 @@ export interface StudioSlide {
   corner_mask: number;
   /** Cor de fundo do slide quando não há imagem (ex: '#1a1a2e'). Default null = cinza escuro */
   bg_color: string | null;
+  /** Cor base do overlay. Null = preto (#000000) */
+  overlay_color: string | null;
   /** Deslocamento horizontal do badge a partir do canto (px) */
   badge_offset_x: number;
   /** Deslocamento vertical do badge a partir do canto (px) */
@@ -151,6 +161,40 @@ export interface StudioSlide {
   /** Margem inferior da imagem de conteúdo em relação ao texto (px) */
   content_image_margin_bottom: number;
   exported_image_url: string | null;
+  /** Habilita bloco de bullet points independente */
+  bullets_enabled: boolean;
+  /** Array JSON de strings ex: '["Item 1","Item 2"]' */
+  bullets_json: string | null;
+  /** Icone marcador de cada bullet */
+  bullet_icon: BulletIcon;
+  /** Cor do icone. Null = usa accent_color do projeto */
+  bullet_icon_color: string | null;
+  /** Tamanho do icone em px */
+  bullet_icon_size: number;
+  /** Envolve cada item numa caixa individual */
+  bullet_box_enabled: boolean;
+  /** Cor de fundo da caixa. Null = accent_color com opacidade */
+  bullet_box_color: string | null;
+  /** Border-radius da caixa em px */
+  bullet_box_radius: number;
+  /** Padding horizontal interno da caixa em px */
+  bullet_box_padding_x: number;
+  /** Padding vertical interno da caixa em px */
+  bullet_box_padding_y: number;
+  /** Tamanho da fonte dos bullets em px */
+  bullet_font_size: number;
+  /** Line-height dos bullets */
+  bullet_line_height: number;
+  /** Espaco entre items em px */
+  bullet_gap: number;
+  /** Posicao do bloco no slide (grid de 9) */
+  bullet_position: TextPosition;
+  /** Alinhamento do texto dos bullets */
+  bullet_alignment: TextAlignment;
+  /** Margem horizontal da borda do slide em px */
+  bullet_padding_x: number;
+  /** Margem vertical da borda do slide em px */
+  bullet_padding_y: number;
   created_at: string;
   updated_at: string;
 }
@@ -240,30 +284,50 @@ export const TEXT_POSITION_CLASSES: Record<TextPosition, string> = {
   bottom_right: "bottom-16 right-8",
 };
 
+/** Converte hex (#rrggbb ou #rgb) para "r,g,b" usado no rgba(). */
+export function hexToRgb(hex: string): string {
+  const h = hex.replace("#", "");
+  const full =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return "0,0,0";
+  return `${r},${g},${b}`;
+}
+
 // Returns the CSS gradient string with alpha values scaled by `opacity` (0–100).
 // Using inline alpha instead of CSS `opacity` ensures the extreme (100%) is
 // truly opaque black even when the slider is at max.
 export function getOverlayGradient(
   style: OverlayStyle,
   opacity: number,
+  color?: string | null,
 ): string {
   if (style === "none") return "none";
   const o = opacity / 100;
+  const rgb = hexToRgb(color ?? "#000000");
+  const r = (a: number) => `rgba(${rgb},${+a.toFixed(3)})`;
   switch (style) {
     case "base":
-      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
+      return `linear-gradient(to top, ${r(o)} 0%, ${r(o * 0.6)} 40%, ${r(o * 0.2)} 70%, transparent 100%)`;
     case "top_strong":
-      return `linear-gradient(to bottom, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
+      return `linear-gradient(to bottom, ${r(o)} 0%, ${r(o * 0.6)} 40%, ${r(o * 0.2)} 70%, transparent 100%)`;
     case "base_strong":
-      return `linear-gradient(to top, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.85).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.5).toFixed(3)}) 65%, rgba(0,0,0,${+(o * 0.15).toFixed(3)}) 85%, transparent 100%)`;
+      return `linear-gradient(to top, ${r(o)} 0%, ${r(o * 0.85)} 40%, ${r(o * 0.5)} 65%, ${r(o * 0.15)} 85%, transparent 100%)`;
     case "left":
-      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
+      return `linear-gradient(to right, ${r(o)} 0%, ${r(o * 0.6)} 40%, ${r(o * 0.2)} 70%, transparent 100%)`;
     case "left_strong":
-      return `linear-gradient(to right, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.85).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.5).toFixed(3)}) 65%, rgba(0,0,0,${+(o * 0.15).toFixed(3)}) 85%, transparent 100%)`;
+      return `linear-gradient(to right, ${r(o)} 0%, ${r(o * 0.85)} 40%, ${r(o * 0.5)} 65%, ${r(o * 0.15)} 85%, transparent 100%)`;
     case "right":
-      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.6).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.2).toFixed(3)}) 70%, transparent 100%)`;
+      return `linear-gradient(to left, ${r(o)} 0%, ${r(o * 0.6)} 40%, ${r(o * 0.2)} 70%, transparent 100%)`;
     case "right_strong":
-      return `linear-gradient(to left, rgba(0,0,0,${o}) 0%, rgba(0,0,0,${+(o * 0.85).toFixed(3)}) 40%, rgba(0,0,0,${+(o * 0.5).toFixed(3)}) 65%, rgba(0,0,0,${+(o * 0.15).toFixed(3)}) 85%, transparent 100%)`;
+      return `linear-gradient(to left, ${r(o)} 0%, ${r(o * 0.85)} 40%, ${r(o * 0.5)} 65%, ${r(o * 0.15)} 85%, transparent 100%)`;
   }
 }
 

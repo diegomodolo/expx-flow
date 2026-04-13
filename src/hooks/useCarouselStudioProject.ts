@@ -34,6 +34,7 @@ export function useCarouselStudioProject(projectId: string | undefined) {
       return data as StudioProject;
     },
     enabled: !!projectId,
+    refetchOnWindowFocus: false,
   });
 }
 

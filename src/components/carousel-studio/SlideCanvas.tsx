@@ -4,6 +4,7 @@ import {
   StudioProject,
   TextPosition,
   ContentImageLayout,
+  BulletIcon,
   getOverlayGradient,
   BADGE_POSITION_STYLES,
   FONT_PAIR_CSS,
@@ -135,6 +136,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
     const overlayGradient = getOverlayGradient(
       slide.overlay_style,
       slide.overlay_opacity,
+      slide.overlay_color,
     );
     const textPx = slide.text_padding_x ?? 64;
     const textPy = slide.text_padding_y ?? 64;
@@ -474,6 +476,220 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
             </div>
           );
         })()}
+
+        {/* Bloco de bullet points */}
+        {slide.bullets_enabled &&
+          (() => {
+            let items: string[] = [];
+            try {
+              const parsed = JSON.parse(slide.bullets_json ?? "[]");
+              if (Array.isArray(parsed)) items = parsed.filter(Boolean);
+            } catch {
+              // ignore
+            }
+            if (items.length === 0) return null;
+
+            const bIcon = slide.bullet_icon ?? "circle";
+            const bIconColor = slide.bullet_icon_color ?? project.accent_color;
+            const bIconSize = slide.bullet_icon_size ?? 16;
+            const bBoxEnabled = slide.bullet_box_enabled ?? false;
+            const bBoxColor = slide.bullet_box_color ?? project.accent_color;
+            const bBoxRadius = slide.bullet_box_radius ?? 6;
+            const bBoxPadX = slide.bullet_box_padding_x ?? 12;
+            const bBoxPadY = slide.bullet_box_padding_y ?? 6;
+            const bFontSize = slide.bullet_font_size ?? 24;
+            const bLineHeight = slide.bullet_line_height ?? 1.4;
+            const bGap = slide.bullet_gap ?? 12;
+            const bPosition = slide.bullet_position ?? "mid_left";
+            const bAlignment = slide.bullet_alignment ?? "left";
+            const bPadX = slide.bullet_padding_x ?? 64;
+            const bPadY = slide.bullet_padding_y ?? 64;
+
+            const posStyle = getTextPositionStyle(bPosition, bPadX, bPadY);
+
+            const renderBulletIcon = (
+              icon: BulletIcon,
+              color: string,
+              size: number,
+            ) => {
+              if (icon === "none") return null;
+              const s = size;
+              switch (icon) {
+                case "circle":
+                  return (
+                    <svg
+                      width={s}
+                      height={s}
+                      viewBox="0 0 16 16"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    >
+                      <circle cx="8" cy="8" r="5" fill={color} />
+                    </svg>
+                  );
+                case "square":
+                  return (
+                    <svg
+                      width={s}
+                      height={s}
+                      viewBox="0 0 16 16"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    >
+                      <rect
+                        x="3"
+                        y="3"
+                        width="10"
+                        height="10"
+                        rx="1"
+                        fill={color}
+                      />
+                    </svg>
+                  );
+                case "dash":
+                  return (
+                    <svg
+                      width={s}
+                      height={s}
+                      viewBox="0 0 16 16"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    >
+                      <rect
+                        x="2"
+                        y="7"
+                        width="12"
+                        height="2"
+                        rx="1"
+                        fill={color}
+                      />
+                    </svg>
+                  );
+                case "arrow":
+                  return (
+                    <svg
+                      width={s}
+                      height={s}
+                      viewBox="0 0 16 16"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    >
+                      <path
+                        d="M3 8h10M9 4l4 4-4 4"
+                        stroke={color}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                    </svg>
+                  );
+                case "check":
+                  return (
+                    <svg
+                      width={s}
+                      height={s}
+                      viewBox="0 0 16 16"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    >
+                      <path
+                        d="M2.5 8.5l4 4 7-7"
+                        stroke={color}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                    </svg>
+                  );
+                case "star":
+                  return (
+                    <svg
+                      width={s}
+                      height={s}
+                      viewBox="0 0 16 16"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    >
+                      <path
+                        d="M8 1l1.9 3.9L14 5.6l-3 2.9.7 4.1L8 10.5l-3.7 2.1.7-4.1-3-2.9 4.1-.7z"
+                        fill={color}
+                      />
+                    </svg>
+                  );
+                default:
+                  return null;
+              }
+            };
+
+            const textAlignStyle: React.CSSProperties =
+              bAlignment === "center"
+                ? { textAlign: "center" }
+                : bAlignment === "right"
+                  ? { textAlign: "right" }
+                  : { textAlign: "left" };
+
+            const justifyContent =
+              bAlignment === "center"
+                ? "center"
+                : bAlignment === "right"
+                  ? "flex-end"
+                  : "flex-start";
+
+            return (
+              <div className="absolute max-w-[80%]" style={{ ...posStyle }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: bGap,
+                    alignItems:
+                      bAlignment === "center"
+                        ? "center"
+                        : bAlignment === "right"
+                          ? "flex-end"
+                          : "flex-start",
+                  }}
+                >
+                  {items.map((item, i) => {
+                    const inner = (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          gap:
+                            bIcon !== "none" ? Math.max(8, bIconSize * 0.5) : 0,
+                          justifyContent,
+                          ...(bBoxEnabled
+                            ? {
+                                backgroundColor: bBoxColor,
+                                borderRadius: bBoxRadius,
+                                paddingLeft: bBoxPadX,
+                                paddingRight: bBoxPadX,
+                                paddingTop: bBoxPadY,
+                                paddingBottom: bBoxPadY,
+                              }
+                            : {}),
+                        }}
+                      >
+                        {renderBulletIcon(bIcon, bIconColor, bIconSize)}
+                        <span
+                          style={{
+                            fontFamily: fonts.subtitleFont,
+                            fontSize: bFontSize,
+                            lineHeight: bLineHeight,
+                            color: "#ffffff",
+                            ...textAlignStyle,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {item}
+                        </span>
+                      </div>
+                    );
+                    return inner;
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
         {/* Cantos decorativos */}
         {slide.corner_style !== "none" &&
