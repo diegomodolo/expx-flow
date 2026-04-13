@@ -212,6 +212,10 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
     );
 
     const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY") ?? "";
+    if (!openrouterApiKey) {
+      throw new Error("OPENROUTER_API_KEY not configured");
+    }
+
     const imageResponse = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -221,10 +225,9 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-exp:free",
+          model: "google/gemini-3-pro-image-preview",
           messages: [{ role: "user", content: messageContent }],
           modalities: ["image", "text"],
-          max_tokens: 2048,
         }),
       },
     );
@@ -238,9 +241,12 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
 
     const imageData = await imageResponse.json();
     const choice = imageData.choices?.[0]?.message;
-    // Image content may be in content array or directly as string
+
+    // Try multiple response formats: images array (gemini-3), content array, string
     let base64ImageUrl = "";
-    if (Array.isArray(choice?.content)) {
+    if (Array.isArray(choice?.images) && choice.images.length > 0) {
+      base64ImageUrl = choice.images[0]?.image_url?.url || "";
+    } else if (Array.isArray(choice?.content)) {
       const imgPart = choice.content.find(
         (p: { type: string }) => p.type === "image_url",
       );
@@ -250,6 +256,10 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
     }
 
     if (!base64ImageUrl) {
+      console.warn(
+        "No image in response:",
+        JSON.stringify(imageData).substring(0, 500),
+      );
       return new Response(
         JSON.stringify({
           success: false,
