@@ -159,8 +159,13 @@ export default function CarouselStudio() {
             };
             const patch: Partial<StudioSlide> = {
               text_alignment: "left",
-              text_position: LEFT_POSITIONS[idx % LEFT_POSITIONS.length],
+              text_position:
+                idx === 0
+                  ? "mid_left"
+                  : LEFT_POSITIONS[idx % LEFT_POSITIONS.length],
             };
+            // Slide 1 (capa): fonte maior e posição centralizada
+            if (idx === 0) patch.font_size_title = 80;
             if (s.headline != null) patch.headline = s.headline;
             if (s.subtitle != null) patch.subtitle = s.subtitle;
             updateSlide(s.id, patch);
