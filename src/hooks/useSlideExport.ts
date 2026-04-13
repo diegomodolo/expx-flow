@@ -56,7 +56,6 @@ const SLIDE_HEIGHT = 1350;
 // (o preview usa transform:scale() que confundiria o html2canvas) e
 // aguarda todas as imagens carregarem antes de capturar.
 async function renderSlideElementToCanvas(
-   
   html2canvas: any,
   slideEl: HTMLElement,
 ): Promise<HTMLCanvasElement> {
@@ -136,7 +135,8 @@ export function useSlideExport() {
         .from("visual-creatives")
         .getPublicUrl(path);
 
-      const publicUrl = urlData.publicUrl;
+      // Cache-busting: evita servir versão antiga do CDN quando o path é reusado (upsert)
+      const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`;
       onUrlSaved?.(publicUrl);
       return publicUrl;
     },

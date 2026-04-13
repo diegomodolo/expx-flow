@@ -720,18 +720,16 @@ export default function CarouselStudio() {
       // 1. Garantir que todas as edições pendentes estão salvas
       await flushAll();
 
-      // 2. Exportar cada slide para storage (ou usar exported_image_url existente)
+      // 2. Exportar cada slide para storage — sempre re-renderiza para garantir
+      // que a imagem reflete o estado atual do editor (não reusa URL antiga).
       const slideImages: Array<{ order: number; url: string }> = [];
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
-        let url = s.exported_image_url ?? null;
-        if (!url) {
-          const el = slideRefs.current.get(s.id);
-          if (!el) continue;
-          url = await exportSlide(el, s, project.id, (savedUrl) => {
-            updateExportedUrl(s.id, savedUrl);
-          });
-        }
+        const el = slideRefs.current.get(s.id);
+        if (!el) continue;
+        const url = await exportSlide(el, s, project.id, (savedUrl) => {
+          updateExportedUrl(s.id, savedUrl);
+        });
         if (url) slideImages.push({ order: i, url });
       }
 
