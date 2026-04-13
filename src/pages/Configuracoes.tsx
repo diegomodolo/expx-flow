@@ -15,6 +15,7 @@ import { ListaCnaeSettings } from "@/components/settings/ListaCnaeSettings";
 import { DiscordSettings } from "@/components/discord/DiscordSettings";
 import { UsageDefaultsSettings } from "@/components/settings/UsageDefaultsSettings";
 import { AISettings } from "@/components/settings/ai/AISettings";
+import { ExternalApiKeysSettings } from "@/components/settings/ExternalApiKeysSettings";
 
 const Configuracoes = () => {
   return (
@@ -56,6 +57,7 @@ const Configuracoes = () => {
             <Route path="discord" element={<DiscordSettings />} />
             <Route path="padroes-de-uso" element={<UsageDefaultsSettings />} />
             <Route path="ia" element={<AISettings />} />
+            <Route path="api-keys" element={<ExternalApiKeysSettings />} />
           </Routes>
         </SettingsLayout>
       </div>

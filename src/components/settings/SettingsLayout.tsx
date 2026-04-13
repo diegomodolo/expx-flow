@@ -21,6 +21,7 @@ import {
   Plug,
   Video,
   Brain,
+  Key,
 } from "lucide-react";
 import { SiGoogle, SiDiscord } from "react-icons/si";
 
@@ -78,6 +79,12 @@ const settingsNavItems: NavItem[] = [
     href: "/configuracoes/ia",
     icon: Brain,
     description: "Configurar modelos de IA",
+  },
+  {
+    title: "API Keys Externas",
+    href: "/configuracoes/api-keys",
+    icon: Key,
+    description: "Chaves de serviços externos (Pexels, etc)",
   },
 ];
 
