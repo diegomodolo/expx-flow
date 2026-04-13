@@ -56,6 +56,7 @@ export default function CarouselStudio() {
     statusMessage?: string;
   } | null>(null);
   const autoGenerateStarted = useRef(false);
+  const cancelGenerationRef = useRef(false);
 
   const slideRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
@@ -223,6 +224,11 @@ export default function CarouselStudio() {
         });
 
         for (let i = 0; i < initialSlides.length; i++) {
+          if (cancelGenerationRef.current) {
+            console.log("[auto-generate] cancelled by user");
+            toast.info("Geração de imagens interrompida");
+            break;
+          }
           const slide = initialSlides[i];
           const target = getTarget(i);
 
@@ -380,12 +386,19 @@ export default function CarouselStudio() {
       }
 
       setGenerationProgress(null);
-      toast.success("Carrossel gerado com sucesso!");
+      if (!cancelGenerationRef.current) {
+        toast.success("Carrossel gerado com sucesso!");
+      }
+      cancelGenerationRef.current = false;
     };
 
     generateAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!project, !!slides?.length]);
+
+  const handleCancelGeneration = useCallback(() => {
+    cancelGenerationRef.current = true;
+  }, []);
 
   const activeSlide = slides?.[activeIndex] ?? null;
 
@@ -831,6 +844,7 @@ export default function CarouselStudio() {
 
         <StudioBottomBar
           generationProgress={generationProgress}
+          onCancelGeneration={handleCancelGeneration}
           onDownloadZip={handleDownloadZip}
           isExporting={isExporting}
           exportProgress={exportProgress}

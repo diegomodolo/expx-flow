@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Archive, ZoomIn, ZoomOut } from "lucide-react";
+import { Archive, ZoomIn, ZoomOut, X } from "lucide-react";
 
 const ZOOM_STEPS = [25, 33, 40, 50, 60, 75, 100];
 
@@ -10,6 +10,7 @@ interface Props {
     total: number;
     statusMessage?: string;
   } | null;
+  onCancelGeneration?: () => void;
   onDownloadZip: () => void;
   isExporting: boolean;
   exportProgress: number;
@@ -19,6 +20,7 @@ interface Props {
 
 export function StudioBottomBar({
   generationProgress,
+  onCancelGeneration,
   onDownloadZip,
   isExporting,
   exportProgress,
@@ -54,6 +56,17 @@ export function StudioBottomBar({
                 }}
               />
             </div>
+            {onCancelGeneration && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCancelGeneration}
+                className="h-6 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+              >
+                <X className="w-3 h-3" />
+                Interromper
+              </Button>
+            )}
           </>
         )}
         {isExporting && (
