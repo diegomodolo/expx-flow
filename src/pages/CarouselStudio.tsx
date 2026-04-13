@@ -99,6 +99,12 @@ export default function CarouselStudio() {
     const initialSlides = slides; // snapshot at generation start
     const config = navState.config;
 
+    const LEFT_POSITIONS: StudioSlide["text_position"][] = [
+      "top_left",
+      "mid_left",
+      "bottom_left",
+    ];
+
     const generateAll = async () => {
       const total = initialSlides.length;
 
@@ -128,19 +134,36 @@ export default function CarouselStudio() {
 
         if (textError) throw textError;
         if (textData?.success && Array.isArray(textData.slides)) {
-          for (const s of textData.slides as Array<{
-            id: string;
-            headline: string | null;
-            subtitle: string | null;
-          }>) {
+          for (
+            let idx = 0;
+            idx <
+            (
+              textData.slides as Array<{
+                id: string;
+                headline: string | null;
+                subtitle: string | null;
+              }>
+            ).length;
+            idx++
+          ) {
+            const s = (
+              textData.slides as Array<{
+                id: string;
+                headline: string | null;
+                subtitle: string | null;
+              }>
+            )[idx];
             textSlides[s.id] = {
               headline: s.headline,
               subtitle: s.subtitle,
             };
-            const patch: Partial<StudioSlide> = {};
+            const patch: Partial<StudioSlide> = {
+              text_alignment: "left",
+              text_position: LEFT_POSITIONS[idx % LEFT_POSITIONS.length],
+            };
             if (s.headline != null) patch.headline = s.headline;
             if (s.subtitle != null) patch.subtitle = s.subtitle;
-            if (Object.keys(patch).length > 0) updateSlide(s.id, patch);
+            updateSlide(s.id, patch);
           }
         }
       } catch (err) {
