@@ -1,6 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import {
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  ArrowLeft,
+  Save,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { CarouselStyle } from "./types";
 
 interface Props {
@@ -12,6 +21,7 @@ interface Props {
   onNext: () => void;
   onOpenCaption: () => void;
   onOpenRegenerate: () => void;
+  onSave: () => Promise<void>;
 }
 
 export function StudioTopBar({
@@ -23,10 +33,38 @@ export function StudioTopBar({
   onNext,
   onOpenCaption,
   onOpenRegenerate,
+  onSave,
 }: Props) {
+  const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave();
+      toast.success("Carrossel salvo!");
+    } catch {
+      toast.error("Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-border bg-card flex-shrink-0">
-      <div className="flex gap-1">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground text-xs hover:text-foreground gap-1"
+          onClick={() => navigate("/geradores/carrosseis")}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Voltar
+        </Button>
+
+        <div className="w-px h-4 bg-border" />
+
         {(["minimalist", "profile"] as CarouselStyle[]).map((s) => (
           <button
             key={s}
@@ -78,6 +116,18 @@ export function StudioTopBar({
         >
           <FileText className="w-4 h-4 mr-1" />
           Legenda
+        </Button>
+
+        <div className="w-px h-4 bg-border mx-1" />
+
+        <Button
+          size="sm"
+          className="text-xs gap-1"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          <Save className="w-4 h-4" />
+          {saving ? "Salvando..." : "Salvar"}
         </Button>
       </div>
     </div>

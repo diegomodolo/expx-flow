@@ -37,6 +37,7 @@ export default function CarouselStudio() {
     isLoading: loadingSlides,
     updateSlide,
     updateExportedUrl,
+    flushAll,
   } = useCarouselStudioSlides(projectId);
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -345,6 +346,7 @@ export default function CarouselStudio() {
           }
           onOpenCaption={() => setCaptionOpen(true)}
           onOpenRegenerate={() => setRegenerateOpen(true)}
+          onSave={flushAll}
         />
 
         <div className="flex flex-1 overflow-hidden">

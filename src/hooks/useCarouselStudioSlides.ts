@@ -92,6 +92,31 @@ export function useCarouselStudioSlides(projectId: string | undefined) {
     [projectId, queryClient],
   );
 
+  /** Cancela os timers pendentes e persiste imediatamente todos os slides com mudanças em fila */
+  const flushAll = useCallback(async () => {
+    const slides =
+      queryClient.getQueryData<StudioSlide[]>([
+        "carousel-studio-slides",
+        projectId,
+      ]) ?? [];
+
+    const promises: Promise<unknown>[] = [];
+    debounceRefs.current.forEach((timer, slideId) => {
+      clearTimeout(timer);
+      const slide = slides.find((s) => s.id === slideId);
+      if (slide) {
+        promises.push(
+          supabase
+            .from("carousel_studio_slides")
+            .update(slide)
+            .eq("id", slideId),
+        );
+      }
+    });
+    debounceRefs.current.clear();
+    await Promise.all(promises);
+  }, [projectId, queryClient]);
+
   // Flush debounces on unmount
   useEffect(() => {
     return () => {
@@ -99,5 +124,5 @@ export function useCarouselStudioSlides(projectId: string | undefined) {
     };
   }, []);
 
-  return { ...query, updateSlide, createSlides, updateExportedUrl };
+  return { ...query, updateSlide, createSlides, updateExportedUrl, flushAll };
 }
