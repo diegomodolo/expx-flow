@@ -87,6 +87,8 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
   const radius = slide.content_image_radius ?? 12;
   const width = slide.content_image_width ?? 100;
   const gap = slide.content_image_gap ?? 12;
+  const marginTop = slide.content_image_margin_top ?? 24;
+  const marginBottom = slide.content_image_margin_bottom ?? 24;
   const slotCount = layoutSlotCount(layout);
   const enabled = urls.length > 0;
 
@@ -352,6 +354,44 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
               />
             </div>
           )}
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">
+                Margem superior
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                {marginTop}px
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={120}
+              step={4}
+              value={[marginTop]}
+              onValueChange={([v]) => onChange({ content_image_margin_top: v })}
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">
+                Margem inferior
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                {marginBottom}px
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={120}
+              step={4}
+              value={[marginBottom]}
+              onValueChange={([v]) =>
+                onChange({ content_image_margin_bottom: v })
+              }
+            />
+          </div>
         </div>
       </SidebarSection>
 

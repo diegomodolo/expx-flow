@@ -412,13 +412,15 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           const ciRadius = slide.content_image_radius ?? 12;
           const ciWidth = slide.content_image_width ?? 100;
           const ciGap = slide.content_image_gap ?? 12;
+          const ciMarginTop = slide.content_image_margin_top ?? 24;
+          const ciMarginBottom = slide.content_image_margin_bottom ?? 24;
           const hasContentImage = ciUrls.length > 0;
 
           const imageBlock = hasContentImage ? (
             <div
               style={{
-                marginBottom: ciPos === "above_title" ? 24 : 0,
-                marginTop: ciPos !== "above_title" ? 24 : 0,
+                marginTop: ciPos === "above_title" ? 0 : ciMarginTop,
+                marginBottom: ciPos === "above_title" ? ciMarginBottom : 0,
               }}
             >
               <ContentImageBlock

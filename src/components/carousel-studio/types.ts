@@ -146,6 +146,10 @@ export interface StudioSlide {
   content_image_width: number;
   /** Gap entre imagens múltiplas (px) */
   content_image_gap: number;
+  /** Margem superior da imagem de conteúdo em relação ao texto (px) */
+  content_image_margin_top: number;
+  /** Margem inferior da imagem de conteúdo em relação ao texto (px) */
+  content_image_margin_bottom: number;
   exported_image_url: string | null;
   created_at: string;
   updated_at: string;
