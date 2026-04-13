@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { X, Upload, Sparkles } from "lucide-react";
+import { X, Upload, Sparkles, Copy } from "lucide-react";
 import { SidebarSection } from "../SidebarSection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -121,6 +121,21 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
     const next = [...urls];
     next.splice(index, 1);
     setUrls(next);
+  };
+
+  const bgImageUrl = slide.use_shared_bg
+    ? project.shared_bg_image_url
+    : slide.bg_image_url;
+
+  const handleCopyFromBackground = (index: number) => {
+    if (!bgImageUrl) {
+      toast.error("Este slide não tem imagem de fundo");
+      return;
+    }
+    const next = [...urls];
+    next[index] = bgImageUrl;
+    setUrls(next);
+    toast.success("Imagem de fundo copiada");
   };
 
   const handleGenerateAI = async (index: number, extraPrompt?: string) => {
@@ -290,6 +305,21 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
                   >
                     <Sparkles className="w-3 h-3" />
                     {generatingSlot === i ? "Gerando..." : "Gerar com IA"}
+                  </button>
+
+                  {/* Botão: usar imagem de fundo */}
+                  <button
+                    onClick={() => handleCopyFromBackground(i)}
+                    disabled={!bgImageUrl}
+                    className="mt-1 w-full py-1 rounded border border-border text-[10px] text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={
+                      bgImageUrl
+                        ? "Copiar imagem de fundo deste slide"
+                        : "Este slide não tem imagem de fundo"
+                    }
+                  >
+                    <Copy className="w-3 h-3" />
+                    Usar imagem de fundo
                   </button>
                 </div>
               );
