@@ -1,7 +1,7 @@
 // src/pages/CarouselStudio.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   useCarouselStudioProject,
@@ -21,6 +21,7 @@ import {
   StudioSlide,
   StudioProject,
   CarouselStyle,
+  WizardConfig,
 } from "@/components/carousel-studio/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
@@ -29,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CarouselStudio() {
   const { projectId } = useParams<{ projectId: string }>();
+  const location = useLocation();
 
   const { data: project, isLoading: loadingProject } =
     useCarouselStudioProject(projectId);
@@ -46,6 +48,12 @@ export default function CarouselStudio() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [userZoom, setUserZoom] = useState(620 / 1350);
+  const [generationProgress, setGenerationProgress] = useState<{
+    current: number;
+    total: number;
+    statusMessage?: string;
+  } | null>(null);
+  const autoGenerateStarted = useRef(false);
 
   const slideRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
@@ -71,6 +79,116 @@ export default function CarouselStudio() {
       if (!currentIds.has(id)) slideRefs.current.delete(id);
     });
   }, [slides]);
+
+  // Auto-generation: triggered when navigating from wizard with autoGenerate flag
+  useEffect(() => {
+    const navState = location.state as {
+      autoGenerate?: boolean;
+      config?: WizardConfig;
+    } | null;
+    if (!navState?.autoGenerate || !navState?.config) return;
+    if (!project || !slides || slides.length === 0) return;
+    if (autoGenerateStarted.current) return;
+    autoGenerateStarted.current = true;
+
+    const config = navState.config;
+    const generateAll = async () => {
+      const total = slides.length;
+
+      // Phase 1: generate text for all slides via regenerate-carousel-slides
+      setGenerationProgress({
+        current: 0,
+        total,
+        statusMessage: "Gerando textos dos slides...",
+      });
+
+      try {
+        const { data: textData, error: textError } =
+          await supabase.functions.invoke("regenerate-carousel-slides", {
+            body: {
+              project_id: project.id,
+              prompt: config.prompt,
+              slides_count: total,
+              company_id: project.company_id,
+            },
+          });
+
+        if (textError) throw textError;
+        if (textData?.success && Array.isArray(textData.slides)) {
+          for (const s of textData.slides as Array<{
+            id: string;
+            headline: string | null;
+            subtitle: string | null;
+          }>) {
+            const patch: Partial<StudioSlide> = {};
+            if (s.headline != null) patch.headline = s.headline;
+            if (s.subtitle != null) patch.subtitle = s.subtitle;
+            if (Object.keys(patch).length > 0) updateSlide(s.id, patch);
+          }
+        }
+      } catch (err) {
+        console.error("[auto-generate] text generation failed:", err);
+      }
+
+      // Phase 2: generate images slide by slide (only if imageMode requires images)
+      if (config.imageMode !== "none" && config.generateAIImages) {
+        // Re-read slides from cache after text update
+        const latestSlides =
+          queryClient.getQueryData<StudioSlide[]>([
+            "carousel-studio-slides",
+            project.id,
+          ]) ?? slides;
+
+        for (let i = 0; i < latestSlides.length; i++) {
+          const slide = latestSlides[i];
+          setGenerationProgress({
+            current: i + 1,
+            total,
+            statusMessage: `Gerando imagem slide ${i + 1} de ${total}...`,
+          });
+
+          const prompt = [
+            slide.headline,
+            slide.subtitle,
+            slide.visual_description,
+            config.prompt,
+          ]
+            .filter(Boolean)
+            .join(" — ");
+
+          if (!prompt.trim()) continue;
+
+          try {
+            const { data: imgData, error: imgError } =
+              await supabase.functions.invoke("generate-image-ai", {
+                body: {
+                  prompt,
+                  company_id: project.company_id,
+                  client_id: project.client_id,
+                  style: config.imageStyle || "cinematic photography",
+                  background_only: true,
+                  aspect_ratio: "4:5",
+                },
+              });
+
+            if (!imgError && imgData?.success && imgData?.image_url) {
+              updateSlide(slide.id, { bg_image_url: imgData.image_url });
+            }
+          } catch (err) {
+            console.error(
+              `[auto-generate] image generation failed for slide ${i + 1}:`,
+              err,
+            );
+          }
+        }
+      }
+
+      setGenerationProgress(null);
+      toast.success("Carrossel gerado com sucesso!");
+    };
+
+    generateAll();
+  }, [project, slides, location.state, queryClient, updateSlide]);
 
   const activeSlide = slides?.[activeIndex] ?? null;
 
@@ -420,7 +538,7 @@ export default function CarouselStudio() {
         </div>
 
         <StudioBottomBar
-          generationProgress={null}
+          generationProgress={generationProgress}
           onDownloadZip={handleDownloadZip}
           isExporting={isExporting}
           exportProgress={exportProgress}

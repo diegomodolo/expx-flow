@@ -5,7 +5,11 @@ import { Archive, ZoomIn, ZoomOut } from "lucide-react";
 const ZOOM_STEPS = [25, 33, 40, 50, 60, 75, 100];
 
 interface Props {
-  generationProgress: { current: number; total: number } | null;
+  generationProgress: {
+    current: number;
+    total: number;
+    statusMessage?: string;
+  } | null;
   onDownloadZip: () => void;
   isExporting: boolean;
   exportProgress: number;
@@ -39,8 +43,8 @@ export function StudioBottomBar({
         {generationProgress && (
           <>
             <span>
-              Slide {generationProgress.current} de {generationProgress.total} —
-              gerando imagem
+              {generationProgress.statusMessage ??
+                `Slide ${generationProgress.current} de ${generationProgress.total} — gerando imagem`}
             </span>
             <div className="w-32 h-1 bg-muted rounded-full overflow-hidden">
               <div
