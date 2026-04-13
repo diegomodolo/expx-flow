@@ -125,15 +125,45 @@ export function StudioWizardModal({
   };
 
   const handleAnalyzeUrl = async () => {
-    if (!urlInput.trim()) return;
+    let raw = urlInput.trim();
+    if (!raw) return;
+
+    // Auto-add https:// if missing scheme
+    if (!/^https?:\/\//i.test(raw)) {
+      raw = "https://" + raw;
+    }
+
+    // Validate before sending
+    try {
+      new URL(raw);
+    } catch {
+      toast.error("URL inválida. Ex: https://exemplo.com/artigo");
+      return;
+    }
+
     setIsAnalyzingUrl(true);
     setUrlRationale(null);
     try {
       const { data, error } = await supabase.functions.invoke(
         "analyze-carousel-from-url",
-        { body: { url: urlInput.trim() } },
+        { body: { url: raw } },
       );
-      if (error) throw error;
+
+      // FunctionsHttpError: try to extract message from response body
+      if (error) {
+        let msg = error.message;
+        try {
+          const ctx = error as { context?: Response };
+          if (ctx.context) {
+            const body = await ctx.context.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch {
+          // ignore parse failure
+        }
+        throw new Error(msg);
+      }
+
       if (!data?.success)
         throw new Error(data?.error || "Erro ao analisar URL");
 
