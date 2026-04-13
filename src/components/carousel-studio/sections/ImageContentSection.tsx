@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { X, Upload, Sparkles, Copy, ImageIcon } from "lucide-react";
 import { PexelsSearchModal, PexelsPhoto } from "../PexelsSearchModal";
+import { proxyExternalImage } from "@/lib/proxyExternalImage";
 import { SidebarSection } from "../SidebarSection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -140,12 +141,15 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
     toast.success("Imagem de fundo copiada");
   };
 
-  const handlePexelsSelect = (photo: PexelsPhoto) => {
+  const handlePexelsSelect = async (photo: PexelsPhoto) => {
     if (pexelsSlot === null) return;
-    const next = [...urls];
-    next[pexelsSlot] = photo.large;
-    setUrls(next);
+    const idx = pexelsSlot;
     setPexelsSlot(null);
+    // Pré-hospeda no storage para evitar CORS ao renderizar
+    const url = await proxyExternalImage(photo.large, project.company_id);
+    const next = [...urls];
+    next[idx] = url;
+    setUrls(next);
     toast.success("Foto do Pexels adicionada");
   };
 

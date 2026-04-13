@@ -40,14 +40,54 @@ export function useSlideExport() {
       await preloadFonts();
       await document.fonts.ready;
 
-      const canvas = await html2canvas(slideEl, {
-        scale: 1,
-        useCORS: true,
-        allowTaint: false,
-        width: 1080,
-        height: 1350,
-        logging: false,
-      });
+      // Clona o slide em container off-screen sem transform escalado —
+      // isso garante que o html2canvas capture o tamanho 1080×1350 real
+      // e não a versão escalada usada no preview.
+      const container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-99999px";
+      container.style.top = "0";
+      container.style.width = "1080px";
+      container.style.height = "1350px";
+      container.style.overflow = "hidden";
+      container.style.pointerEvents = "none";
+
+      const clone = slideEl.cloneNode(true) as HTMLElement;
+      clone.style.transform = "none";
+      clone.style.width = "1080px";
+      clone.style.height = "1350px";
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      // Aguarda as imagens do clone carregarem completamente
+      const imgs = Array.from(clone.querySelectorAll("img"));
+      await Promise.allSettled(
+        imgs.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete && img.naturalHeight > 0) return resolve();
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener("error", () => resolve(), { once: true });
+              // timeout de segurança
+              setTimeout(resolve, 8000);
+            }),
+        ),
+      );
+
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await html2canvas(clone, {
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+          width: 1080,
+          height: 1350,
+          backgroundColor: null,
+          logging: false,
+        });
+      } finally {
+        document.body.removeChild(container);
+      }
 
       const blob = await new Promise<Blob>((resolve) =>
         canvas.toBlob((b) => resolve(b!), "image/png"),

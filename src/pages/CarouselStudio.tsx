@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { proxyExternalImage } from "@/lib/proxyExternalImage";
 
 export default function CarouselStudio() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -388,8 +389,11 @@ export default function CarouselStudio() {
                 Array.isArray(pexelsData.photos) &&
                 pexelsData.photos.length > 0
               ) {
-                // Pega a primeira foto (melhor resultado)
-                generatedImageUrl = pexelsData.photos[0].large;
+                // Pega a primeira foto e pré-hospeda no storage para evitar CORS
+                generatedImageUrl = await proxyExternalImage(
+                  pexelsData.photos[0].large,
+                  companyId,
+                );
               } else {
                 sourceError =
                   pexelsData?.error ||

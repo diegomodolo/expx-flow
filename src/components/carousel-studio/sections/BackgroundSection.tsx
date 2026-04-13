@@ -8,6 +8,7 @@ import { ImageIcon, Clipboard, X, Search } from "lucide-react";
 import { StudioSlide, StudioProject } from "../types";
 import { AIImagePromptModal } from "../AIImagePromptModal";
 import { PexelsSearchModal, PexelsPhoto } from "../PexelsSearchModal";
+import { proxyExternalImage } from "@/lib/proxyExternalImage";
 
 const ASPECT_RATIOS = [
   { value: "4:5", label: "4:5 (Instagram)" },
@@ -118,8 +119,10 @@ export function BackgroundSection({
         ? "landscape"
         : "portrait";
 
-  const handlePexelsSelect = (photo: PexelsPhoto) => {
-    const url = photo.original || photo.large;
+  const handlePexelsSelect = async (photo: PexelsPhoto) => {
+    const rawUrl = photo.original || photo.large;
+    // Pré-hospeda no storage para evitar CORS ao renderizar
+    const url = await proxyExternalImage(rawUrl, project.company_id);
     if (pexelsOpen === "shared") {
       onProjectChange({ shared_bg_image_url: url });
     } else {

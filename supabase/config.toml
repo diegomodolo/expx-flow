@@ -657,6 +657,9 @@ verify_jwt = true
 [functions.search-pexels-photos]
 verify_jwt = true
 
+[functions.proxy-external-image]
+verify_jwt = true
+
 [functions.generate-weekly-insights]
 verify_jwt = false
 
