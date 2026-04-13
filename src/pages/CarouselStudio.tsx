@@ -157,14 +157,22 @@ export default function CarouselStudio() {
               headline: s.headline,
               subtitle: s.subtitle,
             };
+            const textPosition: StudioSlide["text_position"] =
+              idx === 0
+                ? "mid_left"
+                : LEFT_POSITIONS[idx % LEFT_POSITIONS.length];
+
             const patch: Partial<StudioSlide> = {
               text_alignment: "left",
-              text_position:
-                idx === 0
-                  ? "mid_left"
-                  : LEFT_POSITIONS[idx % LEFT_POSITIONS.length],
+              text_position: textPosition,
             };
-            // Slide 1 (capa): fonte maior e posição centralizada
+
+            // Margem vertical baseada na posição
+            if (textPosition.startsWith("bottom_")) patch.text_padding_y = 64;
+            else if (textPosition.startsWith("top_"))
+              patch.text_padding_y = 132;
+
+            // Slide 1 (capa): fonte maior
             if (idx === 0) patch.font_size_title = 80;
             if (s.headline != null) patch.headline = s.headline;
             if (s.subtitle != null) patch.subtitle = s.subtitle;
