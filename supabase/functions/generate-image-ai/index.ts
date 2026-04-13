@@ -242,6 +242,11 @@ INSTRUÇÕES CRÍTICAS DE ESTILO (PRIORIDADE MÁXIMA):
           model: "google/gemini-3-pro-image-preview",
           messages: [{ role: "user", content: messageContent }],
           modalities: ["image", "text"],
+          // Pass aspect ratio as a native generation parameter so the model
+          // actually respects it (text-only instructions are often ignored)
+          image_gen_config: {
+            aspect_ratio: aspectRatio, // e.g. "4:5", "16:9", "1:1"
+          },
         }),
       },
     );
