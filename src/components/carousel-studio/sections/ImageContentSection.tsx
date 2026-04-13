@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AIImagePromptModal } from "../AIImagePromptModal";
 import {
   StudioSlide,
   StudioProject,
@@ -65,6 +66,16 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
   const [generatingSlot, setGeneratingSlot] = useState<number | null>(null);
   const [noTextInImage, setNoTextInImage] = useState(true);
+  const [modalSlot, setModalSlot] = useState<number | null>(null);
+
+  const basePrompt = [
+    slide.headline,
+    slide.subtitle,
+    slide.visual_description,
+    project.prompt,
+  ]
+    .filter(Boolean)
+    .join(" — ");
 
   const urls: string[] = (slide.content_image_urls ?? "")
     .split(",")
@@ -110,15 +121,8 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
     setUrls(next);
   };
 
-  const handleGenerateAI = async (index: number) => {
-    const prompt = [
-      slide.headline,
-      slide.subtitle,
-      slide.visual_description,
-      project.prompt,
-    ]
-      .filter(Boolean)
-      .join(" — ");
+  const handleGenerateAI = async (index: number, extraPrompt?: string) => {
+    const prompt = [basePrompt, extraPrompt].filter(Boolean).join(". ");
 
     if (!prompt.trim()) {
       toast.error("Adicione um texto ao slide antes de gerar imagem com IA");
@@ -158,196 +162,212 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
   const aspect = layoutAspect(layout);
 
   return (
-    <SidebarSection title="Imagem de Conteúdo">
-      {/* Toggle enable */}
-      <div className="flex items-center gap-2">
-        <Switch
-          checked={enabled}
-          onCheckedChange={(v) => {
-            if (!v) setUrls([]);
-          }}
-        />
-        <Label className="text-xs text-muted-foreground">
-          Exibir imagem no slide
-        </Label>
-      </div>
+    <>
+      <SidebarSection title="Imagem de Conteúdo">
+        {/* Toggle enable */}
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={enabled}
+            onCheckedChange={(v) => {
+              if (!v) setUrls([]);
+            }}
+          />
+          <Label className="text-xs text-muted-foreground">
+            Exibir imagem no slide
+          </Label>
+        </div>
 
-      {/* Layout selector */}
-      <div className="grid grid-cols-1 gap-1">
-        {LAYOUTS.map((l) => (
-          <button
-            key={l.value}
-            onClick={() => onChange({ content_image_layout: l.value })}
-            className={`px-3 py-1.5 rounded text-xs text-left transition-colors ${
-              layout === l.value
-                ? "bg-primary text-white"
-                : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
-            }`}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Posição */}
-      <div>
-        <Label className="text-xs text-muted-foreground mb-2 block">
-          Posição das imagens
-        </Label>
+        {/* Layout selector */}
         <div className="grid grid-cols-1 gap-1">
-          {POSITIONS.map((p) => (
+          {LAYOUTS.map((l) => (
             <button
-              key={p.value}
-              onClick={() => onChange({ content_image_position: p.value })}
+              key={l.value}
+              onClick={() => onChange({ content_image_layout: l.value })}
               className={`px-3 py-1.5 rounded text-xs text-left transition-colors ${
-                position === p.value
+                layout === l.value
                   ? "bg-primary text-white"
                   : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
               }`}
             >
-              {p.label}
+              {l.label}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Slots de imagem */}
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground block">
-          {slotCount === 1 ? "Imagem" : `Imagens (${slotCount})`} (
-          {aspect.replace("/", ":")} )
-        </Label>
+        {/* Posição */}
+        <div>
+          <Label className="text-xs text-muted-foreground mb-2 block">
+            Posição das imagens
+          </Label>
+          <div className="grid grid-cols-1 gap-1">
+            {POSITIONS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => onChange({ content_image_position: p.value })}
+                className={`px-3 py-1.5 rounded text-xs text-left transition-colors ${
+                  position === p.value
+                    ? "bg-primary text-white"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <div
-          className={`grid gap-2 ${slotCount === 4 ? "grid-cols-2" : slotCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}
-        >
-          {Array.from({ length: slotCount }).map((_, i) => {
-            const url = urls[i] ?? null;
-            return (
-              <div key={i} className="relative group">
-                <input
-                  ref={(el) => {
-                    if (el) fileRefs.current.set(i, el);
-                  }}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileChange(e, i)}
-                />
+        {/* Slots de imagem */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground block">
+            {slotCount === 1 ? "Imagem" : `Imagens (${slotCount})`} (
+            {aspect.replace("/", ":")} )
+          </Label>
 
-                {uploadingSlot === i ? (
-                  <div
-                    className="w-full bg-muted/30 border border-border rounded flex items-center justify-center"
-                    style={{ aspectRatio: aspect, borderRadius: radius }}
-                  >
-                    <span className="text-[10px] text-muted-foreground animate-pulse">
-                      Enviando...
-                    </span>
-                  </div>
-                ) : url ? (
-                  <div className="relative">
-                    <img
-                      src={url}
-                      alt=""
-                      className="w-full object-cover rounded"
-                      style={{
-                        aspectRatio: aspect,
-                        borderRadius: radius,
-                      }}
-                    />
-                    <button
-                      onClick={() => handleRemove(i)}
-                      className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          <div
+            className={`grid gap-2 ${slotCount === 4 ? "grid-cols-2" : slotCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}
+          >
+            {Array.from({ length: slotCount }).map((_, i) => {
+              const url = urls[i] ?? null;
+              return (
+                <div key={i} className="relative group">
+                  <input
+                    ref={(el) => {
+                      if (el) fileRefs.current.set(i, el);
+                    }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileChange(e, i)}
+                  />
+
+                  {uploadingSlot === i ? (
+                    <div
+                      className="w-full bg-muted/30 border border-border rounded flex items-center justify-center"
+                      style={{ aspectRatio: aspect, borderRadius: radius }}
                     >
-                      <X className="w-3 h-3 text-white" />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="w-full bg-muted/30 border border-dashed border-border rounded flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-muted/50 transition-colors"
-                    style={{ aspectRatio: aspect, borderRadius: radius }}
-                    onClick={() => fileRefs.current.get(i)?.click()}
+                      <span className="text-[10px] text-muted-foreground animate-pulse">
+                        Enviando...
+                      </span>
+                    </div>
+                  ) : url ? (
+                    <div className="relative">
+                      <img
+                        src={url}
+                        alt=""
+                        className="w-full object-cover rounded"
+                        style={{
+                          aspectRatio: aspect,
+                          borderRadius: radius,
+                        }}
+                      />
+                      <button
+                        onClick={() => handleRemove(i)}
+                        className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className="w-full bg-muted/30 border border-dashed border-border rounded flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-muted/50 transition-colors"
+                      style={{ aspectRatio: aspect, borderRadius: radius }}
+                      onClick={() => fileRefs.current.get(i)?.click()}
+                    >
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">
+                        Adicionar
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Botão IA */}
+                  <button
+                    onClick={() => setModalSlot(i)}
+                    disabled={generatingSlot === i}
+                    className="mt-1 w-full py-1 rounded border border-border text-[10px] text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                   >
-                    <Upload className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">
-                      Adicionar
-                    </span>
-                  </div>
-                )}
-
-                {/* Botão IA */}
-                <button
-                  onClick={() => handleGenerateAI(i)}
-                  disabled={generatingSlot === i}
-                  className="mt-1 w-full py-1 rounded border border-border text-[10px] text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  {generatingSlot === i ? "Gerando..." : "Gerar com IA"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Toggle sem texto na IA */}
-      <div className="flex items-center gap-2">
-        <Switch checked={noTextInImage} onCheckedChange={setNoTextInImage} />
-        <Label className="text-xs text-muted-foreground cursor-pointer">
-          Gerar sem texto na imagem
-        </Label>
-      </div>
-
-      {/* Controles visuais */}
-      <div className="border-t border-border pt-3 space-y-3">
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <Label className="text-xs text-muted-foreground">Largura</Label>
-            <span className="text-xs text-muted-foreground">{width}%</span>
+                    <Sparkles className="w-3 h-3" />
+                    {generatingSlot === i ? "Gerando..." : "Gerar com IA"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
-          <Slider
-            min={20}
-            max={100}
-            step={2}
-            value={[width]}
-            onValueChange={([v]) => onChange({ content_image_width: v })}
-          />
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <Label className="text-xs text-muted-foreground">
-              Arredondamento
-            </Label>
-            <span className="text-xs text-muted-foreground">{radius}px</span>
+        {/* Toggle sem texto na IA */}
+        <div className="flex items-center gap-2">
+          <Switch checked={noTextInImage} onCheckedChange={setNoTextInImage} />
+          <Label className="text-xs text-muted-foreground cursor-pointer">
+            Gerar sem texto na imagem
+          </Label>
+        </div>
+
+        {/* Controles visuais */}
+        <div className="border-t border-border pt-3 space-y-3">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">Largura</Label>
+              <span className="text-xs text-muted-foreground">{width}%</span>
+            </div>
+            <Slider
+              min={20}
+              max={100}
+              step={2}
+              value={[width]}
+              onValueChange={([v]) => onChange({ content_image_width: v })}
+            />
           </div>
-          <Slider
-            min={0}
-            max={80}
-            step={4}
-            value={[radius]}
-            onValueChange={([v]) => onChange({ content_image_radius: v })}
-          />
-        </div>
 
-        {slotCount > 1 && (
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label className="text-xs text-muted-foreground">
-                Espaço entre imagens
+                Arredondamento
               </Label>
-              <span className="text-xs text-muted-foreground">{gap}px</span>
+              <span className="text-xs text-muted-foreground">{radius}px</span>
             </div>
             <Slider
               min={0}
-              max={48}
+              max={80}
               step={4}
-              value={[gap]}
-              onValueChange={([v]) => onChange({ content_image_gap: v })}
+              value={[radius]}
+              onValueChange={([v]) => onChange({ content_image_radius: v })}
             />
           </div>
-        )}
-      </div>
-    </SidebarSection>
+
+          {slotCount > 1 && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs text-muted-foreground">
+                  Espaço entre imagens
+                </Label>
+                <span className="text-xs text-muted-foreground">{gap}px</span>
+              </div>
+              <Slider
+                min={0}
+                max={48}
+                step={4}
+                value={[gap]}
+                onValueChange={([v]) => onChange({ content_image_gap: v })}
+              />
+            </div>
+          )}
+        </div>
+      </SidebarSection>
+
+      <AIImagePromptModal
+        open={modalSlot !== null}
+        onOpenChange={(v) => {
+          if (!v) setModalSlot(null);
+        }}
+        basePrompt={basePrompt}
+        isGenerating={generatingSlot !== null}
+        onConfirm={(extraPrompt) => {
+          const idx = modalSlot!;
+          setModalSlot(null);
+          handleGenerateAI(idx, extraPrompt);
+        }}
+      />
+    </>
   );
 }

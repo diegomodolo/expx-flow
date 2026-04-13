@@ -104,11 +104,11 @@ export default function CarouselStudio() {
   );
 
   const handleGenerateAIImage = useCallback(
-    async (aspectRatio?: string) => {
+    async (aspectRatio?: string, extraPrompt?: string) => {
       if (!activeSlide || !project) return;
       setIsGeneratingImage(true);
       try {
-        const prompt = [
+        const basePrompt = [
           activeSlide.headline,
           activeSlide.subtitle,
           activeSlide.visual_description,
@@ -116,6 +116,8 @@ export default function CarouselStudio() {
         ]
           .filter(Boolean)
           .join(" — ");
+
+        const prompt = [basePrompt, extraPrompt].filter(Boolean).join(". ");
 
         if (!prompt.trim()) {
           toast.error(
@@ -155,11 +157,11 @@ export default function CarouselStudio() {
   );
 
   const handleGenerateSharedAIImage = useCallback(
-    async (aspectRatio?: string) => {
+    async (aspectRatio?: string, extraPrompt?: string) => {
       if (!activeSlide || !project) return;
       setIsGeneratingImage(true);
       try {
-        const prompt = [
+        const basePrompt = [
           activeSlide.headline,
           activeSlide.subtitle,
           activeSlide.visual_description,
@@ -167,6 +169,8 @@ export default function CarouselStudio() {
         ]
           .filter(Boolean)
           .join(" — ");
+
+        const prompt = [basePrompt, extraPrompt].filter(Boolean).join(". ");
 
         if (!prompt.trim()) {
           toast.error(

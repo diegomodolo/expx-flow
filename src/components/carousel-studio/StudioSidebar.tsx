@@ -19,8 +19,8 @@ interface Props {
   onSlideChange: (patch: Partial<StudioSlide>) => void;
   onProjectChange: (patch: Partial<StudioProject>) => void;
   onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
-  onGenerateAIImage: (aspectRatio?: string) => void;
-  onGenerateSharedAIImage: (aspectRatio?: string) => void;
+  onGenerateAIImage: (aspectRatio?: string, extraPrompt?: string) => void;
+  onGenerateSharedAIImage: (aspectRatio?: string, extraPrompt?: string) => void;
   isGeneratingImage: boolean;
   onGenerateContent: () => void;
   isGeneratingContent: boolean;

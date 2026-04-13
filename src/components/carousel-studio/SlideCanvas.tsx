@@ -247,15 +247,17 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           />
         )}
 
-        {/* Instagram handle fixo (quando badge desativado) */}
-        {project.instagram_handle && !slide.badge_enabled && (
-          <div
-            className="absolute top-6 left-6 text-white/70 text-2xl"
-            style={{ fontFamily: fonts.subtitleFont }}
-          >
-            @{project.instagram_handle}
-          </div>
-        )}
+        {/* Instagram handle fixo (quando badge desativado E handle habilitado) */}
+        {project.instagram_handle &&
+          !slide.badge_enabled &&
+          slide.badge_handle_enabled !== false && (
+            <div
+              className="absolute top-6 left-6 text-white/70 text-2xl"
+              style={{ fontFamily: fonts.subtitleFont }}
+            >
+              @{project.instagram_handle}
+            </div>
+          )}
 
         {/* Badge de perfil + nome + handle juntos */}
         {slide.badge_enabled &&

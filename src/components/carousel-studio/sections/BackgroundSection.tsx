@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Clipboard, X } from "lucide-react";
 import { StudioSlide, StudioProject } from "../types";
+import { AIImagePromptModal } from "../AIImagePromptModal";
 
 const ASPECT_RATIOS = [
   { value: "4:5", label: "4:5 (Instagram)" },
@@ -22,8 +23,8 @@ interface Props {
   onChange: (patch: Partial<StudioSlide>) => void;
   onProjectChange: (patch: Partial<StudioProject>) => void;
   onSlidesBatchChange: (ids: string[], patch: Partial<StudioSlide>) => void;
-  onGenerateAIImage: (aspectRatio?: string) => void;
-  onGenerateSharedAIImage: (aspectRatio?: string) => void;
+  onGenerateAIImage: (aspectRatio?: string, extraPrompt?: string) => void;
+  onGenerateSharedAIImage: (aspectRatio?: string, extraPrompt?: string) => void;
   isGeneratingImage: boolean;
 }
 
@@ -41,6 +42,18 @@ export function BackgroundSection({
   const fileRef = useRef<HTMLInputElement>(null);
   const sharedFileRef = useRef<HTMLInputElement>(null);
   const [aiAspectRatio, setAiAspectRatio] = useState("4:5");
+  const [modalOpen, setModalOpen] = useState<"individual" | "shared" | null>(
+    null,
+  );
+
+  const basePrompt = [
+    slide.headline,
+    slide.subtitle,
+    slide.visual_description,
+    project.prompt,
+  ]
+    .filter(Boolean)
+    .join(" — ");
 
   const handleFile = (file: File, shared = false) => {
     const reader = new FileReader();
@@ -94,58 +107,183 @@ export function BackgroundSection({
   };
 
   return (
-    <SidebarSection title="Imagem de Fundo" defaultOpen>
-      {/* ── Imagem individual ── */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-      />
-
-      <div className="flex items-center gap-2 mb-1">
-        <Switch
-          checked={useShared}
-          onCheckedChange={(v) => onChange({ use_shared_bg: v })}
+    <>
+      <SidebarSection title="Imagem de Fundo" defaultOpen>
+        {/* ── Imagem individual ── */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
         />
-        <Label className="text-xs text-muted-foreground">
-          {useShared ? "Usando imagem compartilhada" : "Imagem individual"}
-        </Label>
-      </div>
 
-      {!useShared && (
-        <>
-          {/* Cor de fundo */}
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground flex-1">
-              Cor de fundo
-            </Label>
-            <div className="flex items-center gap-1">
-              <input
-                type="color"
-                value={slide.bg_color ?? "#111111"}
-                onChange={(e) => onChange({ bg_color: e.target.value })}
-                className="w-7 h-7 rounded cursor-pointer border border-border p-0.5 bg-background"
-                title="Cor de fundo"
-              />
-              {slide.bg_color && (
-                <button
-                  className="text-[10px] text-muted-foreground hover:text-destructive px-1"
-                  onClick={() => onChange({ bg_color: null })}
-                  title="Usar padrão (cinza escuro)"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+        <div className="flex items-center gap-2 mb-1">
+          <Switch
+            checked={useShared}
+            onCheckedChange={(v) => onChange({ use_shared_bg: v })}
+          />
+          <Label className="text-xs text-muted-foreground">
+            {useShared ? "Usando imagem compartilhada" : "Imagem individual"}
+          </Label>
+        </div>
+
+        {!useShared && (
+          <>
+            {/* Cor de fundo */}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground flex-1">
+                Cor de fundo
+              </Label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="color"
+                  value={slide.bg_color ?? "#111111"}
+                  onChange={(e) => onChange({ bg_color: e.target.value })}
+                  className="w-7 h-7 rounded cursor-pointer border border-border p-0.5 bg-background"
+                  title="Cor de fundo"
+                />
+                {slide.bg_color && (
+                  <button
+                    className="text-[10px] text-muted-foreground hover:text-destructive px-1"
+                    onClick={() => onChange({ bg_color: null })}
+                    title="Usar padrão (cinza escuro)"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
-          {slide.bg_image_url && (
+            {slide.bg_image_url && (
+              <img
+                src={slide.bg_image_url}
+                className="w-full h-24 object-cover rounded-md mb-2"
+                alt="fundo"
+              />
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => fileRef.current?.click()}
+              >
+                <ImageIcon className="w-3 h-3 mr-1" /> Upload
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => handlePaste(false)}
+              >
+                <Clipboard className="w-3 h-3 mr-1" /> Colar
+              </Button>
+            </div>
+            {slide.bg_image_url && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-destructive hover:text-destructive"
+                onClick={() => onChange({ bg_image_url: null })}
+              >
+                <X className="w-3 h-3 mr-1" /> Remover imagem
+              </Button>
+            )}
+
+            {/* Aspect ratio para geração IA */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">
+                Proporção da imagem gerada
+              </Label>
+              <div className="grid grid-cols-1 gap-1">
+                {ASPECT_RATIOS.map((ar) => (
+                  <button
+                    key={ar.value}
+                    onClick={() => setAiAspectRatio(ar.value)}
+                    className={`px-3 py-1.5 rounded text-xs text-left transition-colors ${
+                      aiAspectRatio === ar.value
+                        ? "bg-primary text-white"
+                        : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                    }`}
+                  >
+                    {ar.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => setModalOpen("individual")}
+              disabled={isGeneratingImage}
+            >
+              {isGeneratingImage ? "Gerando..." : "✨ Gerar com IA"}
+            </Button>
+
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Posição X: {slide.bg_position_x}%
+              </Label>
+              <Slider
+                value={[slide.bg_position_x]}
+                onValueChange={([v]) => onChange({ bg_position_x: v })}
+                min={0}
+                max={100}
+                step={1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Posição Y: {slide.bg_position_y}%
+              </Label>
+              <Slider
+                value={[slide.bg_position_y]}
+                onValueChange={([v]) => onChange({ bg_position_y: v })}
+                min={0}
+                max={100}
+                step={1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Zoom: {slide.bg_zoom}%
+              </Label>
+              <Slider
+                value={[slide.bg_zoom]}
+                onValueChange={([v]) => onChange({ bg_zoom: v })}
+                min={50}
+                max={200}
+                step={1}
+              />
+            </div>
+          </>
+        )}
+
+        {/* ── Imagem compartilhada ── */}
+        <div className="border-t border-border pt-2 space-y-3">
+          <Label className="text-xs font-medium block">
+            Imagem Compartilhada (continuidade)
+          </Label>
+
+          <input
+            ref={sharedFileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) =>
+              e.target.files?.[0] && handleFile(e.target.files[0], true)
+            }
+          />
+
+          {sharedBgUrl && (
             <img
-              src={slide.bg_image_url}
-              className="w-full h-24 object-cover rounded-md mb-2"
-              alt="fundo"
+              src={sharedBgUrl}
+              className="w-full h-24 object-cover rounded-md"
+              alt="fundo compartilhado"
             />
           )}
 
@@ -154,31 +292,32 @@ export function BackgroundSection({
               variant="outline"
               size="sm"
               className="text-xs"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => sharedFileRef.current?.click()}
             >
-              <ImageIcon className="w-3 h-3 mr-1" /> Upload
+              <ImageIcon className="w-3 h-3 mr-1" />{" "}
+              {sharedBgUrl ? "Trocar" : "Upload"}
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="text-xs"
-              onClick={() => handlePaste(false)}
+              onClick={() => handlePaste(true)}
             >
               <Clipboard className="w-3 h-3 mr-1" /> Colar
             </Button>
           </div>
-          {slide.bg_image_url && (
+          {sharedBgUrl && (
             <Button
               variant="ghost"
               size="sm"
               className="w-full text-xs text-destructive hover:text-destructive"
-              onClick={() => onChange({ bg_image_url: null })}
+              onClick={() => onProjectChange({ shared_bg_image_url: null })}
             >
-              <X className="w-3 h-3 mr-1" /> Remover imagem
+              <X className="w-3 h-3 mr-1" /> Remover imagem compartilhada
             </Button>
           )}
 
-          {/* Aspect ratio para geração IA */}
+          {/* Aspect ratio + Gerar com IA para imagem compartilhada */}
           <div>
             <Label className="text-xs text-muted-foreground mb-2 block">
               Proporção da imagem gerada
@@ -204,204 +343,99 @@ export function BackgroundSection({
             variant="outline"
             size="sm"
             className="w-full text-xs"
-            onClick={() => onGenerateAIImage(aiAspectRatio)}
+            onClick={() => setModalOpen("shared")}
             disabled={isGeneratingImage}
           >
             {isGeneratingImage ? "Gerando..." : "✨ Gerar com IA"}
           </Button>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">
-              Posição X: {slide.bg_position_x}%
-            </Label>
-            <Slider
-              value={[slide.bg_position_x]}
-              onValueChange={([v]) => onChange({ bg_position_x: v })}
-              min={0}
-              max={100}
-              step={1}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">
-              Posição Y: {slide.bg_position_y}%
-            </Label>
-            <Slider
-              value={[slide.bg_position_y]}
-              onValueChange={([v]) => onChange({ bg_position_y: v })}
-              min={0}
-              max={100}
-              step={1}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">
-              Zoom: {slide.bg_zoom}%
-            </Label>
-            <Slider
-              value={[slide.bg_zoom]}
-              onValueChange={([v]) => onChange({ bg_zoom: v })}
-              min={50}
-              max={200}
-              step={1}
-            />
-          </div>
-        </>
-      )}
-
-      {/* ── Imagem compartilhada ── */}
-      <div className="border-t border-border pt-2 space-y-3">
-        <Label className="text-xs font-medium block">
-          Imagem Compartilhada (continuidade)
-        </Label>
-
-        <input
-          ref={sharedFileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) =>
-            e.target.files?.[0] && handleFile(e.target.files[0], true)
-          }
-        />
-
-        {sharedBgUrl && (
-          <img
-            src={sharedBgUrl}
-            className="w-full h-24 object-cover rounded-md"
-            alt="fundo compartilhado"
-          />
-        )}
-
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs"
-            onClick={() => sharedFileRef.current?.click()}
-          >
-            <ImageIcon className="w-3 h-3 mr-1" />{" "}
-            {sharedBgUrl ? "Trocar" : "Upload"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs"
-            onClick={() => handlePaste(true)}
-          >
-            <Clipboard className="w-3 h-3 mr-1" /> Colar
-          </Button>
-        </div>
-        {sharedBgUrl && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-xs text-destructive hover:text-destructive"
-            onClick={() => onProjectChange({ shared_bg_image_url: null })}
-          >
-            <X className="w-3 h-3 mr-1" /> Remover imagem compartilhada
-          </Button>
-        )}
-
-        {/* Aspect ratio + Gerar com IA para imagem compartilhada */}
-        <div>
-          <Label className="text-xs text-muted-foreground mb-2 block">
-            Proporção da imagem gerada
-          </Label>
-          <div className="grid grid-cols-1 gap-1">
-            {ASPECT_RATIOS.map((ar) => (
-              <button
-                key={ar.value}
-                onClick={() => setAiAspectRatio(ar.value)}
-                className={`px-3 py-1.5 rounded text-xs text-left transition-colors ${
-                  aiAspectRatio === ar.value
-                    ? "bg-primary text-white"
-                    : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
-                }`}
-              >
-                {ar.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs"
-          onClick={() => onGenerateSharedAIImage(aiAspectRatio)}
-          disabled={isGeneratingImage}
-        >
-          {isGeneratingImage ? "Gerando..." : "✨ Gerar com IA"}
-        </Button>
-
-        {sharedBgUrl && (
-          <>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              A imagem se estende horizontalmente pelos slides selecionados —
-              cada slide exibe uma fatia contínua.
-            </p>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                Posição vertical: {project.shared_bg_position_y ?? 50}%
-              </Label>
-              <Slider
-                value={[project.shared_bg_position_y ?? 50]}
-                onValueChange={([v]) =>
-                  onProjectChange({ shared_bg_position_y: v })
-                }
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                Zoom: {project.shared_bg_zoom ?? 100}%
-              </Label>
-              <Slider
-                value={[project.shared_bg_zoom ?? 100]}
-                onValueChange={([v]) => onProjectChange({ shared_bg_zoom: v })}
-                min={10}
-                max={200}
-                step={1}
-              />
-            </div>
-
-            {/* Seleção de slides */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
+          {sharedBgUrl && (
+            <>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                A imagem se estende horizontalmente pelos slides selecionados —
+                cada slide exibe uma fatia contínua.
+              </p>
+              <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">
-                  Slides que usam esta imagem
+                  Posição vertical: {project.shared_bg_position_y ?? 50}%
                 </Label>
-                <button
-                  className="text-[10px] text-primary hover:underline"
-                  onClick={toggleAllShared}
-                >
-                  {slides.every((s) => s.use_shared_bg)
-                    ? "Desmarcar todos"
-                    : "Selecionar todos"}
-                </button>
+                <Slider
+                  value={[project.shared_bg_position_y ?? 50]}
+                  onValueChange={([v]) =>
+                    onProjectChange({ shared_bg_position_y: v })
+                  }
+                  min={0}
+                  max={100}
+                  step={1}
+                />
               </div>
-              <div className="grid grid-cols-6 gap-1">
-                {slides.map((s) => (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  Zoom: {project.shared_bg_zoom ?? 100}%
+                </Label>
+                <Slider
+                  value={[project.shared_bg_zoom ?? 100]}
+                  onValueChange={([v]) =>
+                    onProjectChange({ shared_bg_zoom: v })
+                  }
+                  min={10}
+                  max={200}
+                  step={1}
+                />
+              </div>
+
+              {/* Seleção de slides */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Slides que usam esta imagem
+                  </Label>
                   <button
-                    key={s.id}
-                    onClick={() => toggleSlideShared(s.id)}
-                    className={`h-7 rounded text-xs font-medium transition-colors ${
-                      sharedSlideIds.has(s.id)
-                        ? "bg-primary text-white"
-                        : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
-                    }`}
+                    className="text-[10px] text-primary hover:underline"
+                    onClick={toggleAllShared}
                   >
-                    {s.slide_number}
+                    {slides.every((s) => s.use_shared_bg)
+                      ? "Desmarcar todos"
+                      : "Selecionar todos"}
                   </button>
-                ))}
+                </div>
+                <div className="grid grid-cols-6 gap-1">
+                  {slides.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => toggleSlideShared(s.id)}
+                      className={`h-7 rounded text-xs font-medium transition-colors ${
+                        sharedSlideIds.has(s.id)
+                          ? "bg-primary text-white"
+                          : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                      }`}
+                    >
+                      {s.slide_number}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
-    </SidebarSection>
+            </>
+          )}
+        </div>
+      </SidebarSection>
+
+      <AIImagePromptModal
+        open={modalOpen !== null}
+        onOpenChange={(v) => {
+          if (!v) setModalOpen(null);
+        }}
+        basePrompt={basePrompt}
+        isGenerating={isGeneratingImage}
+        onConfirm={(extraPrompt) => {
+          if (modalOpen === "individual") {
+            onGenerateAIImage(aiAspectRatio, extraPrompt);
+          } else {
+            onGenerateSharedAIImage(aiAspectRatio, extraPrompt);
+          }
+          setModalOpen(null);
+        }}
+      />
+    </>
   );
 }
