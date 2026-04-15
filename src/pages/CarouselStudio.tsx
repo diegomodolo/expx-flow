@@ -19,6 +19,7 @@ import { CaptionModal } from "@/components/carousel-studio/CaptionModal";
 import { RegenerateModal } from "@/components/carousel-studio/RegenerateModal";
 import { SendToContentPlanModal } from "@/components/carousel-studio/SendToContentPlanModal";
 import { PublishCarouselModal } from "@/components/generators/PublishCarouselModal";
+import { SaveTemplateModal } from "@/components/carousel-studio/SaveTemplateModal";
 import {
   StudioSlide,
   StudioProject,
@@ -49,6 +50,7 @@ export default function CarouselStudio() {
   const [captionOpen, setCaptionOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [sendToPlanOpen, setSendToPlanOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [publishCarousel, setPublishCarousel] = useState<{
     id: string;
     carousel_type: string;
@@ -981,6 +983,7 @@ export default function CarouselStudio() {
           onOpenPublish={handleOpenPublish}
           isPreparingPublish={preparingPublish}
           onSave={flushAll}
+          onOpenSaveTemplate={() => setSaveTemplateOpen(true)}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -1107,6 +1110,15 @@ export default function CarouselStudio() {
             setPublishCarousel(null);
             toast.success("Publicação agendada!");
           }}
+        />
+      )}
+
+      {project && slides && slides.length > 0 && (
+        <SaveTemplateModal
+          open={saveTemplateOpen}
+          onOpenChange={setSaveTemplateOpen}
+          project={project}
+          slides={slides}
         />
       )}
     </DashboardLayout>
