@@ -552,6 +552,8 @@ export default function CarouselStudio() {
           try {
             let generatedImageUrl: string | null = null;
             let sourceError: string | null = null;
+            // Tracks actual source used (pexels may fall back to ai)
+            let actualSource: "ai" | "pexels" = useSource;
 
             if (useSource === "ai") {
               const { data: imgData, error: imgError } =
@@ -669,6 +671,7 @@ export default function CarouselStudio() {
                 });
               if (!fbError && fbData?.success && fbData?.image_url) {
                 generatedImageUrl = fbData.image_url;
+                actualSource = "ai";
                 sourceError = null;
               } else {
                 console.error(
@@ -688,6 +691,7 @@ export default function CarouselStudio() {
               if (target.kind === "background") {
                 const bgPatch: Partial<StudioSlide> = {
                   bg_image_url: generatedImageUrl,
+                  bg_image_source: "ai",
                 };
                 // Slides com imagem de fundo que NÃO são o slide 1:
                 // texto bottom_left, 252px vertical, overlay base_strong 100%
@@ -702,6 +706,7 @@ export default function CarouselStudio() {
               } else {
                 const contentPatch: Partial<StudioSlide> = {
                   content_image_urls: generatedImageUrl,
+                  content_image_source: actualSource,
                   content_image_layout: "1_thumb_16_9",
                   content_image_position: target.position,
                 };
