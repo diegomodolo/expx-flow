@@ -130,6 +130,12 @@ export default function CarouselStudio() {
     );
   }, [project?.client_id, clients]);
 
+  const instagramUsername = React.useMemo(() => {
+    if (!project?.client_id) return null;
+    const client = clients.find((c) => c.id === project.client_id);
+    return client?.instagram_account?.username ?? null;
+  }, [project?.client_id, clients]);
+
   React.useEffect(() => {
     if (!slides) return;
     const currentIds = new Set(slides.map((s) => s.id));
@@ -1310,6 +1316,22 @@ export default function CarouselStudio() {
           carousel={publishCarousel}
           open={!!publishCarousel}
           onOpenChange={(open) => !open && setPublishCarousel(null)}
+          instagramUsername={instagramUsername}
+          onCaptionChange={(newCaption, newHashtags) => {
+            if (!project) return;
+            updateProject.mutate({
+              projectId: project.id,
+              patch: {
+                caption: newCaption || null,
+                hashtags: newHashtags || null,
+              },
+            });
+            setPublishCarousel((prev) =>
+              prev
+                ? { ...prev, caption: newCaption, hashtags: newHashtags }
+                : prev,
+            );
+          }}
           onSuccess={() => {
             setPublishCarousel(null);
             toast.success("Publicação agendada!");
