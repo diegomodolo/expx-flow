@@ -33,7 +33,7 @@ export function useCarouselStudioProjects(
       let query = supabase
         .from("carousel_studio_projects")
         .select(
-          "*, clients(id, name), carousel_studio_slides(slide_number, exported_image_url, bg_image_url)",
+          "*, clients(id, name, avatar), carousel_studio_slides(slide_number, exported_image_url, bg_image_url)",
           { count: "exact" },
         )
         .eq("company_id", companyId!)

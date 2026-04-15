@@ -75,8 +75,13 @@ interface ProjectCardProps {
 }
 
 function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
-  const clientName =
-    (project.clients as { id: string; name: string } | null)?.name ?? null;
+  const clientData = project.clients as {
+    id: string;
+    name: string;
+    avatar: string | null;
+  } | null;
+  const clientName = clientData?.name ?? null;
+  const clientAvatar = clientData?.avatar ?? null;
 
   // Fallback de thumbnail: thumbnail_url → primeiro slide exportado → bg do primeiro slide
   const slides =
@@ -96,10 +101,18 @@ function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
 
   return (
     <div className="rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      {/* Header estilo Instagram: ícone + nome do cliente + menu */}
+      {/* Header estilo Instagram: avatar/logo do cliente + nome + menu */}
       <div className="flex items-center gap-2 px-3 py-2">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-          <Instagram className="w-4 h-4 text-white" />
+        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center">
+          {clientAvatar ? (
+            <img
+              src={clientAvatar}
+              alt={clientName ?? ""}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Instagram className="w-4 h-4 text-white" />
+          )}
         </div>
         <span className="flex-1 text-sm font-semibold truncate">
           {clientName ?? "Sem cliente"}
