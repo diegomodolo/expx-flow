@@ -31,6 +31,40 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { proxyExternalImage } from "@/lib/proxyExternalImage";
 
+/** Fetches a single Pexels photo for a slide and proxies it to Supabase storage. */
+async function fetchPexelsForSlide(
+  slide: { headline: string | null; subtitle: string | null },
+  companyId: string,
+  orientation: "portrait" | "landscape" | "square",
+): Promise<string | null> {
+  const query = [slide.headline, slide.subtitle].filter(Boolean).join(" ");
+  if (!query.trim()) return null;
+
+  const { data, error } = await supabase.functions.invoke(
+    "search-pexels-photos",
+    {
+      body: {
+        query: query.slice(0, 120),
+        per_page: 1,
+        orientation,
+        company_id: companyId,
+      },
+    },
+  );
+
+  if (
+    error ||
+    !data?.success ||
+    !Array.isArray(data.photos) ||
+    data.photos.length === 0
+  ) {
+    return null;
+  }
+
+  const rawUrl: string = data.photos[0].large;
+  return proxyExternalImage(rawUrl, companyId);
+}
+
 export default function CarouselStudio() {
   const { projectId } = useParams<{ projectId: string }>();
   const location = useLocation();
