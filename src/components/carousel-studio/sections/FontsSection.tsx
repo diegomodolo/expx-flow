@@ -144,6 +144,7 @@ export function FontsSection({
       font_size_title: slide.font_size_title,
       font_size_subtitle: slide.font_size_subtitle,
       line_spacing: slide.line_spacing,
+      line_spacing_subtitle: slide.line_spacing_subtitle,
       text_position: slide.text_position,
       text_alignment: slide.text_alignment,
       text_padding_x: slide.text_padding_x,
@@ -209,12 +210,25 @@ export function FontsSection({
       </div>
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">
-          Espaçamento: {slide.line_spacing}%
+          Espaçamento título: {slide.line_spacing}%
         </Label>
         <Slider
           value={[slide.line_spacing]}
           onValueChange={([v]) => handleChange({ line_spacing: v })}
-          min={100}
+          min={50}
+          max={200}
+          step={5}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">
+          Espaçamento subtítulo:{" "}
+          {slide.line_spacing_subtitle ?? slide.line_spacing}%
+        </Label>
+        <Slider
+          value={[slide.line_spacing_subtitle ?? slide.line_spacing]}
+          onValueChange={([v]) => handleChange({ line_spacing_subtitle: v })}
+          min={50}
           max={200}
           step={5}
         />
