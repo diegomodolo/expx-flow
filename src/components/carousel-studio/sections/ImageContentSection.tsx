@@ -95,10 +95,6 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
   const slotCount = layoutSlotCount(layout);
   const enabled = urls.length > 0;
 
-  const setUrls = (next: string[]) => {
-    onChange({ content_image_urls: next.filter(Boolean).join(",") || null });
-  };
-
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number,
