@@ -1,7 +1,7 @@
 // src/pages/CarouselStudio.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   useCarouselStudioProject,
@@ -68,6 +68,7 @@ async function fetchPexelsForSlide(
 export default function CarouselStudio() {
   const { projectId } = useParams<{ projectId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { data: project, isLoading: loadingProject } =
     useCarouselStudioProject(projectId);
@@ -148,6 +149,9 @@ export default function CarouselStudio() {
     if (!project || !slides || slides.length === 0) return;
     if (autoGenerateStarted.current) return;
     autoGenerateStarted.current = true;
+
+    // Clear nav state so a page refresh doesn't re-trigger generation
+    navigate(location.pathname, { replace: true, state: null });
 
     // Capture stable references — must not close over changing `slides` state
     const projectId = project.id;
