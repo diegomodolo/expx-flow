@@ -251,8 +251,190 @@ export default function CarouselStudio() {
       }
 
       // Phase 2: generate images slide by slide
-      // generateAIImages defaults to true — treat undefined as true
-      if (config.generateAIImages !== false && config.imageMode !== "none") {
+      if (config.selectedTemplate) {
+        // Template mode: per-slide source routing
+        for (let i = 0; i < initialSlides.length; i++) {
+          if (cancelGenerationRef.current) break;
+
+          const slide = initialSlides[i];
+          const templateSlide = config.selectedTemplate.find(
+            (ts) => ts.slide_number === slide.slide_number,
+          );
+
+          const bgSource = templateSlide?.bg_image_source ?? null;
+          const contentSource = templateSlide?.content_image_source ?? null;
+
+          if (!bgSource && !contentSource) continue;
+
+          setGenerationProgress({
+            current: i + 1,
+            total,
+            statusMessage: `Imagens slide ${i + 1} de ${total}...`,
+          });
+
+          const slideText = {
+            headline: textSlides[slide.id]?.headline ?? slide.headline,
+            subtitle: textSlides[slide.id]?.subtitle ?? slide.subtitle,
+          };
+
+          // ── Background image ──
+          if (bgSource === "ai" || bgSource === "pexels") {
+            try {
+              let bgUrl: string | null = null;
+
+              if (bgSource === "ai") {
+                setGenerationProgress({
+                  current: i + 1,
+                  total,
+                  statusMessage: `Gerando imagem IA (fundo) — slide ${i + 1} de ${total}...`,
+                });
+                const prompt =
+                  [
+                    slideText.headline,
+                    slideText.subtitle,
+                    slide.visual_description,
+                    config.prompt,
+                  ]
+                    .filter(Boolean)
+                    .join(" — ") || `Slide ${i + 1}`;
+                const { data: imgData, error: imgError } =
+                  await supabase.functions.invoke("generate-image-ai", {
+                    body: {
+                      prompt,
+                      company_id: companyId,
+                      client_id: clientId,
+                      style: config.imageStyle || "cinematic photography",
+                      background_only: true,
+                      aspect_ratio: "4:5",
+                    },
+                  });
+                if (!imgError && imgData?.success && imgData?.image_url) {
+                  bgUrl = imgData.image_url;
+                } else {
+                  console.warn(
+                    `[template] slide ${i + 1} AI bg failed:`,
+                    imgError ?? imgData?.error,
+                  );
+                }
+              } else {
+                // pexels
+                setGenerationProgress({
+                  current: i + 1,
+                  total,
+                  statusMessage: `Buscando no Pexels (fundo) — slide ${i + 1} de ${total}...`,
+                });
+                bgUrl = await fetchPexelsForSlide(
+                  slideText,
+                  companyId,
+                  "portrait",
+                );
+                if (!bgUrl) {
+                  console.warn(
+                    `[template] slide ${i + 1} Pexels bg: no result`,
+                  );
+                }
+              }
+
+              if (bgUrl) {
+                updateSlide(slide.id, {
+                  bg_image_url: bgUrl,
+                  bg_image_source: bgSource,
+                });
+              }
+            } catch (err) {
+              console.error(`[template] slide ${i + 1} bg error:`, err);
+            }
+          }
+
+          // ── Content image ──
+          if (contentSource === "ai" || contentSource === "pexels") {
+            try {
+              let contentUrl: string | null = null;
+              const contentLayout =
+                templateSlide?.content_image_layout ?? "1_thumb_16_9";
+              const orientation: "portrait" | "landscape" | "square" =
+                contentLayout === "2_vertical"
+                  ? "portrait"
+                  : contentLayout === "1_square" ||
+                      contentLayout === "4_square_2x2"
+                    ? "square"
+                    : "landscape";
+
+              if (contentSource === "ai") {
+                setGenerationProgress({
+                  current: i + 1,
+                  total,
+                  statusMessage: `Gerando imagem IA (conteúdo) — slide ${i + 1} de ${total}...`,
+                });
+                const prompt =
+                  [
+                    slideText.headline,
+                    slideText.subtitle,
+                    slide.visual_description,
+                    config.prompt,
+                  ]
+                    .filter(Boolean)
+                    .join(" — ") || `Slide ${i + 1}`;
+                const { data: cData, error: cError } =
+                  await supabase.functions.invoke("generate-image-ai", {
+                    body: {
+                      prompt,
+                      company_id: companyId,
+                      client_id: clientId,
+                      style: config.imageStyle || "cinematic photography",
+                      background_only: true,
+                      aspect_ratio:
+                        orientation === "portrait"
+                          ? "9:16"
+                          : orientation === "square"
+                            ? "1:1"
+                            : "16:9",
+                    },
+                  });
+                if (!cError && cData?.success && cData?.image_url) {
+                  contentUrl = cData.image_url;
+                } else {
+                  console.warn(
+                    `[template] slide ${i + 1} AI content failed:`,
+                    cError ?? cData?.error,
+                  );
+                }
+              } else {
+                // pexels
+                setGenerationProgress({
+                  current: i + 1,
+                  total,
+                  statusMessage: `Buscando no Pexels (conteúdo) — slide ${i + 1} de ${total}...`,
+                });
+                contentUrl = await fetchPexelsForSlide(
+                  slideText,
+                  companyId,
+                  orientation,
+                );
+                if (!contentUrl) {
+                  console.warn(
+                    `[template] slide ${i + 1} Pexels content: no result`,
+                  );
+                }
+              }
+
+              if (contentUrl) {
+                updateSlide(slide.id, {
+                  content_image_urls: contentUrl,
+                  content_image_source: contentSource,
+                });
+              }
+            } catch (err) {
+              console.error(`[template] slide ${i + 1} content error:`, err);
+            }
+          }
+
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      } else if (
+        config.generateAIImages !== false &&
+        config.imageMode !== "none"
+      ) {
         // Modo "both": intercalar — ciclo de 3 posições por slide
         // 0: bg_image_url | 1: content below_subtitle | 2: content above_title
         type SlideTarget =
