@@ -952,7 +952,7 @@ export default function CarouselStudio() {
     } finally {
       setIsGeneratingContent(false);
     }
-  }, [activeSlide, project, updateSlide]);
+  }, [activeSlide, project, updateSlide, carouselCopywriter]);
 
   const handleDownloadSlide = useCallback(async () => {
     if (!activeSlide || !project) return;

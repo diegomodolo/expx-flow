@@ -34,6 +34,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients, Client } from "@/hooks/useClients";
 import {
+  useClientCopywriter,
+  serializeCopywriter,
+} from "@/hooks/useClientCopywriter";
+import {
   StudioProject,
   StudioSlide,
   FontPair,
@@ -90,6 +94,8 @@ export function RegenerateModal({
 
   const selectedClient: Client | null =
     clients.find((c) => c.id === selectedClientId) ?? null;
+
+  const { data: copywriter } = useClientCopywriter(selectedClientId);
 
   // Inicializa com os dados atuais do projeto
   useEffect(() => {
@@ -207,6 +213,8 @@ export function RegenerateModal({
             project_id: project.id,
             prompt,
             slides_count: slidesCount,
+            copywriter_instructions:
+              serializeCopywriter(copywriter) ?? undefined,
           },
         },
       );
