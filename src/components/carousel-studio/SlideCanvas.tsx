@@ -450,7 +450,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                     fontFamily: fonts.titleFont,
                     fontSize: slide.font_size_title,
                     fontWeight: 900,
-                    lineHeight: `${slide.line_spacing}%`,
+                    lineHeight: slide.line_spacing / 100,
                     wordBreak: "break-word",
                   }}
                 >
@@ -466,7 +466,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                   style={{
                     fontFamily: fonts.subtitleFont,
                     fontSize: slide.font_size_subtitle,
-                    lineHeight: `${slide.line_spacing_subtitle ?? slide.line_spacing}%`,
+                    lineHeight:
+                      (slide.line_spacing_subtitle ?? slide.line_spacing) / 100,
                   }}
                 >
                   {slide.subtitle}
