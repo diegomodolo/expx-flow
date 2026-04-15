@@ -68,6 +68,9 @@ export type FontPair =
   | "raleway_playfair"
   | "outfit_caveat";
 
+/** Origin of an image set on a slide. */
+export type ImageSource = "ai" | "pexels" | "manual";
+
 export interface StudioProject {
   id: string;
   company_id: string;
@@ -165,6 +168,10 @@ export interface StudioSlide {
   /** Margem inferior da imagem de conteúdo em relação ao texto (px) */
   content_image_margin_bottom: number;
   exported_image_url: string | null;
+  /** Origem da imagem de fundo. Null = sem imagem. */
+  bg_image_source: ImageSource | null;
+  /** Origem das imagens de conteúdo. Null = sem imagem. */
+  content_image_source: ImageSource | null;
   /** Habilita bloco de bullet points independente */
   bullets_enabled: boolean;
   /** Array JSON de strings ex: '["Item 1","Item 2"]' */
