@@ -25,7 +25,9 @@ import {
   ImageMode,
   WizardConfig,
   FONT_PAIR_LABELS,
+  CarouselTemplate,
 } from "./types";
+import { useClientTemplates } from "@/hooks/useCarouselStudioTemplates";
 import {
   Sparkles,
   PenLine,
@@ -35,6 +37,7 @@ import {
   ChevronsUpDown,
   Check,
   User,
+  LayoutTemplate,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -62,6 +65,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   fontPair: "space_inter",
   accentColor: "#FFD700",
   clientId: null,
+  selectedTemplate: null,
 };
 
 const ACCENT_COLORS = [
@@ -93,7 +97,11 @@ export function StudioWizardModal({
   const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
   const [urlRationale, setUrlRationale] = useState<string | null>(null);
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
+  );
   const { clients, loading: loadingClients } = useClients();
+  const { data: clientTemplates } = useClientTemplates(config.clientId);
 
   const update = (patch: Partial<WizardConfig>) =>
     setConfig((c) => ({ ...c, ...patch }));
@@ -206,6 +214,24 @@ export function StudioWizardModal({
     return TEAM_COLOR_TO_HEX[raw] ?? "";
   };
 
+  const handleSelectTemplate = (template: CarouselTemplate) => {
+    if (selectedTemplateId === template.id) {
+      setSelectedTemplateId(null);
+      update({ selectedTemplate: null });
+      return;
+    }
+    setSelectedTemplateId(template.id);
+    update({
+      style: template.style,
+      fontPair: template.font_pair as typeof config.fontPair,
+      accentColor: template.accent_color,
+      instagramHandle: template.instagram_handle ?? config.instagramHandle,
+      imageMode: template.image_mode as typeof config.imageMode,
+      slidesCount: template.slides_count,
+      selectedTemplate: template.slides_config,
+    });
+  };
+
   const handleSelectClient = (clientId: string | null) => {
     setClientPickerOpen(false);
     if (!clientId) {
@@ -228,7 +254,8 @@ export function StudioWizardModal({
       if (hex) patch.accentColor = hex;
     }
 
-    update(patch);
+    setSelectedTemplateId(null);
+    update({ ...patch, selectedTemplate: null });
   };
 
   const handleReset = () => {
@@ -237,6 +264,7 @@ export function StudioWizardModal({
     setUrlInput("");
     setUrlRationale(null);
     setClientPickerOpen(false);
+    setSelectedTemplateId(null);
   };
 
   React.useEffect(() => {
@@ -625,6 +653,52 @@ export function StudioWizardModal({
                     );
                   })()}
               </div>
+
+              {/* Seção de Templates do Cliente */}
+              {config.clientId &&
+                clientTemplates &&
+                clientTemplates.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <LayoutTemplate className="w-3 h-3" />
+                      TEMPLATES DO CLIENTE
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {clientTemplates.map((template) => {
+                        const isSelected = selectedTemplateId === template.id;
+                        return (
+                          <button
+                            key={template.id}
+                            onClick={() => handleSelectTemplate(template)}
+                            className={`p-3 rounded-lg border-2 text-left transition-colors relative ${
+                              isSelected
+                                ? "border-primary bg-primary/10"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                                <Check className="w-2.5 h-2.5" />
+                              </div>
+                            )}
+                            <div className="text-xs font-medium truncate pr-5">
+                              {template.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {template.slides_count} slides
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedTemplateId && (
+                      <p className="text-xs text-primary flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Estilo, fontes e cores atualizados com o template
+                      </p>
+                    )}
+                  </div>
+                )}
 
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">

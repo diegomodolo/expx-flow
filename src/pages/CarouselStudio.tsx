@@ -19,6 +19,7 @@ import { CaptionModal } from "@/components/carousel-studio/CaptionModal";
 import { RegenerateModal } from "@/components/carousel-studio/RegenerateModal";
 import { SendToContentPlanModal } from "@/components/carousel-studio/SendToContentPlanModal";
 import { PublishCarouselModal } from "@/components/generators/PublishCarouselModal";
+import { SaveTemplateModal } from "@/components/carousel-studio/SaveTemplateModal";
 import {
   StudioSlide,
   StudioProject,
@@ -49,6 +50,7 @@ export default function CarouselStudio() {
   const [captionOpen, setCaptionOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [sendToPlanOpen, setSendToPlanOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [publishCarousel, setPublishCarousel] = useState<{
     id: string;
     carousel_type: string;
@@ -185,23 +187,28 @@ export default function CarouselStudio() {
                 ? "bottom_left"
                 : LEFT_POSITIONS[idx % LEFT_POSITIONS.length];
 
-            const patch: Partial<StudioSlide> = {
-              text_alignment: "left",
-              text_position: textPosition,
-            };
+            const patch: Partial<StudioSlide> = {};
 
-            // Margem vertical baseada na posição (padrão geral)
-            if (textPosition.startsWith("bottom_")) patch.text_padding_y = 150;
-            else if (textPosition.startsWith("top_"))
-              patch.text_padding_y = 132;
+            // Só aplica defaults de posição/estilo se NÃO veio de template
+            // (template já foi aplicado no banco antes do navigate)
+            if (!config.selectedTemplate) {
+              patch.text_alignment = "left";
+              patch.text_position = textPosition;
 
-            // Slide 1 (capa): bottom_left 196px, fonte 80px, overlay base_strong 100%
-            if (idx === 0) {
-              patch.font_size_title = 80;
-              patch.text_padding_y = 196;
-              patch.overlay_style = "base_strong";
-              patch.overlay_opacity = 100;
+              if (textPosition.startsWith("bottom_"))
+                patch.text_padding_y = 150;
+              else if (textPosition.startsWith("top_"))
+                patch.text_padding_y = 132;
+
+              if (idx === 0) {
+                patch.font_size_title = 80;
+                patch.text_padding_y = 196;
+                patch.overlay_style = "base_strong";
+                patch.overlay_opacity = 100;
+              }
             }
+
+            // Headline e subtitle sempre aplicados (independente do template)
             if (s.headline != null) patch.headline = s.headline;
             if (s.subtitle != null) patch.subtitle = s.subtitle;
             updateSlide(s.id, patch);
@@ -981,6 +988,7 @@ export default function CarouselStudio() {
           onOpenPublish={handleOpenPublish}
           isPreparingPublish={preparingPublish}
           onSave={flushAll}
+          onOpenSaveTemplate={() => setSaveTemplateOpen(true)}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -1107,6 +1115,15 @@ export default function CarouselStudio() {
             setPublishCarousel(null);
             toast.success("Publicação agendada!");
           }}
+        />
+      )}
+
+      {project && slides && slides.length > 0 && (
+        <SaveTemplateModal
+          open={saveTemplateOpen}
+          onOpenChange={setSaveTemplateOpen}
+          project={project}
+          slides={slides}
         />
       )}
     </DashboardLayout>
