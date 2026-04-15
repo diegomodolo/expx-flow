@@ -12,7 +12,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, slides, company_id } = await req.json();
+    const { project_id, slides, company_id, copywriter_instructions } =
+      await req.json();
 
     if (!slides || !Array.isArray(slides) || slides.length === 0) {
       return new Response(
@@ -45,11 +46,17 @@ Responda APENAS com JSON válido no formato:
       `[generate-carousel-caption] Gerando legenda para ${slides.length} slide(s), project_id=${project_id}`,
     );
 
+    const baseSystemPrompt =
+      "Você é um copywriter especialista em Instagram. Crie legendas envolventes com gancho forte, valor real e CTA persuasivo. Retorne apenas JSON válido.";
+
+    const systemPrompt = copywriter_instructions?.trim()
+      ? `${baseSystemPrompt}\n\nINSTRUÇÕES DE COPYWRITER DO CLIENTE:\n${copywriter_instructions}\n\nSiga RIGOROSAMENTE essas instruções de tom, linguagem e regras de copy ao gerar a legenda.`
+      : baseSystemPrompt;
+
     const aiResult = await callAI({
       functionName: "generate-carousel-caption",
       companyId: company_id,
-      systemPrompt:
-        "Você é um copywriter especialista em Instagram. Crie legendas envolventes com gancho forte, valor real e CTA persuasivo. Retorne apenas JSON válido.",
+      systemPrompt,
       userPrompt,
       maxTokens: 600,
       temperature: 0.7,
