@@ -68,7 +68,7 @@ export type FontPair =
   | "raleway_playfair"
   | "outfit_caveat";
 
-/** Origin of an image set on a slide. */
+/** Origem de uma imagem definida em um slide. */
 export type ImageSource = "ai" | "pexels" | "manual";
 
 export interface StudioProject {
