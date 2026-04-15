@@ -30,14 +30,12 @@ import {
   Edit3,
 } from "lucide-react";
 import { StudioWizardModal } from "@/components/carousel-studio/StudioWizardModal";
+import { StudioProjectsGrid } from "@/components/carousel-studio/StudioProjectsGrid";
 import {
   WizardConfig,
   TemplateSlideConfig,
 } from "@/components/carousel-studio/types";
-import {
-  useCreateStudioProject,
-  useCarouselStudioProjects,
-} from "@/hooks/useCarouselStudioProject";
+import { useCreateStudioProject } from "@/hooks/useCarouselStudioProject";
 import { toast } from "sonner";
 import { handleNoApiKeyError } from "@/lib/invokeWithRetry";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -139,9 +137,6 @@ export default function GeradorCarrosseis() {
   // Studio state
   const [wizardOpen, setWizardOpen] = useState(false);
   const createProject = useCreateStudioProject();
-  const { data: studioProjects } = useCarouselStudioProjects(
-    activeCompany?.company_id,
-  );
 
   const { clients, loading: isLoadingClients } = useClients();
 
@@ -784,43 +779,10 @@ export default function GeradorCarrosseis() {
                 </CardContent>
               </Card>
 
-              {studioProjects && studioProjects.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                    Projetos recentes
-                  </h3>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {studioProjects.map((p) => (
-                      <Card
-                        key={p.id}
-                        className="cursor-pointer hover:border-primary transition-colors"
-                        onClick={() =>
-                          navigate(`/geradores/carrosseis/studio/${p.id}`)
-                        }
-                      >
-                        <CardContent className="p-4">
-                          {p.thumbnail_url && (
-                            <img
-                              src={p.thumbnail_url}
-                              className="w-full h-24 object-cover rounded mb-3"
-                              alt=""
-                            />
-                          )}
-                          <div className="font-medium text-sm truncate">
-                            {p.title}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {p.slides_count} slides •{" "}
-                            {p.style === "minimalist"
-                              ? "Minimalista"
-                              : "Profile"}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <StudioProjectsGrid
+                companyId={companyId}
+                onCreateNew={() => setWizardOpen(true)}
+              />
             </div>
 
             <StudioWizardModal
