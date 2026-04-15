@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Instagram,
@@ -49,6 +50,8 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  onCaptionChange?: (caption: string, hashtags: string) => void;
+  instagramUsername?: string | null;
 }
 
 interface ClientAccounts {
@@ -58,11 +61,135 @@ interface ClientAccounts {
   instagram_account?: { username: string } | null;
 }
 
+interface SlideForMockup {
+  image_url?: string;
+  [key: string]: unknown;
+}
+
+function InstagramMockup({
+  slides,
+  currentSlide,
+  onNavigate,
+  username,
+  caption,
+  hashtags,
+}: {
+  slides: SlideForMockup[];
+  currentSlide: number;
+  onNavigate: (i: number) => void;
+  username: string;
+  caption: string;
+  hashtags: string;
+}) {
+  const total = slides.length;
+  const imgUrl = slides[currentSlide]?.image_url ?? null;
+  const captionPreview = [caption, hashtags].filter(Boolean).join("\n\n");
+  const truncated =
+    captionPreview.length > 80
+      ? captionPreview.slice(0, 80) + "..."
+      : captionPreview;
+
+  return (
+    <div
+      className="rounded-[2rem] border-2 border-zinc-700 bg-black overflow-hidden"
+      style={{ width: 280 }}
+    >
+      {/* Status bar decorativa */}
+      <div className="h-5 bg-black flex items-center justify-between px-5">
+        <span className="text-white text-[9px]">9:41</span>
+        <span className="text-white text-[9px]">● ● ●</span>
+      </div>
+
+      {/* Header Instagram */}
+      <div className="bg-white flex items-center justify-between px-3 py-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex-shrink-0" />
+          <span className="text-xs font-semibold text-black">{username}</span>
+        </div>
+        <span className="text-black text-lg leading-none">···</span>
+      </div>
+
+      {/* Área da imagem */}
+      <div
+        className="relative bg-black"
+        style={{ aspectRatio: "1/1", width: 280 }}
+      >
+        {imgUrl ? (
+          <img
+            src={imgUrl}
+            alt={`Slide ${currentSlide + 1}`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Layers className="w-10 h-10 text-zinc-600" />
+          </div>
+        )}
+
+        {/* Seta esquerda */}
+        {currentSlide > 0 && (
+          <button
+            onClick={() => onNavigate(currentSlide - 1)}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center text-xs"
+          >
+            ‹
+          </button>
+        )}
+
+        {/* Seta direita */}
+        {currentSlide < total - 1 && (
+          <button
+            onClick={() => onNavigate(currentSlide + 1)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center text-xs"
+          >
+            ›
+          </button>
+        )}
+
+        {/* Dots de navegação */}
+        {total > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {Array.from({ length: total }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => onNavigate(i)}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  i === currentSlide ? "bg-blue-400" : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Ações decorativas */}
+      <div className="bg-white px-3 py-2 flex items-center gap-3">
+        <span className="text-black text-base">♡</span>
+        <span className="text-black text-base">💬</span>
+        <span className="text-black text-base">✈</span>
+        <span className="text-black text-base ml-auto">🔖</span>
+      </div>
+
+      {/* Caption preview */}
+      <div className="bg-white px-3 pb-3">
+        <p className="text-[11px] text-black leading-snug">
+          <span className="font-semibold">{username}</span>{" "}
+          {truncated || (
+            <span className="text-zinc-400 italic">sem legenda</span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function PublishCarouselModal({
   carousel,
   open,
   onOpenChange,
   onSuccess,
+  onCaptionChange,
+  instagramUsername,
 }: Props) {
   const [publishing, setPublishing] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -70,6 +197,9 @@ export function PublishCarouselModal({
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [caption, setCaption] = useState(carousel.caption ?? "");
+  const [hashtags, setHashtags] = useState(carousel.hashtags ?? "");
 
   useEffect(() => {
     if (open) {
@@ -139,11 +269,9 @@ export function PublishCarouselModal({
       }
 
       // Build caption with hashtags
-      let fullCaption = carousel.caption || "";
-      if (carousel.hashtags) {
-        fullCaption = fullCaption
-          ? `${fullCaption}\n\n${carousel.hashtags}`
-          : carousel.hashtags;
+      let fullCaption = caption || "";
+      if (hashtags) {
+        fullCaption = fullCaption ? `${fullCaption}\n\n${hashtags}` : hashtags;
       }
 
       // Get company_id from the carousel
@@ -220,7 +348,7 @@ export function PublishCarouselModal({
       }
     } catch (error: unknown) {
       console.error("Error publishing carousel:", error);
-      toast.error("Erro ao publicar: " + error.message);
+      toast.error("Erro ao publicar: " + (error as Error).message);
     } finally {
       setPublishing(false);
     }
@@ -230,12 +358,9 @@ export function PublishCarouselModal({
   const hasFacebook = !!clientAccounts?.facebook_page_id;
   const hasAnyAccount = hasInstagram || hasFacebook;
 
-  // Get first slide image for preview
-  const previewImage = carousel.slides.find((s) => s.image_url)?.image_url;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5" />
@@ -260,112 +385,148 @@ export function PublishCarouselModal({
             </AlertDescription>
           </Alert>
         ) : (
-          <div className="space-y-6">
-            {/* Preview do carrossel */}
-            <div className="relative aspect-square max-h-48 mx-auto overflow-hidden rounded-lg bg-muted">
-              {previewImage ? (
-                <img
-                  alt="Imagem descritiva"
-                  src={previewImage}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
+          <div className="flex gap-6">
+            {/* Coluna esquerda — mockup Instagram */}
+            <div className="flex-shrink-0">
+              <InstagramMockup
+                slides={carousel.slides}
+                currentSlide={currentSlide}
+                onNavigate={setCurrentSlide}
+                username={
+                  instagramUsername ??
+                  (
+                    clientAccounts?.instagram_account as unknown as {
+                      username: string;
+                    } | null
+                  )?.username ??
+                  "instagram"
+                }
+                caption={caption}
+                hashtags={hashtags}
+              />
+            </div>
+
+            {/* Coluna direita — controles */}
+            <div className="flex-1 flex flex-col gap-4">
+              {/* Legenda */}
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Legenda</Label>
+                <Textarea
+                  value={caption}
+                  onChange={(e) => {
+                    setCaption(e.target.value);
+                    onCaptionChange?.(e.target.value, hashtags);
+                  }}
+                  className="min-h-[100px] text-sm resize-none"
+                  placeholder="Legenda do post..."
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Layers className="h-12 w-12 text-muted-foreground" />
-                </div>
-              )}
-              {/* Slide count badge */}
-              <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                <Layers className="h-3 w-3" />
-                {carousel.slides.length} slides
               </div>
-            </div>
 
-            {/* Seleção de plataformas */}
-            <div className="space-y-4">
-              <Label className="text-base font-medium">Publicar em:</Label>
+              {/* Hashtags */}
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Hashtags</Label>
+                <Textarea
+                  value={hashtags}
+                  onChange={(e) => {
+                    setHashtags(e.target.value);
+                    onCaptionChange?.(caption, e.target.value);
+                  }}
+                  className="min-h-[60px] text-sm resize-none"
+                  placeholder="#marketing #carrossel..."
+                />
+              </div>
 
-              {hasInstagram && (
-                <div
-                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedPlatforms.includes("instagram")
-                      ? "border-pink-500 bg-pink-500/10"
-                      : "border-border hover:border-pink-300"
-                  }`}
-                  onClick={() => togglePlatform("instagram")}
-                >
-                  <Checkbox
-                    id="instagram"
-                    checked={selectedPlatforms.includes("instagram")}
-                    onCheckedChange={() => togglePlatform("instagram")}
-                  />
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="p-2 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500">
-                      <Instagram className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Instagram</p>
-                      <p className="text-sm text-muted-foreground">
-                        @
-                        {(clientAccounts?.instagram_account as unknown)
-                          ?.username || "conta"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Seleção de plataformas */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Publicar em:</Label>
 
-              {hasFacebook && (
-                <div
-                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedPlatforms.includes("facebook")
-                      ? "border-blue-500 bg-blue-500/10"
-                      : "border-border hover:border-blue-300"
-                  }`}
-                  onClick={() => togglePlatform("facebook")}
-                >
-                  <Checkbox
-                    id="facebook"
-                    checked={selectedPlatforms.includes("facebook")}
-                    onCheckedChange={() => togglePlatform("facebook")}
-                  />
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="p-2 rounded-full bg-blue-600">
-                      <Facebook className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Facebook</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(clientAccounts?.facebook_page as unknown)
-                          ?.page_name || "Página"}
-                      </p>
+                {hasInstagram && (
+                  <div
+                    className={`flex items-center space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      selectedPlatforms.includes("instagram")
+                        ? "border-pink-500 bg-pink-500/10"
+                        : "border-border hover:border-pink-300"
+                    }`}
+                    onClick={() => togglePlatform("instagram")}
+                  >
+                    <Checkbox
+                      id="instagram"
+                      checked={selectedPlatforms.includes("instagram")}
+                      onCheckedChange={() => togglePlatform("instagram")}
+                    />
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="p-2 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500">
+                        <Instagram className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Instagram</p>
+                        <p className="text-xs text-muted-foreground">
+                          @
+                          {(
+                            clientAccounts?.instagram_account as unknown as {
+                              username: string;
+                            } | null
+                          )?.username ?? "conta"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
 
-            {/* Botão de publicar */}
-            <Button
-              onClick={handlePublish}
-              disabled={publishing || selectedPlatforms.length === 0}
-              className="w-full"
-              size="lg"
-            >
-              {publishing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Publicando...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Publicar em {selectedPlatforms.length} plataforma
-                  {selectedPlatforms.length !== 1 ? "s" : ""}
-                </>
-              )}
-            </Button>
+                {hasFacebook && (
+                  <div
+                    className={`flex items-center space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      selectedPlatforms.includes("facebook")
+                        ? "border-blue-500 bg-blue-500/10"
+                        : "border-border hover:border-blue-300"
+                    }`}
+                    onClick={() => togglePlatform("facebook")}
+                  >
+                    <Checkbox
+                      id="facebook"
+                      checked={selectedPlatforms.includes("facebook")}
+                      onCheckedChange={() => togglePlatform("facebook")}
+                    />
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="p-2 rounded-full bg-blue-600">
+                        <Facebook className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Facebook</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(
+                            clientAccounts?.facebook_page as unknown as {
+                              page_name: string;
+                            } | null
+                          )?.page_name ?? "Página"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Botão publicar */}
+              <Button
+                onClick={handlePublish}
+                disabled={publishing || selectedPlatforms.length === 0}
+                className="w-full mt-auto"
+                size="lg"
+              >
+                {publishing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Publicando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Publicar em {selectedPlatforms.length} plataforma
+                    {selectedPlatforms.length !== 1 ? "s" : ""}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
