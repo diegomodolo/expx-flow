@@ -30,7 +30,10 @@ import {
   Edit3,
 } from "lucide-react";
 import { StudioWizardModal } from "@/components/carousel-studio/StudioWizardModal";
-import { WizardConfig } from "@/components/carousel-studio/types";
+import {
+  WizardConfig,
+  TemplateSlideConfig,
+} from "@/components/carousel-studio/types";
 import {
   useCreateStudioProject,
   useCarouselStudioProjects,
@@ -336,9 +339,35 @@ export default function GeradorCarrosseis() {
         .insert(slideRows);
       if (error) throw error;
 
+      // Buscar slides recém-criados para aplicar template
+      const { data: createdSlides, error: fetchError } = await supabase
+        .from("carousel_studio_slides")
+        .select("id, slide_number")
+        .eq("project_id", projectId)
+        .order("slide_number");
+      if (fetchError) throw fetchError;
+
+      // Aplicar config visual do template (se existir)
+      if (
+        config.selectedTemplate &&
+        config.selectedTemplate.length > 0 &&
+        createdSlides
+      ) {
+        for (const slide of createdSlides) {
+          const templateSlide = config.selectedTemplate.find(
+            (t: TemplateSlideConfig) => t.slide_number === slide.slide_number,
+          );
+          if (!templateSlide) continue;
+          await supabase
+            .from("carousel_studio_slides")
+            .update(templateSlide)
+            .eq("id", slide.id);
+        }
+      }
+
       setWizardOpen(false);
       navigate(`/geradores/carrosseis/studio/${projectId}`, {
-        state: { autoGenerate: true, config },
+        state: { autoGenerate: config.useAI, config },
       });
     } catch (err) {
       console.error("Erro ao criar projeto no Studio:", err);
