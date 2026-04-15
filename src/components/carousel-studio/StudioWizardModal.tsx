@@ -62,6 +62,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   fontPair: "space_inter",
   accentColor: "#FFD700",
   clientId: null,
+  selectedTemplate: null,
 };
 
 const ACCENT_COLORS = [

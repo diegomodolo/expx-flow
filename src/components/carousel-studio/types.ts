@@ -199,6 +199,45 @@ export interface StudioSlide {
   updated_at: string;
 }
 
+/**
+ * Campos visuais de um slide salvos no template.
+ * Exclui conteúdo textual, imagens e metadados.
+ */
+export type TemplateSlideConfig = Omit<
+  StudioSlide,
+  | "id"
+  | "project_id"
+  | "headline"
+  | "subtitle"
+  | "visual_description"
+  | "bg_image_url"
+  | "bg_position_x"
+  | "bg_position_y"
+  | "bg_zoom"
+  | "content_image_urls"
+  | "badge_photo_url"
+  | "badge_name_text"
+  | "exported_image_url"
+  | "created_at"
+  | "updated_at"
+>;
+
+export interface CarouselTemplate {
+  id: string;
+  company_id: string;
+  client_id: string;
+  name: string;
+  style: CarouselStyle;
+  font_pair: FontPair;
+  accent_color: string;
+  instagram_handle: string | null;
+  image_mode: ImageMode;
+  slides_count: number;
+  slides_config: TemplateSlideConfig[];
+  created_at: string;
+  updated_at: string;
+}
+
 // Wizard config coletada nos 4 passos
 export interface WizardConfig {
   style: CarouselStyle;
@@ -213,6 +252,8 @@ export interface WizardConfig {
   fontPair: FontPair;
   accentColor: string;
   clientId: string | null;
+  /** Config visual dos slides do template selecionado. Null = sem template. */
+  selectedTemplate: TemplateSlideConfig[] | null;
 }
 
 export const FONT_PAIR_LABELS: Record<
