@@ -112,7 +112,10 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
       const url = await uploadImageFile(file);
       const next = [...urls];
       next[index] = url;
-      setUrls(next);
+      onChange({
+        content_image_urls: next.filter(Boolean).join(",") || null,
+        content_image_source: "manual",
+      });
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erro ao fazer upload da imagem");
     } finally {
@@ -123,7 +126,11 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
   const handleRemove = (index: number) => {
     const next = [...urls];
     next.splice(index, 1);
-    setUrls(next);
+    const joined = next.filter(Boolean).join(",") || null;
+    onChange({
+      content_image_urls: joined,
+      content_image_source: joined ? slide.content_image_source : null,
+    });
   };
 
   const bgImageUrl = slide.use_shared_bg
@@ -137,7 +144,10 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
     }
     const next = [...urls];
     next[index] = bgImageUrl;
-    setUrls(next);
+    onChange({
+      content_image_urls: next.filter(Boolean).join(",") || null,
+      content_image_source: "manual",
+    });
     toast.success("Imagem de fundo copiada");
   };
 
@@ -149,7 +159,10 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
     const url = await proxyExternalImage(photo.large, project.company_id);
     const next = [...urls];
     next[idx] = url;
-    setUrls(next);
+    onChange({
+      content_image_urls: next.filter(Boolean).join(",") || null,
+      content_image_source: "pexels",
+    });
     toast.success("Foto do Pexels adicionada");
   };
 
@@ -182,7 +195,10 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
 
       const next = [...urls];
       next[index] = data.image_url;
-      setUrls(next);
+      onChange({
+        content_image_urls: next.filter(Boolean).join(",") || null,
+        content_image_source: "ai",
+      });
       toast.success("Imagem gerada!");
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erro ao gerar imagem");
@@ -201,7 +217,11 @@ export function ImageContentSection({ slide, project, onChange }: Props) {
           <Switch
             checked={enabled}
             onCheckedChange={(v) => {
-              if (!v) setUrls([]);
+              if (!v)
+                onChange({
+                  content_image_urls: null,
+                  content_image_source: null,
+                });
             }}
           />
           <Label className="text-xs text-muted-foreground">
