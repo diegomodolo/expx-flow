@@ -87,6 +87,50 @@ export function useCreateTemplate() {
   });
 }
 
+export interface UpdateTemplatePayload {
+  templateId: string;
+  clientId: string;
+  companyId: string;
+  name: string;
+  style: string;
+  fontPair: string;
+  accentColor: string;
+  instagramHandle: string | null;
+  imageMode: string;
+  slidesCount: number;
+  slidesConfig: TemplateSlideConfig[];
+}
+
+export function useUpdateTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: UpdateTemplatePayload) => {
+      const { error } = await supabase
+        .from("carousel_studio_templates")
+        .update({
+          name: payload.name,
+          style: payload.style,
+          font_pair: payload.fontPair,
+          accent_color: payload.accentColor,
+          instagram_handle: payload.instagramHandle,
+          image_mode: payload.imageMode,
+          slides_count: payload.slidesCount,
+          slides_config: payload.slidesConfig,
+        })
+        .eq("id", payload.templateId);
+      if (error) throw error;
+    },
+    onSuccess: (_, payload) => {
+      queryClient.invalidateQueries({
+        queryKey: ["carousel-studio-templates", payload.clientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["carousel-studio-templates-company", payload.companyId],
+      });
+    },
+  });
+}
+
 export function useDeleteTemplate() {
   const queryClient = useQueryClient();
   return useMutation({

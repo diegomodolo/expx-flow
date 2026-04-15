@@ -25,7 +25,11 @@ import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useClients } from "@/hooks/useClients";
-import { useCreateTemplate } from "@/hooks/useCarouselStudioTemplates";
+import {
+  useCreateTemplate,
+  useUpdateTemplate,
+  useClientTemplates,
+} from "@/hooks/useCarouselStudioTemplates";
 import { StudioProject, StudioSlide, TemplateSlideConfig } from "./types";
 
 interface Props {
@@ -60,17 +64,48 @@ function extractVisualConfig(slide: StudioSlide): TemplateSlideConfig {
   ) as TemplateSlideConfig;
 }
 
+type Mode = "create" | "update";
+
 export function SaveTemplateModal({
   open,
   onOpenChange,
   project,
   slides,
 }: Props) {
+  const [mode, setMode] = useState<Mode>("create");
   const [name, setName] = useState(project.title.slice(0, 60));
   const [clientId, setClientId] = useState<string>(project.client_id ?? "");
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+
   const { clients, loading: loadingClients } = useClients();
+  const { data: existingTemplates } = useClientTemplates(clientId || null);
   const createTemplate = useCreateTemplate();
+  const updateTemplate = useUpdateTemplate();
+
+  const hasTemplates = (existingTemplates?.length ?? 0) > 0;
+  const selectedTemplate = existingTemplates?.find(
+    (t) => t.id === selectedTemplateId,
+  );
+
+  // Ao trocar de cliente, volta ao modo criar e limpa seleção
+  const handleClientChange = (id: string) => {
+    setClientId(id);
+    setSelectedTemplateId("");
+    setMode("create");
+    setClientPickerOpen(false);
+  };
+
+  // Ao selecionar template para atualizar, preenche o nome
+  const handleTemplateSelect = (id: string) => {
+    setSelectedTemplateId(id);
+    const t = existingTemplates?.find((t) => t.id === id);
+    if (t) setName(t.name);
+    setTemplatePickerOpen(false);
+  };
+
+  const isPending = createTemplate.isPending || updateTemplate.isPending;
 
   const handleSave = async () => {
     if (!clientId) {
@@ -81,6 +116,10 @@ export function SaveTemplateModal({
       toast.error("Informe um nome para o template");
       return;
     }
+    if (mode === "update" && !selectedTemplateId) {
+      toast.error("Selecione qual template deseja atualizar");
+      return;
+    }
 
     const slidesConfig = slides
       .slice()
@@ -88,22 +127,43 @@ export function SaveTemplateModal({
       .map(extractVisualConfig);
 
     try {
-      await createTemplate.mutateAsync({
-        companyId: project.company_id,
-        clientId,
-        name: name.trim(),
-        style: project.style,
-        fontPair: project.font_pair,
-        accentColor: project.accent_color,
-        instagramHandle: project.instagram_handle,
-        imageMode: project.image_mode,
-        slidesCount: slides.length,
-        slidesConfig,
-      });
-      toast.success("Template salvo!");
+      if (mode === "update") {
+        await updateTemplate.mutateAsync({
+          templateId: selectedTemplateId,
+          clientId,
+          companyId: project.company_id,
+          name: name.trim(),
+          style: project.style,
+          fontPair: project.font_pair,
+          accentColor: project.accent_color,
+          instagramHandle: project.instagram_handle,
+          imageMode: project.image_mode,
+          slidesCount: slides.length,
+          slidesConfig,
+        });
+        toast.success("Template atualizado!");
+      } else {
+        await createTemplate.mutateAsync({
+          companyId: project.company_id,
+          clientId,
+          name: name.trim(),
+          style: project.style,
+          fontPair: project.font_pair,
+          accentColor: project.accent_color,
+          instagramHandle: project.instagram_handle,
+          imageMode: project.image_mode,
+          slidesCount: slides.length,
+          slidesConfig,
+        });
+        toast.success("Template salvo!");
+      }
       onOpenChange(false);
     } catch {
-      toast.error("Erro ao salvar template");
+      toast.error(
+        mode === "update"
+          ? "Erro ao atualizar template"
+          : "Erro ao salvar template",
+      );
     }
   };
 
@@ -111,6 +171,8 @@ export function SaveTemplateModal({
     if (open) {
       setName(project.title.slice(0, 60));
       setClientId(project.client_id ?? "");
+      setSelectedTemplateId("");
+      setMode("create");
     }
   }, [open, project.title, project.client_id]);
 
@@ -124,23 +186,12 @@ export function SaveTemplateModal({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">
-              NOME DO TEMPLATE
-            </Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Template Dark Minimalista"
-              className="text-sm"
-            />
-          </div>
-
+          {/* Cliente */}
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">
               CLIENTE (OBRIGATÓRIO)
             </Label>
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -165,10 +216,7 @@ export function SaveTemplateModal({
                       <CommandItem
                         key={client.id}
                         value={client.name}
-                        onSelect={() => {
-                          setClientId(client.id);
-                          setPickerOpen(false);
-                        }}
+                        onSelect={() => handleClientChange(client.id)}
                       >
                         <Check
                           className={cn(
@@ -186,6 +234,98 @@ export function SaveTemplateModal({
               </PopoverContent>
             </Popover>
           </div>
+
+          {/* Modo: criar novo ou atualizar existente */}
+          {clientId && hasTemplates && (
+            <div className="flex gap-2">
+              <Button
+                variant={mode === "create" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => {
+                  setMode("create");
+                  setSelectedTemplateId("");
+                  setName(project.title.slice(0, 60));
+                }}
+              >
+                Novo template
+              </Button>
+              <Button
+                variant={mode === "update" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => setMode("update")}
+              >
+                Atualizar existente
+              </Button>
+            </div>
+          )}
+
+          {/* Seletor de template (modo update) */}
+          {mode === "update" && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                TEMPLATE A ATUALIZAR
+              </Label>
+              <Popover
+                open={templatePickerOpen}
+                onOpenChange={setTemplatePickerOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between text-sm h-9"
+                  >
+                    <span className="truncate">
+                      {selectedTemplate
+                        ? selectedTemplate.name
+                        : "Selecionar template..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar template..." />
+                    <CommandEmpty>Nenhum template encontrado.</CommandEmpty>
+                    <CommandGroup className="max-h-48 overflow-y-auto">
+                      {existingTemplates?.map((t) => (
+                        <CommandItem
+                          key={t.id}
+                          value={t.name}
+                          onSelect={() => handleTemplateSelect(t.id)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4 shrink-0",
+                              selectedTemplateId === t.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          <span className="truncate">{t.name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {/* Nome */}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">
+              NOME DO TEMPLATE
+            </Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Template Dark Minimalista"
+              className="text-sm"
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
@@ -199,12 +339,19 @@ export function SaveTemplateModal({
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={createTemplate.isPending || !name.trim() || !clientId}
+            disabled={
+              isPending ||
+              !name.trim() ||
+              !clientId ||
+              (mode === "update" && !selectedTemplateId)
+            }
           >
-            {createTemplate.isPending ? (
+            {isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Salvando...
               </>
+            ) : mode === "update" ? (
+              "Atualizar Template"
             ) : (
               "Salvar Template"
             )}
