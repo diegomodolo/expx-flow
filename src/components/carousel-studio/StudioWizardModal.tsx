@@ -42,6 +42,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useClients } from "@/hooks/useClients";
+import { ClientCopywriterModal } from "./ClientCopywriterModal";
+import {
+  useClientCopywriter,
+  serializeCopywriter,
+} from "@/hooks/useClientCopywriter";
+import { PenSquare, CheckCircle2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -103,6 +109,20 @@ export function StudioWizardModal({
   );
   const { clients, loading: loadingClients } = useClients();
   const { data: clientTemplates } = useClientTemplates(config.clientId);
+  const [copywriterModalOpen, setCopywriterModalOpen] = useState(false);
+  const { data: copywriter } = useClientCopywriter(config.clientId);
+  const hasCopywriter = !!(
+    copywriter &&
+    [
+      copywriter.tom_de_voz,
+      copywriter.publico_alvo,
+      copywriter.persona_marca,
+      copywriter.regras_de_copy,
+      copywriter.exemplos_aprovados,
+      copywriter.palavras_evitar,
+      copywriter.palavras_preferidas,
+    ].some((v) => v?.trim())
+  );
 
   const update = (patch: Partial<WizardConfig>) =>
     setConfig((c) => ({ ...c, ...patch }));
@@ -119,7 +139,8 @@ export function StudioWizardModal({
       return;
     }
     if (step === STEPS) {
-      onComplete(config);
+      const instructions = serializeCopywriter(copywriter ?? null);
+      onComplete({ ...config, copywriterInstructions: instructions });
       return;
     }
     setStep((s) => s + 1);
@@ -655,6 +676,36 @@ export function StudioWizardModal({
                   })()}
               </div>
 
+              {/* Botão de copywriter — aparece apenas quando há cliente selecionado */}
+              {config.clientId && (
+                <div>
+                  {hasCopywriter ? (
+                    <button
+                      type="button"
+                      onClick={() => setCopywriterModalOpen(true)}
+                      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg border border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400 text-xs hover:bg-green-500/20 transition-colors"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      <span className="flex-1 text-left font-medium">
+                        Copywriter configurado
+                      </span>
+                      <span className="text-green-600/70 dark:text-green-500/70">
+                        Editar →
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCopywriterModalOpen(true)}
+                      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg border border-dashed border-border text-muted-foreground text-xs hover:border-primary/50 hover:text-foreground transition-colors"
+                    >
+                      <PenSquare className="w-3.5 h-3.5 shrink-0" />
+                      <span>Configurar Copywriter</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Seção de Templates do Cliente */}
               {config.clientId &&
                 clientTemplates &&
@@ -798,6 +849,16 @@ export function StudioWizardModal({
           </Button>
         </div>
       </DialogContent>
+      {config.clientId && (
+        <ClientCopywriterModal
+          open={copywriterModalOpen}
+          onOpenChange={setCopywriterModalOpen}
+          clientId={config.clientId}
+          clientName={
+            clients.find((c) => c.id === config.clientId)?.name ?? "Cliente"
+          }
+        />
+      )}
     </Dialog>
   );
 }
