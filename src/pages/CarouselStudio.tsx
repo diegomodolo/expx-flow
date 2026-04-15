@@ -27,6 +27,10 @@ import {
 } from "@/components/carousel-studio/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
+import {
+  useClientCopywriter,
+  serializeCopywriter,
+} from "@/hooks/useClientCopywriter";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { proxyExternalImage } from "@/lib/proxyExternalImage";
@@ -119,6 +123,10 @@ export default function CarouselStudio() {
   const queryClient = useQueryClient();
   const updateClient = useUpdateStudioProjectClient();
   const updateProject = useUpdateStudioProject();
+
+  const { data: carouselCopywriter } = useClientCopywriter(
+    project?.client_id ?? null,
+  );
 
   // Resolve foto do cliente para usar como fallback no badge
   const { clients } = useClients();
@@ -926,6 +934,8 @@ export default function CarouselStudio() {
             ],
             single_slide: true,
             slide_number: activeSlide.slide_number,
+            copywriter_instructions:
+              serializeCopywriter(carouselCopywriter) ?? undefined,
           },
         },
       );

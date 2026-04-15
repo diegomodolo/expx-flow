@@ -8,6 +8,10 @@ import { RefreshCw, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StudioSlide, StudioProject } from "../types";
+import {
+  useClientCopywriter,
+  serializeCopywriter,
+} from "@/hooks/useClientCopywriter";
 
 interface Props {
   project: StudioProject;
@@ -18,6 +22,7 @@ interface Props {
 export function CaptionSection({ project, slides, onChange }: Props) {
   const [caption, setCaption] = useState(project.caption ?? "");
   const [hashtags, setHashtags] = useState(project.hashtags ?? "");
+  const { data: copywriter } = useClientCopywriter(project?.client_id ?? null);
   const [isGenerating, setIsGenerating] = useState(false);
   const captionRef = useRef<HTMLTextAreaElement>(null);
   const hashtagsRef = useRef<HTMLTextAreaElement>(null);
@@ -47,6 +52,8 @@ export function CaptionSection({ project, slides, onChange }: Props) {
               headline: s.headline,
               subtitle: s.subtitle,
             })),
+            copywriter_instructions:
+              serializeCopywriter(copywriter) ?? undefined,
           },
         },
       );
