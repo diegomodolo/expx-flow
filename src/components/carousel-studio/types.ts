@@ -119,6 +119,7 @@ export interface StudioSlide {
   font_size_subtitle: number;
   line_spacing: number;
   line_spacing_subtitle: number;
+  title_subtitle_gap: number;
   corner_style: CornerStyle;
   corner_opacity: number;
   glass_enabled: boolean;

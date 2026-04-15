@@ -445,13 +445,14 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
 
               {slide.headline && (
                 <h2
-                  className="text-white leading-none mb-3"
+                  className="text-white leading-none"
                   style={{
                     fontFamily: fonts.titleFont,
                     fontSize: slide.font_size_title,
                     fontWeight: 900,
                     lineHeight: slide.line_spacing / 100,
                     wordBreak: "break-word",
+                    marginBottom: slide.title_subtitle_gap ?? 12,
                   }}
                 >
                   {renderWithHighlight(slide.headline)}

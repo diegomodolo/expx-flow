@@ -145,6 +145,7 @@ export function FontsSection({
       font_size_subtitle: slide.font_size_subtitle,
       line_spacing: slide.line_spacing,
       line_spacing_subtitle: slide.line_spacing_subtitle,
+      title_subtitle_gap: slide.title_subtitle_gap,
       text_position: slide.text_position,
       text_alignment: slide.text_alignment,
       text_padding_x: slide.text_padding_x,
@@ -231,6 +232,18 @@ export function FontsSection({
           min={50}
           max={200}
           step={5}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">
+          Espaço título → subtítulo: {slide.title_subtitle_gap ?? 12}px
+        </Label>
+        <Slider
+          value={[slide.title_subtitle_gap ?? 12]}
+          onValueChange={([v]) => handleChange({ title_subtitle_gap: v })}
+          min={0}
+          max={120}
+          step={2}
         />
       </div>
 
