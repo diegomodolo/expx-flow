@@ -15,7 +15,6 @@ import { SlideCanvas } from "@/components/carousel-studio/SlideCanvas";
 import { StudioSidebar } from "@/components/carousel-studio/StudioSidebar";
 import { StudioTopBar } from "@/components/carousel-studio/StudioTopBar";
 import { StudioBottomBar } from "@/components/carousel-studio/StudioBottomBar";
-import { CaptionModal } from "@/components/carousel-studio/CaptionModal";
 import { RegenerateModal } from "@/components/carousel-studio/RegenerateModal";
 import { SendToContentPlanModal } from "@/components/carousel-studio/SendToContentPlanModal";
 import { PublishCarouselModal } from "@/components/generators/PublishCarouselModal";
@@ -47,7 +46,6 @@ export default function CarouselStudio() {
   } = useCarouselStudioSlides(projectId);
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const [captionOpen, setCaptionOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [sendToPlanOpen, setSendToPlanOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
@@ -746,6 +744,13 @@ export default function CarouselStudio() {
       // 1. Garantir que todas as edições pendentes estão salvas
       await flushAll();
 
+      if (!project.caption?.trim()) {
+        toast.error(
+          "Preencha a legenda antes de enviar ao planejamento (sidebar → Legenda + Hashtags)",
+        );
+        return;
+      }
+
       // 2. Exportar cada slide para storage — sempre re-renderiza para garantir
       // que a imagem reflete o estado atual do editor (não reusa URL antiga).
       const slideImages: Array<{ order: number; url: string }> = [];
@@ -763,25 +768,8 @@ export default function CarouselStudio() {
         throw new Error("Nenhuma imagem foi exportada");
       }
 
-      // 3. Gerar caption via edge function
-      let caption = "";
-      try {
-        const { data: capData } = await supabase.functions.invoke(
-          "generate-carousel-caption",
-          {
-            body: {
-              project_id: project.id,
-              slides: slides.map((s) => ({
-                headline: s.headline,
-                subtitle: s.subtitle,
-              })),
-            },
-          },
-        );
-        caption = (capData?.caption as string) ?? "";
-      } catch (err) {
-        console.warn("[send-to-plan] caption gen failed:", err);
-      }
+      // 3. Usar caption salva no projeto
+      const caption = project.caption ?? "";
 
       // 4. Descobrir próximo order_index no plano
       const { data: existingPosts } = await supabase
@@ -840,6 +828,13 @@ export default function CarouselStudio() {
       return;
     }
 
+    if (!project.caption?.trim()) {
+      toast.error(
+        "Preencha a legenda antes de publicar (sidebar → Legenda + Hashtags)",
+      );
+      return;
+    }
+
     setPreparingPublish(true);
     try {
       await flushAll();
@@ -873,32 +868,15 @@ export default function CarouselStudio() {
         throw new Error("Nenhuma imagem foi exportada");
       }
 
-      // Gera caption
-      let caption = "";
-      try {
-        const { data: capData } = await supabase.functions.invoke(
-          "generate-carousel-caption",
-          {
-            body: {
-              project_id: project.id,
-              slides: slides.map((s) => ({
-                headline: s.headline,
-                subtitle: s.subtitle,
-              })),
-            },
-          },
-        );
-        caption = (capData?.caption as string) ?? "";
-      } catch (err) {
-        console.warn("[publish] caption gen failed:", err);
-      }
+      const caption = project.caption ?? "";
+      const hashtags = project.hashtags ?? null;
 
       setPublishCarousel({
         id: project.id,
         carousel_type: "carousel",
         slides: slidesWithImages,
         caption: caption || null,
-        hashtags: null,
+        hashtags: hashtags,
         cta_text: null,
         theme: project.prompt,
         status: "ready",
@@ -982,7 +960,6 @@ export default function CarouselStudio() {
           onNext={() =>
             setActiveIndex((i) => Math.min(slides.length - 1, i + 1))
           }
-          onOpenCaption={() => setCaptionOpen(true)}
           onOpenRegenerate={() => setRegenerateOpen(true)}
           onOpenSendToPlan={() => setSendToPlanOpen(true)}
           onOpenPublish={handleOpenPublish}
@@ -1071,13 +1048,6 @@ export default function CarouselStudio() {
           onZoomChange={setUserZoom}
         />
       </div>
-
-      <CaptionModal
-        open={captionOpen}
-        onOpenChange={setCaptionOpen}
-        projectId={project.id}
-        slides={slides}
-      />
 
       <RegenerateModal
         open={regenerateOpen}

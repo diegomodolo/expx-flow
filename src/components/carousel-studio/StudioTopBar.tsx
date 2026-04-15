@@ -22,7 +22,7 @@ interface Props {
   slidesTotal: number;
   onPrev: () => void;
   onNext: () => void;
-  onOpenCaption: () => void;
+  onOpenCaption?: () => void;
   onOpenRegenerate: () => void;
   onOpenSendToPlan: () => void;
   onOpenPublish: () => void;
