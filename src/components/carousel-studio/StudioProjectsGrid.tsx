@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -8,6 +8,9 @@ import {
   MoreVertical,
   Layers,
   Search,
+  ChevronLeft,
+  ChevronRight,
+  Instagram,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -74,20 +77,32 @@ interface ProjectCardProps {
 function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
   const clientName =
     (project.clients as { id: string; name: string } | null)?.name ?? null;
-  const styleLabel = project.style === "minimalist" ? "Minimalista" : "Profile";
+
+  // Fallback de thumbnail: thumbnail_url → primeiro slide exportado → bg do primeiro slide
+  const slides =
+    (project.carousel_studio_slides as Array<{
+      slide_number: number;
+      exported_image_url: string | null;
+      bg_image_url: string | null;
+    }> | null) ?? [];
+  const firstSlide = [...slides].sort(
+    (a, b) => a.slide_number - b.slide_number,
+  )[0];
+  const thumbSrc =
+    project.thumbnail_url ??
+    firstSlide?.exported_image_url ??
+    firstSlide?.bg_image_url ??
+    null;
 
   return (
     <div className="rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      {/* Header estilo Instagram */}
+      {/* Header estilo Instagram: ícone + nome do cliente + menu */}
       <div className="flex items-center gap-2 px-3 py-2">
-        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-          <Layers className="w-4 h-4 text-muted-foreground" />
+        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+          <Instagram className="w-4 h-4 text-white" />
         </div>
-        <span
-          className="flex-1 text-sm font-medium truncate cursor-pointer"
-          onClick={onOpen}
-        >
-          {project.title}
+        <span className="flex-1 text-sm font-semibold truncate">
+          {clientName ?? "Sem cliente"}
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -112,14 +127,15 @@ function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
         </DropdownMenu>
       </div>
 
-      {/* Imagem — aspect 1:1 */}
+      {/* Imagem — aspect 4:5 */}
       <div
-        className="relative w-full aspect-square bg-muted cursor-pointer overflow-hidden"
+        className="relative w-full bg-muted cursor-pointer overflow-hidden"
+        style={{ aspectRatio: "4/5" }}
         onClick={onOpen}
       >
-        {project.thumbnail_url ? (
+        {thumbSrc ? (
           <img
-            src={project.thumbnail_url}
+            src={thumbSrc}
             alt={project.title}
             className="w-full h-full object-cover"
           />
@@ -146,49 +162,63 @@ function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
           </div>
           <Bookmark className="w-5 h-5 text-muted-foreground" />
         </div>
-        <p className="text-xs text-muted-foreground truncate">
-          {clientName ? (
-            <>
-              <span className="font-medium text-foreground">{clientName}</span>{" "}
-              •{" "}
-            </>
-          ) : null}
-          {styleLabel} • {project.slides_count} slides
+        {/* Título e info do carrossel */}
+        <p className="text-xs font-semibold text-foreground truncate">
+          {project.title}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {project.slides_count} slides
         </p>
       </div>
     </div>
   );
 }
 
+const PAGE_SIZE = 15;
+
 export function StudioProjectsGrid({
   companyId,
   onCreateNew,
 }: StudioProjectsGridProps) {
   const navigate = useNavigate();
-  const { data: projects } = useCarouselStudioProjects(companyId);
   const { clients } = useClients();
   const deleteMutation = useDeleteStudioProject();
 
   const [nameFilter, setNameFilter] = useState("");
+  const [debouncedName, setDebouncedName] = useState("");
   const [clientFilter, setClientFilter] = useState("");
+  const [page, setPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<StudioProject | null>(null);
+
+  // Debounce do filtro de nome (300ms) para não disparar query a cada tecla
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedName(nameFilter);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [nameFilter]);
+
+  // Resetar página ao mudar filtro de cliente
+  const handleClientFilter = (value: string) => {
+    setClientFilter(value);
+    setPage(0);
+  };
+
+  const { data } = useCarouselStudioProjects(companyId, {
+    page,
+    nameFilter: debouncedName,
+    clientId: clientFilter,
+  });
+
+  const projects = data?.projects ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const clientsForCombobox = useMemo(
     () => clients.map((c) => ({ id: c.id, name: c.name })),
     [clients],
   );
-
-  const filtered = useMemo(() => {
-    if (!projects) return [];
-    return projects.filter((p) => {
-      const matchName = p.title
-        .toLowerCase()
-        .includes(nameFilter.toLowerCase());
-      const matchClient =
-        !clientFilter || clientFilter === "all" || p.client_id === clientFilter;
-      return matchName && matchClient;
-    });
-  }, [projects, nameFilter, clientFilter]);
 
   const handleDelete = async () => {
     if (!deleteTarget || !companyId) return;
@@ -204,6 +234,9 @@ export function StudioProjectsGrid({
       setDeleteTarget(null);
     }
   };
+
+  const hasActiveFilter =
+    !!debouncedName || (!!clientFilter && clientFilter !== "all");
 
   return (
     <div className="space-y-4">
@@ -222,7 +255,7 @@ export function StudioProjectsGrid({
           <ClientSearchCombobox
             clients={clientsForCombobox}
             value={clientFilter}
-            onValueChange={setClientFilter}
+            onValueChange={handleClientFilter}
             includeAllOption={true}
             allOptionLabel="Todos os clientes"
             placeholder="Todos os clientes"
@@ -231,14 +264,11 @@ export function StudioProjectsGrid({
       </div>
 
       {/* Grid */}
-      {filtered.length === 0 ? (
-        <EmptyState
-          hasFilter={!!nameFilter || (!!clientFilter && clientFilter !== "all")}
-          onCreateNew={onCreateNew}
-        />
+      {projects.length === 0 ? (
+        <EmptyState hasFilter={hasActiveFilter} onCreateNew={onCreateNew} />
       ) : (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((project) => (
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {projects.map((project) => (
             <ProjectCard
               key={project.id}
               project={project}
@@ -248,6 +278,33 @@ export function StudioProjectsGrid({
               onDelete={() => setDeleteTarget(project)}
             />
           ))}
+        </div>
+      )}
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Página {page + 1} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+          >
+            Próximo
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       )}
 

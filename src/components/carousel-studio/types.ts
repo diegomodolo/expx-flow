@@ -86,6 +86,11 @@ export interface StudioProject {
   status: ProjectStatus;
   thumbnail_url: string | null;
   clients?: { id: string; name: string } | null;
+  carousel_studio_slides?: Array<{
+    slide_number: number;
+    exported_image_url: string | null;
+    bg_image_url: string | null;
+  }> | null;
   shared_bg_image_url: string | null;
   shared_bg_zoom: number;
   shared_bg_position_x: number;

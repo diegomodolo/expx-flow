@@ -5,17 +5,51 @@ import {
   WizardConfig,
 } from "@/components/carousel-studio/types";
 
-export function useCarouselStudioProjects(companyId: string | undefined) {
+const PAGE_SIZE = 15;
+
+export function useCarouselStudioProjects(
+  companyId: string | undefined,
+  options?: { page?: number; nameFilter?: string; clientId?: string },
+) {
+  const page = options?.page ?? 0;
+  const nameFilter = options?.nameFilter ?? "";
+  const clientId =
+    options?.clientId && options.clientId !== "all"
+      ? options.clientId
+      : undefined;
+
   return useQuery({
-    queryKey: ["carousel-studio-projects", companyId],
+    queryKey: [
+      "carousel-studio-projects",
+      companyId,
+      page,
+      nameFilter,
+      clientId,
+    ],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const start = page * PAGE_SIZE;
+      const end = start + PAGE_SIZE - 1;
+
+      let query = supabase
         .from("carousel_studio_projects")
-        .select("*, clients(id, name)")
+        .select(
+          "*, clients(id, name), carousel_studio_slides(slide_number, exported_image_url, bg_image_url)",
+          { count: "exact" },
+        )
         .eq("company_id", companyId!)
-        .order("updated_at", { ascending: false });
+        .order("updated_at", { ascending: false })
+        .range(start, end);
+
+      if (nameFilter) {
+        query = query.ilike("title", `%${nameFilter}%`);
+      }
+      if (clientId) {
+        query = query.eq("client_id", clientId);
+      }
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as StudioProject[];
+      return { projects: data as StudioProject[], total: count ?? 0 };
     },
     enabled: !!companyId,
   });
