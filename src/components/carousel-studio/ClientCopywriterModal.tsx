@@ -51,6 +51,7 @@ export function ClientCopywriterModal({
   });
 
   useEffect(() => {
+    if (isLoading) return;
     if (existing) {
       reset({
         tom_de_voz: existing.tom_de_voz ?? "",
@@ -61,10 +62,21 @@ export function ClientCopywriterModal({
         palavras_evitar: existing.palavras_evitar ?? "",
         palavras_preferidas: existing.palavras_preferidas ?? "",
       });
+    } else {
+      reset({
+        tom_de_voz: "",
+        publico_alvo: "",
+        persona_marca: "",
+        regras_de_copy: "",
+        exemplos_aprovados: "",
+        palavras_evitar: "",
+        palavras_preferidas: "",
+      });
     }
-  }, [existing, reset]);
+  }, [existing, isLoading, reset]);
 
   const onSubmit = (values: FormValues) => {
+    if (!activeCompany) return;
     save(
       {
         client_id: clientId,
