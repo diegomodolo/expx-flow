@@ -85,6 +85,7 @@ export interface StudioProject {
   generate_ai_images: boolean;
   status: ProjectStatus;
   thumbnail_url: string | null;
+  clients?: { id: string; name: string } | null;
   shared_bg_image_url: string | null;
   shared_bg_zoom: number;
   shared_bg_position_x: number;

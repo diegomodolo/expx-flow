@@ -11,7 +11,7 @@ export function useCarouselStudioProjects(companyId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("carousel_studio_projects")
-        .select("*")
+        .select("*, clients(id, name)")
         .eq("company_id", companyId!)
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -152,6 +152,29 @@ export function useUpdateStudioProjectStatus() {
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({
         queryKey: ["carousel-studio-project", projectId],
+      });
+    },
+  });
+}
+
+export function useDeleteStudioProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+    }: {
+      projectId: string;
+      companyId: string;
+    }) => {
+      const { error } = await supabase
+        .from("carousel_studio_projects")
+        .delete()
+        .eq("id", projectId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { companyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["carousel-studio-projects", companyId],
       });
     },
   });
