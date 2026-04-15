@@ -9,6 +9,7 @@ import {
   Save,
   CalendarPlus,
   Send,
+  Bookmark,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ interface Props {
   onOpenPublish: () => void;
   isPreparingPublish?: boolean;
   onSave: () => Promise<void>;
+  onOpenSaveTemplate: () => void;
 }
 
 export function StudioTopBar({
@@ -42,6 +44,7 @@ export function StudioTopBar({
   onOpenPublish,
   isPreparingPublish,
   onSave,
+  onOpenSaveTemplate,
 }: Props) {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
@@ -143,6 +146,15 @@ export function StudioTopBar({
         >
           <Send className="w-4 h-4 mr-1" />
           {isPreparingPublish ? "Preparando..." : "Publicar"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground text-xs hover:text-foreground"
+          onClick={onOpenSaveTemplate}
+        >
+          <Bookmark className="w-4 h-4 mr-1" />
+          Template
         </Button>
 
         <div className="w-px h-4 bg-border mx-1" />
