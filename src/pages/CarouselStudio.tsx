@@ -164,7 +164,9 @@ export default function CarouselStudio() {
     const companyId = project.company_id;
     const clientId = project.client_id;
     const initialSlides = slides; // snapshot at generation start
-    const config = navState.config;
+    const config: WizardConfig = navState.config;
+    const copywriterInstructions: string | null =
+      config?.copywriterInstructions ?? null;
 
     const LEFT_POSITIONS: StudioSlide["text_position"][] = [
       "top_left",
@@ -196,6 +198,7 @@ export default function CarouselStudio() {
               prompt: config.prompt,
               slides_count: total,
               company_id: companyId,
+              copywriter_instructions: copywriterInstructions ?? undefined,
             },
           });
 
