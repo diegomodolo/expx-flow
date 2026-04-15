@@ -843,18 +843,6 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
               );
             });
           })()}
-
-        {/* Indicadores de slide na base */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <span
-              key={i}
-              className={`inline-block w-2 h-2 rounded-full ${
-                i === slide.slide_number - 1 ? "bg-white" : "bg-white/30"
-              }`}
-            />
-          ))}
-        </div>
       </div>
     );
   },
