@@ -88,19 +88,20 @@ function getTextPositionStyle(
     case "top_left":
       return { top: v, left: h };
     case "top_center":
-      return { top: v, left: "50%", transform: "translateX(-50%)" };
+      // left+right constrain the block width so the padding slider works
+      return { top: v, left: h, right: h };
     case "top_right":
       return { top: v, right: h };
     case "mid_left":
       return { top: "50%", left: h, transform: "translateY(-50%)" };
     case "center":
-      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+      return { top: "50%", left: h, right: h, transform: "translateY(-50%)" };
     case "mid_right":
       return { top: "50%", right: h, transform: "translateY(-50%)" };
     case "bottom_left":
       return { bottom: v + 48, left: h };
     case "bottom_center":
-      return { bottom: v + 48, left: "50%", transform: "translateX(-50%)" };
+      return { bottom: v + 48, left: h, right: h };
     case "bottom_right":
       return { bottom: v + 48, right: h };
   }
@@ -437,7 +438,7 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
 
           return (
             <div
-              className={`absolute max-w-[85%] ${alignClass}`}
+              className={`absolute ${["top_center", "center", "bottom_center"].includes(slide.text_position) ? "" : "max-w-[85%]"} ${alignClass}`}
               style={textPositionStyle}
             >
               {hasContentImage && ciPos === "above_title" && imageBlock}

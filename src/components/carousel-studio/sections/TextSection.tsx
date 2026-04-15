@@ -96,7 +96,7 @@ export function TextSection({
         <div>
           <div className="flex items-center justify-between mb-2">
             <Label className="text-xs text-muted-foreground">
-              Margem horizontal
+              Margem esq/dir
             </Label>
             <span className="text-xs text-muted-foreground">
               {slide.text_padding_x ?? 64}px
