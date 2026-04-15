@@ -267,6 +267,7 @@ export interface WizardConfig {
   clientId: string | null;
   /** Config visual dos slides do template selecionado. Null = sem template. */
   selectedTemplate: TemplateSlideConfig[] | null;
+  copywriterInstructions: string | null;
 }
 
 export const FONT_PAIR_LABELS: Record<

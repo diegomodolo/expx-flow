@@ -66,6 +66,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   accentColor: "#FFD700",
   clientId: null,
   selectedTemplate: null,
+  copywriterInstructions: null,
 };
 
 const ACCENT_COLORS = [
