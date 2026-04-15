@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -37,7 +37,67 @@ import {
   useCarouselStudioProjects,
   useDeleteStudioProject,
 } from "@/hooks/useCarouselStudioProject";
-import { StudioProject } from "@/components/carousel-studio/types";
+import { StudioProject, StudioSlide } from "@/components/carousel-studio/types";
+import { SlideCanvas } from "@/components/carousel-studio/SlideCanvas";
+
+// Canvas do slide renderizado em 1080×1350. Scale para caber no container 4:5.
+function SlideThumbnail({
+  project,
+  slide,
+  thumbSrc,
+}: {
+  project: StudioProject;
+  slide: StudioSlide | null;
+  thumbSrc: string | null;
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+
+  useEffect(() => {
+    if (thumbSrc || !slide) return;
+    const el = wrapperRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      setScale(entry.contentRect.width / 1080);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [thumbSrc, slide]);
+
+  if (thumbSrc) {
+    return <img src={thumbSrc} alt="" className="w-full h-full object-cover" />;
+  }
+
+  if (!slide) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+        <Layers className="w-10 h-10 opacity-30" />
+        <span className="text-xs opacity-50">Rascunho</span>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={wrapperRef} className="w-full h-full relative overflow-hidden">
+      {scale > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 1080,
+            height: 1350,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            pointerEvents: "none",
+          }}
+        >
+          <SlideCanvas slide={slide} project={project} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface StudioProjectsGridProps {
   companyId: string | undefined;
@@ -83,21 +143,13 @@ function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
   const clientName = clientData?.name ?? null;
   const clientAvatar = clientData?.avatar ?? null;
 
-  // Fallback de thumbnail: thumbnail_url → primeiro slide exportado → bg do primeiro slide
-  const slides =
-    (project.carousel_studio_slides as Array<{
-      slide_number: number;
-      exported_image_url: string | null;
-      bg_image_url: string | null;
-    }> | null) ?? [];
-  const firstSlide = [...slides].sort(
-    (a, b) => a.slide_number - b.slide_number,
-  )[0];
+  const firstSlide = [...(project.carousel_studio_slides ?? [])].sort(
+    (a, b) => (a as StudioSlide).slide_number - (b as StudioSlide).slide_number,
+  )[0] as StudioSlide | undefined;
+
+  // Usa thumbnail pré-renderizada se disponível; senão renderiza o SlideCanvas
   const thumbSrc =
-    project.thumbnail_url ??
-    firstSlide?.exported_image_url ??
-    firstSlide?.bg_image_url ??
-    null;
+    project.thumbnail_url ?? firstSlide?.exported_image_url ?? null;
 
   return (
     <div className="rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
@@ -140,26 +192,19 @@ function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
         </DropdownMenu>
       </div>
 
-      {/* Imagem — aspect 4:5 */}
+      {/* Thumb — aspect 4:5, renderiza SlideCanvas quando não há imagem pré-exportada */}
       <div
         className="relative w-full bg-muted cursor-pointer overflow-hidden"
         style={{ aspectRatio: "4/5" }}
         onClick={onOpen}
       >
-        {thumbSrc ? (
-          <img
-            src={thumbSrc}
-            alt={project.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
-            <Layers className="w-10 h-10 opacity-30" />
-            <span className="text-xs opacity-50">Rascunho</span>
-          </div>
-        )}
+        <SlideThumbnail
+          project={project}
+          slide={firstSlide ?? null}
+          thumbSrc={thumbSrc}
+        />
         {/* Badge slides count */}
-        <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+        <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1 z-10">
           <span>1/{project.slides_count}</span>
           <span className="text-[10px]">▶</span>
         </div>
@@ -175,10 +220,14 @@ function ProjectCard({ project, onOpen, onDelete }: ProjectCardProps) {
           </div>
           <Bookmark className="w-5 h-5 text-muted-foreground" />
         </div>
-        {/* Título e info do carrossel */}
         <p className="text-xs font-semibold text-foreground truncate">
           {project.title}
         </p>
+        {project.prompt && (
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {project.prompt}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           {project.slides_count} slides
         </p>

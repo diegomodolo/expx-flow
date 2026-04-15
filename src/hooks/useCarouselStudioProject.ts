@@ -32,10 +32,9 @@ export function useCarouselStudioProjects(
 
       let query = supabase
         .from("carousel_studio_projects")
-        .select(
-          "*, clients(id, name, avatar), carousel_studio_slides(slide_number, exported_image_url, bg_image_url)",
-          { count: "exact" },
-        )
+        .select("*, clients(id, name, avatar), carousel_studio_slides(*)", {
+          count: "exact",
+        })
         .eq("company_id", companyId!)
         .order("updated_at", { ascending: false })
         .range(start, end);
