@@ -85,6 +85,8 @@ export interface StudioProject {
   generate_ai_images: boolean;
   status: ProjectStatus;
   thumbnail_url: string | null;
+  caption: string | null;
+  hashtags: string | null;
   clients?: { id: string; name: string; avatar: string | null } | null;
   carousel_studio_slides?: StudioSlide[] | null;
   shared_bg_image_url: string | null;
