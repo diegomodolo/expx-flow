@@ -347,6 +347,7 @@ export default function CarouselStudio() {
           }
 
           // ── Content image ──
+          if (cancelGenerationRef.current) break;
           if (contentSource === "ai" || contentSource === "pexels") {
             try {
               let contentUrl: string | null = null;
