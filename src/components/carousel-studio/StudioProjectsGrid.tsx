@@ -233,7 +233,7 @@ export function StudioProjectsGrid({
       {/* Grid */}
       {filtered.length === 0 ? (
         <EmptyState
-          hasFilter={!!nameFilter || !!clientFilter}
+          hasFilter={!!nameFilter || (!!clientFilter && clientFilter !== "all")}
           onCreateNew={onCreateNew}
         />
       ) : (
