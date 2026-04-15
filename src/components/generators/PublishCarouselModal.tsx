@@ -92,7 +92,7 @@ function InstagramMockup({
   return (
     <div
       className="rounded-[2rem] border-2 border-zinc-700 bg-black overflow-hidden"
-      style={{ width: 280 }}
+      style={{ width: 340 }}
     >
       {/* Status bar decorativa */}
       <div className="h-5 bg-black flex items-center justify-between px-5">
@@ -112,7 +112,7 @@ function InstagramMockup({
       {/* Área da imagem */}
       <div
         className="relative bg-black"
-        style={{ aspectRatio: "1/1", width: 280 }}
+        style={{ aspectRatio: "4/5", width: 340 }}
       >
         {imgUrl ? (
           <img
@@ -360,7 +360,7 @@ export function PublishCarouselModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5" />
