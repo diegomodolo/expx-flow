@@ -607,7 +607,10 @@ export default function CarouselStudio() {
         if (!data?.success || !data?.image_url)
           throw new Error(data?.error || "Imagem não gerada");
 
-        updateSlide(activeSlide.id, { bg_image_url: data.image_url });
+        updateSlide(activeSlide.id, {
+          bg_image_url: data.image_url,
+          bg_image_source: "ai",
+        });
         toast.success("Imagem gerada com sucesso!");
       } catch (err: unknown) {
         toast.error((err as Error).message || "Erro ao gerar imagem");
