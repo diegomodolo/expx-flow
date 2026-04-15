@@ -67,7 +67,7 @@ export function BackgroundSection({
       if (shared) {
         onProjectChange({ shared_bg_image_url: url });
       } else {
-        onChange({ bg_image_url: url });
+        onChange({ bg_image_url: url, bg_image_source: "manual" });
       }
     };
     reader.readAsDataURL(file);
@@ -126,7 +126,7 @@ export function BackgroundSection({
     if (pexelsOpen === "shared") {
       onProjectChange({ shared_bg_image_url: url });
     } else {
-      onChange({ bg_image_url: url });
+      onChange({ bg_image_url: url, bg_image_source: "pexels" });
     }
     setPexelsOpen(null);
   };
@@ -211,7 +211,9 @@ export function BackgroundSection({
                 variant="ghost"
                 size="sm"
                 className="w-full text-xs text-destructive hover:text-destructive"
-                onClick={() => onChange({ bg_image_url: null })}
+                onClick={() =>
+                  onChange({ bg_image_url: null, bg_image_source: null })
+                }
               >
                 <X className="w-3 h-3 mr-1" /> Remover imagem
               </Button>
