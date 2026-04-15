@@ -13,7 +13,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    const { project_id, prompt, slides_count, company_id } = await req.json();
+    const {
+      project_id,
+      prompt,
+      slides_count,
+      company_id,
+      copywriter_instructions,
+    } = await req.json();
 
     if (!project_id || !prompt?.trim()) {
       return new Response(
@@ -55,11 +61,17 @@ Responda APENAS com JSON válido neste formato exato (array de ${n} objetos):
   ...
 ]`;
 
+    const baseSystemPrompt =
+      "Você é um especialista em criar conteúdo viral para Instagram. Cria carrosseis com ganchos fortes, conteúdo de valor e CTAs persuasivos. Retorna apenas JSON válido.";
+
+    const systemPrompt = copywriter_instructions?.trim()
+      ? `${baseSystemPrompt}\n\nINSTRUÇÕES DE COPYWRITER DO CLIENTE:\n${copywriter_instructions}\n\nSiga RIGOROSAMENTE essas instruções de tom, linguagem e regras de copy ao gerar os textos.`
+      : baseSystemPrompt;
+
     const aiResult = await callAI({
       functionName: "regenerate-carousel-slides",
       companyId: company_id,
-      systemPrompt:
-        "Você é um especialista em criar conteúdo viral para Instagram. Cria carrosseis com ganchos fortes, conteúdo de valor e CTAs persuasivos. Retorna apenas JSON válido.",
+      systemPrompt,
       userPrompt,
       maxTokens: 1200,
       temperature: 0.75,
