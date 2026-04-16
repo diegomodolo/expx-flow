@@ -51,8 +51,6 @@ const EXCLUDED_SLIDE_FIELDS = new Set([
   "bg_position_y",
   "bg_zoom",
   "content_image_urls",
-  "badge_photo_url",
-  "badge_name_text",
   "exported_image_url",
   "created_at",
   "updated_at",
