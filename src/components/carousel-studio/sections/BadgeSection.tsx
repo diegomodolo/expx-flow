@@ -471,6 +471,8 @@ export function BadgeSection({
                   badge_photo_url: slide.badge_photo_url,
                   badge_position: slide.badge_position,
                   badge_size: slide.badge_size,
+                  badge_offset_x: slide.badge_offset_x,
+                  badge_offset_y: slide.badge_offset_y,
                   badge_handle_enabled: slide.badge_handle_enabled,
                   badge_handle_position: slide.badge_handle_position,
                   badge_handle_font_size: slide.badge_handle_font_size,

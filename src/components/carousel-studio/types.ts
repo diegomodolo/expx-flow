@@ -236,8 +236,7 @@ export type TemplateSlideConfig = Omit<
   | "bg_position_y"
   | "bg_zoom"
   | "content_image_urls"
-  | "badge_photo_url"
-  | "badge_name_text"
+  // badge_photo_url e badge_name_text são mantidos no template intencionalmente
   | "exported_image_url"
   | "created_at"
   | "updated_at"
