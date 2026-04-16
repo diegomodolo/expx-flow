@@ -107,6 +107,22 @@ function getTextPositionStyle(
   }
 }
 
+/** Converte hex (#rrggbb ou #rgb) + opacidade 0–100 para string rgba */
+function hexToRgba(hex: string, opacity: number): string {
+  const h = hex.replace("#", "");
+  const full =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
+  const r = parseInt(full.substring(0, 2), 16);
+  const g = parseInt(full.substring(2, 4), 16);
+  const b = parseInt(full.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${(opacity / 100).toFixed(2)})`;
+}
+
 interface SlideCanvasProps {
   slide: StudioSlide;
   project: StudioProject;
@@ -387,6 +403,16 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
                     flexDir as React.CSSProperties["flexDirection"],
                   alignItems: "center",
                   gap: 12,
+                  ...(slide.badge_box_enabled
+                    ? {
+                        background: hexToRgba(
+                          slide.badge_box_color ?? "#000000",
+                          slide.badge_box_opacity ?? 50,
+                        ),
+                        borderRadius: slide.badge_box_radius ?? 16,
+                        padding: 12,
+                      }
+                    : {}),
                 }}
               >
                 <img
