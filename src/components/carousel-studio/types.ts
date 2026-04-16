@@ -149,6 +149,14 @@ export interface StudioSlide {
   badge_offset_x: number;
   /** Deslocamento vertical do badge a partir do canto (px) */
   badge_offset_y: number;
+  /** Ativa fundo retangular atrás do grupo badge (foto + texto) */
+  badge_box_enabled: boolean;
+  /** Cor hex do fundo do box. Null = preto */
+  badge_box_color: string | null;
+  /** Opacidade do fundo do box, 0–100 */
+  badge_box_opacity: number;
+  /** Border radius do box em px */
+  badge_box_radius: number;
   /** Peso da fonte das palavras destacadas (**palavra**). Ex: '700', '900'. Default null = herda do título */
   highlight_weight: string | null;
   /** Cor das palavras destacadas (**palavra**). Null = usa accent_color do projeto */
