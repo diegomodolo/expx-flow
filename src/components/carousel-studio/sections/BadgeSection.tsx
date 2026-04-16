@@ -78,6 +78,11 @@ export function BadgeSection({
   const nameFontWeight = slide.badge_name_font_weight ?? "600";
   const nameLineHeight = slide.badge_name_line_height ?? 4;
 
+  const boxEnabled = slide.badge_box_enabled ?? false;
+  const boxColor = slide.badge_box_color ?? "#000000";
+  const boxOpacity = slide.badge_box_opacity ?? 50;
+  const boxRadius = slide.badge_box_radius ?? 16;
+
   return (
     <SidebarSection title="Badge de Perfil">
       <div className="flex items-center gap-2">
@@ -378,6 +383,78 @@ export function BadgeSection({
             )}
           </div>
 
+          {/* ── Fundo do Badge (Box) ─────────────────────── */}
+          <div className="border-t border-border pt-2 space-y-3">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={boxEnabled}
+                onCheckedChange={(v) => onChange({ badge_box_enabled: v })}
+              />
+              <Label className="text-xs text-muted-foreground">
+                Ativar fundo do badge
+              </Label>
+            </div>
+
+            {boxEnabled && (
+              <>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    Cor do fundo
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={boxColor}
+                      onChange={(e) =>
+                        onChange({ badge_box_color: e.target.value })
+                      }
+                      className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0.5"
+                    />
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {boxColor}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Opacidade
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {boxOpacity}%
+                    </span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[boxOpacity]}
+                    onValueChange={([v]) => onChange({ badge_box_opacity: v })}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Borda arredondada
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {boxRadius}px
+                    </span>
+                  </div>
+                  <Slider
+                    min={0}
+                    max={64}
+                    step={4}
+                    value={[boxRadius]}
+                    onValueChange={([v]) => onChange({ badge_box_radius: v })}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Aplicar para todos os slides */}
           <div className="border-t border-border pt-2">
             <Button
@@ -402,6 +479,10 @@ export function BadgeSection({
                   badge_name_font_size: slide.badge_name_font_size,
                   badge_name_font_weight: slide.badge_name_font_weight,
                   badge_name_line_height: slide.badge_name_line_height,
+                  badge_box_enabled: slide.badge_box_enabled,
+                  badge_box_color: slide.badge_box_color,
+                  badge_box_opacity: slide.badge_box_opacity,
+                  badge_box_radius: slide.badge_box_radius,
                 };
                 onSlidesBatchChange(allIds, patch);
               }}
