@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS public.user_activity_logs (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id    UUID        NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
-  user_id       UUID        NOT NULL,
+  user_id       UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   session_id    TEXT        NOT NULL,
   event_type    TEXT        NOT NULL
                 CHECK (event_type IN ('page_view', 'action', 'login', 'logout')),
@@ -20,13 +20,13 @@ CREATE TABLE IF NOT EXISTS public.user_activity_logs (
 );
 
 -- Índices para queries comuns
-CREATE INDEX idx_user_activity_logs_company_created
+CREATE INDEX IF NOT EXISTS idx_user_activity_logs_company_created
   ON public.user_activity_logs (company_id, created_at DESC);
 
-CREATE INDEX idx_user_activity_logs_company_user
+CREATE INDEX IF NOT EXISTS idx_user_activity_logs_company_user
   ON public.user_activity_logs (company_id, user_id, created_at DESC);
 
-CREATE INDEX idx_user_activity_logs_event_type
+CREATE INDEX IF NOT EXISTS idx_user_activity_logs_event_type
   ON public.user_activity_logs (company_id, event_type, created_at DESC);
 
 -- RLS
@@ -53,5 +53,7 @@ CREATE POLICY "owners_select_activity_logs"
     is_company_owner(auth.uid(), company_id)
   );
 
+-- Nota: esta tabela é append-only por design.
+-- Não há políticas de UPDATE ou DELETE — logs nunca devem ser modificados ou removidos.
 -- GRANT obrigatório (sem isso frontend recebe array vazio sem erro)
 GRANT SELECT, INSERT ON public.user_activity_logs TO authenticated;
