@@ -16,6 +16,7 @@ import { DiscordSettings } from "@/components/discord/DiscordSettings";
 import { UsageDefaultsSettings } from "@/components/settings/UsageDefaultsSettings";
 import { AISettings } from "@/components/settings/ai/AISettings";
 import { ExternalApiKeysSettings } from "@/components/settings/ExternalApiKeysSettings";
+import { LogsAtividadesUsuarios } from "@/pages/configuracoes/LogsAtividadesUsuarios";
 
 const Configuracoes = () => {
   return (
@@ -58,6 +59,7 @@ const Configuracoes = () => {
             <Route path="padroes-de-uso" element={<UsageDefaultsSettings />} />
             <Route path="ia" element={<AISettings />} />
             <Route path="api-keys" element={<ExternalApiKeysSettings />} />
+            <Route path="logs-atividade" element={<LogsAtividadesUsuarios />} />
           </Routes>
         </SettingsLayout>
       </div>

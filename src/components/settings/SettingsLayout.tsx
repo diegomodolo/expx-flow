@@ -22,6 +22,7 @@ import {
   Video,
   Brain,
   Key,
+  Activity,
 } from "lucide-react";
 import { SiGoogle, SiDiscord } from "react-icons/si";
 
@@ -85,6 +86,12 @@ const settingsNavItems: NavItem[] = [
     href: "/configuracoes/api-keys",
     icon: Key,
     description: "Chaves de serviços externos (Pexels, etc)",
+  },
+  {
+    title: "Logs de Atividade",
+    href: "/configuracoes/logs-atividade",
+    icon: Activity,
+    description: "Histórico de uso dos colaboradores",
   },
 ];
 
