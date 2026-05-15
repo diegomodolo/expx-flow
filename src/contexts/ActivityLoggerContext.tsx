@@ -64,29 +64,28 @@ export function ActivityLoggerProvider({ children }: { children: ReactNode }) {
   const prevPathRef = useRef<string>("");
 
   useEffect(() => {
+    // Sync refs primeiro
     companyIdRef.current = activeCompany?.company_id ?? null;
     userIdRef.current = user?.id ?? null;
-  }, [user, activeCompany]);
 
-  useEffect(() => {
+    // Detecta transições de autenticação
     const currentUserId = user?.id ?? null;
     const prevUserId = prevUserRef.current;
 
-    if (prevUserId === currentUserId) return;
-    prevUserRef.current = currentUserId;
+    if (prevUserId !== currentUserId) {
+      prevUserRef.current = currentUserId;
 
-    if (!activeCompany?.company_id) return;
-
-    if (currentUserId && !prevUserId) {
-      resetSessionId();
-      insertActivityLog({
-        company_id: activeCompany.company_id,
-        user_id: currentUserId,
-        event_type: "login",
-        module: "Sistema",
-      });
-    } else if (!currentUserId && prevUserId) {
-      if (companyIdRef.current) {
+      if (currentUserId && !prevUserId && activeCompany?.company_id) {
+        // Login
+        resetSessionId();
+        insertActivityLog({
+          company_id: activeCompany.company_id,
+          user_id: currentUserId,
+          event_type: "login",
+          module: "Sistema",
+        });
+      } else if (!currentUserId && prevUserId && companyIdRef.current) {
+        // Logout — usa companyIdRef que foi atualizado acima neste mesmo effect
         insertActivityLog({
           company_id: companyIdRef.current,
           user_id: prevUserId,
