@@ -34,7 +34,7 @@ export async function insertActivityLog(
   payload: ActivityLogPayload,
 ): Promise<void> {
   try {
-    await (supabase as any).from("user_activity_logs").insert({
+    await supabase.from("user_activity_logs").insert({
       ...payload,
       session_id: getSessionId(),
       user_agent: navigator.userAgent,

@@ -35,8 +35,7 @@ export function useUserActivityLogs(filters: ActivityLogFilters = {}) {
   return useQuery({
     queryKey: ["user-activity-logs", companyId, filters],
     queryFn: async (): Promise<ActivityLogEntry[]> => {
-       
-      let query = (supabase as any)
+      let query = supabase
         .from("user_activity_logs")
         .select("*")
         .eq("company_id", companyId!)
