@@ -1,3 +1,8 @@
+---
+name: backend
+description: "Use para Edge Functions (Deno), migrations PostgreSQL, RLS policies e configuracao do Supabase"
+---
+
 # Backend (Supabase) — Contexto Especializado
 
 ## Escopo
@@ -127,6 +132,7 @@ verify_jwt = true
 ## RLS — Cuidados Criticos
 
 **NUNCA fazer subquery direta em tabela com RLS dentro de uma policy.** Usar funcao SECURITY DEFINER:
+
 ```sql
 -- Funcao reutilizavel (ja existe no banco):
 CREATE OR REPLACE FUNCTION public.get_user_company_ids(p_user_id UUID)
@@ -139,21 +145,23 @@ CREATE POLICY "select" ON minha_tabela FOR SELECT
 ```
 
 **SEMPRE adicionar GRANT apos criar tabela:**
+
 ```sql
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.minha_tabela TO authenticated;
 ```
+
 Sem GRANT, o frontend recebe array vazio sem erro.
 
 ## Erros Comuns e Solucoes
 
-| Erro                   | Causa                                        | Solucao                                                      |
-| ---------------------- | -------------------------------------------- | ------------------------------------------------------------ |
-| CORS bloqueado         | Falta OPTIONS handler                        | Adicionar check `req.method === "OPTIONS"`                   |
-| 401 Unauthorized       | JWT verification ativo sem token             | Configurar `verify_jwt = false` em config.toml se webhook    |
-| Tipos nao reconhecidos | Deno nao encontra modulo                     | Usar `https://esm.sh/` ou `https://deno.land/`               |
-| Env var undefined      | Nome errado ou secret nao propagou           | Usar fallback hardcoded para valores criticos                |
-| 0 rows sem erro        | RLS com subquery nested ou GRANT faltando    | Usar SECURITY DEFINER + GRANT TO authenticated               |
-| Enum invalido          | Valor nao existe no enum do banco            | `ALTER TYPE nome_enum ADD VALUE 'novo-valor'`                |
+| Erro                   | Causa                                     | Solucao                                                   |
+| ---------------------- | ----------------------------------------- | --------------------------------------------------------- |
+| CORS bloqueado         | Falta OPTIONS handler                     | Adicionar check `req.method === "OPTIONS"`                |
+| 401 Unauthorized       | JWT verification ativo sem token          | Configurar `verify_jwt = false` em config.toml se webhook |
+| Tipos nao reconhecidos | Deno nao encontra modulo                  | Usar `https://esm.sh/` ou `https://deno.land/`            |
+| Env var undefined      | Nome errado ou secret nao propagou        | Usar fallback hardcoded para valores criticos             |
+| 0 rows sem erro        | RLS com subquery nested ou GRANT faltando | Usar SECURITY DEFINER + GRANT TO authenticated            |
+| Enum invalido          | Valor nao existe no enum do banco         | `ALTER TYPE nome_enum ADD VALUE 'novo-valor'`             |
 
 ## Checklist antes de submeter
 

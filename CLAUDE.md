@@ -238,12 +238,13 @@ Edge Functions usam `Deno.env.get()` para: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 
 ## Sub-agentes Especializados (.claude/agents/)
 
-| Agente   | Arquivo       | Quando usar                                   |
-| -------- | ------------- | --------------------------------------------- |
-| Frontend | `frontend.md` | Componentes, estilo, data fetching, routing   |
-| Backend  | `backend.md`  | Edge Functions, migrations, RLS, Deno         |
-| Auth     | `auth.md`     | Autenticacao, permissoes, roles, route guards |
-| Testing  | `testing.md`  | Infraestrutura de testes, mocks, patterns     |
+| Agente      | Arquivo          | Quando usar                                   |
+| ----------- | ---------------- | --------------------------------------------- |
+| Frontend    | `frontend.md`    | Componentes, estilo, data fetching, routing   |
+| Backend     | `backend.md`     | Edge Functions, migrations, RLS, Deno         |
+| Auth        | `auth.md`        | Autenticacao, permissoes, roles, route guards |
+| Permissions | `permissions.md` | Consistencia rotas × sidebar × permissoes     |
+| Testing     | `testing.md`     | Infraestrutura de testes, mocks, patterns     |
 
 ## OBRIGATORIO: Criar Skill de Contexto ao finalizar feature/modulo
 
@@ -257,17 +258,23 @@ Ao finalizar o trabalho em uma feature ou modulo (apos commit/PR), verificar se 
 
 Seguir o formato das skills existentes (ex: `.claude/skills/workspace/SKILL.md`, `.claude/skills/ai-gateway/SKILL.md`). Commitar a skill junto com o trabalho da feature.
 
-## Skills (Slash Commands — .claude/skills/)
+## Slash Commands (.claude/commands/)
 
-| Comando              | Descricao                                                         |
-| -------------------- | ----------------------------------------------------------------- |
-| `/new-page`          | Pagina completa: DashboardLayout + routing + permissao + hook     |
-| `/new-component`     | Componente com convencoes do projeto (display, form, list, modal) |
-| `/new-table`         | Tabela Supabase com RLS seguro (SECURITY DEFINER) + GRANT + hook  |
-| `/new-edge-function` | Edge Function com CORS, validacao, config.toml, e hook frontend   |
-| `/add-permission`    | Permissao nos 3 lugares obrigatorios (enum DB + 2 settings files) |
-| `/debug-data`        | Diagnostico sistematico quando dados nao aparecem no frontend     |
-| `/write-test`        | Teste com mocks e providers                                       |
+| Comando                 | Descricao                                                         |
+| ----------------------- | ----------------------------------------------------------------- |
+| `/new-page`             | Pagina completa: DashboardLayout + routing + permissao + hook     |
+| `/new-component`        | Componente com convencoes do projeto (display, form, list, modal) |
+| `/new-table`            | Tabela Supabase com RLS seguro (SECURITY DEFINER) + GRANT + hook  |
+| `/new-edge-function`    | Edge Function com CORS, validacao, config.toml, e hook frontend   |
+| `/add-permission`       | Permissao nos 3 lugares obrigatorios (enum DB + 2 settings files) |
+| `/validate-permissions` | Valida consistencia entre rotas, sidebar e permissoes             |
+| `/debug-data`           | Diagnostico sistematico quando dados nao aparecem no frontend     |
+| `/write-test`           | Teste com mocks e providers                                       |
+| `/deploy`               | Testes + lint + build + validacao + commit/push na main           |
+
+## Skills de Contexto (.claude/skills/)
+
+Cada modulo tem uma skill de contexto em `.claude/skills/<modulo>/SKILL.md` com frontmatter YAML (`name` + `description`). Modulos cobertos: ai-gateway, apresentacao, carousel-studio, command-center, kanban-tarefas, ligacoes-api4com, pageheader, publicacao-social, squads, workspace.
 
 ## Hooks Automaticos (.claude/hooks/)
 

@@ -1,3 +1,8 @@
+---
+name: ligacoes-api4com
+description: "Use ao trabalhar com ligacoes telefonicas via API4Com no chat WhatsApp: dialer, ramal, webhook de gravacao, botao Ligar no WhatsAppChatWindow"
+---
+
 # Ligações API4Com — Skill de Contexto do Módulo
 
 ## Visão Geral

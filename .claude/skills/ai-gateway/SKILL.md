@@ -1,3 +1,8 @@
+---
+name: ai-gateway
+description: "Use ao trabalhar com chamadas de IA, OpenRouter, configuracao de modelos LLM, fallbacks ou API keys de IA (rota /configuracoes/ia, tabelas ai_function_settings)"
+---
+
 # AI Gateway (OpenRouter) — Skill de Contexto do Modulo
 
 ## Visao Geral

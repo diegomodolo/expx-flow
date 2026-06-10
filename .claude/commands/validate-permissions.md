@@ -1,3 +1,7 @@
+---
+description: Valida consistencia entre rotas (App.tsx), sidebar (DashboardSidebar.tsx) e permissoes (useEmployeePermissions.tsx)
+---
+
 # /validate-permissions
 
 ## Descricao

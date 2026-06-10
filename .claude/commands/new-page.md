@@ -1,3 +1,8 @@
+---
+description: Cria pagina completa com DashboardLayout, routing, guard de permissao e hook de dados
+argument-hint: <NomePascalCase> <rota> <permissao> <titulo> [tabela]
+---
+
 # /new-page
 
 ## Descricao
@@ -97,18 +102,23 @@ import <Nome> from "@/pages/<Nome>";
 ### 4. Registrar permissao (3 LUGARES OBRIGATORIOS)
 
 #### 4.1 SQL no Supabase (FAZER PRIMEIRO)
+
 ```sql
 ALTER TYPE menu_item_type ADD VALUE '<permissao>';
 ```
 
 #### 4.2 PermissionGroupsSettings.tsx
+
 Adicionar no array `MENU_ITEMS` na categoria correta:
+
 ```typescript
 { key: '<permissao>', label: '<Titulo>', category: 'Sistema' },
 ```
 
 #### 4.3 PermissionsSettings.tsx
+
 Adicionar no array `MENU_ITEMS` na categoria correta:
+
 ```typescript
 { key: '<permissao>', label: '<Titulo>', description: 'Descricao da funcionalidade', category: 'Sistema' },
 ```

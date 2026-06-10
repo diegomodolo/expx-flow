@@ -1,3 +1,8 @@
+---
+name: publicacao-social
+description: "Use ao trabalhar com publicacao de posts no Instagram/Facebook: scheduled_posts, edge function publish-scheduled-post, Graph API, locks e logs de publicacao"
+---
+
 # Publicação Social (Instagram/Facebook) — Skill de Contexto do Módulo
 
 ## Visão Geral

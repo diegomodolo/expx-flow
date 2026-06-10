@@ -1,3 +1,8 @@
+---
+name: carousel-studio
+description: "Use ao trabalhar no editor visual de carrosseis de Instagram (/geradores/carrosseis aba Editor Visual): slides, textos, badges, overlays, export de imagem"
+---
+
 # Carousel Studio (Editor Visual de Carrosseis) — Skill de Contexto do Modulo
 
 ## Visao Geral

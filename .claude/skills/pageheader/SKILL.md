@@ -1,3 +1,8 @@
+---
+name: pageheader
+description: "Use ao trabalhar no header da aplicacao (DashboardHeader): busca universal, badges de indicadores, acoes rapidas e menu do usuario"
+---
+
 # PageHeader (DashboardHeader) — Skill de Contexto do Modulo
 
 ## Visao Geral
@@ -16,16 +21,16 @@ O header principal da aplicacao. Presente em todas as paginas protegidas via `Da
 [UniversalCommandBar (Cmd+K)] .............. [Aprovacao] [Notificacoes] [Workspace] [WhatsApp?] [Tema] [Empresa] [Avatar+Menu]
 ```
 
-| Posicao | Componente | Condicional? | Descricao |
-|---|---|---|---|
-| Esquerda | `UniversalCommandBar` | Nao | Barra de busca universal (atalho Cmd+K) |
-| Direita 1 | `TaskApprovalIndicator` | Sim (count > 0) | Maozinha ambar com badge — tarefas aguardando aprovacao |
-| Direita 2 | `NotificationCenter` | Nao | Sino com badge vermelho — notificacoes unificadas |
-| Direita 3 | Workspace button | Nao | Icone FileText → navega para `/workspace` |
-| Direita 4 | WhatsApp button | Sim (hasInstances) | Icone verde → abre WhatsAppInboxDrawer |
-| Direita 5 | Theme toggle | Sim (mounted) | Sun/Moon → alterna tema claro/escuro |
-| Direita 6 | `CompanySelector` | Nao | Dropdown de selecao de empresa |
-| Direita 7 | User dropdown | Nao | Avatar + nome + menu (Perfil, Sair) |
+| Posicao   | Componente              | Condicional?       | Descricao                                               |
+| --------- | ----------------------- | ------------------ | ------------------------------------------------------- |
+| Esquerda  | `UniversalCommandBar`   | Nao                | Barra de busca universal (atalho Cmd+K)                 |
+| Direita 1 | `TaskApprovalIndicator` | Sim (count > 0)    | Maozinha ambar com badge — tarefas aguardando aprovacao |
+| Direita 2 | `NotificationCenter`    | Nao                | Sino com badge vermelho — notificacoes unificadas       |
+| Direita 3 | Workspace button        | Nao                | Icone FileText → navega para `/workspace`               |
+| Direita 4 | WhatsApp button         | Sim (hasInstances) | Icone verde → abre WhatsAppInboxDrawer                  |
+| Direita 5 | Theme toggle            | Sim (mounted)      | Sun/Moon → alterna tema claro/escuro                    |
+| Direita 6 | `CompanySelector`       | Nao                | Dropdown de selecao de empresa                          |
+| Direita 7 | User dropdown           | Nao                | Avatar + nome + menu (Perfil, Sair)                     |
 
 ---
 
@@ -33,34 +38,34 @@ O header principal da aplicacao. Presente em todas as paginas protegidas via `Da
 
 ### Header Principal
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/dashboard/DashboardHeader.tsx` | Componente do header. Orquestra todos os indicadores, botoes e menus |
-| `src/components/dashboard/DashboardLayout.tsx` | Layout que renderiza o header + sidebar + content area |
+| Arquivo                                            | Responsabilidade                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src/components/dashboard/DashboardHeader.tsx`     | Componente do header. Orquestra todos os indicadores, botoes e menus            |
+| `src/components/dashboard/DashboardLayout.tsx`     | Layout que renderiza o header + sidebar + content area                          |
 | `src/components/dashboard/UniversalCommandBar.tsx` | Barra de comando Cmd+K. Busca clientes, menu, tarefas ativas, membros da equipe |
 
 ### Sistema de Notificacoes
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/notifications/NotificationCenter.tsx` | (~267 linhas) Sino com Popover. Merge de `user_notifications` + `internal_notifications`, ordenado por data. Cada tipo tem icone e cor proprios |
-| `src/hooks/useUserNotifications.tsx` | (~146 linhas) Hook unificado: busca user_notifications (limit 50) + internal_notifications (unread, limit 20). Refetch 15s + realtime subscription via postgres_changes |
-| `src/components/comm-hub/NotificationBell.tsx` | Versao alternativa/legada do sino (NAO usada no header principal — o header usa NotificationCenter) |
+| Arquivo                                               | Responsabilidade                                                                                                                                                        |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/notifications/NotificationCenter.tsx` | (~267 linhas) Sino com Popover. Merge de `user_notifications` + `internal_notifications`, ordenado por data. Cada tipo tem icone e cor proprios                         |
+| `src/hooks/useUserNotifications.tsx`                  | (~146 linhas) Hook unificado: busca user_notifications (limit 50) + internal_notifications (unread, limit 20). Refetch 15s + realtime subscription via postgres_changes |
+| `src/components/comm-hub/NotificationBell.tsx`        | Versao alternativa/legada do sino (NAO usada no header principal — o header usa NotificationCenter)                                                                     |
 
 ### Indicador de Aprovacao de Tarefas
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/tasks/TaskApprovalIndicator.tsx` | Icone Hand ambar com badge. Popover com lista de tarefas em review onde usuario e autorizador |
-| `src/hooks/useTasksAwaitingApproval.ts` | Hook: busca task_members (role=authorizer) → tasks (status=review) → enriquece com cliente e responsavel. Refetch 30s |
+| Arquivo                                          | Responsabilidade                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `src/components/tasks/TaskApprovalIndicator.tsx` | Icone Hand ambar com badge. Popover com lista de tarefas em review onde usuario e autorizador                         |
+| `src/hooks/useTasksAwaitingApproval.ts`          | Hook: busca task_members (role=authorizer) → tasks (status=review) → enriquece com cliente e responsavel. Refetch 30s |
 
 ### Outros Componentes no Header
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/company/CompanySelector.tsx` | Dropdown para trocar empresa ativa (persiste em localStorage via CompanyContext) |
-| `src/components/whatsapp/WhatsAppInboxDrawer.tsx` | Drawer lateral com inbox do WhatsApp. Abre via botao no header |
-| `src/hooks/useUserWhatsAppInstances.tsx` | Verifica se usuario tem instancias WhatsApp atribuidas (controla visibilidade do botao) |
+| Arquivo                                           | Responsabilidade                                                                        |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/components/company/CompanySelector.tsx`      | Dropdown para trocar empresa ativa (persiste em localStorage via CompanyContext)        |
+| `src/components/whatsapp/WhatsAppInboxDrawer.tsx` | Drawer lateral com inbox do WhatsApp. Abre via botao no header                          |
+| `src/hooks/useUserWhatsAppInstances.tsx`          | Verifica se usuario tem instancias WhatsApp atribuidas (controla visibilidade do botao) |
 
 ---
 
@@ -142,27 +147,27 @@ Todos os indicadores no header seguem o mesmo padrao visual:
 
 O `NotificationCenter` merge duas tabelas em uma lista unica ordenada por data:
 
-| Tabela | Tipo | Persistencia |
-|---|---|---|
-| `user_notifications` | Notificacoes de negocio (task_review, task_assigned, ad_pending_approval, etc.) | Persistem — marcadas como lidas mas nao deletadas |
-| `internal_notifications` | Notificacoes de chat/mensagens | Persistem — marcadas como lidas |
+| Tabela                   | Tipo                                                                            | Persistencia                                      |
+| ------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `user_notifications`     | Notificacoes de negocio (task_review, task_assigned, ad_pending_approval, etc.) | Persistem — marcadas como lidas mas nao deletadas |
+| `internal_notifications` | Notificacoes de chat/mensagens                                                  | Persistem — marcadas como lidas                   |
 
 **IMPORTANTE**: Ambas tabelas NAO estao nos tipos auto-gerados. Usar `"user_notifications" as unknown` e `"internal_notifications" as unknown`.
 
 ### Tipos de notificacao e icones
 
-| Tipo | Icone | Cor |
-|---|---|---|
-| `task_review` | ClipboardList | text-primary |
-| `task_assigned` | User | text-primary |
-| `ad_pending_approval` | Megaphone | text-warning |
-| `lead_disqualified` | AlertTriangle | text-destructive |
-| `creative_pending` | Sparkles | text-warning |
-| `client_alert` | AlertTriangle | text-destructive |
-| `campaign_alert` | Zap | text-warning |
-| `message_mention` | MessageSquare | text-primary |
-| `message_channel` | MessageSquare | text-muted-foreground |
-| `system` | Bell | text-muted-foreground |
+| Tipo                  | Icone         | Cor                   |
+| --------------------- | ------------- | --------------------- |
+| `task_review`         | ClipboardList | text-primary          |
+| `task_assigned`       | User          | text-primary          |
+| `ad_pending_approval` | Megaphone     | text-warning          |
+| `lead_disqualified`   | AlertTriangle | text-destructive      |
+| `creative_pending`    | Sparkles      | text-warning          |
+| `client_alert`        | AlertTriangle | text-destructive      |
+| `campaign_alert`      | Zap           | text-warning          |
+| `message_mention`     | MessageSquare | text-primary          |
+| `message_channel`     | MessageSquare | text-muted-foreground |
+| `system`              | Bell          | text-muted-foreground |
 
 ### Realtime
 
@@ -185,7 +190,11 @@ const [approvalTaskOpen, setApprovalTaskOpen] = useState(false);
 const [approvalTask, setApprovalTask] = useState<unknown>(null);
 
 const handleOpenApprovalTask = async (taskId: string) => {
-  const { data } = await supabase.from("tasks").select("*").eq("id", taskId).single();
+  const { data } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("id", taskId)
+    .single();
   if (data) {
     setApprovalTask(data);
     setApprovalTaskOpen(true);
@@ -204,7 +213,7 @@ const handleOpenApprovalTask = async (taskId: string) => {
   }}
   task={approvalTask}
   onSave={handleSaveApprovalTask}
-/>
+/>;
 ```
 
 ---
@@ -222,6 +231,7 @@ O nome interno e `DashboardHeader`. Usuarios podem chamar de "PageHeader" coloqu
 ### 3. NotificationBell vs NotificationCenter
 
 Existem DOIS componentes de sino:
+
 - `src/components/notifications/NotificationCenter.tsx` — **ESTE e o usado no header**
 - `src/components/comm-hub/NotificationBell.tsx` — versao alternativa/legada, NAO usada no header principal
 
@@ -243,6 +253,7 @@ Ao adicionar novo indicador, escolher a posicao cuidadosamente — indicadores m
 ### 6. Drawers e Dialogs renderizados no header
 
 O header renderiza componentes que abrem por cima do conteudo:
+
 - `WhatsAppInboxDrawer` — drawer lateral
 - `TaskDialog` — dialog modal para aprovacao de tarefas
 

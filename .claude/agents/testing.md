@@ -1,3 +1,8 @@
+---
+name: testing
+description: "Use para infraestrutura de testes, patterns de teste, mocks e estrategia de qualidade"
+---
+
 # Testing — Contexto Especializado
 
 ## Escopo

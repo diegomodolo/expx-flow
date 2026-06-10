@@ -1,3 +1,8 @@
+---
+description: Cria Edge Function Supabase com CORS, validacao, config.toml e hook frontend
+argument-hint: <nome-kebab> <descricao> [auth true|false]
+---
+
 # /new-edge-function
 
 ## Descricao
@@ -41,28 +46,33 @@ serve(async (req) => {
     if (!body.company_id) {
       return new Response(
         JSON.stringify({ success: false, error: "company_id e obrigatorio" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Cliente Supabase com service_role (bypassa RLS)
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     // Logica de negocio
     // ...
 
-    return new Response(
-      JSON.stringify({ success: true, data: null }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, data: null }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error in <nome>:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
@@ -117,7 +127,7 @@ export function use<NomePascal>() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: { company_id: string; /* ... */ }) => {
+    mutationFn: async (payload: { company_id: string /* ... */ }) => {
       const { data, error } = await supabase.functions.invoke("<nome>", {
         body: payload,
       });

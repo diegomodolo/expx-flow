@@ -1,3 +1,8 @@
+---
+name: kanban-tarefas
+description: "Use ao trabalhar no Kanban pessoal de tarefas (/tarefas): colunas customizaveis, views Kanban/Lista/Calendario/Planner/Recorrentes"
+---
+
 # Kanban / Tarefas — Skill de Contexto do Modulo
 
 ## Visao Geral
@@ -22,54 +27,54 @@ Quando o lider atribui uma tarefa no Command Center, ela aparece automaticamente
 
 ### Pagina e Views
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/pages/Tarefas.tsx` | (~1273 linhas) Pagina principal. 5 views, filtros, sorting, board selector, alertas, compact mode |
-| `src/components/tasks/TaskKanban.tsx` | (~814 linhas) View Kanban: colunas customizaveis, drag-and-drop de cards e colunas, bulk fetch de time tracking/subtasks/members |
-| `src/components/tasks/TaskList.tsx` | View lista: tabela agrupada por status |
+| Arquivo                               | Responsabilidade                                                                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/pages/Tarefas.tsx`               | (~1273 linhas) Pagina principal. 5 views, filtros, sorting, board selector, alertas, compact mode                                   |
+| `src/components/tasks/TaskKanban.tsx` | (~814 linhas) View Kanban: colunas customizaveis, drag-and-drop de cards e colunas, bulk fetch de time tracking/subtasks/members    |
+| `src/components/tasks/TaskList.tsx`   | View lista: tabela agrupada por status                                                                                              |
 | `src/components/tasks/TaskDialog.tsx` | Modal de edicao completo: 7 tabs (Principais, Clientes, Equipe, Checklist, Subtarefas, Historico, Time Tracking) + paineis laterais |
 
 ### Componentes de Suporte
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/tasks/BoardSelector.tsx` | Dropdown para selecionar quadro ("Meu Quadro", "Todos", ou usuario especifico) |
-| `src/components/tasks/ColumnSettingsDialog.tsx` | Criar/editar/excluir colunas customizadas (nome, status, cor) |
-| `src/components/tasks/TemplateSelector.tsx` | 5 templates pre-configurados (Agencia, Freelancer, Suporte, Producao de Conteudo, Basico) |
-| `src/components/tasks/TaskCompletionBlockModal.tsx` | Bloqueia conclusao se subtarefas/checklist pendentes |
-| `src/components/tasks/CompletedTasksModal.tsx` | Modal com todas as tarefas concluidas |
-| `src/components/tasks/TaskSubtasksTab.tsx` | Gestao de subtarefas (parent_task_id) |
-| `src/components/tasks/RecurringTasksManager.tsx` | Gestao de tarefas recorrentes |
+| Arquivo                                             | Responsabilidade                                                                          |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/components/tasks/BoardSelector.tsx`            | Dropdown para selecionar quadro ("Meu Quadro", "Todos", ou usuario especifico)            |
+| `src/components/tasks/ColumnSettingsDialog.tsx`     | Criar/editar/excluir colunas customizadas (nome, status, cor)                             |
+| `src/components/tasks/TemplateSelector.tsx`         | 5 templates pre-configurados (Agencia, Freelancer, Suporte, Producao de Conteudo, Basico) |
+| `src/components/tasks/TaskCompletionBlockModal.tsx` | Bloqueia conclusao se subtarefas/checklist pendentes                                      |
+| `src/components/tasks/CompletedTasksModal.tsx`      | Modal com todas as tarefas concluidas                                                     |
+| `src/components/tasks/TaskSubtasksTab.tsx`          | Gestao de subtarefas (parent_task_id)                                                     |
+| `src/components/tasks/RecurringTasksManager.tsx`    | Gestao de tarefas recorrentes                                                             |
 
 ### Sistema de Aprovacao/Review
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/tasks/TaskReviewPanel.tsx` | (~209 linhas) Painel de aprovacao/rejeicao dentro do TaskDialog. Renderiza condicionalmente quando `isAuthorizer && isInReview`. Botoes de aprovar/rejeitar com selector de motivo e impacto no quality score |
-| `src/components/tasks/TaskApprovalIndicator.tsx` | Icone de maozinha (Hand) no DashboardHeader com badge ambar. Popover dropdown listando tarefas aguardando aprovacao do usuario. Clique abre TaskDialog |
-| `src/components/tasks/TaskTeamTab.tsx` | Gestao de membros da tarefa. Drag-drop para atribuir roles incluindo "Autorizador" (ShieldCheck icon, emerald) |
-| `src/hooks/useTaskReview.ts` | (~142 linhas) Hook para uma tarefa especifica: verifica se usuario e autorizador, busca historico de review, chama edge function process-task-review |
-| `src/hooks/useTasksAwaitingApproval.ts` | Hook para TODAS as tarefas em review onde o usuario e autorizador. Enriquece com nome do cliente e responsavel. Refetch 30s. Usado pelo TaskApprovalIndicator |
-| `supabase/functions/process-task-review/index.ts` | (~304 linhas) Edge function que processa aprovacao/rejeicao. Verifica autorizador, atualiza status/quality, cria audit trail, notifica via Discord e user_notifications |
+| Arquivo                                           | Responsabilidade                                                                                                                                                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/tasks/TaskReviewPanel.tsx`        | (~209 linhas) Painel de aprovacao/rejeicao dentro do TaskDialog. Renderiza condicionalmente quando `isAuthorizer && isInReview`. Botoes de aprovar/rejeitar com selector de motivo e impacto no quality score |
+| `src/components/tasks/TaskApprovalIndicator.tsx`  | Icone de maozinha (Hand) no DashboardHeader com badge ambar. Popover dropdown listando tarefas aguardando aprovacao do usuario. Clique abre TaskDialog                                                        |
+| `src/components/tasks/TaskTeamTab.tsx`            | Gestao de membros da tarefa. Drag-drop para atribuir roles incluindo "Autorizador" (ShieldCheck icon, emerald)                                                                                                |
+| `src/hooks/useTaskReview.ts`                      | (~142 linhas) Hook para uma tarefa especifica: verifica se usuario e autorizador, busca historico de review, chama edge function process-task-review                                                          |
+| `src/hooks/useTasksAwaitingApproval.ts`           | Hook para TODAS as tarefas em review onde o usuario e autorizador. Enriquece com nome do cliente e responsavel. Refetch 30s. Usado pelo TaskApprovalIndicator                                                 |
+| `supabase/functions/process-task-review/index.ts` | (~304 linhas) Edge function que processa aprovacao/rejeicao. Verifica autorizador, atualiza status/quality, cria audit trail, notifica via Discord e user_notifications                                       |
 
 ### Hooks Principais
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/hooks/useEmployeeBoard.tsx` | Fetch de tarefas do quadro selecionado, filtros de visibilidade, permissoes, realtime |
-| `src/hooks/useTasks.tsx` | CRUD de tarefas, optimistic updates, notificacoes Discord |
-| `src/hooks/useTaskBoardColumns.tsx` | CRUD de colunas customizadas por usuario, reorder, apply template |
-| `src/hooks/useTaskTimeTracking.ts` | Sessoes de time tracking com timer ao vivo |
-| `src/hooks/useSubtasks.ts` | Subtarefas (parent_task_id) |
-| `src/hooks/useTaskHistory.ts` | Historico/auditoria de mudancas |
-| `src/hooks/useTaskStats.tsx` | Estatisticas (total, por status, por prioridade, taxa de conclusao) |
-| `src/hooks/useTaskReview.ts` | Verifica autorizador, historico de review, chama process-task-review |
-| `src/hooks/useTasksAwaitingApproval.ts` | Todas tarefas em review onde usuario e autorizador (para badge no header) |
+| Arquivo                                 | Responsabilidade                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------- |
+| `src/hooks/useEmployeeBoard.tsx`        | Fetch de tarefas do quadro selecionado, filtros de visibilidade, permissoes, realtime |
+| `src/hooks/useTasks.tsx`                | CRUD de tarefas, optimistic updates, notificacoes Discord                             |
+| `src/hooks/useTaskBoardColumns.tsx`     | CRUD de colunas customizadas por usuario, reorder, apply template                     |
+| `src/hooks/useTaskTimeTracking.ts`      | Sessoes de time tracking com timer ao vivo                                            |
+| `src/hooks/useSubtasks.ts`              | Subtarefas (parent_task_id)                                                           |
+| `src/hooks/useTaskHistory.ts`           | Historico/auditoria de mudancas                                                       |
+| `src/hooks/useTaskStats.tsx`            | Estatisticas (total, por status, por prioridade, taxa de conclusao)                   |
+| `src/hooks/useTaskReview.ts`            | Verifica autorizador, historico de review, chama process-task-review                  |
+| `src/hooks/useTasksAwaitingApproval.ts` | Todas tarefas em review onde usuario e autorizador (para badge no header)             |
 
 ### Dados
 
-| Arquivo | Responsabilidade |
-|---|---|
+| Arquivo                       | Responsabilidade                        |
+| ----------------------------- | --------------------------------------- |
 | `src/data/kanbanTemplates.ts` | 5 templates de colunas pre-configurados |
 
 ---
@@ -80,12 +85,12 @@ Quando o lider atribui uma tarefa no Command Center, ela aparece automaticamente
 
 Cada usuario pode ter colunas customizadas (`task_board_columns`). Se nao tiver, o Kanban usa colunas default:
 
-| Coluna Default | Status | Cor |
-|---|---|---|
-| Pendente | todo | #6B7280 |
-| Em Andamento | progress | #3B82F6 |
-| Em Revisao | review | #F59E0B |
-| Concluida | done | #10B981 |
+| Coluna Default | Status   | Cor     |
+| -------------- | -------- | ------- |
+| Pendente       | todo     | #6B7280 |
+| Em Andamento   | progress | #3B82F6 |
+| Em Revisao     | review   | #F59E0B |
+| Concluida      | done     | #10B981 |
 
 ### Mapeamento Tarefa → Coluna
 
@@ -123,7 +128,7 @@ id, user_id, company_id, name, status, color, order_index
 
 ### Reordenacao de Colunas
 
-- Apenas colunas customizadas (nao as default-*)
+- Apenas colunas customizadas (nao as default-\*)
 - Atualiza `order_index` via `reorderColumns` mutation
 
 ### Tarefas Ghost
@@ -148,6 +153,7 @@ Tarefas com `origin='ghost'` sao **nao-arrastáveis** e exibidas semi-transparen
 ### Na Pagina (Tarefas.tsx)
 
 Sorting client-side configuravel pelo usuario:
+
 - Campos: `created_at`, `title`, `priority`, `status`, `responsible_name`, `due_date`
 - Default: `created_at ASC`
 
@@ -174,6 +180,7 @@ Sorting client-side configuravel pelo usuario:
 ## Coluna "Concluida" (Done)
 
 A coluna de tarefas concluidas tem tratamento especial:
+
 - **Card agregado**: Mostra contagem (ex: "12 tarefas concluidas") em vez de listar todas
 - **Click**: Abre `CompletedTasksModal` com lista completa
 - **Largura reduzida**: 200px (normal) / 180px (compact)
@@ -189,20 +196,21 @@ O TaskKanban faz queries em paralelo para enriquecer os cards:
 
 ```typescript
 // Busca em batch para todas as tarefas visiveis
-const taskIds = tasks.map(t => t.id);
-const [members, timeTracking, activeSessions, subtaskCounts] = await Promise.all([
-  fetchTaskMembers(taskIds),
-  fetchTimeTotals(taskIds),
-  fetchActiveSessions(taskIds),    // polling a cada 10s
-  fetchSubtaskCounts(taskIds),
-]);
+const taskIds = tasks.map((t) => t.id);
+const [members, timeTracking, activeSessions, subtaskCounts] =
+  await Promise.all([
+    fetchTaskMembers(taskIds),
+    fetchTimeTotals(taskIds),
+    fetchActiveSessions(taskIds), // polling a cada 10s
+    fetchSubtaskCounts(taskIds),
+  ]);
 ```
 
 ### 2. Compact Mode Persistido
 
 ```typescript
-const [compactMode, setCompactMode] = useState(() =>
-  localStorage.getItem('tasks-compact-mode') === 'true'
+const [compactMode, setCompactMode] = useState(
+  () => localStorage.getItem("tasks-compact-mode") === "true",
 );
 ```
 
@@ -215,8 +223,9 @@ O modal de tarefa tem 8 niveis de zoom (640-1536px), salvo por usuario na tabela
 ### 4. Optimistic Updates com Invalidacao Ampla
 
 Mutacoes de tarefa invalidam multiplas query keys:
+
 ```typescript
-['tasks'], ['board-tasks'], ['planner-tasks'], ['task-stats']
+(["tasks"], ["board-tasks"], ["planner-tasks"], ["task-stats"]);
 ```
 
 ### 5. Notificacoes Discord
@@ -264,9 +273,14 @@ Tarefas com `origin='ghost'` sao criadas automaticamente por automacoes/fluxos. 
 ### 4. Checklist e JSON no campo task.checklist
 
 O checklist e armazenado como JSON array dentro do campo `checklist` da tarefa:
+
 ```json
-[{"id":"uuid","text":"Item 1","completed":true}, {"id":"uuid","text":"Item 2","completed":false}]
+[
+  { "id": "uuid", "text": "Item 1", "completed": true },
+  { "id": "uuid", "text": "Item 2", "completed": false }
+]
 ```
+
 Nao e uma tabela separada.
 
 ### 5. Templates apagam tudo
@@ -280,6 +294,7 @@ O TaskKanban faz polling de sessoes ativas de time tracking a cada 10 segundos p
 ### 7. Progress auto-calculado no drag
 
 Ao mover uma tarefa para uma coluna com status diferente, o `progress` e auto-ajustado:
+
 - `done` → 100%
 - `review` → 90%
 - `progress` → 50%
@@ -319,11 +334,11 @@ Responsavel conclui tarefa
 
 ### Tabelas do Banco
 
-| Tabela | Campos-chave | Funcao |
-|---|---|---|
-| `task_members` | task_id, employee_id, role ('responsible' / 'authorizer' / 'contributor' / 'observer') | Associa membros a tarefas com roles |
-| `task_review_history` | task_id, reviewer_employee_id, action ('approved'/'rejected'), rejection_reason, quality_before, quality_after, comment | Audit trail de aprovacoes/rejeicoes |
-| `tasks` (campos relevantes) | status, task_quality_score (NUMERIC 0-100, default 100), last_rejected_at | Estado atual da tarefa |
+| Tabela                      | Campos-chave                                                                                                            | Funcao                              |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `task_members`              | task_id, employee_id, role ('responsible' / 'authorizer' / 'contributor' / 'observer')                                  | Associa membros a tarefas com roles |
+| `task_review_history`       | task_id, reviewer_employee_id, action ('approved'/'rejected'), rejection_reason, quality_before, quality_after, comment | Audit trail de aprovacoes/rejeicoes |
+| `tasks` (campos relevantes) | status, task_quality_score (NUMERIC 0-100, default 100), last_rejected_at                                               | Estado atual da tarefa              |
 
 **IMPORTANTE**: `task_members` NAO esta nos tipos auto-gerados do Supabase. Sempre usar cast `"task_members" as unknown` nas queries.
 
@@ -341,6 +356,7 @@ Responsavel conclui tarefa
 ### Hook useTasksAwaitingApproval
 
 Query em 4 etapas:
+
 1. Busca `task_members` onde employee_id=usuario E role='authorizer' → lista de task_ids
 2. Busca `tasks` com status='review' E id IN task_ids → tarefas pendentes
 3. Busca `clients` para enriquecer com company_name
@@ -367,6 +383,7 @@ Retorna `{ tasks: TaskAwaitingApproval[], count: number, isLoading: boolean }`. 
 ### Integracao no DashboardHeader
 
 O `DashboardHeader.tsx` integra o sistema de aprovacao com:
+
 - Import de `TaskApprovalIndicator` e `TaskDialog`
 - Estado `approvalTaskOpen` + `approvalTask` para controlar o dialog
 - `handleOpenApprovalTask`: busca tarefa completa do Supabase, abre dialog

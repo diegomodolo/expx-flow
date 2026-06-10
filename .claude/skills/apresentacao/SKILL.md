@@ -1,3 +1,8 @@
+---
+name: apresentacao
+description: "Use ao trabalhar no modulo de apresentacao e aprovacao de criativos via link publico (/apresentacao/:token), mockups de Instagram e email de resumo"
+---
+
 # Apresentacao (Apresentacao de Conteudo) — Skill de Contexto do Modulo
 
 ## Visao Geral
@@ -34,43 +39,43 @@ approved → scheduled (enviado para agendamento)
 
 ### Pagina Principal
 
-| Arquivo | Responsabilidade |
-|---|---|
+| Arquivo                             | Responsabilidade                                                                                                                        |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/pages/ApresentacaoPublica.tsx` | (~900 linhas) Pagina publica de apresentacao. Gerencia slides, meeting lifecycle, aprovacoes, navegacao por teclado, sessao restauravel |
 
 ### Componentes de Apresentacao
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/presentation/InstagramMockup.tsx` | Mockup realista de post Instagram com deteccao automatica de aspect ratio (1:1, 4:5, 16:9, 9:16), carrossel com navegacao, video nativo |
-| `src/components/presentation/ParticipantsForm.tsx` | Formulario de participantes (nome, cargo, email) antes de iniciar |
-| `src/components/presentation/ApprovalButtons.tsx` | Botoes de aprovar/rejeitar com indicador de status |
-| `src/components/presentation/RejectionModal.tsx` | Modal para capturar motivo da rejeicao |
-| `src/components/presentation/MeetingSummarySlide.tsx` | Slide final: stats, lista de participantes, tabela de status, botao finalizar |
-| `src/components/presentation/AddParticipantButton.tsx` | Adicionar participante durante a reuniao |
+| Arquivo                                                | Responsabilidade                                                                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/presentation/InstagramMockup.tsx`      | Mockup realista de post Instagram com deteccao automatica de aspect ratio (1:1, 4:5, 16:9, 9:16), carrossel com navegacao, video nativo |
+| `src/components/presentation/ParticipantsForm.tsx`     | Formulario de participantes (nome, cargo, email) antes de iniciar                                                                       |
+| `src/components/presentation/ApprovalButtons.tsx`      | Botoes de aprovar/rejeitar com indicador de status                                                                                      |
+| `src/components/presentation/RejectionModal.tsx`       | Modal para capturar motivo da rejeicao                                                                                                  |
+| `src/components/presentation/MeetingSummarySlide.tsx`  | Slide final: stats, lista de participantes, tabela de status, botao finalizar                                                           |
+| `src/components/presentation/AddParticipantButton.tsx` | Adicionar participante durante a reuniao                                                                                                |
 
 ### Componentes de Gestao (area interna)
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/components/presentation-details/CreativesList.tsx` | Lista de criativos com badges de status e preview |
-| `src/components/presentation-details/MeetingsHistory.tsx` | Historico de reunioes com datas, participantes, stats |
-| `src/components/presentation-details/CreativePreviewModal.tsx` | Preview full-screen de criativo |
-| `src/components/presentation-details/SendToScheduleModal.tsx` | Enviar criativos aprovados para agendamento |
+| Arquivo                                                        | Responsabilidade                                      |
+| -------------------------------------------------------------- | ----------------------------------------------------- |
+| `src/components/presentation-details/CreativesList.tsx`        | Lista de criativos com badges de status e preview     |
+| `src/components/presentation-details/MeetingsHistory.tsx`      | Historico de reunioes com datas, participantes, stats |
+| `src/components/presentation-details/CreativePreviewModal.tsx` | Preview full-screen de criativo                       |
+| `src/components/presentation-details/SendToScheduleModal.tsx`  | Enviar criativos aprovados para agendamento           |
 
 ### Hooks
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/hooks/usePresentations.ts` | CRUD de apresentacoes + `publishPresentation` (gera token) + `usePublicPresentation` (fetch por token) |
-| `src/hooks/usePresentationMeetings.ts` | Gestao de reunioes, aprovacoes, upload de gravacao, `useSendToSchedule` |
+| Arquivo                                | Responsabilidade                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/hooks/usePresentations.ts`        | CRUD de apresentacoes + `publishPresentation` (gera token) + `usePublicPresentation` (fetch por token) |
+| `src/hooks/usePresentationMeetings.ts` | Gestao de reunioes, aprovacoes, upload de gravacao, `useSendToSchedule`                                |
 
 ### Backend
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `supabase/migrations/20251214210849_*.sql` | Tabelas principais + RLS |
-| `supabase/migrations/20251214214007_*.sql` | Tabelas de meeting + RLS |
+| Arquivo                                         | Responsabilidade                                    |
+| ----------------------------------------------- | --------------------------------------------------- |
+| `supabase/migrations/20251214210849_*.sql`      | Tabelas principais + RLS                            |
+| `supabase/migrations/20251214214007_*.sql`      | Tabelas de meeting + RLS                            |
 | `supabase/functions/send-presentation-summary/` | Edge function que envia email resumo via Resend API |
 
 ---
@@ -79,18 +84,19 @@ approved → scheduled (enviado para agendamento)
 
 ### Tabelas
 
-| Tabela | Campos-chave | Notas |
-|---|---|---|
-| `content_presentations` | id, client_id, company_id, name, month, year, primary_color, secondary_color, status, public_token, view_count | Token unico gerado no publish |
-| `presentation_creatives` | id, presentation_id, creative_type, order_index, headline, caption, hashtags, objective, current_status, scheduled_post_id | Tipos: post_unico, carrossel, reels, stories |
-| `creative_media` | id, creative_id, media_url, media_type, order_index, slide_headline, slide_subheadline | Storage bucket: `presentation-media` |
-| `presentation_meetings` | id, presentation_id, status, current_slide, started_at, ended_at, approved_count, rejected_count, summary_sent | Status: in_progress, completed, cancelled |
-| `presentation_meeting_participants` | id, meeting_id, name, role, email | Participantes da reuniao |
-| `presentation_creative_approvals` | id, meeting_id, creative_id, status, rejection_reason, approved_at | Unique: (meeting_id, creative_id) |
+| Tabela                              | Campos-chave                                                                                                               | Notas                                        |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `content_presentations`             | id, client_id, company_id, name, month, year, primary_color, secondary_color, status, public_token, view_count             | Token unico gerado no publish                |
+| `presentation_creatives`            | id, presentation_id, creative_type, order_index, headline, caption, hashtags, objective, current_status, scheduled_post_id | Tipos: post_unico, carrossel, reels, stories |
+| `creative_media`                    | id, creative_id, media_url, media_type, order_index, slide_headline, slide_subheadline                                     | Storage bucket: `presentation-media`         |
+| `presentation_meetings`             | id, presentation_id, status, current_slide, started_at, ended_at, approved_count, rejected_count, summary_sent             | Status: in_progress, completed, cancelled    |
+| `presentation_meeting_participants` | id, meeting_id, name, role, email                                                                                          | Participantes da reuniao                     |
+| `presentation_creative_approvals`   | id, meeting_id, creative_id, status, rejection_reason, approved_at                                                         | Unique: (meeting_id, creative_id)            |
 
 ### RLS para Acesso Publico
 
 As policies permitem acesso publico (sem auth) quando:
+
 - `content_presentations.status = 'published'` AND `public_token IS NOT NULL`
 - Criativos e media herdam o acesso da apresentacao publicada
 - Meetings podem ser criados/atualizados por qualquer um se a apresentacao estiver publicada
@@ -133,6 +139,7 @@ Container vertical usa `w-[320px] h-[95%]`, horizontal usa `w-full max-w-[500px]
 ### 3. Sessao Restauravel
 
 Se o usuario recarregar a pagina durante uma reuniao:
+
 - Fetch busca meeting com `status = 'in_progress'` para a apresentacao
 - Restaura `meetingId`, `participants`, `approvals`, `currentSlide`
 - Permite continuar de onde parou
@@ -146,9 +153,10 @@ O slide atual e salvo no banco com debounce de 500ms para evitar writes excessiv
 ```typescript
 // Publicar: gera token e atualiza status
 const token = crypto.randomUUID();
-await supabase.from('content_presentations')
-  .update({ public_token: token, status: 'published' })
-  .eq('id', presentationId);
+await supabase
+  .from("content_presentations")
+  .update({ public_token: token, status: "published" })
+  .eq("id", presentationId);
 
 // URL publica: /apresentacao/{token}
 // RLS permite acesso sem auth via public_token
@@ -157,6 +165,7 @@ await supabase.from('content_presentations')
 ### 6. Email de Resumo
 
 Ao finalizar a reuniao, chama edge function `send-presentation-summary` que:
+
 - Recebe meetingId, participantes, criativos, dados da apresentacao
 - Gera HTML com tabela de aprovacoes
 - Envia via Resend API para todos os participantes
@@ -171,11 +180,13 @@ Ao finalizar a reuniao, chama edge function `send-presentation-summary` que:
 **Sintoma**: Na tela de apresentacao, a legenda dos criativos nao aparecia completa nos mockups do Instagram.
 
 **Causa raiz (dupla truncagem)**:
+
 1. `InstagramMockup.tsx`: `caption.substring(0, 100)` cortava em 100 caracteres
 2. `InstagramMockup.tsx`: `line-clamp-2` limitava a 2 linhas CSS
 3. `ApresentacaoPublica.tsx`: Painel lateral usava `line-clamp-6`
 
 **Solucao**:
+
 - Mockup: Removido `substring` e `line-clamp-2`. Agora exibe texto completo com `whitespace-pre-wrap` e `max-h-40 overflow-y-auto` para legendas muito longas
 - Painel lateral: Removido `line-clamp-6`, exibe legenda completa
 
@@ -192,6 +203,7 @@ O container raiz do `InstagramMockup` tem `overflow-hidden` (necessario para o a
 ### 1. Dois tipos de apresentacao
 
 Existem DUAS paginas publicas de apresentacao distintas:
+
 - `/apresentacao/:token` → `ApresentacaoPublica.tsx` — Apresentacao de **conteudo** (criativos para aprovacao)
 - `/resultados/:token` → `ApresentacaoResultadosPublica.tsx` — Apresentacao de **resultados** (metricas de campanhas)
 
@@ -200,6 +212,7 @@ Nao confundir. Este skill cobre apenas a de conteudo.
 ### 2. Navegacao por teclado
 
 Setas esquerda/direita e Space navegam slides. Listener desativado quando:
+
 - Um input/textarea esta em foco
 - Um modal esta aberto
 - Meeting nao foi iniciado (exceto slides 0-1)

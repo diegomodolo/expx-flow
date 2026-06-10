@@ -1,3 +1,8 @@
+---
+name: auth
+description: "Use para autenticacao Supabase, sistema de permissoes, roles, route guards e CRM auth isolado"
+---
+
 # Auth — Contexto Especializado
 
 ## Escopo
@@ -187,14 +192,14 @@ interface CRMUser {
 
 ## Erros Comuns e Solucoes
 
-| Erro                       | Causa                                          | Solucao                                        |
-| -------------------------- | ---------------------------------------------- | ---------------------------------------------- |
-| Redirect loop em /auth     | ProtectedRoute sem loading check               | Verificar `if (loading) return spinner`         |
-| Owner sem acesso           | Checando permissao antes de isOwner            | Sempre checar `isOwner` primeiro               |
-| Permissoes nao carregam    | company_id nao disponivel                      | Esperar `activeCompany` antes de fetch         |
-| CRM auth falha             | Token expirado em localStorage                 | Limpar `crm_session` e relogar                 |
-| Erro enum ao ativar perm   | Valor nao existe em `menu_item_type`           | `ALTER TYPE menu_item_type ADD VALUE 'valor'`  |
-| Dados com company_id errado | Usando `activeCompany.id` em vez de `.company_id` | **SEMPRE** `activeCompany.company_id`       |
+| Erro                        | Causa                                             | Solucao                                       |
+| --------------------------- | ------------------------------------------------- | --------------------------------------------- |
+| Redirect loop em /auth      | ProtectedRoute sem loading check                  | Verificar `if (loading) return spinner`       |
+| Owner sem acesso            | Checando permissao antes de isOwner               | Sempre checar `isOwner` primeiro              |
+| Permissoes nao carregam     | company_id nao disponivel                         | Esperar `activeCompany` antes de fetch        |
+| CRM auth falha              | Token expirado em localStorage                    | Limpar `crm_session` e relogar                |
+| Erro enum ao ativar perm    | Valor nao existe em `menu_item_type`              | `ALTER TYPE menu_item_type ADD VALUE 'valor'` |
+| Dados com company_id errado | Usando `activeCompany.id` em vez de `.company_id` | **SEMPRE** `activeCompany.company_id`         |
 
 ## Checklist antes de submeter
 

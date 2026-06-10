@@ -1,3 +1,8 @@
+---
+description: Adiciona nova permissao nos 3 lugares obrigatorios (enum DB + PermissionGroupsSettings + PermissionsSettings)
+argument-hint: <key> <label> <descricao> [categoria]
+---
+
 # /add-permission
 
 ## Descricao

@@ -1,3 +1,8 @@
+---
+description: Cria teste com mocks e providers corretos do Expx Flow
+argument-hint: <caminho-do-arquivo> [hook|component|utility]
+---
+
 # /write-test
 
 ## Descricao

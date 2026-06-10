@@ -1,3 +1,8 @@
+---
+name: squads
+description: "Use ao trabalhar no modulo de Squads (/squad): membros, lider, responsavel WhatsApp, autorizador, e conexao com Backlog/Command Center"
+---
+
 # Squads — Skill de Contexto do Modulo
 
 ## Visao Geral

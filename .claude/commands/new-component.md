@@ -1,3 +1,8 @@
+---
+description: Cria componente React seguindo as convencoes do Expx Flow
+argument-hint: <NomePascalCase> <feature> [display|form|list|modal]
+---
+
 # /new-component
 
 ## Descricao

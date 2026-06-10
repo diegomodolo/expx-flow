@@ -1,3 +1,8 @@
+---
+name: frontend
+description: "Use para componentes React, estilo Tailwind, data fetching com React Query, routing e UI patterns do Expx Flow"
+---
+
 # Frontend — Contexto Especializado
 
 ## Escopo
@@ -105,16 +110,16 @@ import { cn } from "@/lib/utils";
 
 ## Erros Comuns e Solucoes
 
-| Erro                          | Causa                                          | Solucao                                                    |
-| ----------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
-| Import nao encontrado         | Caminho relativo em vez de `@/`                | Usar `@/` sempre                                           |
-| Query nao executa             | `enabled` nao configurado                      | Adicionar `enabled: !!dependencia`                         |
-| UI nao atualiza apos mutation | Cache nao invalidado                           | `queryClient.invalidateQueries()`                          |
-| Componente ui/ nao existe     | Nao foi adicionado via CLI                     | `npx shadcn-ui@latest add <nome>`                          |
-| Toast em ingles               | Esqueceu de traduzir                           | Sempre usar PT-BR em toasts                                |
+| Erro                          | Causa                                             | Solucao                                                 |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| Import nao encontrado         | Caminho relativo em vez de `@/`                   | Usar `@/` sempre                                        |
+| Query nao executa             | `enabled` nao configurado                         | Adicionar `enabled: !!dependencia`                      |
+| UI nao atualiza apos mutation | Cache nao invalidado                              | `queryClient.invalidateQueries()`                       |
+| Componente ui/ nao existe     | Nao foi adicionado via CLI                        | `npx shadcn-ui@latest add <nome>`                       |
+| Toast em ingles               | Esqueceu de traduzir                              | Sempre usar PT-BR em toasts                             |
 | Dados nao aparecem na tela    | Usando `activeCompany.id` em vez de `.company_id` | **SEMPRE** usar `activeCompany.company_id`              |
-| Pagina sem sidebar/header     | Faltou DashboardLayout                         | Envolver com `<DashboardLayout>`                           |
-| Erro ao ativar permissao      | Enum `menu_item_type` nao atualizado no banco  | Rodar `ALTER TYPE menu_item_type ADD VALUE 'nova-perm'`    |
+| Pagina sem sidebar/header     | Faltou DashboardLayout                            | Envolver com `<DashboardLayout>`                        |
+| Erro ao ativar permissao      | Enum `menu_item_type` nao atualizado no banco     | Rodar `ALTER TYPE menu_item_type ADD VALUE 'nova-perm'` |
 
 ## Checklist antes de submeter
 

@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .superpowers/
 .worktrees/
+
+# Claude Code - config pessoal local
+.claude/settings.local.json

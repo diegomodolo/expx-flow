@@ -1,3 +1,8 @@
+---
+name: permissions
+description: "Use para validar consistencia entre rotas (App.tsx), sidebar (DashboardSidebar.tsx) e permissoes (useEmployeePermissions.tsx), e debugar Acesso Negado indevido"
+---
+
 # Permissions — Contexto Especializado
 
 ## Escopo

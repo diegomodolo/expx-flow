@@ -1,3 +1,8 @@
+---
+description: Cria tabela Supabase com RLS seguro (SECURITY DEFINER), GRANT e migration completa
+argument-hint: <nome_snake> <campos> [tem_user]
+---
+
 # /new-table
 
 ## Descricao
@@ -73,6 +78,7 @@ $$;
 ### 3. Aplicar migration
 
 Opcao A — via CLI:
+
 ```bash
 supabase db push
 ```
@@ -116,13 +122,13 @@ export function use<NomePascal>(companyId: string | undefined) {
 
 ## Erros que este skill previne
 
-| Erro | Como previne |
-|------|-------------|
+| Erro                        | Como previne                            |
+| --------------------------- | --------------------------------------- |
 | Dados nao aparecem (0 rows) | Usa SECURITY DEFINER em vez de subquery |
-| Frontend recebe [] sem erro | Inclui GRANT TO authenticated |
-| RLS falha silenciosa | Nao faz subquery em company_members |
-| Query lenta | Cria index em company_id |
-| company_id errado | Template usa `companyId` parametrizado |
+| Frontend recebe [] sem erro | Inclui GRANT TO authenticated           |
+| RLS falha silenciosa        | Nao faz subquery em company_members     |
+| Query lenta                 | Cria index em company_id                |
+| company_id errado           | Template usa `companyId` parametrizado  |
 
 ## Checklist
 

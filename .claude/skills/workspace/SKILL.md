@@ -1,3 +1,8 @@
+---
+name: workspace
+description: "Use ao trabalhar no Workspace (/workspace): documentos e notas estilo Notion, pastas hierarquicas, editor BlockNote, compartilhamento com permissoes"
+---
+
 # Workspace — Skill de Contexto do Modulo
 
 ## Visao Geral
@@ -20,28 +25,28 @@ workspace_shares (compartilhamento por recurso: folder ou document)
 
 ### Pagina e Componentes
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/pages/Workspace.tsx` | Pagina principal. `ResizablePanelGroup` horizontal: sidebar (25%) + editor (75%). State de `selectedDocument` e `selectedFolderId` |
-| `src/components/workspace/WorkspaceSidebar.tsx` | Arvore de pastas com expand/collapse, lista de documentos, favoritos, drag-and-drop (react-beautiful-dnd), context menus, dialogs de delete/share |
-| `src/components/workspace/WorkspaceEditor.tsx` | Editor BlockNote com auto-save, edicao de titulo (blur-save), icon picker (12 emojis), toggle favorito, botao de compartilhar |
-| `src/components/workspace/WorkspaceShareDialog.tsx` | Dialog de compartilhamento: adicionar usuarios, alterar permissao (view/edit/admin), remover acesso |
-| `src/components/workspace/CreateFolderDialog.tsx` | Dialog para criar/renomear pastas com selecao de icone |
+| Arquivo                                             | Responsabilidade                                                                                                                                  |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/pages/Workspace.tsx`                           | Pagina principal. `ResizablePanelGroup` horizontal: sidebar (25%) + editor (75%). State de `selectedDocument` e `selectedFolderId`                |
+| `src/components/workspace/WorkspaceSidebar.tsx`     | Arvore de pastas com expand/collapse, lista de documentos, favoritos, drag-and-drop (react-beautiful-dnd), context menus, dialogs de delete/share |
+| `src/components/workspace/WorkspaceEditor.tsx`      | Editor BlockNote com auto-save, edicao de titulo (blur-save), icon picker (12 emojis), toggle favorito, botao de compartilhar                     |
+| `src/components/workspace/WorkspaceShareDialog.tsx` | Dialog de compartilhamento: adicionar usuarios, alterar permissao (view/edit/admin), remover acesso                                               |
+| `src/components/workspace/CreateFolderDialog.tsx`   | Dialog para criar/renomear pastas com selecao de icone                                                                                            |
 
 ### Hooks
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/hooks/useWorkspaceFolders.tsx` | CRUD de pastas. Query key: `['workspace-folders', companyId]` |
+| Arquivo                               | Responsabilidade                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------- |
+| `src/hooks/useWorkspaceFolders.tsx`   | CRUD de pastas. Query key: `['workspace-folders', companyId]`             |
 | `src/hooks/useWorkspaceDocuments.tsx` | CRUD de documentos + favoritos. 3 query keys: por pasta, todos, favoritos |
-| `src/hooks/useWorkspaceShares.tsx` | CRUD de compartilhamentos. Lista usuarios da empresa para dropdown |
+| `src/hooks/useWorkspaceShares.tsx`    | CRUD de compartilhamentos. Lista usuarios da empresa para dropdown        |
 
 ### Tipos e Banco
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/types/workspace.ts` | Tipos: `WorkspaceFolder`, `WorkspaceDocument`, `WorkspaceShare`, `WorkspaceShareWithUser`, `FolderTreeItem` |
-| `supabase/migrations/20260206181159_...sql` | Criacao das 3 tabelas, RLS policies, indices, triggers de updated_at |
+| Arquivo                                     | Responsabilidade                                                                                            |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `src/types/workspace.ts`                    | Tipos: `WorkspaceFolder`, `WorkspaceDocument`, `WorkspaceShare`, `WorkspaceShareWithUser`, `FolderTreeItem` |
+| `supabase/migrations/20260206181159_...sql` | Criacao das 3 tabelas, RLS policies, indices, triggers de updated_at                                        |
 
 ---
 
@@ -52,9 +57,9 @@ workspace_shares (compartilhamento por recurso: folder ou document)
 O `useWorkspaceDocuments` mantem 3 queries separadas para diferentes visoes:
 
 ```typescript
-['workspace-documents', companyId, folderId]     // docs de uma pasta (ou root se null)
-['workspace-documents-all', companyId]            // todos os docs da empresa
-['workspace-documents-favorites', companyId]      // apenas favoritos
+["workspace-documents", companyId, folderId][ // docs de uma pasta (ou root se null)
+  ("workspace-documents-all", companyId)
+][("workspace-documents-favorites", companyId)]; // todos os docs da empresa // apenas favoritos
 ```
 
 **Todas as 3 sao invalidadas** em qualquer mutacao (create/update/delete/toggleFavorite) para garantir consistencia.
@@ -62,6 +67,7 @@ O `useWorkspaceDocuments` mantem 3 queries separadas para diferentes visoes:
 ### 2. Auto-Save no Editor
 
 O `WorkspaceEditor` salva automaticamente via `onChange` do BlockNote:
+
 - **Titulo**: salva no `onBlur` do input (nao a cada tecla)
 - **Conteudo**: salva via `updateDocument.mutate()` no `onChange` do editor
 - **Conteudo e JSONB**: Array de blocos BlockNote, armazenado como `content` (tipo `jsonb`, default `[]`)
@@ -69,6 +75,7 @@ O `WorkspaceEditor` salva automaticamente via `onChange` do BlockNote:
 ### 3. Drag-and-Drop para Organizar Documentos
 
 Usa `react-beautiful-dnd` no `WorkspaceSidebar`:
+
 - **Droppable targets**: `folder-{folderId}` para pastas, `root` para raiz
 - **Draggable items**: `doc-{docId}` para documentos
 - No drop: chama `updateDocument.mutate({ id, folderId })` para mover
@@ -80,18 +87,19 @@ Deletes usam `.select('id')` apos `.delete()` para detectar falha silenciosa do 
 
 ```typescript
 const { data, error } = await supabase
-  .from('workspace_documents')
+  .from("workspace_documents")
   .delete()
-  .eq('id', id)
-  .select('id');
+  .eq("id", id)
+  .select("id");
 
 if (error) throw error;
-if (!data || data.length === 0) throw new Error('Sem permissao para excluir');
+if (!data || data.length === 0) throw new Error("Sem permissao para excluir");
 ```
 
 ### 5. Compartilhamento por Recurso
 
 Shares sao granulares por recurso individual (nao herdam de pasta pai):
+
 - `resource_type`: `'folder'` ou `'document'`
 - `resource_id`: ID do recurso
 - `permission`: `'view'` | `'edit'` | `'admin'`
@@ -106,12 +114,14 @@ Shares sao granulares por recurso individual (nao herdam de pasta pai):
 **Sintoma**: Qualquer usuario da empresa via todas as notas de todos os outros usuarios.
 
 **Causa raiz**: A RLS policy de SELECT em `workspace_documents` era:
+
 ```sql
 -- ERRADA: permitia ver tudo da empresa
 USING (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()))
 ```
 
 **Solucao**: Substituir por policy que restringe ao criador + compartilhados:
+
 ```sql
 -- CORRETA: so ve os proprios + compartilhados
 USING (
@@ -133,10 +143,12 @@ Mesma correcao aplicada em `workspace_folders`.
 **Sintoma**: Ao tentar excluir uma nota, ela continuava visivel e a tela travava (precisava F5).
 
 **Causa raiz (2 problemas)**:
+
 1. **RLS silenciosa**: O Supabase retornava sucesso no `.delete()` mesmo quando o RLS bloqueava a operacao. O frontend achava que deletou, invalidava queries, mas o dado continuava la.
 2. **react-beautiful-dnd loop**: O DnD tentava reconciliar o estado (doc "deletado" localmente vs ainda presente no refetch), causando um loop de renders que travava a tela.
 
 **Solucao**:
+
 1. Adicionar `.select('id')` apos `.delete()` para verificar se algo foi realmente deletado
 2. Se `data.length === 0`, lancar erro explicito: `'Sem permissao para excluir'`
 3. Corrigir RLS DELETE policy para incluir usuarios com permissao admin em shares
@@ -158,12 +170,18 @@ Existe um modulo separado chamado "CRM Workspace" (`useCRMWorkspace.tsx`, `useCR
 ### 2. Conteudo e JSONB (BlockNote format)
 
 O campo `content` de `workspace_documents` armazena um array JSON de blocos BlockNote. Exemplo:
+
 ```json
 [
-  {"type":"paragraph","content":[{"type":"text","text":"Hello"}]},
-  {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Title"}]}
+  { "type": "paragraph", "content": [{ "type": "text", "text": "Hello" }] },
+  {
+    "type": "heading",
+    "props": { "level": 2 },
+    "content": [{ "type": "text", "text": "Title" }]
+  }
 ]
 ```
+
 Default e `[]` (documento vazio). O editor BlockNote renderiza e salva nesse formato automaticamente.
 
 ### 3. Hierarquia de pastas sem limite
@@ -192,16 +210,16 @@ Compartilhar uma pasta com um usuario NAO da acesso automatico aos documentos de
 
 ### Tabelas
 
-| Tabela | Campos-chave | Cascade |
-|---|---|---|
-| `workspace_folders` | id, company_id, parent_id, name, icon, created_by | company: CASCADE, parent: CASCADE |
-| `workspace_documents` | id, company_id, folder_id, title, content (JSONB), icon, cover_image, created_by, is_favorite | company: CASCADE, folder: SET NULL |
-| `workspace_shares` | id, resource_type, resource_id, shared_with_user_id, permission, shared_by | Unique: (type, resource_id, user_id) |
+| Tabela                | Campos-chave                                                                                  | Cascade                              |
+| --------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `workspace_folders`   | id, company_id, parent_id, name, icon, created_by                                             | company: CASCADE, parent: CASCADE    |
+| `workspace_documents` | id, company_id, folder_id, title, content (JSONB), icon, cover_image, created_by, is_favorite | company: CASCADE, folder: SET NULL   |
+| `workspace_shares`    | id, resource_type, resource_id, shared_with_user_id, permission, shared_by                    | Unique: (type, resource_id, user_id) |
 
 ### RLS Policies (corrigidas)
 
-| Tabela | SELECT | INSERT | UPDATE | DELETE |
-|---|---|---|---|---|
-| folders | created_by = uid() OR share exists | company member + creator | owner OR admin share | owner only |
-| documents | created_by = uid() OR share exists | company member + creator | owner OR edit/admin share | owner only |
-| shares | creator OR recipient | resource owner only | — | creator only |
+| Tabela    | SELECT                             | INSERT                   | UPDATE                    | DELETE       |
+| --------- | ---------------------------------- | ------------------------ | ------------------------- | ------------ |
+| folders   | created_by = uid() OR share exists | company member + creator | owner OR admin share      | owner only   |
+| documents | created_by = uid() OR share exists | company member + creator | owner OR edit/admin share | owner only   |
+| shares    | creator OR recipient               | resource owner only      | —                         | creator only |
