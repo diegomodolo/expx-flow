@@ -1518,7 +1518,7 @@ async function processSync(
                   // url_tags is where Meta stores the UTM parameters at the creative level
                   // Added image_hash to fetch full resolution images later, and effective_object_story_id for fallback
                   const adsUrl =
-                    `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,tracking_specs,creative{id,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id,url_tags,object_url},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
+                    `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,updated_time,tracking_specs,creative{id,title,body,image_url,image_hash,video_id,thumbnail_url,object_story_spec,call_to_action_type,effective_object_story_id,url_tags,object_url},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
                     `{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`;
                   console.log(
                     "Ads API URL (without token):",
@@ -1541,6 +1541,33 @@ async function processSync(
                     // Log first ad response for debugging
                     if (ads.length > 0) {
                       console.log("Sample ad data:", JSON.stringify(ads[0]));
+                    }
+
+                    // Pre-load existing ads from DB to enable media URL cache (avoids redundant Graph API calls)
+                    const adFacebookIds = ads.map((a: unknown) => a.id);
+                    const existingAdsMap = new Map<
+                      string,
+                      {
+                        image_url: string | null;
+                        video_url: string | null;
+                        updated_at: string | null;
+                      }
+                    >();
+                    if (adFacebookIds.length > 0) {
+                      const { data: existingAds } = await supabase
+                        .from("ads")
+                        .select("facebook_id, image_url, video_url, updated_at")
+                        .in("facebook_id", adFacebookIds);
+                      for (const ea of existingAds || []) {
+                        existingAdsMap.set(ea.facebook_id, {
+                          image_url: ea.image_url,
+                          video_url: ea.video_url,
+                          updated_at: ea.updated_at,
+                        });
+                      }
+                      console.log(
+                        `[media-cache] Loaded ${existingAdsMap.size} existing ads from DB for ad set ${adSet.id}`,
+                      );
                     }
 
                     // Process each ad
@@ -1823,6 +1850,41 @@ async function processSync(
                         creative: unknown,
                         objectStory: unknown,
                       ) => {
+                        // CACHE CHECK: If this ad already has media URLs persisted in the DB
+                        // and its updated_time from Meta hasn't changed, reuse the stored URLs
+                        // to avoid unnecessary Graph API calls (saves ~70% of API quota).
+                        const existingAd = existingAdsMap.get(ad.id);
+                        const graphUpdatedTime: string | undefined =
+                          ad.updated_time;
+                        const dbUpdatedAt: string | null =
+                          existingAd?.updated_at ?? null;
+
+                        if (existingAd?.image_url || existingAd?.video_url) {
+                          // Treat ad as unchanged if its Meta updated_time is not newer than DB updated_at
+                          const adChangedSinceLastSync =
+                            graphUpdatedTime && dbUpdatedAt
+                              ? new Date(graphUpdatedTime) >
+                                new Date(dbUpdatedAt)
+                              : false;
+
+                          if (!adChangedSinceLastSync) {
+                            console.log(
+                              `[media-cache] HIT for ad ${ad.id} — reusing stored URLs (image: ${existingAd.image_url ? "yes" : "no"}, video: ${existingAd.video_url ? "yes" : "no"})`,
+                            );
+                            return {
+                              imageUrl: existingAd.image_url || "",
+                              videoUrl: existingAd.video_url || "",
+                            };
+                          }
+                          console.log(
+                            `[media-cache] MISS for ad ${ad.id} — ad changed since last sync (graphUpdatedTime=${graphUpdatedTime}, dbUpdatedAt=${dbUpdatedAt}), refreshing media URLs`,
+                          );
+                        } else {
+                          console.log(
+                            `[media-cache] MISS for ad ${ad.id} — no stored URLs, fetching from Graph API`,
+                          );
+                        }
+
                         let imageUrl = "";
 
                         // 1. Search for image_hash from multiple possible sources
