@@ -62,27 +62,34 @@ async function publishToFacebook(
       post.media_urls?.length > 1
     ) {
       // Multi-photo post (carousel)
-      // First, upload each photo and get their IDs
-      const photoIds = [];
-      for (const mediaUrl of post.media_urls) {
-        const uploadResponse = await fetch(
-          `https://graph.facebook.com/v20.0/${pageId}/photos`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              url: mediaUrl,
-              published: false,
-              access_token: pageAccessToken,
-            }),
-          },
-        );
+      // Upload em paralelo — Promise.all preserva a ordem dos slides
+      const uploadResults = await Promise.all(
+        post.media_urls.map(async (mediaUrl: string) => {
+          const uploadResponse = await fetch(
+            `https://graph.facebook.com/v20.0/${pageId}/photos`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                url: mediaUrl,
+                published: false,
+                access_token: pageAccessToken,
+              }),
+            },
+          );
 
-        if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
-          photoIds.push({ media_fbid: uploadData.id });
-        }
-      }
+          if (uploadResponse.ok && uploadData.id) {
+            return { media_fbid: uploadData.id };
+          }
+          console.error(
+            `[publish-facebook] failed to upload photo ${mediaUrl}:`,
+            uploadData,
+          );
+          return null;
+        }),
+      );
+      const photoIds = uploadResults.filter(Boolean);
 
       // Create multi-photo post
       endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
@@ -189,40 +196,43 @@ async function publishToInstagram(
       post.content_type === "carousel" &&
       post.media_urls?.length > 1
     ) {
-      // First, create individual media containers for each item
-      const childrenIds = [];
-      for (const mediaUrl of post.media_urls) {
-        const isVideo = mediaUrl.includes(".mp4") || mediaUrl.includes(".mov");
-        const childBody: unknown = {
-          access_token: pageAccessToken,
-          is_carousel_item: true,
-        };
+      // Cria os containers filhos em paralelo — Promise.all preserva a ordem dos slides
+      const childResults = await Promise.all(
+        post.media_urls.map(async (mediaUrl: string) => {
+          const isVideo =
+            mediaUrl.includes(".mp4") || mediaUrl.includes(".mov");
+          const childBody: unknown = {
+            access_token: pageAccessToken,
+            is_carousel_item: true,
+          };
 
-        if (isVideo) {
-          childBody.video_url = mediaUrl;
-          childBody.media_type = "VIDEO";
-        } else {
-          // Strip query params (cache busters) — Instagram requires clean URLs
-          const cleanUrl = mediaUrl.split("?")[0];
-          childBody.image_url = cleanUrl;
-        }
+          if (isVideo) {
+            childBody.video_url = mediaUrl;
+            childBody.media_type = "VIDEO";
+          } else {
+            // Strip query params (cache busters) — Instagram requires clean URLs
+            const cleanUrl = mediaUrl.split("?")[0];
+            childBody.image_url = cleanUrl;
+          }
 
-        const childResponse = await fetch(containerEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(childBody),
-        });
+          const childResponse = await fetch(containerEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(childBody),
+          });
 
-        const childData = await childResponse.json();
-        if (childResponse.ok && childData.id) {
-          childrenIds.push(childData.id);
-        } else {
+          const childData = await childResponse.json();
+          if (childResponse.ok && childData.id) {
+            return childData.id as string;
+          }
           console.error(
             `[publish-instagram] failed to create child container for ${mediaUrl}:`,
             childData,
           );
-        }
-      }
+          return null;
+        }),
+      );
+      const childrenIds = childResults.filter(Boolean);
 
       if (childrenIds.length === 0) {
         const durationMs = Date.now() - startTime;
@@ -327,6 +337,33 @@ async function publishToInstagram(
         `https://graph.facebook.com/v20.0/${containerId}?fields=status_code,status&access_token=${pageAccessToken}`,
       );
       const statusData = await statusResponse.json();
+
+      // A Graph API pode retornar erro estruturado (ex: rate limit code 4) em vez
+      // do status — abortar com a mensagem real em vez de marcar UNKNOWN e insistir
+      if (statusData.error) {
+        console.error(
+          `[publish-instagram] container status check returned error:`,
+          statusData.error,
+        );
+        const isRateLimit =
+          statusData.error.code === 4 ||
+          statusData.error.code === 17 ||
+          statusData.error.code === 32;
+        const friendlyError = isRateLimit
+          ? "Limite de requisições da Meta atingido (rate limit). Aguarde alguns minutos e tente novamente."
+          : statusData.error.message || "Erro ao consultar status do container";
+        await logPublishAction(
+          supabase,
+          post.id,
+          "instagram",
+          "wait_processing",
+          "error",
+          statusData,
+          friendlyError,
+        );
+        return { success: false, error: friendlyError };
+      }
+
       lastStatus = statusData.status_code || statusData.status || "UNKNOWN";
       attempts++;
 

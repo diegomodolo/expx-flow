@@ -248,6 +248,25 @@ export function PublishCarouselModal({
     );
   };
 
+  // Aguarda a edge function (rodando em background) concluir, consultando o
+  // status do post no banco. Retorna a linha quando atinge status final.
+  const waitForPostResult = async (
+    postId: string,
+  ): Promise<{ status: string; error_message: string | null } | null> => {
+    for (let i = 0; i < 36; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const { data } = await supabase
+        .from("scheduled_posts")
+        .select("status, error_message")
+        .eq("id", postId)
+        .maybeSingle();
+      if (data && (data.status === "published" || data.status === "failed")) {
+        return data;
+      }
+    }
+    return null;
+  };
+
   const handlePublish = async () => {
     if (selectedPlatforms.length === 0) {
       toast.error("Selecione pelo menos uma plataforma");
@@ -312,7 +331,36 @@ export function PublishCarouselModal({
           body: { postId: post.id },
         });
 
-      if (publishError) throw publishError;
+      if (publishError) {
+        // O gateway do Supabase corta a conexão em ~150s (504), mas a função
+        // continua executando em background. Consultar o status real do post
+        // antes de acusar erro — evita republicar e duplicar o post.
+        toast.info(
+          "A publicação está demorando mais que o esperado — acompanhando o status...",
+        );
+        const finalPost = await waitForPostResult(post.id);
+
+        if (!finalPost) {
+          throw new Error(
+            "A publicação ainda está em processamento em segundo plano. Aguarde alguns minutos e verifique o status antes de publicar novamente.",
+          );
+        }
+
+        if (finalPost.status === "published") {
+          if (finalPost.error_message) {
+            toast.warning(`Publicado parcialmente. ${finalPost.error_message}`);
+          } else {
+            toast.success("Carrossel publicado com sucesso!");
+          }
+          onSuccess();
+          onOpenChange(false);
+        } else {
+          toast.error(
+            `Erro ao publicar: ${finalPost.error_message || "erro desconhecido"}`,
+          );
+        }
+        return;
+      }
 
       // Check results
       const results = publishResult?.results || {};
@@ -337,6 +385,9 @@ export function PublishCarouselModal({
 
       if (successes.length > 0) {
         toast.success(`Carrossel publicado em: ${successes.join(", ")}`);
+        if (errors.length > 0) {
+          toast.warning(`Falhas: ${errors.join("; ")}`);
+        }
         onSuccess();
         onOpenChange(false);
       } else if (errors.length > 0) {
