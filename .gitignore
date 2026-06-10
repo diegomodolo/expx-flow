@@ -27,3 +27,6 @@ dist-ssr
 
 # Claude Code - config pessoal local
 .claude/settings.local.json
+
+# Supabase CLI - artefatos locais
+supabase/.temp/
