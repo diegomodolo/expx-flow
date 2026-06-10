@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Clipboard, X, Search } from "lucide-react";
+import { toast } from "sonner";
 import { StudioSlide, StudioProject } from "../types";
+import { uploadStudioImage } from "../uploadStudioImage";
 import { AIImagePromptModal } from "../AIImagePromptModal";
 import { PexelsSearchModal, PexelsPhoto } from "../PexelsSearchModal";
 import { proxyExternalImage } from "@/lib/proxyExternalImage";
@@ -60,17 +62,17 @@ export function BackgroundSection({
     .filter(Boolean)
     .join(" — ");
 
-  const handleFile = (file: File, shared = false) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const url = e.target?.result as string;
+  const handleFile = async (file: File, shared = false) => {
+    try {
+      const url = await uploadStudioImage(file, "carousel-backgrounds");
       if (shared) {
         onProjectChange({ shared_bg_image_url: url });
       } else {
         onChange({ bg_image_url: url, bg_image_source: "manual" });
       }
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      toast.error("Erro ao enviar a imagem de fundo");
+    }
   };
 
   const handlePaste = async (shared = false) => {

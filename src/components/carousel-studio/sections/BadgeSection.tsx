@@ -1,6 +1,8 @@
 import React, { useRef } from "react";
 import { X, CopyCheck } from "lucide-react";
+import { toast } from "sonner";
 import { SidebarSection } from "../SidebarSection";
+import { uploadStudioImage } from "../uploadStudioImage";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -100,13 +102,15 @@ export function BadgeSection({
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              const reader = new FileReader();
-              reader.onload = (ev) =>
-                onChange({ badge_photo_url: ev.target?.result as string });
-              reader.readAsDataURL(file);
+              try {
+                const url = await uploadStudioImage(file, "carousel-badges");
+                onChange({ badge_photo_url: url });
+              } catch {
+                toast.error("Erro ao enviar a foto do badge");
+              }
             }}
           />
 

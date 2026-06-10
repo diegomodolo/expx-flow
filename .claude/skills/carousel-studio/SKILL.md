@@ -50,14 +50,15 @@ RLS: projetos via `get_user_company_ids(auth.uid())`; slides via `get_user_carou
   )
   ```
 - Thumbnail do card: `project.thumbnail_url ?? firstSlide.exported_image_url ?? <SlideCanvas escalado>`. O fallback `SlideCanvas` renderiza o slide 1 em 1080×1350 com `transform: scale()` via ResizeObserver.
-- Editor (`useCarouselStudioProject` por id + slides) continua usando a tabela base — la o base64 e necessario para renderizar.
+- Editor (`useCarouselStudioProject` por id + slides) continua usando a tabela base.
+- **Upload de imagem SEMPRE via `uploadStudioImage(file, folder)`** (`src/components/carousel-studio/uploadStudioImage.ts`) — sobe para o bucket `visual-creatives` e retorna URL publica. NUNCA usar `FileReader.readAsDataURL` para persistir imagem em coluna do banco.
 
 ## Armadilhas e Bugs Resolvidos
 
 1. **Grade vazia silenciosa (bug 2026-06-10):** slides podem ter `bg_image_url`/`badge_photo_url` com imagens **base64 de ate 24MB** (tabela com 765MB para 444 slides). Embedar `carousel_studio_slides(*)` na listagem estourava o statement timeout do Postgres → PostgREST 500 → `StudioProjectsGrid` so desestrutura `{ data }` do useQuery, engolia o erro e mostrava o empty state. Fix: view `carousel_studio_slides_light` que troca data-URLs por NULL.
 2. **Funcao de RLS sem STABLE:** `get_user_carousel_studio_project_ids()` era VOLATILE (default) — o planner reexecutava o scan por linha. Sempre marcar funcoes de policy como `STABLE`.
 3. **Erros engolidos:** os hooks de listagem nao expoem `error` na UI. Ao debugar "dados nao aparecem", checar os logs da API do Supabase (`get_logs` service=api) procurando status 500 — o sintoma no frontend e identico a "0 resultados".
-4. **Divida tecnica:** o editor ainda SALVA base64 direto nas colunas de imagem. O correto e fazer upload para o Storage e salvar a URL — enquanto isso nao for feito, a tabela continua crescendo e qualquer nova query que leia essas colunas em lote corre risco de timeout.
+4. **Editor branco/travado (bug 2026-06-10, resolvido):** `BadgeSection` e `BackgroundSection` salvavam upload como base64 via `readAsDataURL` — um projeto tinha 7 slides com a MESMA foto de badge de 14.5MB, e o `select *` dos slides retornava ~100MB de JSON, travando a aba do navegador (tela branca). Fix: upload via Storage (`uploadStudioImage`) + migracao dos base64 existentes (`scripts/migrate-carousel-base64.mjs`, idempotente, deduplica por hash) + `VACUUM FULL` (slides: 765MB → 416kB). Se voltar a aparecer base64, rodar o script de novo com `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Contexto Nao-Obvio
 
