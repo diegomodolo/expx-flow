@@ -1,14 +1,16 @@
-# /deploy
+---
+description: Roda testes, lint e build, valida o implementado e faz commit + push na main (deploy Vercel)
+argument-hint: [mensagem de commit opcional]
+allowed-tools: Bash(npm run:*), Bash(git:*), Bash(supabase functions deploy:*), Bash(grep:*), Read, Grep, Glob
+---
 
-## Descricao
+# Deploy
 
-Pipeline completo de deploy: roda testes, lint e build, valida o que foi implementado contra as regras criticas do projeto, e ao final faz commit e push na `main` (dispara deploy automatico na Vercel). Se houver Edge Functions alteradas, faz deploy delas no Supabase.
+Pipeline completo de deploy: testes → lint → build → validacao → commit/push na `main` (dispara deploy automatico na Vercel). Se houver Edge Functions alteradas, deployar no Supabase antes do push.
 
-## Inputs
+Mensagem de commit fornecida pelo usuario (pode estar vazia): $ARGUMENTS
 
-- `mensagem`: Mensagem de commit (opcional). Se nao fornecida, gerar a partir do diff seguindo o padrao dos commits recentes (`feat:`, `fix:`, `docs:`, `chore:` em PT-BR).
-
-## Steps
+## Pipeline (fail-fast — qualquer falha interrompe ANTES do commit)
 
 ### 1. Verificar se ha mudancas para deployar
 
@@ -77,7 +79,7 @@ git commit -m "<mensagem>"
 git push origin main
 ```
 
-- Mensagem de commit em PT-BR, seguindo o padrao dos commits recentes do repo (`git log --oneline -5`).
+- Se o usuario forneceu mensagem em $ARGUMENTS, usar ela. Caso contrario, gerar a partir do diff em PT-BR seguindo o padrao dos commits recentes (`git log --oneline -5` — prefixos `feat:`, `fix:`, `docs:`, `chore:`).
 - O push na `main` dispara o deploy automatico do frontend na Vercel.
 
 ### 8. Confirmar resultado
@@ -95,9 +97,3 @@ Reportar ao usuario:
 - **Pipeline fail-fast**: qualquer passo que falhe (teste, lint, build, validacao, deploy de funcao) interrompe tudo ANTES do commit. Nunca commitar codigo quebrado na main.
 - **Nao usar `--no-verify`** no commit — os hooks do husky fazem parte do pipeline.
 - **Nao fazer force push** em hipotese alguma.
-
-## Quando usar
-
-- Ao finalizar uma feature ou fix e querer publicar em producao
-- Antes de encerrar uma sessao de trabalho com mudancas pendentes
-- Quando o usuario pedir "deploy", "sobe pra producao", "publica" ou similar
