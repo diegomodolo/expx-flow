@@ -10,6 +10,8 @@ Pipeline completo de deploy: testes → lint → build → validacao → commit/
 
 Mensagem de commit fornecida pelo usuario (pode estar vazia): $ARGUMENTS
 
+Delegue a execucao deste pipeline ao agente `orquestrador` (via Task tool), que segue o fluxo **Deploy** de `agents/orquestrador.md`. O orquestrador carrega `.claude/rules/global.md` e usa os agentes especializados na etapa de validacao (passo 5).
+
 ## Pipeline (fail-fast — qualquer falha interrompe ANTES do commit)
 
 ### 1. Verificar se ha mudancas para deployar
@@ -47,7 +49,7 @@ npm run build
 
 ### 5. Validar o que foi implementado
 
-Revisar o diff completo (`git diff` + `git diff --staged` + arquivos novos) verificando as regras criticas do projeto:
+Revisar o diff completo (`git diff` + `git diff --staged` + arquivos novos) contra as rules do projeto (`.claude/rules/global.md` + rules escopadas), delegando cada dimensao ao agente especializado correspondente:
 
 | Verificacao                                      | Como checar                                                                         |
 | ------------------------------------------------ | ----------------------------------------------------------------------------------- |

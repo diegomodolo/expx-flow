@@ -236,15 +236,30 @@ Edge Functions usam `Deno.env.get()` para: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 - O projeto usa Vercel para deploy do frontend — commits na main disparam deploy automatico
 - Migrations em `supabase/migrations/` sao sequenciais e incrementais
 
-## Sub-agentes Especializados (.claude/agents/)
+## Sub-agentes (.claude/agents/)
 
-| Agente      | Arquivo          | Quando usar                                   |
-| ----------- | ---------------- | --------------------------------------------- |
-| Frontend    | `frontend.md`    | Componentes, estilo, data fetching, routing   |
-| Backend     | `backend.md`     | Edge Functions, migrations, RLS, Deno         |
-| Auth        | `auth.md`        | Autenticacao, permissoes, roles, route guards |
-| Permissions | `permissions.md` | Consistencia rotas × sidebar × permissoes     |
-| Testing     | `testing.md`     | Infraestrutura de testes, mocks, patterns     |
+O **orquestrador** e o ponto de entrada de todo trabalho multi-etapa: decompoe a tarefa, delega aos agentes especializados (com as rules corretas) e consolida o resultado. Os commands do projeto sempre delegam a ele.
+
+| Agente           | Arquivo           | Quando usar                                                             |
+| ---------------- | ----------------- | ----------------------------------------------------------------------- |
+| **Orquestrador** | `orquestrador.md` | Coordenar bugs, melhorias, features, review e deploy (ponto de entrada) |
+| Frontend         | `frontend.md`     | Componentes, estilo, data fetching, routing                             |
+| Backend          | `backend.md`      | Edge Functions, migrations, RLS, Deno                                   |
+| Auth             | `auth.md`         | Autenticacao, permissoes, roles, route guards                           |
+| Permissions      | `permissions.md`  | Consistencia rotas × sidebar × permissoes                               |
+| Testing          | `testing.md`      | Infraestrutura de testes, mocks, patterns                               |
+
+## Rules (.claude/rules/)
+
+Regras invioláveis carregadas pelos agentes antes de trabalhar. Toda delegacao inclui `global.md` + a rule escopada do agente.
+
+| Arquivo               | Escopo                                                 |
+| --------------------- | ------------------------------------------------------ |
+| `global.md`           | Todos os agentes (company_id, PT-BR, fail-fast, etc.)  |
+| `frontend.md`         | Agente frontend (DashboardLayout, React Query, Sonner) |
+| `backend.md`          | Agente backend (RLS, GRANT, CORS, migrations, secrets) |
+| `auth-permissions.md` | Agentes auth e permissions (4 passos, owner bypass)    |
+| `testing.md`          | Agente testing (mocks, providers, retry false)         |
 
 ## OBRIGATORIO: Criar Skill de Contexto ao finalizar feature/modulo
 
@@ -260,21 +275,32 @@ Seguir o formato das skills existentes (ex: `.claude/skills/workspace/SKILL.md`,
 
 ## Slash Commands (.claude/commands/)
 
-| Comando                 | Descricao                                                         |
-| ----------------------- | ----------------------------------------------------------------- |
-| `/new-page`             | Pagina completa: DashboardLayout + routing + permissao + hook     |
-| `/new-component`        | Componente com convencoes do projeto (display, form, list, modal) |
-| `/new-table`            | Tabela Supabase com RLS seguro (SECURITY DEFINER) + GRANT + hook  |
-| `/new-edge-function`    | Edge Function com CORS, validacao, config.toml, e hook frontend   |
-| `/add-permission`       | Permissao nos 3 lugares obrigatorios (enum DB + 2 settings files) |
-| `/validate-permissions` | Valida consistencia entre rotas, sidebar e permissoes             |
-| `/debug-data`           | Diagnostico sistematico quando dados nao aparecem no frontend     |
-| `/write-test`           | Teste com mocks e providers                                       |
-| `/deploy`               | Testes + lint + build + validacao + commit/push na main           |
+Apenas 6 commands. Todos delegam ao agente **orquestrador**, que distribui o trabalho aos agentes especializados.
 
-## Skills de Contexto (.claude/skills/)
+| Comando         | Descricao                                                         |
+| --------------- | ----------------------------------------------------------------- |
+| `/analisar-bug` | Investiga causa raiz e reporta diagnostico (NAO corrige)          |
+| `/corrigir-bug` | Analisa, corrige, cobre com teste e valida pipeline               |
+| `/melhoria`     | Melhoria em funcionalidade existente seguindo padroes do modulo   |
+| `/feature`      | Feature nova ponta a ponta (dados, permissoes, UI, testes, skill) |
+| `/code-review`  | Review do diff em 4 dimensoes (frontend/backend/auth/testing)     |
+| `/deploy`       | Testes + lint + build + validacao + commit/push na main           |
 
-Cada modulo tem uma skill de contexto em `.claude/skills/<modulo>/SKILL.md` com frontmatter YAML (`name` + `description`). Modulos cobertos: ai-gateway, apresentacao, carousel-studio, command-center, kanban-tarefas, ligacoes-api4com, pageheader, publicacao-social, squads, workspace.
+## Skills (.claude/skills/)
+
+**Skills playbook** (procedimentos passo a passo usados pelos agentes — nao sao commands):
+
+| Skill               | Procedimento                                                      |
+| ------------------- | ----------------------------------------------------------------- |
+| `new-page`          | Pagina completa: DashboardLayout + routing + permissao + hook     |
+| `new-component`     | Componente com convencoes do projeto (display, form, list, modal) |
+| `new-table`         | Tabela Supabase com RLS seguro (SECURITY DEFINER) + GRANT + hook  |
+| `new-edge-function` | Edge Function com CORS, validacao, config.toml, e hook frontend   |
+| `add-permission`    | Permissao nos lugares obrigatorios (enum DB + 2 settings + rota)  |
+| `debug-data`        | Diagnostico sistematico quando dados nao aparecem no frontend     |
+| `write-test`        | Teste com mocks e providers                                       |
+
+**Skills de contexto** (uma por modulo, em `.claude/skills/<modulo>/SKILL.md`): ai-gateway, apresentacao, carousel-studio, command-center, kanban-tarefas, ligacoes-api4com, pageheader, publicacao-social, squads, workspace.
 
 ## Hooks Automaticos (.claude/hooks/)
 

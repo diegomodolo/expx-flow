@@ -1,9 +1,9 @@
 ---
-description: Adiciona nova permissao nos 3 lugares obrigatorios (enum DB + PermissionGroupsSettings + PermissionsSettings)
-argument-hint: <key> <label> <descricao> [categoria]
+name: add-permission
+description: "Use ao adicionar uma nova permissao ao sistema: enum menu_item_type no banco + PermissionGroupsSettings + PermissionsSettings + rota protegida"
 ---
 
-# /add-permission
+# add-permission (Playbook)
 
 ## Descricao
 

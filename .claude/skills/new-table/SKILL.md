@@ -1,9 +1,9 @@
 ---
-description: Cria tabela Supabase com RLS seguro (SECURITY DEFINER), GRANT e migration completa
-argument-hint: <nome_snake> <campos> [tem_user]
+name: new-table
+description: "Use ao criar uma nova tabela no Supabase: migration com RLS seguro (SECURITY DEFINER), GRANT e hook frontend"
 ---
 
-# /new-table
+# new-table (Playbook)
 
 ## Descricao
 

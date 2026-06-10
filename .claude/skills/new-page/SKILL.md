@@ -1,9 +1,9 @@
 ---
-description: Cria pagina completa com DashboardLayout, routing, guard de permissao e hook de dados
-argument-hint: <NomePascalCase> <rota> <permissao> <titulo> [tabela]
+name: new-page
+description: "Use ao criar uma nova pagina no Expx Flow: DashboardLayout, routing, guard de permissao, hook de dados e registro de permissao"
 ---
 
-# /new-page
+# new-page (Playbook)
 
 ## Descricao
 

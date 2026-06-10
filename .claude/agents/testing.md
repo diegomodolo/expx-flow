@@ -5,6 +5,8 @@ description: "Use para infraestrutura de testes, patterns de teste, mocks e estr
 
 # Testing — Contexto Especializado
 
+> **Rules obrigatorias:** carregar `.claude/rules/global.md` + `.claude/rules/testing.md` antes de trabalhar. Ao concluir, reportar o resultado ao agente `orquestrador` (nao delegar diretamente a outros agentes).
+
 ## Escopo
 
 Infraestrutura de testes, patterns de teste, mocks, e estrategia de qualidade para o Expx Flow.

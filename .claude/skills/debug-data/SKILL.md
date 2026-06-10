@@ -1,9 +1,9 @@
 ---
-description: Diagnostica dados que nao aparecem no frontend (RLS, GRANT, company_id errado)
-argument-hint: <tabela> [company_id]
+name: debug-data
+description: "Use quando dados nao aparecem no frontend: diagnostico sistematico de RLS, GRANT e company_id errado"
 ---
 
-# /debug-data
+# debug-data (Playbook)
 
 ## Descricao
 

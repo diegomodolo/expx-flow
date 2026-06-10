@@ -5,6 +5,8 @@ description: "Use para validar consistencia entre rotas (App.tsx), sidebar (Dash
 
 # Permissions — Contexto Especializado
 
+> **Rules obrigatorias:** carregar `.claude/rules/global.md` + `.claude/rules/auth-permissions.md` antes de trabalhar. Ao concluir, reportar o resultado ao agente `orquestrador` (nao delegar diretamente a outros agentes).
+
 ## Escopo
 
 Validacao de consistencia entre rotas (App.tsx), sidebar (DashboardSidebar.tsx) e sistema de permissoes (useEmployeePermissions.tsx). Detecta mismatches que causam "Acesso Negado" para usuarios com permissoes corretas.
@@ -81,6 +83,14 @@ export type MenuItemType = "dashboard" | "clientes" | ...
 3. **Normalizar URLs**: remover parametros dinamicos (`:id`, `:token`) para matching
 4. **Permissoes default** (`dashboard`, `tarefas`) — nao precisam de PermissionProtectedRoute
 5. **Rotas filhas** (ex: `/relatorios/executivo`) podem herdar permissao do pai se compativel
+6. **Sidebar e a fonte de verdade** — em MISMATCH, corrigir o `requiredPermission` da rota em `App.tsx`. NUNCA alterar o sidebar (ele reflete o que o admin configurou)
+
+## Aplicar Correcoes (quando solicitado)
+
+Editar `src/App.tsx` trocando o `requiredPermission` nas rotas com MISMATCH. Apos corrigir:
+
+1. `npm run build` para verificar
+2. Re-rodar a validacao para confirmar zero problemas criticos
 
 ## Erros Historicos
 

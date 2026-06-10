@@ -1,9 +1,9 @@
 ---
-description: Cria Edge Function Supabase com CORS, validacao, config.toml e hook frontend
-argument-hint: <nome-kebab> <descricao> [auth true|false]
+name: new-edge-function
+description: "Use ao criar uma nova Edge Function Supabase: boilerplate com CORS, validacao, config.toml e hook frontend"
 ---
 
-# /new-edge-function
+# new-edge-function (Playbook)
 
 ## Descricao
 

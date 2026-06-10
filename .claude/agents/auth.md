@@ -5,6 +5,8 @@ description: "Use para autenticacao Supabase, sistema de permissoes, roles, rout
 
 # Auth — Contexto Especializado
 
+> **Rules obrigatorias:** carregar `.claude/rules/global.md` + `.claude/rules/auth-permissions.md` antes de trabalhar. Ao concluir, reportar o resultado ao agente `orquestrador` (nao delegar diretamente a outros agentes).
+
 ## Escopo
 
 Autenticacao Supabase, sistema de permissoes, roles, route guards, e CRM auth isolado.

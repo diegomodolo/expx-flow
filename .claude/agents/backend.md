@@ -5,6 +5,8 @@ description: "Use para Edge Functions (Deno), migrations PostgreSQL, RLS policie
 
 # Backend (Supabase) — Contexto Especializado
 
+> **Rules obrigatorias:** carregar `.claude/rules/global.md` + `.claude/rules/backend.md` antes de trabalhar. Ao concluir, reportar o resultado ao agente `orquestrador` (nao delegar diretamente a outros agentes).
+
 ## Escopo
 
 Edge Functions (Deno runtime), migrations PostgreSQL, RLS policies, e configuracao do Supabase.

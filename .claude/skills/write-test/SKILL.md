@@ -1,9 +1,9 @@
 ---
-description: Cria teste com mocks e providers corretos do Expx Flow
-argument-hint: <caminho-do-arquivo> [hook|component|utility]
+name: write-test
+description: "Use ao escrever testes de hooks, componentes ou utilities: mocks de Supabase/Auth/Contexts e providers corretos"
 ---
 
-# /write-test
+# write-test (Playbook)
 
 ## Descricao
 

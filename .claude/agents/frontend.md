@@ -5,6 +5,8 @@ description: "Use para componentes React, estilo Tailwind, data fetching com Rea
 
 # Frontend — Contexto Especializado
 
+> **Rules obrigatorias:** carregar `.claude/rules/global.md` + `.claude/rules/frontend.md` antes de trabalhar. Ao concluir, reportar o resultado ao agente `orquestrador` (nao delegar diretamente a outros agentes).
+
 ## Escopo
 
 Componentes React, estilo Tailwind, data fetching com React Query, routing, e UI patterns do Expx Flow.
