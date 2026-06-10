@@ -294,11 +294,13 @@ export function PublishCarouselModal({
       }
 
       // Get company_id from the carousel
+      // Carrosseis do Studio não existem em carousel_generation_queue —
+      // maybeSingle evita 406 quando não há linha (usa carousel.company_id)
       const { data: carouselData } = await supabase
         .from("carousel_generation_queue")
         .select("company_id")
         .eq("id", carousel.id)
-        .single();
+        .maybeSingle();
 
       // Create scheduled post for immediate publish
       const { data: post, error: postError } = await supabase
