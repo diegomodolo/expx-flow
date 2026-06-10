@@ -1,0 +1,93 @@
+-- supabase/migrations/20260610210000_carousel_studio_slides_light_view.sql
+
+-- A grade do Editor Visual embedava carousel_studio_slides(*) e alguns slides
+-- têm bg_image_url/badge_photo_url com imagens base64 de até 24MB, estourando
+-- o statement timeout (HTTP 500 → grade vazia). Esta view "light" troca
+-- data-URLs por NULL e mantém URLs normais, preservando o render do thumbnail.
+CREATE OR REPLACE VIEW public.carousel_studio_slides_light
+WITH (security_invoker = true) AS
+SELECT
+  id,
+  project_id,
+  slide_number,
+  headline,
+  subtitle,
+  visual_description,
+  CASE WHEN bg_image_url LIKE 'data:%' THEN NULL ELSE bg_image_url END AS bg_image_url,
+  bg_position_x,
+  bg_position_y,
+  bg_zoom,
+  overlay_style,
+  overlay_opacity,
+  text_position,
+  text_alignment,
+  font_size_title,
+  font_size_subtitle,
+  line_spacing,
+  corner_style,
+  corner_opacity,
+  glass_enabled,
+  glass_radius,
+  badge_enabled,
+  CASE WHEN badge_photo_url LIKE 'data:%' THEN NULL ELSE badge_photo_url END AS badge_photo_url,
+  exported_image_url,
+  created_at,
+  updated_at,
+  badge_position,
+  badge_size,
+  badge_handle_enabled,
+  badge_handle_position,
+  badge_handle_font_size,
+  badge_name_enabled,
+  badge_name_text,
+  badge_name_font_size,
+  badge_name_font_weight,
+  text_padding_x,
+  text_padding_y,
+  badge_name_line_height,
+  use_shared_bg,
+  corner_mask,
+  bg_color,
+  badge_offset_x,
+  badge_offset_y,
+  highlight_weight,
+  highlight_color,
+  content_image_urls,
+  content_image_layout,
+  content_image_position,
+  content_image_radius,
+  content_image_width,
+  content_image_gap,
+  content_image_margin_top,
+  content_image_margin_bottom,
+  bullets_enabled,
+  bullets_json,
+  bullet_icon,
+  bullet_icon_color,
+  bullet_icon_size,
+  bullet_box_enabled,
+  bullet_box_color,
+  bullet_box_radius,
+  bullet_box_padding_x,
+  bullet_box_padding_y,
+  bullet_font_size,
+  bullet_line_height,
+  bullet_gap,
+  bullet_position,
+  bullet_alignment,
+  bullet_padding_x,
+  bullet_padding_y,
+  overlay_color,
+  bg_image_source,
+  content_image_source,
+  badge_box_enabled,
+  badge_box_color,
+  badge_box_opacity,
+  badge_box_radius
+FROM public.carousel_studio_slides;
+
+GRANT SELECT ON public.carousel_studio_slides_light TO authenticated;
+
+-- Função de RLS dos slides era VOLATILE (default) — o planner reexecutava o
+-- scan de projetos/membros por linha. STABLE permite avaliar uma vez por query.
+ALTER FUNCTION public.get_user_carousel_studio_project_ids() STABLE;

@@ -30,11 +30,14 @@ export function useCarouselStudioProjects(
       const start = page * PAGE_SIZE;
       const end = start + PAGE_SIZE - 1;
 
+      // Embeda a view "light" (alias mantém o shape carousel_studio_slides):
+      // slides com imagens base64 de vários MB estouravam o statement timeout.
       let query = supabase
         .from("carousel_studio_projects")
-        .select("*, clients(id, name, avatar), carousel_studio_slides(*)", {
-          count: "exact",
-        })
+        .select(
+          "*, clients(id, name, avatar), carousel_studio_slides:carousel_studio_slides_light(*)",
+          { count: "exact" },
+        )
         .eq("company_id", companyId!)
         .order("updated_at", { ascending: false })
         .range(start, end);
