@@ -3,11 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StudioSlide } from "@/components/carousel-studio/types";
 
+type DebounceEntry = {
+  timer: ReturnType<typeof setTimeout>;
+  patch: Partial<StudioSlide>;
+};
+
 export function useCarouselStudioSlides(projectId: string | undefined) {
   const queryClient = useQueryClient();
-  const debounceRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map(),
-  );
+  const debounceRefs = useRef<Map<string, DebounceEntry>>(new Map());
 
   const query = useQuery({
     queryKey: ["carousel-studio-slides", projectId],
@@ -33,17 +36,22 @@ export function useCarouselStudioSlides(projectId: string | undefined) {
           prev?.map((s) => (s.id === slideId ? { ...s, ...patch } : s)) ?? [],
       );
 
-      // Debounce persist 2s
+      // Debounce persist 2s — acumula patches para evitar race condition
       const existing = debounceRefs.current.get(slideId);
-      if (existing) clearTimeout(existing);
+      const accumulatedPatch = existing
+        ? { ...existing.patch, ...patch }
+        : { ...patch };
+      if (existing) clearTimeout(existing.timer);
       const timer = setTimeout(async () => {
+        const entry = debounceRefs.current.get(slideId);
+        if (!entry) return;
+        debounceRefs.current.delete(slideId);
         await supabase
           .from("carousel_studio_slides")
-          .update(patch)
+          .update(entry.patch)
           .eq("id", slideId);
-        debounceRefs.current.delete(slideId);
       }, 2000);
-      debounceRefs.current.set(slideId, timer);
+      debounceRefs.current.set(slideId, { timer, patch: accumulatedPatch });
     },
     [projectId, queryClient],
   );
@@ -78,50 +86,34 @@ export function useCarouselStudioSlides(projectId: string | undefined) {
 
   const updateExportedUrl = useCallback(
     async (slideId: string, url: string) => {
+      // Persiste apenas no banco — sem setQueryData para evitar re-renders
+      // durante o loop de exportação que corrompem o mapeamento de slideRefs.
+      // O cache é sincronizado via invalidateQueries ao fim do loop.
       await supabase
         .from("carousel_studio_slides")
         .update({ exported_image_url: url })
         .eq("id", slideId);
-      queryClient.setQueryData<StudioSlide[]>(
-        ["carousel-studio-slides", projectId],
-        (prev) =>
-          prev?.map((s) =>
-            s.id === slideId ? { ...s, exported_image_url: url } : s,
-          ) ?? [],
-      );
     },
-    [projectId, queryClient],
+    [],
   );
 
-  /** Cancela os timers pendentes e persiste imediatamente todos os slides com mudanças em fila */
+  /** Cancela os timers pendentes e persiste imediatamente todos os patches acumulados */
   const flushAll = useCallback(async () => {
-    const slides =
-      queryClient.getQueryData<StudioSlide[]>([
-        "carousel-studio-slides",
-        projectId,
-      ]) ?? [];
-
     const promises: Promise<unknown>[] = [];
-    debounceRefs.current.forEach((timer, slideId) => {
+    debounceRefs.current.forEach(({ timer, patch }, slideId) => {
       clearTimeout(timer);
-      const slide = slides.find((s) => s.id === slideId);
-      if (slide) {
-        promises.push(
-          supabase
-            .from("carousel_studio_slides")
-            .update(slide)
-            .eq("id", slideId),
-        );
-      }
+      promises.push(
+        supabase.from("carousel_studio_slides").update(patch).eq("id", slideId),
+      );
     });
     debounceRefs.current.clear();
     await Promise.all(promises);
-  }, [projectId, queryClient]);
+  }, []);
 
   // Flush debounces on unmount
   useEffect(() => {
     return () => {
-      debounceRefs.current.forEach((t) => clearTimeout(t));
+      debounceRefs.current.forEach(({ timer }) => clearTimeout(timer));
     };
   }, []);
 

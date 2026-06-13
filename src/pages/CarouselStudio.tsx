@@ -1,5 +1,6 @@
 // src/pages/CarouselStudio.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -34,6 +35,73 @@ import {
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { proxyExternalImage } from "@/lib/proxyExternalImage";
+
+const EXPORT_SLIDE_W = 1080;
+const EXPORT_SLIDE_H = 1350;
+
+/**
+ * Renderiza um SlideCanvas em um container DOM off-screen (fora da viewport,
+ * sem nenhum transform ancestral) e retorna o elemento capturável pelo html2canvas.
+ * O container é automaticamente removido após o uso (dentro de finally no exportSlide).
+ *
+ * Isso resolve o bug em que clonar o elemento escalado do DOM preservava propriedades
+ * CSS computadas com o contexto do parent transform:scale(), causando desalinhamento
+ * de textos nas imagens exportadas.
+ */
+async function renderSlideOffScreen(
+  slide: StudioSlide,
+  project: StudioProject,
+  sharedBgIndex: number,
+  sharedBgTotal: number,
+  clientBadgeUrl: string | null,
+): Promise<{ container: HTMLElement; cleanup: () => void }> {
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.top = "-99999px";
+  container.style.left = "-99999px";
+  container.style.width = `${EXPORT_SLIDE_W}px`;
+  container.style.height = `${EXPORT_SLIDE_H}px`;
+  container.style.overflow = "hidden";
+  container.style.pointerEvents = "none";
+  document.body.appendChild(container);
+
+  const root = ReactDOM.createRoot(container);
+  root.render(
+    <SlideCanvas
+      slide={slide}
+      project={project}
+      sharedBgIndex={sharedBgIndex}
+      sharedBgTotal={sharedBgTotal}
+      clientBadgeUrl={clientBadgeUrl}
+    />,
+  );
+
+  // Aguarda o React fazer o commit e o browser fazer o layout
+  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+
+  // Aguarda as imagens do container carregarem
+  const imgs = Array.from(container.querySelectorAll("img"));
+  await Promise.allSettled(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete && img.naturalHeight > 0) return resolve();
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+          setTimeout(resolve, 8000);
+        }),
+    ),
+  );
+
+  const cleanup = () => {
+    root.unmount();
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
+  };
+
+  return { container, cleanup };
+}
 
 /** Fetches a single Pexels photo for a slide and proxies it to Supabase storage. */
 async function fetchPexelsForSlide(
@@ -118,8 +186,13 @@ export default function CarouselStudio() {
   const cancelGenerationRef = useRef(false);
 
   const slideRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const { exportSlide, exportAllAsZip, isExporting, exportProgress } =
-    useSlideExport();
+  const {
+    exportSlide,
+    exportPreparedSlide,
+    exportAllAsZip,
+    isExporting,
+    exportProgress,
+  } = useSlideExport();
   const queryClient = useQueryClient();
   const updateClient = useUpdateStudioProjectClient();
   const updateProject = useUpdateStudioProject();
@@ -969,6 +1042,10 @@ export default function CarouselStudio() {
             .then(() => {});
         }
       });
+      // Sincroniza cache após persistir no banco
+      await queryClient.invalidateQueries({
+        queryKey: ["carousel-studio-slides", projectId],
+      });
       const a = document.createElement("a");
       a.href = url;
       a.download = `slide-${activeSlide.slide_number}.png`;
@@ -976,7 +1053,14 @@ export default function CarouselStudio() {
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erro ao exportar slide");
     }
-  }, [activeSlide, project, exportSlide, updateExportedUrl]);
+  }, [
+    activeSlide,
+    project,
+    exportSlide,
+    updateExportedUrl,
+    queryClient,
+    projectId,
+  ]);
 
   const handleDownloadZip = useCallback(async () => {
     if (!slides || !project) return;
@@ -999,18 +1083,40 @@ export default function CarouselStudio() {
         return;
       }
 
-      // 2. Exportar cada slide para storage — sempre re-renderiza para garantir
-      // que a imagem reflete o estado atual do editor (não reusa URL antiga).
+      // 2. Exportar cada slide para storage via container off-screen 1:1 (sem
+      // transform ancestral), garantindo que o html2canvas capture o layout correto.
+      const sharedIds = slides.filter((s) => s.use_shared_bg).map((s) => s.id);
+      const sharedTotal = sharedIds.length;
       const slideImages: Array<{ order: number; url: string }> = [];
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
-        const el = slideRefs.current.get(s.id);
-        if (!el) continue;
-        const url = await exportSlide(el, s, project.id, (savedUrl) => {
-          updateExportedUrl(s.id, savedUrl);
-        });
-        if (url) slideImages.push({ order: i, url });
+        const sharedBgIndex = sharedIds.indexOf(s.id);
+        const { container, cleanup } = await renderSlideOffScreen(
+          s,
+          project,
+          sharedBgIndex >= 0 ? sharedBgIndex : 0,
+          sharedTotal,
+          clientBadgeUrl,
+        );
+        try {
+          const url = await exportPreparedSlide(
+            container,
+            s,
+            project.id,
+            (savedUrl) => {
+              updateExportedUrl(s.id, savedUrl);
+            },
+          );
+          if (url) slideImages.push({ order: i, url });
+        } finally {
+          cleanup();
+        }
       }
+      // Sincroniza o cache uma única vez ao fim do loop (evita re-renders que
+      // corrompem o mapeamento de slideRefs durante a exportação).
+      await queryClient.invalidateQueries({
+        queryKey: ["carousel-studio-slides", projectId],
+      });
 
       if (slideImages.length === 0) {
         throw new Error("Nenhuma imagem foi exportada");
@@ -1064,7 +1170,16 @@ export default function CarouselStudio() {
 
       if (slidesError) throw slidesError;
     },
-    [slides, project, flushAll, exportSlide, updateExportedUrl],
+    [
+      slides,
+      project,
+      flushAll,
+      exportPreparedSlide,
+      updateExportedUrl,
+      queryClient,
+      projectId,
+      clientBadgeUrl,
+    ],
   );
 
   const handleOpenPublish = useCallback(async () => {
@@ -1087,7 +1202,10 @@ export default function CarouselStudio() {
     try {
       await flushAll();
 
-      // Re-exporta cada slide para garantir que a imagem reflete o editor
+      // Re-exporta cada slide via container off-screen 1:1 (sem transform ancestral)
+      // para garantir que o html2canvas capture o layout correto sem desalinhamentos.
+      const sharedIds = slides.filter((s) => s.use_shared_bg).map((s) => s.id);
+      const sharedTotal = sharedIds.length;
       const slidesWithImages: Array<{
         slide_number: number;
         image_url: string;
@@ -1097,20 +1215,40 @@ export default function CarouselStudio() {
 
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
-        const el = slideRefs.current.get(s.id);
-        if (!el) continue;
-        const url = await exportSlide(el, s, project.id, (savedUrl) => {
-          updateExportedUrl(s.id, savedUrl);
-        });
-        if (url) {
-          slidesWithImages.push({
-            slide_number: s.slide_number,
-            image_url: url,
-            headline: s.headline,
-            body_text: s.subtitle,
-          });
+        const sharedBgIndex = sharedIds.indexOf(s.id);
+        const { container, cleanup } = await renderSlideOffScreen(
+          s,
+          project,
+          sharedBgIndex >= 0 ? sharedBgIndex : 0,
+          sharedTotal,
+          clientBadgeUrl,
+        );
+        try {
+          const url = await exportPreparedSlide(
+            container,
+            s,
+            project.id,
+            (savedUrl) => {
+              updateExportedUrl(s.id, savedUrl);
+            },
+          );
+          if (url) {
+            slidesWithImages.push({
+              slide_number: s.slide_number,
+              image_url: url,
+              headline: s.headline,
+              body_text: s.subtitle,
+            });
+          }
+        } finally {
+          cleanup();
         }
       }
+      // Sincroniza o cache uma única vez ao fim do loop (evita re-renders que
+      // corrompem o mapeamento de slideRefs durante a exportação).
+      await queryClient.invalidateQueries({
+        queryKey: ["carousel-studio-slides", projectId],
+      });
 
       if (slidesWithImages.length === 0) {
         throw new Error("Nenhuma imagem foi exportada");
@@ -1138,7 +1276,16 @@ export default function CarouselStudio() {
     } finally {
       setPreparingPublish(false);
     }
-  }, [slides, project, flushAll, exportSlide, updateExportedUrl]);
+  }, [
+    slides,
+    project,
+    flushAll,
+    exportPreparedSlide,
+    updateExportedUrl,
+    queryClient,
+    projectId,
+    clientBadgeUrl,
+  ]);
 
   const handleClientChange = useCallback(
     (clientId: string | null, defaults: ClientDefaults | null) => {

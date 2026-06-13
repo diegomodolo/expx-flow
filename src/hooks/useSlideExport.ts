@@ -103,9 +103,69 @@ async function renderSlideElementToCanvas(
   }
 }
 
+/**
+ * Captura um container já renderizado off-screen (sem transform ancestral)
+ * diretamente com html2canvas — sem clonagem adicional.
+ * Usado pelos loops de export quando o container é criado via renderSlideOffScreen().
+ */
+async function captureOffScreenContainer(
+  html2canvas: any,
+  container: HTMLElement,
+): Promise<HTMLCanvasElement> {
+  return html2canvas(container, {
+    scale: 1,
+    useCORS: true,
+    allowTaint: true,
+    width: SLIDE_WIDTH,
+    height: SLIDE_HEIGHT,
+    backgroundColor: null,
+    logging: false,
+  });
+}
+
 export function useSlideExport() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+
+  /**
+   * Exporta um slide usando um container off-screen já renderizado externamente.
+   * O container é capturado diretamente (sem clonagem) para preservar o layout 1:1.
+   * O chamador é responsável por chamar cleanup() após o retorno desta função.
+   */
+  const exportPreparedSlide = useCallback(
+    async (
+      container: HTMLElement,
+      slide: StudioSlide,
+      projectId: string,
+      onUrlSaved?: (url: string) => void,
+    ): Promise<string> => {
+      const html2canvas = (await import("html2canvas")).default;
+      await preloadFonts();
+      await document.fonts.ready;
+
+      const canvas = await captureOffScreenContainer(html2canvas, container);
+
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((b) => resolve(b!), "image/png"),
+      );
+
+      const path = `carousel-studio/${projectId}/${slide.slide_number}.png`;
+      const { error } = await supabase.storage
+        .from("visual-creatives")
+        .upload(path, blob, { upsert: true, contentType: "image/png" });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from("visual-creatives")
+        .getPublicUrl(path);
+
+      const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+      onUrlSaved?.(publicUrl);
+      return publicUrl;
+    },
+    [],
+  );
 
   const exportSlide = useCallback(
     async (
@@ -183,5 +243,11 @@ export function useSlideExport() {
     [],
   );
 
-  return { exportSlide, exportAllAsZip, isExporting, exportProgress };
+  return {
+    exportSlide,
+    exportPreparedSlide,
+    exportAllAsZip,
+    isExporting,
+    exportProgress,
+  };
 }
