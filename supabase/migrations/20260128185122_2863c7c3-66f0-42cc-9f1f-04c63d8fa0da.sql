@@ -1,5 +1,5 @@
 -- Create table to store realtime analysis per conversation
-CREATE TABLE public.whatsapp_realtime_analysis (
+CREATE TABLE IF NOT EXISTS public.whatsapp_realtime_analysis (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   conversation_id UUID NOT NULL REFERENCES public.whatsapp_conversations(id) ON DELETE CASCADE,
   company_id UUID NOT NULL,
@@ -13,13 +13,14 @@ CREATE TABLE public.whatsapp_realtime_analysis (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   UNIQUE(conversation_id)
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.whatsapp_realtime_analysis ENABLE ROW LEVEL SECURITY;
-
--- Create policies with explicit table references
-CREATE POLICY "Users can view analysis for their company conversations"
+DO $$ BEGIN
+  CREATE POLICY "Users can view analysis for their company conversations"
 ON public.whatsapp_realtime_analysis
 FOR SELECT
 USING (
@@ -30,8 +31,11 @@ USING (
     AND wi.company_id = whatsapp_realtime_analysis.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert analysis for their company conversations"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert analysis for their company conversations"
 ON public.whatsapp_realtime_analysis
 FOR INSERT
 WITH CHECK (
@@ -42,8 +46,11 @@ WITH CHECK (
     AND wi.company_id = whatsapp_realtime_analysis.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update analysis for their company conversations"
+DO $$ BEGIN
+  CREATE POLICY "Users can update analysis for their company conversations"
 ON public.whatsapp_realtime_analysis
 FOR UPDATE
 USING (
@@ -54,11 +61,13 @@ USING (
     AND wi.company_id = whatsapp_realtime_analysis.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create index for fast lookup
-CREATE INDEX idx_whatsapp_realtime_analysis_conversation ON public.whatsapp_realtime_analysis(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_realtime_analysis_conversation ON public.whatsapp_realtime_analysis(conversation_id);;
 
--- Add trigger for updated_at
+DROP TRIGGER IF EXISTS update_whatsapp_realtime_analysis_updated_at ON public.whatsapp_realtime_analysis;
 CREATE TRIGGER update_whatsapp_realtime_analysis_updated_at
 BEFORE UPDATE ON public.whatsapp_realtime_analysis
 FOR EACH ROW

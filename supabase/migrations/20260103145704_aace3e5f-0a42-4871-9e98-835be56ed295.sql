@@ -1,18 +1,19 @@
 -- Create table to store multiple publication destinations for ad generation schedules
-CREATE TABLE public.ad_generation_schedule_destinations (
+CREATE TABLE IF NOT EXISTS public.ad_generation_schedule_destinations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   schedule_id UUID NOT NULL REFERENCES public.ad_generation_schedules(id) ON DELETE CASCADE,
   campaign_id UUID NOT NULL REFERENCES public.campaigns(id) ON DELETE CASCADE,
   adset_id UUID NOT NULL REFERENCES public.ad_sets(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   UNIQUE(schedule_id, campaign_id, adset_id)
-);
+);;
+
+
 
 -- Enable Row Level Security
 ALTER TABLE public.ad_generation_schedule_destinations ENABLE ROW LEVEL SECURITY;
-
--- Create RLS policies
-CREATE POLICY "Users can view destinations for their company schedules" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view destinations for their company schedules" 
 ON public.ad_generation_schedule_destinations 
 FOR SELECT 
 USING (
@@ -22,8 +23,11 @@ USING (
     WHERE s.id = schedule_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert destinations for their company schedules" 
+DO $$ BEGIN
+  CREATE POLICY "Users can insert destinations for their company schedules" 
 ON public.ad_generation_schedule_destinations 
 FOR INSERT 
 WITH CHECK (
@@ -33,8 +37,11 @@ WITH CHECK (
     WHERE s.id = schedule_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete destinations for their company schedules" 
+DO $$ BEGIN
+  CREATE POLICY "Users can delete destinations for their company schedules" 
 ON public.ad_generation_schedule_destinations 
 FOR DELETE 
 USING (
@@ -44,9 +51,13 @@ USING (
     WHERE s.id = schedule_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create index for faster queries
-CREATE INDEX idx_schedule_destinations_schedule ON public.ad_generation_schedule_destinations(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_destinations_schedule ON public.ad_generation_schedule_destinations(schedule_id);;
+
+
 
 -- Migrate existing data from single destination to new table
 INSERT INTO public.ad_generation_schedule_destinations (schedule_id, campaign_id, adset_id)

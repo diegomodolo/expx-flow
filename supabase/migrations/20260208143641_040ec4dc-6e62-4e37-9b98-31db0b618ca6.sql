@@ -1,5 +1,5 @@
 -- Create table for YouTube script slides
-CREATE TABLE public.youtube_script_slides (
+CREATE TABLE IF NOT EXISTS public.youtube_script_slides (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   script_id UUID NOT NULL REFERENCES public.youtube_scripts(id) ON DELETE CASCADE,
   slide_order INTEGER NOT NULL DEFAULT 1,
@@ -10,17 +10,19 @@ CREATE TABLE public.youtube_script_slides (
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'generating', 'completed', 'error')),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable Row Level Security
 ALTER TABLE public.youtube_script_slides ENABLE ROW LEVEL SECURITY;
-
 -- Create index for faster lookups by script
-CREATE INDEX idx_youtube_script_slides_script_id ON public.youtube_script_slides(script_id);
-CREATE INDEX idx_youtube_script_slides_order ON public.youtube_script_slides(script_id, slide_order);
+CREATE INDEX IF NOT EXISTS idx_youtube_script_slides_script_id ON public.youtube_script_slides(script_id);;
 
--- Create policies for user access (using same pattern as youtube_scripts)
-CREATE POLICY "Users can view slides in their company"
+CREATE INDEX IF NOT EXISTS idx_youtube_script_slides_order ON public.youtube_script_slides(script_id, slide_order);;
+
+DO $$ BEGIN
+  CREATE POLICY "Users can view slides in their company"
 ON public.youtube_script_slides
 FOR SELECT
 USING (
@@ -33,8 +35,11 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create slides in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create slides in their company"
 ON public.youtube_script_slides
 FOR INSERT
 WITH CHECK (
@@ -47,8 +52,11 @@ WITH CHECK (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update slides in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update slides in their company"
 ON public.youtube_script_slides
 FOR UPDATE
 USING (
@@ -61,8 +69,11 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete slides in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete slides in their company"
 ON public.youtube_script_slides
 FOR DELETE
 USING (
@@ -75,8 +86,10 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_youtube_script_slides_updated_at ON public.youtube_script_slides;
 CREATE TRIGGER update_youtube_script_slides_updated_at
 BEFORE UPDATE ON public.youtube_script_slides
 FOR EACH ROW

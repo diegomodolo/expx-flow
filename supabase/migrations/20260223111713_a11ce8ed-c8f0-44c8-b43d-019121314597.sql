@@ -8,13 +8,18 @@ SET search_path TO 'public'
 AS $$
 DECLARE
   v_channel_id UUID;
+
   v_bot_user_id UUID := '00000000-0000-0000-0000-000000000000';
+
   v_task_msg TEXT;
+
 BEGIN
   -- Only on new tasks with a team_id
   IF NEW.team_id IS NULL THEN
     RETURN NEW;
+
   END IF;
+
 
   -- Find the squad channel for this team (cast uuid to text for comparison)
   SELECT id INTO v_channel_id
@@ -23,9 +28,12 @@ BEGIN
     AND channel_type = 'squad'
   LIMIT 1;
 
+
   IF v_channel_id IS NULL THEN
     RETURN NEW;
+
   END IF;
+
 
   -- Build message
   v_task_msg := '📋 Nova tarefa criada: **' || COALESCE(NEW.title, 'Sem título') || '**'
@@ -33,9 +41,13 @@ BEGIN
     || CASE WHEN NEW.deadline IS NOT NULL THEN E'\n📅 Prazo: ' || NEW.deadline::TEXT ELSE '' END
     || E'\n🔗 #' || NEW.id::TEXT;
 
+
   INSERT INTO public.internal_messages (channel_id, user_id, content, task_reference_id)
   VALUES (v_channel_id, COALESCE(auth.uid(), v_bot_user_id), v_task_msg, NEW.id);
 
+
   RETURN NEW;
+
 END;
+
 $$;

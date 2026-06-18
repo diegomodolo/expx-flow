@@ -1,5 +1,56 @@
 -- supabase/migrations/20260610210000_carousel_studio_slides_light_view.sql
 
+-- Self-host: view referencia colunas adicionadas em migrations posteriores na base dev.
+-- Garante que todas as colunas existem antes de criar a view.
+ALTER TABLE carousel_studio_slides
+  ADD COLUMN IF NOT EXISTS badge_size             text,
+  ADD COLUMN IF NOT EXISTS badge_handle_enabled   bool,
+  ADD COLUMN IF NOT EXISTS badge_handle_font_size int,
+  ADD COLUMN IF NOT EXISTS badge_name_text        text,
+  ADD COLUMN IF NOT EXISTS badge_name_font_size   int,
+  ADD COLUMN IF NOT EXISTS badge_name_font_weight text,
+  ADD COLUMN IF NOT EXISTS text_padding_x         int,
+  ADD COLUMN IF NOT EXISTS text_padding_y         int,
+  ADD COLUMN IF NOT EXISTS use_shared_bg          bool,
+  ADD COLUMN IF NOT EXISTS corner_mask            text,
+  ADD COLUMN IF NOT EXISTS bg_color               text,
+  ADD COLUMN IF NOT EXISTS badge_offset_x         int,
+  ADD COLUMN IF NOT EXISTS badge_offset_y         int,
+  ADD COLUMN IF NOT EXISTS highlight_weight       text,
+  ADD COLUMN IF NOT EXISTS highlight_color        text,
+  ADD COLUMN IF NOT EXISTS content_image_urls     jsonb,
+  ADD COLUMN IF NOT EXISTS content_image_layout   text,
+  ADD COLUMN IF NOT EXISTS content_image_position text,
+  ADD COLUMN IF NOT EXISTS content_image_radius   int,
+  ADD COLUMN IF NOT EXISTS content_image_width    int,
+  ADD COLUMN IF NOT EXISTS content_image_gap      int,
+  ADD COLUMN IF NOT EXISTS content_image_margin_top    int,
+  ADD COLUMN IF NOT EXISTS content_image_margin_bottom int,
+  ADD COLUMN IF NOT EXISTS bullets_enabled       bool,
+  ADD COLUMN IF NOT EXISTS bullets_json          jsonb,
+  ADD COLUMN IF NOT EXISTS bullet_icon           text,
+  ADD COLUMN IF NOT EXISTS bullet_icon_color     text,
+  ADD COLUMN IF NOT EXISTS bullet_icon_size      int,
+  ADD COLUMN IF NOT EXISTS bullet_box_enabled    bool,
+  ADD COLUMN IF NOT EXISTS bullet_box_color      text,
+  ADD COLUMN IF NOT EXISTS bullet_box_radius     int,
+  ADD COLUMN IF NOT EXISTS bullet_box_padding_x  int,
+  ADD COLUMN IF NOT EXISTS bullet_box_padding_y  int,
+  ADD COLUMN IF NOT EXISTS bullet_font_size      int,
+  ADD COLUMN IF NOT EXISTS bullet_line_height    int,
+  ADD COLUMN IF NOT EXISTS bullet_gap            int,
+  ADD COLUMN IF NOT EXISTS bullet_position       text,
+  ADD COLUMN IF NOT EXISTS bullet_alignment      text,
+  ADD COLUMN IF NOT EXISTS bullet_padding_x      int,
+  ADD COLUMN IF NOT EXISTS bullet_padding_y      int,
+  ADD COLUMN IF NOT EXISTS overlay_color         text,
+  ADD COLUMN IF NOT EXISTS bg_image_source       text,
+  ADD COLUMN IF NOT EXISTS content_image_source  text,
+  ADD COLUMN IF NOT EXISTS badge_box_enabled     bool,
+  ADD COLUMN IF NOT EXISTS badge_box_color       text,
+  ADD COLUMN IF NOT EXISTS badge_box_opacity     int,
+  ADD COLUMN IF NOT EXISTS badge_box_radius      int;
+
 -- A grade do Editor Visual embedava carousel_studio_slides(*) e alguns slides
 -- têm bg_image_url/badge_photo_url com imagens base64 de até 24MB, estourando
 -- o statement timeout (HTTP 500 → grade vazia). Esta view "light" troca
@@ -86,7 +137,9 @@ SELECT
   badge_box_radius
 FROM public.carousel_studio_slides;
 
+
 GRANT SELECT ON public.carousel_studio_slides_light TO authenticated;
+
 
 -- Função de RLS dos slides era VOLATILE (default) — o planner reexecutava o
 -- scan de projetos/membros por linha. STABLE permite avaliar uma vez por query.

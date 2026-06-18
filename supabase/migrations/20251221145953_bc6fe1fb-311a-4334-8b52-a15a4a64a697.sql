@@ -10,8 +10,10 @@ CREATE TABLE IF NOT EXISTS public.company_settings (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
+
 -- Enable RLS
 ALTER TABLE public.company_settings ENABLE ROW LEVEL SECURITY;
+
 
 -- Add column if table already exists but column doesn't
 DO $$
@@ -28,7 +30,8 @@ END $$;
 
 -- Create RLS policies for company_settings
 DROP POLICY IF EXISTS "Users can view settings of their companies" ON public.company_settings;
-CREATE POLICY "Users can view settings of their companies" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view settings of their companies" 
 ON public.company_settings 
 FOR SELECT 
 USING (
@@ -36,27 +39,44 @@ USING (
     SELECT cm.company_id FROM public.company_members cm WHERE cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 DROP POLICY IF EXISTS "Admins can insert settings for their companies" ON public.company_settings;
-CREATE POLICY "Admins can insert settings for their companies" 
+DO $$ BEGIN
+  CREATE POLICY "Admins can insert settings for their companies" 
 ON public.company_settings 
 FOR INSERT 
 WITH CHECK (
   public.is_company_admin_or_owner(auth.uid(), company_id)
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 DROP POLICY IF EXISTS "Admins can update settings of their companies" ON public.company_settings;
-CREATE POLICY "Admins can update settings of their companies" 
+DO $$ BEGIN
+  CREATE POLICY "Admins can update settings of their companies" 
 ON public.company_settings 
 FOR UPDATE 
 USING (
   public.is_company_admin_or_owner(auth.uid(), company_id)
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 DROP POLICY IF EXISTS "Admins can delete settings of their companies" ON public.company_settings;
-CREATE POLICY "Admins can delete settings of their companies" 
+DO $$ BEGIN
+  CREATE POLICY "Admins can delete settings of their companies" 
 ON public.company_settings 
 FOR DELETE 
 USING (
   public.is_company_admin_or_owner(auth.uid(), company_id)
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

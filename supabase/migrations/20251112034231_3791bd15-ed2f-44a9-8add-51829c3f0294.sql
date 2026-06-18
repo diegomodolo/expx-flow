@@ -15,20 +15,26 @@ CREATE TABLE IF NOT EXISTS public.snapshot_execution_log (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
+
 CREATE INDEX IF NOT EXISTS idx_snapshot_log_date ON public.snapshot_execution_log(execution_date DESC);
+
 CREATE INDEX IF NOT EXISTS idx_snapshot_log_status ON public.snapshot_execution_log(status);
+
 
 -- Habilitar RLS
 ALTER TABLE public.snapshot_execution_log ENABLE ROW LEVEL SECURITY;
-
--- Policy para permitir leitura por membros da empresa
-CREATE POLICY "Users can view snapshot logs"
+DO $$ BEGIN
+  CREATE POLICY "Users can view snapshot logs"
   ON public.snapshot_execution_log
   FOR SELECT
   USING (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Permitir insert/update apenas pelo sistema (service role)
-CREATE POLICY "Service role can manage snapshot logs"
+DO $$ BEGIN
+  CREATE POLICY "Service role can manage snapshot logs"
   ON public.snapshot_execution_log
   FOR ALL
   USING (auth.jwt() ->> 'role' = 'service_role');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

@@ -1,6 +1,5 @@
-
 -- Tabela google_meet_meetings
-CREATE TABLE public.google_meet_meetings (
+CREATE TABLE IF NOT EXISTS public.google_meet_meetings (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL,
@@ -22,10 +21,10 @@ CREATE TABLE public.google_meet_meetings (
   transcript_doc_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
 
 -- Tabela google_meet_participants
-CREATE TABLE public.google_meet_participants (
+CREATE TABLE IF NOT EXISTS public.google_meet_participants (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   meeting_id UUID NOT NULL REFERENCES public.google_meet_meetings(id) ON DELETE CASCADE,
   user_id UUID,
@@ -34,52 +33,73 @@ CREATE TABLE public.google_meet_participants (
   joined_at TIMESTAMPTZ,
   left_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.google_meet_meetings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.google_meet_participants ENABLE ROW LEVEL SECURITY;
 
--- RLS policies for google_meet_meetings
-CREATE POLICY "Members can view company meetings"
+ALTER TABLE public.google_meet_participants ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Members can view company meetings"
   ON public.google_meet_meetings FOR SELECT
   USING (public.is_company_member(auth.uid(), company_id));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Members can create company meetings"
+DO $$ BEGIN
+  CREATE POLICY "Members can create company meetings"
   ON public.google_meet_meetings FOR INSERT
   WITH CHECK (public.is_company_member(auth.uid(), company_id));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Members can update company meetings"
+DO $$ BEGIN
+  CREATE POLICY "Members can update company meetings"
   ON public.google_meet_meetings FOR UPDATE
   USING (public.is_company_member(auth.uid(), company_id));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Members can delete company meetings"
+DO $$ BEGIN
+  CREATE POLICY "Members can delete company meetings"
   ON public.google_meet_meetings FOR DELETE
   USING (public.is_company_member(auth.uid(), company_id));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS policies for google_meet_participants
-CREATE POLICY "Members can view meeting participants"
+DO $$ BEGIN
+  CREATE POLICY "Members can view meeting participants"
   ON public.google_meet_participants FOR SELECT
   USING (EXISTS (
     SELECT 1 FROM public.google_meet_meetings m
     WHERE m.id = meeting_id AND public.is_company_member(auth.uid(), m.company_id)
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Members can manage meeting participants"
+DO $$ BEGIN
+  CREATE POLICY "Members can manage meeting participants"
   ON public.google_meet_participants FOR ALL
   USING (EXISTS (
     SELECT 1 FROM public.google_meet_meetings m
     WHERE m.id = meeting_id AND public.is_company_member(auth.uid(), m.company_id)
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_google_meet_meetings_updated_at ON public.google_meet_meetings;
 CREATE TRIGGER update_google_meet_meetings_updated_at
   BEFORE UPDATE ON public.google_meet_meetings
   FOR EACH ROW
   EXECUTE FUNCTION public.update_sync_jobs_updated_at();
 
 -- Indexes
-CREATE INDEX idx_google_meet_meetings_company_id ON public.google_meet_meetings(company_id);
-CREATE INDEX idx_google_meet_meetings_client_id ON public.google_meet_meetings(client_id);
-CREATE INDEX idx_google_meet_meetings_status ON public.google_meet_meetings(status);
-CREATE INDEX idx_google_meet_participants_meeting_id ON public.google_meet_participants(meeting_id);
+CREATE INDEX IF NOT EXISTS idx_google_meet_meetings_company_id ON public.google_meet_meetings(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_google_meet_meetings_client_id ON public.google_meet_meetings(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_google_meet_meetings_status ON public.google_meet_meetings(status);;
+
+CREATE INDEX IF NOT EXISTS idx_google_meet_participants_meeting_id ON public.google_meet_participants(meeting_id);;

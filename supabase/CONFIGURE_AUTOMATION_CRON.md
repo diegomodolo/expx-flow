@@ -17,7 +17,7 @@ O Cron Master é um sistema automático que gerencia a execução de todas as au
 
 ### 1. Acesse o SQL Editor do Supabase
 
-Acesse: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/sql/new
+Acesse: https://supabase.com/dashboard/project/SEU_PROJETO/sql/new
 
 ### 2. Execute o SQL de Configuração
 
@@ -34,10 +34,10 @@ SELECT cron.schedule(
   '*/15 * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/master-automation-scheduler',
+    url := 'https://SEU_PROJETO.supabase.co/functions/v1/master-automation-scheduler',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ'
+      'Authorization', 'Bearer <SUA_ANON_KEY>'
     ),
     body := '{}'::jsonb
   ) as request_id;
@@ -81,11 +81,13 @@ Após executar o SQL acima, o sistema está configurado. O Cron Master irá:
 ### Exemplo Prático
 
 **Configuração na Interface:**
+
 - Cliente: "Minha Empresa"
 - Execuções por dia: 3
 - Horários calculados automaticamente: 00:00, 08:00, 16:00 (UTC)
 
 **O que acontece:**
+
 - `next_execution_at` = 00:00 (próximo horário disponível)
 - Cron Master executa às 00:00
 - Automações do cliente são processadas
@@ -101,14 +103,14 @@ Após executar o SQL acima, o sistema está configurado. O Cron Master irá:
 
 ```sql
 -- Ver o cron job configurado
-SELECT 
+SELECT
   jobid,
   jobname,
   schedule,
   active,
   database,
   nodename
-FROM cron.job 
+FROM cron.job
 WHERE jobname = 'master-automation-scheduler';
 ```
 
@@ -116,7 +118,7 @@ WHERE jobname = 'master-automation-scheduler';
 
 ```sql
 -- Ver últimas execuções do Cron Master
-SELECT 
+SELECT
   j.jobname,
   r.runid,
   r.start_time,
@@ -134,7 +136,7 @@ LIMIT 20;
 ### Ver Logs da Edge Function
 
 Acesse os logs detalhados em:
-https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/functions/master-automation-scheduler/logs
+https://supabase.com/dashboard/project/SEU_PROJETO/functions/master-automation-scheduler/logs
 
 ---
 
@@ -154,10 +156,10 @@ SELECT cron.schedule(
   '*/5 * * * *',  -- Mudou de */15 para */5
   $$
   SELECT net.http_post(
-    url := 'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/master-automation-scheduler',
+    url := 'https://SEU_PROJETO.supabase.co/functions/v1/master-automation-scheduler',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ'
+      'Authorization', 'Bearer <SUA_ANON_KEY>'
     ),
     body := '{}'::jsonb
   ) as request_id;
@@ -166,6 +168,7 @@ SELECT cron.schedule(
 ```
 
 **Recomendações de Frequência:**
+
 - `*/5 * * * *` - A cada 5 minutos (mais preciso, mais recursos)
 - `*/15 * * * *` - A cada 15 minutos (padrão, bom equilíbrio)
 - `*/30 * * * *` - A cada 30 minutos (menos recursos, menos preciso)
@@ -174,13 +177,13 @@ SELECT cron.schedule(
 
 ```sql
 -- Desabilitar
-UPDATE cron.job 
-SET active = false 
+UPDATE cron.job
+SET active = false
 WHERE jobname = 'master-automation-scheduler';
 
 -- Reabilitar
-UPDATE cron.job 
-SET active = true 
+UPDATE cron.job
+SET active = true
 WHERE jobname = 'master-automation-scheduler';
 ```
 
@@ -200,17 +203,17 @@ Você pode chamar o Cron Master manualmente para testar:
 
 ```bash
 curl -X POST \
-  'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/master-automation-scheduler' \
+  'https://SEU_PROJETO.supabase.co/functions/v1/master-automation-scheduler' \
   -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ'
+  -H 'Authorization: Bearer <SUA_ANON_KEY>'
 ```
 
 ### Forçar Execução Imediata de um Cliente
 
 ```sql
 -- Ajustar next_execution_at para agora (forçar execução imediata)
-UPDATE automation_schedules 
-SET next_execution_at = NOW() 
+UPDATE automation_schedules
+SET next_execution_at = NOW()
 WHERE client_id = 'SEU_CLIENT_ID_AQUI';
 ```
 
@@ -221,14 +224,17 @@ WHERE client_id = 'SEU_CLIENT_ID_AQUI';
 ### Problema: Cron Master não está executando
 
 **Verificações:**
+
 1. Confirme que o cron job está ativo:
+
    ```sql
    SELECT active FROM cron.job WHERE jobname = 'master-automation-scheduler';
    ```
 
 2. Verifique se há erros no histórico:
+
    ```sql
-   SELECT status, return_message 
+   SELECT status, return_message
    FROM cron.job_run_details r
    JOIN cron.job j ON j.jobid = r.jobid
    WHERE j.jobname = 'master-automation-scheduler'
@@ -240,16 +246,19 @@ WHERE client_id = 'SEU_CLIENT_ID_AQUI';
 ### Problema: Automações não estão sendo executadas
 
 **Verificações:**
+
 1. Confirme que o agendamento está ativo:
+
    ```sql
-   SELECT * FROM automation_schedules 
-   WHERE client_id = 'SEU_CLIENT_ID' 
+   SELECT * FROM automation_schedules
+   WHERE client_id = 'SEU_CLIENT_ID'
    AND is_enabled = true;
    ```
 
 2. Verifique se `next_execution_at` está no passado:
+
    ```sql
-   SELECT 
+   SELECT
      client_id,
      next_execution_at,
      next_execution_at <= NOW() as should_execute
@@ -259,9 +268,9 @@ WHERE client_id = 'SEU_CLIENT_ID_AQUI';
 
 3. Veja se há regras de automação ativas:
    ```sql
-   SELECT COUNT(*) 
-   FROM automation_rules 
-   WHERE client_id = 'SEU_CLIENT_ID' 
+   SELECT COUNT(*)
+   FROM automation_rules
+   WHERE client_id = 'SEU_CLIENT_ID'
    AND is_active = true;
    ```
 

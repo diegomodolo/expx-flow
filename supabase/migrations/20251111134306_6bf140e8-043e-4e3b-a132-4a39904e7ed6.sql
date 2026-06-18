@@ -3,7 +3,7 @@
 -- ============================================
 
 -- Tabela principal de regras de automação
-CREATE TABLE campaign_automation_rules (
+CREATE TABLE IF NOT EXISTS campaign_automation_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
@@ -77,25 +77,31 @@ CREATE TABLE campaign_automation_rules (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   created_by UUID
-);
+);;
 
 -- Índices otimizados
-CREATE INDEX idx_automation_rules_company ON campaign_automation_rules(company_id);
-CREATE INDEX idx_automation_rules_client ON campaign_automation_rules(client_id);
-CREATE INDEX idx_automation_rules_template ON campaign_automation_rules(is_template) WHERE is_template = true;
-CREATE INDEX idx_automation_rules_active ON campaign_automation_rules(is_active) WHERE is_active = true;
-CREATE INDEX idx_automation_rules_template_id ON campaign_automation_rules(template_id);
+CREATE INDEX IF NOT EXISTS idx_automation_rules_company ON campaign_automation_rules(company_id);;
 
--- Constraint: Templates não podem ter client_id
-ALTER TABLE campaign_automation_rules 
+CREATE INDEX IF NOT EXISTS idx_automation_rules_client ON campaign_automation_rules(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_rules_template ON campaign_automation_rules(is_template) WHERE is_template = true;;
+
+CREATE INDEX IF NOT EXISTS idx_automation_rules_active ON campaign_automation_rules(is_active) WHERE is_active = true;;
+
+CREATE INDEX IF NOT EXISTS idx_automation_rules_template_id ON campaign_automation_rules(template_id);;
+
+DO $$ BEGIN
+  ALTER TABLE campaign_automation_rules 
 ADD CONSTRAINT check_template_no_client 
 CHECK (
   (is_template = true AND client_id IS NULL) OR 
   (is_template = false)
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Tabela de logs de execução
-CREATE TABLE campaign_automation_logs (
+CREATE TABLE IF NOT EXISTS campaign_automation_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   rule_id UUID NOT NULL REFERENCES campaign_automation_rules(id) ON DELETE CASCADE,
   company_id UUID NOT NULL,
@@ -128,17 +134,22 @@ CREATE TABLE campaign_automation_logs (
   metadata JSONB,
   
   executed_at TIMESTAMPTZ DEFAULT NOW()
-);
+);;
 
-CREATE INDEX idx_automation_logs_rule ON campaign_automation_logs(rule_id);
-CREATE INDEX idx_automation_logs_company ON campaign_automation_logs(company_id);
-CREATE INDEX idx_automation_logs_client ON campaign_automation_logs(client_id);
-CREATE INDEX idx_automation_logs_campaign ON campaign_automation_logs(campaign_id);
-CREATE INDEX idx_automation_logs_executed ON campaign_automation_logs(executed_at DESC);
-CREATE INDEX idx_automation_logs_rolled_back ON campaign_automation_logs(rolled_back) WHERE rolled_back = false;
+CREATE INDEX IF NOT EXISTS idx_automation_logs_rule ON campaign_automation_logs(rule_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_logs_company ON campaign_automation_logs(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_logs_client ON campaign_automation_logs(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_logs_campaign ON campaign_automation_logs(campaign_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_logs_executed ON campaign_automation_logs(executed_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_logs_rolled_back ON campaign_automation_logs(rolled_back) WHERE rolled_back = false;;
 
 -- Tabela de recomendações (modo notify_only)
-CREATE TABLE campaign_automation_recommendations (
+CREATE TABLE IF NOT EXISTS campaign_automation_recommendations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   rule_id UUID NOT NULL REFERENCES campaign_automation_rules(id) ON DELETE CASCADE,
   company_id UUID NOT NULL,
@@ -170,15 +181,18 @@ CREATE TABLE campaign_automation_recommendations (
   expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
   
   created_at TIMESTAMPTZ DEFAULT NOW()
-);
+);;
 
-CREATE INDEX idx_automation_recommendations_rule ON campaign_automation_recommendations(rule_id);
-CREATE INDEX idx_automation_recommendations_status ON campaign_automation_recommendations(status);
-CREATE INDEX idx_automation_recommendations_company ON campaign_automation_recommendations(company_id);
-CREATE INDEX idx_automation_recommendations_expires ON campaign_automation_recommendations(expires_at);
+CREATE INDEX IF NOT EXISTS idx_automation_recommendations_rule ON campaign_automation_recommendations(rule_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_recommendations_status ON campaign_automation_recommendations(status);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_recommendations_company ON campaign_automation_recommendations(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_recommendations_expires ON campaign_automation_recommendations(expires_at);;
 
 -- Tabela de testes A/B
-CREATE TABLE campaign_ab_tests (
+CREATE TABLE IF NOT EXISTS campaign_ab_tests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL,
   client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
@@ -207,12 +221,17 @@ CREATE TABLE campaign_ab_tests (
   performance_summary JSONB,
   
   created_at TIMESTAMPTZ DEFAULT NOW()
-);
+);;
 
-CREATE INDEX idx_ab_tests_company ON campaign_ab_tests(company_id);
-CREATE INDEX idx_ab_tests_client ON campaign_ab_tests(client_id);
-CREATE INDEX idx_ab_tests_status ON campaign_ab_tests(status);
-CREATE INDEX idx_ab_tests_control ON campaign_ab_tests(control_campaign_id);
+CREATE INDEX IF NOT EXISTS idx_ab_tests_company ON campaign_ab_tests(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ab_tests_client ON campaign_ab_tests(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ab_tests_status ON campaign_ab_tests(status);;
+
+CREATE INDEX IF NOT EXISTS idx_ab_tests_control ON campaign_ab_tests(control_campaign_id);;
+
+
 
 -- ============================================
 -- RLS POLICIES
@@ -220,8 +239,8 @@ CREATE INDEX idx_ab_tests_control ON campaign_ab_tests(control_campaign_id);
 
 -- campaign_automation_rules
 ALTER TABLE campaign_automation_rules ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view templates"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view templates"
   ON campaign_automation_rules FOR SELECT
   USING (
     is_template = true 
@@ -229,8 +248,11 @@ CREATE POLICY "Company members can view templates"
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view client rules"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view client rules"
   ON campaign_automation_rules FOR SELECT
   USING (
     is_template = false 
@@ -238,8 +260,11 @@ CREATE POLICY "Company members can view client rules"
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Admins can manage templates"
+DO $$ BEGIN
+  CREATE POLICY "Admins can manage templates"
   ON campaign_automation_rules FOR ALL
   USING (
     is_template = true
@@ -248,8 +273,11 @@ CREATE POLICY "Admins can manage templates"
       WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Admins can manage client rules"
+DO $$ BEGIN
+  CREATE POLICY "Admins can manage client rules"
   ON campaign_automation_rules FOR ALL
   USING (
     is_template = false
@@ -258,73 +286,101 @@ CREATE POLICY "Admins can manage client rules"
       WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- campaign_automation_logs
 ALTER TABLE campaign_automation_logs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view automation logs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view automation logs"
   ON campaign_automation_logs FOR SELECT
   USING (
     company_id IN (
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update logs for rollback"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update logs for rollback"
   ON campaign_automation_logs FOR UPDATE
   USING (
     company_id IN (
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- campaign_automation_recommendations
 ALTER TABLE campaign_automation_recommendations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view recommendations"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view recommendations"
   ON campaign_automation_recommendations FOR SELECT
   USING (
     company_id IN (
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update recommendations"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update recommendations"
   ON campaign_automation_recommendations FOR UPDATE
   USING (
     company_id IN (
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- campaign_ab_tests
 ALTER TABLE campaign_ab_tests ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view AB tests"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view AB tests"
   ON campaign_ab_tests FOR SELECT
   USING (
     company_id IN (
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can manage AB tests"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage AB tests"
   ON campaign_ab_tests FOR ALL
   USING (
     company_id IN (
       SELECT company_id FROM company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Trigger para atualizar updated_at
 CREATE OR REPLACE FUNCTION update_automation_rules_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
+  RETURN NEW;
+
+END;
+
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS automation_rules_updated_at ON campaign_automation_rules;
 CREATE TRIGGER automation_rules_updated_at
   BEFORE UPDATE ON campaign_automation_rules
   FOR EACH ROW

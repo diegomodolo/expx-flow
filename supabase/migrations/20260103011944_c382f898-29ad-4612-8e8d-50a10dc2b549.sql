@@ -10,9 +10,11 @@ ADD COLUMN IF NOT EXISTS reference_image_4 TEXT,
 ADD COLUMN IF NOT EXISTS reference_image_5 TEXT,
 ADD COLUMN IF NOT EXISTS reference_image_6 TEXT;
 
+
 -- Criar índices para melhor performance nas consultas
 CREATE INDEX IF NOT EXISTS idx_ad_generation_schedules_target_campaign 
 ON public.ad_generation_schedules(target_campaign_id);
+
 
 CREATE INDEX IF NOT EXISTS idx_ad_generation_schedules_target_adset 
 ON public.ad_generation_schedules(target_adset_id);

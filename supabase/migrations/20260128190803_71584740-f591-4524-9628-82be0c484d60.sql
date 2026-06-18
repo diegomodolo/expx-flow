@@ -1,5 +1,5 @@
 -- Create table to store HISTORY of all realtime analyses (for analytics and dashboards)
-CREATE TABLE public.whatsapp_realtime_analysis_history (
+CREATE TABLE IF NOT EXISTS public.whatsapp_realtime_analysis_history (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   conversation_id UUID NOT NULL REFERENCES public.whatsapp_conversations(id) ON DELETE CASCADE,
   company_id UUID NOT NULL,
@@ -22,13 +22,14 @@ CREATE TABLE public.whatsapp_realtime_analysis_history (
   
   -- Indexes for analytics queries
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.whatsapp_realtime_analysis_history ENABLE ROW LEVEL SECURITY;
-
--- Create policies
-CREATE POLICY "Users can view analysis history for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view analysis history for their company"
 ON public.whatsapp_realtime_analysis_history
 FOR SELECT
 USING (
@@ -39,8 +40,11 @@ USING (
     AND wi.company_id = whatsapp_realtime_analysis_history.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert analysis history for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert analysis history for their company"
 ON public.whatsapp_realtime_analysis_history
 FOR INSERT
 WITH CHECK (
@@ -51,10 +55,16 @@ WITH CHECK (
     AND wi.company_id = whatsapp_realtime_analysis_history.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create indexes for analytics queries
-CREATE INDEX idx_analysis_history_conversation ON public.whatsapp_realtime_analysis_history(conversation_id);
-CREATE INDEX idx_analysis_history_company ON public.whatsapp_realtime_analysis_history(company_id);
-CREATE INDEX idx_analysis_history_analyzed_at ON public.whatsapp_realtime_analysis_history(analyzed_at DESC);
-CREATE INDEX idx_analysis_history_temperature ON public.whatsapp_realtime_analysis_history(company_id, temperature);
-CREATE INDEX idx_analysis_history_score ON public.whatsapp_realtime_analysis_history(company_id, score);
+CREATE INDEX IF NOT EXISTS idx_analysis_history_conversation ON public.whatsapp_realtime_analysis_history(conversation_id);;
+
+CREATE INDEX IF NOT EXISTS idx_analysis_history_company ON public.whatsapp_realtime_analysis_history(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_analysis_history_analyzed_at ON public.whatsapp_realtime_analysis_history(analyzed_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_analysis_history_temperature ON public.whatsapp_realtime_analysis_history(company_id, temperature);;
+
+CREATE INDEX IF NOT EXISTS idx_analysis_history_score ON public.whatsapp_realtime_analysis_history(company_id, score);;

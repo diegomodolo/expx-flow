@@ -5,6 +5,10 @@
  * Esta função verifica se o token está prestes a expirar e o renova automaticamente.
  */
 
+import { getSystemConfig, resolveCredential } from "./getSystemConfig.ts";
+import type { SystemConfigGoogle } from "./getSystemConfig.ts";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 interface GoogleAdsIntegration {
   id: string;
   company_id: string;
@@ -90,7 +94,30 @@ export async function refreshGoogleAdsToken(
  * Força a renovação do token, independente de estar expirado ou não.
  * Use esta função no início de sincronizações agendadas para garantir token válido por 1 hora.
  */
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/**
+ * Resolve client_id/client_secret do Google Ads (env > banco system_config_google).
+ * Mensagens PT-BR apontando para Configurações > Sistema > Google.
+ */
+async function resolveAdsOAuthCredentials(
+  supabaseClient: SupabaseClient,
+): Promise<{ clientId: string; clientSecret: string }> {
+  const gCfg = await getSystemConfig<SystemConfigGoogle>(
+    supabaseClient,
+    "google",
+  );
+  const clientId = resolveCredential(
+    Deno.env.get("GOOGLE_ADS_CLIENT_ID"),
+    gCfg?.ads_client_id,
+    "Google Ads Client ID não configurado. Acesse Configurações > Sistema > Google.",
+  );
+  const clientSecret = resolveCredential(
+    Deno.env.get("GOOGLE_ADS_CLIENT_SECRET"),
+    gCfg?.ads_client_secret,
+    "Google Ads Client Secret não configurado. Acesse Configurações > Sistema > Google.",
+  );
+  return { clientId, clientSecret };
+}
 
 export async function forceRefreshGoogleAdsToken(
   supabaseClient: SupabaseClient,
@@ -98,12 +125,8 @@ export async function forceRefreshGoogleAdsToken(
 ): Promise<RefreshResult> {
   console.log("🔄 Forçando renovação do token (scheduled sync)...");
 
-  const clientId = Deno.env.get("GOOGLE_ADS_CLIENT_ID")?.trim();
-  const clientSecret = Deno.env.get("GOOGLE_ADS_CLIENT_SECRET")?.trim();
-
-  if (!clientId || !clientSecret) {
-    throw new Error("Google Ads OAuth credentials not configured");
-  }
+  const { clientId, clientSecret } =
+    await resolveAdsOAuthCredentials(supabaseClient);
 
   if (!integration.refresh_token) {
     throw new Error(
@@ -168,12 +191,8 @@ export async function getValidGoogleAdsToken(
 
   console.log("Token expired or expiring soon, refreshing...");
 
-  const clientId = Deno.env.get("GOOGLE_ADS_CLIENT_ID")?.trim();
-  const clientSecret = Deno.env.get("GOOGLE_ADS_CLIENT_SECRET")?.trim();
-
-  if (!clientId || !clientSecret) {
-    throw new Error("Google Ads OAuth credentials not configured");
-  }
+  const { clientId, clientSecret } =
+    await resolveAdsOAuthCredentials(supabaseClient);
 
   if (!integration.refresh_token) {
     throw new Error(

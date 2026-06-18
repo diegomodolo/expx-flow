@@ -1,7 +1,7 @@
 -- supabase/migrations/20260412000000_carousel_studio.sql
 
 -- Tabela principal de projetos
-CREATE TABLE public.carousel_studio_projects (
+CREATE TABLE IF NOT EXISTS public.carousel_studio_projects (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id       uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   client_id        uuid REFERENCES public.clients(id) ON DELETE SET NULL,
@@ -17,20 +17,25 @@ CREATE TABLE public.carousel_studio_projects (
   thumbnail_url    text,
   created_at       timestamptz NOT NULL DEFAULT now(),
   updated_at       timestamptz NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.carousel_studio_projects ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "company members can manage carousel studio projects"
+DO $$ BEGIN
+  CREATE POLICY "company members can manage carousel studio projects"
   ON public.carousel_studio_projects
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())))
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON public.carousel_studio_projects TO authenticated;
-
 -- Tabela de slides
-CREATE TABLE public.carousel_studio_slides (
+CREATE TABLE IF NOT EXISTS public.carousel_studio_slides (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id         uuid NOT NULL REFERENCES public.carousel_studio_projects(id) ON DELETE CASCADE,
   slide_number       int NOT NULL,
@@ -58,38 +63,51 @@ CREATE TABLE public.carousel_studio_slides (
   created_at         timestamptz NOT NULL DEFAULT now(),
   updated_at         timestamptz NOT NULL DEFAULT now(),
   UNIQUE (project_id, slide_number)
-);
+);;
+
+
 
 ALTER TABLE public.carousel_studio_slides ENABLE ROW LEVEL SECURITY;
+
 
 -- Função SECURITY DEFINER para evitar nested RLS em policy
 CREATE OR REPLACE FUNCTION get_user_carousel_studio_project_ids()
 RETURNS SETOF uuid LANGUAGE sql SECURITY DEFINER AS $$
   SELECT id FROM public.carousel_studio_projects
   WHERE company_id IN (SELECT get_user_company_ids(auth.uid()));
-$$;
 
-CREATE POLICY "company members can manage carousel studio slides"
+$$;
+DO $$ BEGIN
+  CREATE POLICY "company members can manage carousel studio slides"
   ON public.carousel_studio_slides
   USING (project_id IN (SELECT get_user_carousel_studio_project_ids()))
   WITH CHECK (project_id IN (SELECT get_user_carousel_studio_project_ids()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON public.carousel_studio_slides TO authenticated;
 
+
 -- Trigger para updated_at
 CREATE OR REPLACE FUNCTION update_carousel_studio_updated_at()
 RETURNS TRIGGER AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END;
-$$ language 'plpgsql';
+BEGIN NEW.updated_at = now();
+ RETURN NEW;
+ END;
 
+$$ language 'plpgsql';
+DROP TRIGGER IF EXISTS update_carousel_studio_projects_updated_at ON public.carousel_studio_projects;
 CREATE TRIGGER update_carousel_studio_projects_updated_at
   BEFORE UPDATE ON public.carousel_studio_projects
   FOR EACH ROW EXECUTE FUNCTION update_carousel_studio_updated_at();
 
+DROP TRIGGER IF EXISTS update_carousel_studio_slides_updated_at ON public.carousel_studio_slides;
 CREATE TRIGGER update_carousel_studio_slides_updated_at
   BEFORE UPDATE ON public.carousel_studio_slides
   FOR EACH ROW EXECUTE FUNCTION update_carousel_studio_updated_at();
 
-CREATE INDEX idx_carousel_studio_slides_project_id
-  ON public.carousel_studio_slides (project_id);
+CREATE INDEX IF NOT EXISTS idx_carousel_studio_slides_project_id
+  ON public.carousel_studio_slides (project_id);;

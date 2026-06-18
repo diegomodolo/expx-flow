@@ -8,16 +8,25 @@ CREATE TABLE IF NOT EXISTS public.channel_read_status (
   UNIQUE(channel_id, user_id)
 );
 
-ALTER TABLE public.channel_read_status ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own read status"
+ALTER TABLE public.channel_read_status ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view their own read status"
   ON public.channel_read_status FOR SELECT
   USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can upsert their own read status"
+DO $$ BEGIN
+  CREATE POLICY "Users can upsert their own read status"
   ON public.channel_read_status FOR INSERT
   WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their own read status"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their own read status"
   ON public.channel_read_status FOR UPDATE
   USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

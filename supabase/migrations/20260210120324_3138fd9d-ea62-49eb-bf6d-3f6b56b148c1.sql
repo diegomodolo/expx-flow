@@ -1,10 +1,9 @@
-
 -- =============================================
 -- GroupOps Module - Complete Database Schema
 -- =============================================
 
 -- 1. Scoring Profiles
-CREATE TABLE public.groupops_scoring_profiles (
+CREATE TABLE IF NOT EXISTS public.groupops_scoring_profiles (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -13,14 +12,19 @@ CREATE TABLE public.groupops_scoring_profiles (
   is_default BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_scoring_profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage scoring profiles for their company" ON public.groupops_scoring_profiles FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage scoring profiles for their company" ON public.groupops_scoring_profiles FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 2. Groups
-CREATE TABLE public.groupops_groups (
+CREATE TABLE IF NOT EXISTS public.groupops_groups (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   provider TEXT NOT NULL DEFAULT 'uazapi',
@@ -40,14 +44,19 @@ CREATE TABLE public.groupops_groups (
   }'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_groups ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage groups for their company" ON public.groupops_groups FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage groups for their company" ON public.groupops_groups FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 3. Members
-CREATE TABLE public.groupops_members (
+CREATE TABLE IF NOT EXISTS public.groupops_members (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID NOT NULL REFERENCES public.groupops_groups(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -69,14 +78,19 @@ CREATE TABLE public.groupops_members (
   privacy_flags JSONB DEFAULT '{"opt_in_dm":true}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_members ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage members for their company" ON public.groupops_members FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage members for their company" ON public.groupops_members FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 4. Messages
-CREATE TABLE public.groupops_messages (
+CREATE TABLE IF NOT EXISTS public.groupops_messages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID NOT NULL REFERENCES public.groupops_groups(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -89,14 +103,19 @@ CREATE TABLE public.groupops_messages (
   reply_to_message_id UUID REFERENCES public.groupops_messages(id) ON DELETE SET NULL,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage messages for their company" ON public.groupops_messages FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage messages for their company" ON public.groupops_messages FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 5. Events
-CREATE TABLE public.groupops_events (
+CREATE TABLE IF NOT EXISTS public.groupops_events (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID NOT NULL REFERENCES public.groupops_groups(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -105,14 +124,19 @@ CREATE TABLE public.groupops_events (
   payload_json JSONB DEFAULT '{}'::jsonb,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage events for their company" ON public.groupops_events FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage events for their company" ON public.groupops_events FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 6. Score Ledger
-CREATE TABLE public.groupops_score_ledger (
+CREATE TABLE IF NOT EXISTS public.groupops_score_ledger (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID NOT NULL REFERENCES public.groupops_groups(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -121,14 +145,19 @@ CREATE TABLE public.groupops_score_ledger (
   reason TEXT NOT NULL,
   event_id UUID REFERENCES public.groupops_events(id) ON DELETE SET NULL,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_score_ledger ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage scores for their company" ON public.groupops_score_ledger FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage scores for their company" ON public.groupops_score_ledger FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 7. Badges
-CREATE TABLE public.groupops_badges (
+CREATE TABLE IF NOT EXISTS public.groupops_badges (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -136,28 +165,38 @@ CREATE TABLE public.groupops_badges (
   icon TEXT DEFAULT '🏅',
   rule_json JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_badges ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage badges for their company" ON public.groupops_badges FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage badges for their company" ON public.groupops_badges FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 8. Member Badges
-CREATE TABLE public.groupops_member_badges (
+CREATE TABLE IF NOT EXISTS public.groupops_member_badges (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   member_id UUID NOT NULL REFERENCES public.groupops_members(id) ON DELETE CASCADE,
   badge_id UUID NOT NULL REFERENCES public.groupops_badges(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(member_id, badge_id)
-);
+);;
+
+
 ALTER TABLE public.groupops_member_badges ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage member badges for their company" ON public.groupops_member_badges FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage member badges for their company" ON public.groupops_member_badges FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 9. Campaigns
-CREATE TABLE public.groupops_campaigns (
+CREATE TABLE IF NOT EXISTS public.groupops_campaigns (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID NOT NULL REFERENCES public.groupops_groups(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -172,14 +211,19 @@ CREATE TABLE public.groupops_campaigns (
   approval_required BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_campaigns ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage campaigns for their company" ON public.groupops_campaigns FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage campaigns for their company" ON public.groupops_campaigns FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 10. Templates
-CREATE TABLE public.groupops_templates (
+CREATE TABLE IF NOT EXISTS public.groupops_templates (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   category TEXT NOT NULL DEFAULT 'general',
@@ -191,14 +235,19 @@ CREATE TABLE public.groupops_templates (
   constraints_json JSONB DEFAULT '{"max_mentions":3,"max_chars":4096}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_templates ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage templates for their company" ON public.groupops_templates FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage templates for their company" ON public.groupops_templates FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 11. Moderation Rules
-CREATE TABLE public.groupops_moderation_rules (
+CREATE TABLE IF NOT EXISTS public.groupops_moderation_rules (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID NOT NULL REFERENCES public.groupops_groups(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -208,14 +257,19 @@ CREATE TABLE public.groupops_moderation_rules (
   action_type TEXT NOT NULL DEFAULT 'flag' CHECK (action_type IN ('flag','warn','mute','report','cooldown')),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_moderation_rules ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage moderation rules for their company" ON public.groupops_moderation_rules FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage moderation rules for their company" ON public.groupops_moderation_rules FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- 12. Moderation Actions
-CREATE TABLE public.groupops_moderation_actions (
+CREATE TABLE IF NOT EXISTS public.groupops_moderation_actions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID NOT NULL REFERENCES public.groupops_groups(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -228,28 +282,49 @@ CREATE TABLE public.groupops_moderation_actions (
   resolved_by UUID,
   resolved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 ALTER TABLE public.groupops_moderation_actions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage moderation actions for their company" ON public.groupops_moderation_actions FOR ALL USING (
+DO $$ BEGIN
+  CREATE POLICY "Users can manage moderation actions for their company" ON public.groupops_moderation_actions FOR ALL USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Indexes for performance
-CREATE INDEX idx_groupops_groups_company ON public.groupops_groups(company_id);
-CREATE INDEX idx_groupops_members_group ON public.groupops_members(group_id);
-CREATE INDEX idx_groupops_members_company ON public.groupops_members(company_id);
-CREATE INDEX idx_groupops_members_status ON public.groupops_members(status);
-CREATE INDEX idx_groupops_members_risk ON public.groupops_members(risk_level);
-CREATE INDEX idx_groupops_messages_group ON public.groupops_messages(group_id);
-CREATE INDEX idx_groupops_messages_timestamp ON public.groupops_messages(timestamp);
-CREATE INDEX idx_groupops_events_group ON public.groupops_events(group_id);
-CREATE INDEX idx_groupops_events_type ON public.groupops_events(type);
-CREATE INDEX idx_groupops_events_timestamp ON public.groupops_events(timestamp);
-CREATE INDEX idx_groupops_score_ledger_member ON public.groupops_score_ledger(member_id);
-CREATE INDEX idx_groupops_score_ledger_group ON public.groupops_score_ledger(group_id);
-CREATE INDEX idx_groupops_campaigns_group ON public.groupops_campaigns(group_id);
-CREATE INDEX idx_groupops_moderation_actions_group ON public.groupops_moderation_actions(group_id);
-CREATE INDEX idx_groupops_moderation_actions_resolved ON public.groupops_moderation_actions(resolved);
+CREATE INDEX IF NOT EXISTS idx_groupops_groups_company ON public.groupops_groups(company_id);;
 
--- Add FK for campaigns.template_id after templates table exists
-ALTER TABLE public.groupops_campaigns ADD CONSTRAINT groupops_campaigns_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.groupops_templates(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_groupops_members_group ON public.groupops_members(group_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_members_company ON public.groupops_members(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_members_status ON public.groupops_members(status);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_members_risk ON public.groupops_members(risk_level);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_messages_group ON public.groupops_messages(group_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_messages_timestamp ON public.groupops_messages(timestamp);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_events_group ON public.groupops_events(group_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_events_type ON public.groupops_events(type);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_events_timestamp ON public.groupops_events(timestamp);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_score_ledger_member ON public.groupops_score_ledger(member_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_score_ledger_group ON public.groupops_score_ledger(group_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_campaigns_group ON public.groupops_campaigns(group_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_moderation_actions_group ON public.groupops_moderation_actions(group_id);;
+
+CREATE INDEX IF NOT EXISTS idx_groupops_moderation_actions_resolved ON public.groupops_moderation_actions(resolved);;
+
+DO $$ BEGIN
+  ALTER TABLE public.groupops_campaigns ADD CONSTRAINT groupops_campaigns_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.groupops_templates(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

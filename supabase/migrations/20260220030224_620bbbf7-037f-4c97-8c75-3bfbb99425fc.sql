@@ -3,7 +3,8 @@
 
 -- Fix internal_messages SELECT policy
 DROP POLICY IF EXISTS "Users can view messages in accessible channels" ON public.internal_messages;
-CREATE POLICY "Users can view messages in accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can view messages in accessible channels"
 ON public.internal_messages FOR SELECT
 USING (
   EXISTS (
@@ -29,10 +30,15 @@ USING (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Fix internal_messages INSERT policy
 DROP POLICY IF EXISTS "Users can send messages in accessible channels" ON public.internal_messages;
-CREATE POLICY "Users can send messages in accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can send messages in accessible channels"
 ON public.internal_messages FOR INSERT
 WITH CHECK (
   auth.uid() = user_id
@@ -59,10 +65,15 @@ WITH CHECK (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Fix internal_channels SELECT policy as well (same issue)
 DROP POLICY IF EXISTS "Users can view accessible channels" ON public.internal_channels;
-CREATE POLICY "Users can view accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can view accessible channels"
 ON public.internal_channels FOR SELECT
 USING (
   is_company_member(auth.uid(), company_id)
@@ -83,8 +94,12 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Also allow the dm-agent-responder (service role) to insert messages
 -- Service role bypasses RLS by default, so no extra policy needed there.
 -- But we need to allow SELECT on internal_channels for dm channels without user context
--- The trigger function runs as SECURITY DEFINER so it bypasses RLS - no change needed.
+-- The trigger function runs as SECURITY DEFINER so it bypasses RLS - no change needed.;

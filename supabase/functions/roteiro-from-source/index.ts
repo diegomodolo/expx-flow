@@ -1,4 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredentialOptional,
+  type SystemConfigTools,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +30,19 @@ Deno.serve(async (req) => {
       );
     }
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const toolsCfg = await getSystemConfig<SystemConfigTools>(
+      supabase,
+      "tools",
+    );
+    const firecrawlKey = resolveCredentialOptional(
+      Deno.env.get("FIRECRAWL_API_KEY"),
+      toolsCfg?.firecrawl_api_key,
+    );
+
     let contentToAnalyze = "";
     let suggestedName = "";
 
@@ -41,25 +60,34 @@ Deno.serve(async (req) => {
       }
 
       const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      const API_BASE =
-        "https://refreshing-beauty-production-f560.up.railway.app";
+      const youtubeProxyUrl = resolveCredentialOptional(
+        Deno.env.get("YOUTUBE_PROXY_URL"),
+        toolsCfg?.youtube_proxy_url,
+      );
 
-      // Try Railway /info endpoint first for richer data
-      try {
-        const infoRes = await fetch(`${API_BASE}/info`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: youtubeUrl }),
-        });
+      // Tenta proxy (self-host) para metadados ricos. Se não houver proxy
+      // configurado, pula direto para o fallback oEmbed + scraping.
+      if (youtubeProxyUrl) {
+        try {
+          const infoRes = await fetch(`${youtubeProxyUrl}/info`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: youtubeUrl }),
+          });
 
-        if (infoRes.ok) {
-          const info = await infoRes.json();
-          suggestedName = info.title || "";
-          contentToAnalyze = `Título do vídeo: ${info.title || ""}\nCanal: ${info.channel || ""}\nDuração: ${info.duration_string || ""}\nVisualizações: ${info.view_count || ""}\nDescrição: ${info.description || ""}`;
-          console.log("Got video info from Railway API:", suggestedName);
+          if (infoRes.ok) {
+            const info = await infoRes.json();
+            suggestedName = info.title || "";
+            contentToAnalyze = `Título do vídeo: ${info.title || ""}\nCanal: ${info.channel || ""}\nDuração: ${info.duration_string || ""}\nVisualizações: ${info.view_count || ""}\nDescrição: ${info.description || ""}`;
+            console.log("Got video info from YouTube proxy:", suggestedName);
+          }
+        } catch (e) {
+          console.log("Proxy /info failed, falling back to oEmbed:", e);
         }
-      } catch (e) {
-        console.log("Railway /info failed, falling back to oEmbed:", e);
+      } else {
+        console.log(
+          "YouTube proxy não configurado em Configurações > Sistema > Ferramentas. Usando oEmbed.",
+        );
       }
 
       // Fallback: oEmbed + page scraping
@@ -90,8 +118,6 @@ Deno.serve(async (req) => {
       }
     } else if (type === "url") {
       // Try Firecrawl first if available
-      const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-
       if (firecrawlKey) {
         try {
           const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {

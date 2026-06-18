@@ -18,5 +18,7 @@ BEGIN
         SELECT ctr FROM public.google_campaigns WHERE company_id = p_company_id AND ctr > 0
       ) combined
     ), 0)::numeric AS avg_ctr;
+
 END;
+
 $$;

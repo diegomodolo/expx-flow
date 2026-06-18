@@ -5,9 +5,11 @@
 DELETE FROM employees 
 WHERE company_id = '48888a0c-ebeb-4528-9bc0-cc98a45af10f';
 
+
 -- 2. Deletar company_member (associação)
 DELETE FROM company_members 
 WHERE company_id = '48888a0c-ebeb-4528-9bc0-cc98a45af10f';
+
 
 -- 3. Deletar a empresa
 DELETE FROM companies 

@@ -20,7 +20,10 @@ BEGIN
     (NEW.id, NEW.company_id, 'gerador-conteudo', false),
     (NEW.id, NEW.company_id, 'ia', false),
     (NEW.id, NEW.company_id, 'configuracoes', false);
+
   
   RETURN NEW;
+
 END;
-$function$
+
+$function$;

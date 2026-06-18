@@ -1,9 +1,12 @@
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
 
 -- Remove old cron job if exists
 SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'daily-creative-generator-scheduler';
+
 
 -- Create cron job to run every 15 minutes
 SELECT cron.schedule(
@@ -18,5 +21,6 @@ SELECT cron.schedule(
     ),
     body := '{}'::jsonb
   ) as request_id;
+
   $$
 );

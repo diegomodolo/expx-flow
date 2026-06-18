@@ -15,38 +15,58 @@ CREATE TABLE IF NOT EXISTS public.ai_model_configs (
   UNIQUE(company_id, function_name)
 );
 
-ALTER TABLE public.ai_model_configs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view ai configs for their company"
+ALTER TABLE public.ai_model_configs ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view ai configs for their company"
   ON public.ai_model_configs FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert ai configs for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert ai configs for their company"
   ON public.ai_model_configs FOR INSERT
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update ai configs for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update ai configs for their company"
   ON public.ai_model_configs FOR UPDATE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete ai configs for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete ai configs for their company"
   ON public.ai_model_configs FOR DELETE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_model_configs TO authenticated;
+
 
 -- Trigger updated_at
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS trigger AS $$
 BEGIN
   NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
+  RETURN NEW;
+
+END;
+
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS ai_model_configs_updated_at ON public.ai_model_configs;
 CREATE TRIGGER ai_model_configs_updated_at
   BEFORE UPDATE ON public.ai_model_configs
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
 
 -- 2. Tabela de modelos favoritos
 CREATE TABLE IF NOT EXISTS public.ai_favorite_models (
@@ -57,21 +77,33 @@ CREATE TABLE IF NOT EXISTS public.ai_favorite_models (
   UNIQUE(company_id, model_id)
 );
 
-ALTER TABLE public.ai_favorite_models ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view favorite models for their company"
+ALTER TABLE public.ai_favorite_models ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view favorite models for their company"
   ON public.ai_favorite_models FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert favorite models for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert favorite models for their company"
   ON public.ai_favorite_models FOR INSERT
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete favorite models for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete favorite models for their company"
   ON public.ai_favorite_models FOR DELETE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 GRANT SELECT, INSERT, DELETE ON public.ai_favorite_models TO authenticated;
+
 
 -- 3. Tabela de API keys (RLS restritiva: apenas owners)
 CREATE TABLE IF NOT EXISTS public.ai_api_keys (
@@ -82,10 +114,10 @@ CREATE TABLE IF NOT EXISTS public.ai_api_keys (
   updated_at timestamptz DEFAULT now()
 );
 
-ALTER TABLE public.ai_api_keys ENABLE ROW LEVEL SECURITY;
 
--- Apenas owners podem ler/editar API keys
-CREATE POLICY "Owners can view api keys"
+ALTER TABLE public.ai_api_keys ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Owners can view api keys"
   ON public.ai_api_keys FOR SELECT
   USING (
     EXISTS (
@@ -95,8 +127,11 @@ CREATE POLICY "Owners can view api keys"
         AND company_members.role = 'owner'
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Owners can insert api keys"
+DO $$ BEGIN
+  CREATE POLICY "Owners can insert api keys"
   ON public.ai_api_keys FOR INSERT
   WITH CHECK (
     EXISTS (
@@ -106,8 +141,11 @@ CREATE POLICY "Owners can insert api keys"
         AND company_members.role = 'owner'
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Owners can update api keys"
+DO $$ BEGIN
+  CREATE POLICY "Owners can update api keys"
   ON public.ai_api_keys FOR UPDATE
   USING (
     EXISTS (
@@ -117,9 +155,13 @@ CREATE POLICY "Owners can update api keys"
         AND company_members.role = 'owner'
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_api_keys TO authenticated;
-
+DROP TRIGGER IF EXISTS ai_api_keys_updated_at ON public.ai_api_keys;
 CREATE TRIGGER ai_api_keys_updated_at
   BEFORE UPDATE ON public.ai_api_keys
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();

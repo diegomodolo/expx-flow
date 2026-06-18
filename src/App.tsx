@@ -249,6 +249,8 @@ import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
 import { DMNotificationListener } from "@/components/dm-notification/DMNotificationListener";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PermissionProtectedRoute } from "@/components/PermissionProtectedRoute";
+import { InstallationGuard } from "@/guards/InstallationGuard";
+const Onboarding = React.lazy(() => import("./pages/Onboarding"));
 import SuperAdmin from "@/pages/SuperAdmin";
 import { ThemeProvider } from "next-themes";
 import { Navigate } from "react-router-dom";
@@ -273,1136 +275,1148 @@ const App = () => {
               <CRMAuthProvider>
                 <ActivityLoggerProvider>
                   <DMNotificationListener />
-                  <React.Suspense
-                    fallback={
-                      <div className="flex h-screen w-full items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
-                    }
-                  >
-                    <Routes>
-                      {/* Public routes */}
-                      <Route path="/" element={<LandingPage />} />
-                      <Route path="/auth" element={<AuthPage />} />
-                      <Route
-                        path="/auth/callback"
-                        element={<FacebookCallback />}
-                      />
-                      <Route
-                        path="/google-ads/callback"
-                        element={<GoogleAdsCallback />}
-                      />
-                      <Route
-                        path="/google-meet/callback"
-                        element={<GoogleMeetCallback />}
-                      />
-                      <Route
-                        path="/report-lead-desqualificado/:token"
-                        element={<ReportLeadDesqualificado />}
-                      />
-                      <Route
-                        path="/dashboard-publico/:token"
-                        element={<ClientDashboardPublic />}
-                      />
-                      <Route
-                        path="/apresentacao/:token"
-                        element={<ApresentacaoPublica />}
-                      />
-                      <Route
-                        path="/resultados/:token"
-                        element={<ApresentacaoResultadosPublica />}
-                      />
-                      <Route path="/crm/:token/login" element={<CRMLogin />} />
-                      <Route path="/crm/:token/*" element={<CRMPublicView />} />
-                      <Route
-                        path="/tv/:token"
-                        element={<DashboardTrafegoPublic />}
-                      />
-                      <Route
-                        path="/social-tv/:token"
-                        element={<DashboardSocialTVPublic />}
-                      />
-                      <Route
-                        path="/radar-tv/:token"
-                        element={<DashboardRadarTVPublic />}
-                      />
-                      <Route
-                        path="/cs-tv/:token"
-                        element={<DashboardCSTVPublic />}
-                      />
-                      <Route
-                        path="/content-review"
-                        element={<PublicContentReview />}
-                      />
-                      <Route
-                        path="/super-admin"
-                        element={
-                          <ProtectedRoute>
-                            <SuperAdmin />
-                          </ProtectedRoute>
-                        }
-                      />
+                  <InstallationGuard>
+                    <React.Suspense
+                      fallback={
+                        <div className="flex h-screen w-full items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                      }
+                    >
+                      <Routes>
+                        {/* Public routes */}
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/auth" element={<AuthPage />} />
+                        <Route path="/onboarding" element={<Onboarding />} />
+                        <Route
+                          path="/auth/callback"
+                          element={<FacebookCallback />}
+                        />
+                        <Route
+                          path="/google-ads/callback"
+                          element={<GoogleAdsCallback />}
+                        />
+                        <Route
+                          path="/google-meet/callback"
+                          element={<GoogleMeetCallback />}
+                        />
+                        <Route
+                          path="/report-lead-desqualificado/:token"
+                          element={<ReportLeadDesqualificado />}
+                        />
+                        <Route
+                          path="/dashboard-publico/:token"
+                          element={<ClientDashboardPublic />}
+                        />
+                        <Route
+                          path="/apresentacao/:token"
+                          element={<ApresentacaoPublica />}
+                        />
+                        <Route
+                          path="/resultados/:token"
+                          element={<ApresentacaoResultadosPublica />}
+                        />
+                        <Route
+                          path="/crm/:token/login"
+                          element={<CRMLogin />}
+                        />
+                        <Route
+                          path="/crm/:token/*"
+                          element={<CRMPublicView />}
+                        />
+                        <Route
+                          path="/tv/:token"
+                          element={<DashboardTrafegoPublic />}
+                        />
+                        <Route
+                          path="/social-tv/:token"
+                          element={<DashboardSocialTVPublic />}
+                        />
+                        <Route
+                          path="/radar-tv/:token"
+                          element={<DashboardRadarTVPublic />}
+                        />
+                        <Route
+                          path="/cs-tv/:token"
+                          element={<DashboardCSTVPublic />}
+                        />
+                        <Route
+                          path="/content-review"
+                          element={<PublicContentReview />}
+                        />
+                        <Route
+                          path="/super-admin"
+                          element={
+                            <ProtectedRoute>
+                              <SuperAdmin />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* Protected routes */}
-                      <Route
-                        path="/dashboard"
-                        element={
-                          <ProtectedRoute>
-                            <DashboardPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/radar-saude"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="radar-saude">
-                            <RadarSaude />
-                          </PermissionProtectedRoute>
-                        }
-                      >
-                        <Route index element={<RadarSaudeDashboard />} />
-                        <Route path="urls" element={<RadarUrlsDashboard />} />
-                      </Route>
-                      <Route
-                        path="/dashboard-trafego"
-                        element={
-                          <ProtectedRoute>
-                            <DashboardTrafego />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/rotinas"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="rotinas">
-                            <Rotinas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="ia">
-                            <IAChat />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/agents"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="agentes-ia">
-                            <AgentesIA />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/agents/new"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="editar-agentes">
-                            <AgentEdit />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/agents/:agentId"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="agentes-ia">
-                            <AgentEdit />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/agents/:agentId/edit"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="agentes-ia">
-                            <AgentEdit />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/skills"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="skills-ia">
-                            <SkillsPage />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/skills/new"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="editar-skills">
-                            <SkillEditPage />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/skills/:id/edit"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="skills-ia">
-                            <SkillEditPage />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/squads"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="squads-ia">
-                            <AgentSquads />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/ia/squads/:squadId/edit"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="squads-ia">
-                            <AgentSquadEditor />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/clientes"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="clientes">
-                            <Clientes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/clientes/:id/*"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="clientes">
-                            <ClienteDetalhes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/campanhas"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="campanhas">
-                            <Campanhas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/campanhas-unificadas"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="campanhas">
-                            <CampanhasUnificadas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/campanhas/:id"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="campanhas">
-                            <CampanhaDetalhes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/colaboradores"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="colaboradores">
-                            <Colaboradores />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/colaboradores/cargas-horarias"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="colaboradores">
-                            <WorkSchedules />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/squad"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="squad">
-                            <Squad />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reunioes"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="reunioes">
-                            <Reunioes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/calendario"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="calendario">
-                            <Calendario />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/squad-dashboard"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="dashboard-equipe">
-                            <SquadDashboard />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/squad-command-center"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="command-center">
-                            <SquadCommandCenter />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/backlog-command-center"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="command-center">
-                            <BacklogCommandCenter />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/historias"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="command-center">
-                            <Historias />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/tarefas"
-                        element={
-                          <ProtectedRoute>
-                            <Tarefas />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/tarefas-aguardando-revisao"
-                        element={
-                          <ProtectedRoute>
-                            <TarefasAguardandoRevisao />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/tarefas-recorrentes"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="tarefas-recorrentes">
-                            <TarefasRecorrentes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/fluxos"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="fluxos">
-                            <TaskFlows />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/fluxos/:flowId"
-                        element={
-                          <ProtectedRoute>
-                            <TaskFlowEditorPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/mapas-mentais"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="mapas-mentais">
-                            <MapasMentais />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/mapas-mentais/:id"
-                        element={
-                          <ProtectedRoute>
-                            <MapaMentalEditor />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <Relatorios />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/executivo"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioExecutivo />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/funil"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioFunil />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/concorrencia"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioAnaliseCompetitiva />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/clientes-zona-critica"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioClientesZonaCritica />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/criativos-baixo-desempenho"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioCriativosBaixoDesempenho />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/campanhas-ineficientes"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioCampanhasIneficientes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/orcamento-mal-distribuido"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioOrcamentoMalDistribuido />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/oportunidades"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioOportunidades />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/performance-cliente"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioPerformanceCliente />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/campanhas"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioCampanhas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/tarefas-planner"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioTarefasPlanner />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/produtividade-squads"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioProdutividadeSquads />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/rh-colaboradores"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioRHColaboradores />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/alertas-criticos"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioAlertasCriticos />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/relatorios/snapshots-performance"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios">
-                            <RelatorioSnapshotsPerformance />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/leads-desqualificados"
-                        element={
-                          <ProtectedRoute>
-                            <AdminLeadReports />
-                          </ProtectedRoute>
-                        }
-                      />
-                      {/* Nova página de Geradores */}
-                      <Route
-                        path="/geradores"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="geradores">
-                            <Geradores />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      {/* Novas rotas dos geradores */}
-                      <Route
-                        path="/geradores/campanhas"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-campanhas">
-                            <GeradorCampanhas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/geradores/campanhas/:id"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-campanhas">
-                            <GeradorCampanhas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/geradores/conteudo"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-conteudo">
-                            <GeradorConteudo />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/geradores/criativos"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-criativos">
-                            <GeradorCriativos />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      {/* Gerador de Carrossel - Standalone */}
-                      <Route
-                        path="/geradores/carrosseis"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="geradores">
-                            <GeradorCarrosseis />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/geradores/carrosseis/studio/:projectId"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="geradores">
-                            <CarouselStudio />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/geradores/apresentacoes"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="geradores">
-                            <GeradorApresentacoes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/geradores/apresentacoes/:id"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="geradores">
-                            <ApresentacaoDetalhes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/geradores/planejamento-conteudo"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="planejador-conteudo">
-                            <PlanejamentoConteudo />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      {/* Fábrica de Anúncios - Rotas aninhadas */}
-                      <Route
-                        path="/geradores/fabrica-anuncios"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="geradores">
-                            <FabricaAnuncios />
-                          </PermissionProtectedRoute>
-                        }
-                      >
+                        {/* Protected routes */}
                         <Route
-                          path="dashboard"
-                          element={<DashboardFabrica />}
+                          path="/dashboard"
+                          element={
+                            <ProtectedRoute>
+                              <DashboardPage />
+                            </ProtectedRoute>
+                          }
                         />
                         <Route
-                          path="revisao-diaria"
-                          element={<RevisaoDiaria />}
+                          path="/radar-saude"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="radar-saude">
+                              <RadarSaude />
+                            </PermissionProtectedRoute>
+                          }
+                        >
+                          <Route index element={<RadarSaudeDashboard />} />
+                          <Route path="urls" element={<RadarUrlsDashboard />} />
+                        </Route>
+                        <Route
+                          path="/dashboard-trafego"
+                          element={
+                            <ProtectedRoute>
+                              <DashboardTrafego />
+                            </ProtectedRoute>
+                          }
                         />
                         <Route
-                          path="configuracao"
-                          element={<ConfiguracaoFabrica />}
+                          path="/rotinas"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="rotinas">
+                              <Rotinas />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="vencedores"
-                          element={<AnunciosVencedores />}
+                          path="/ia"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="ia">
+                              <IAChat />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="historico"
-                          element={<HistoricoGeracoes />}
+                          path="/ia/agents"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="agentes-ia">
+                              <AgentesIA />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="publicacoes-autopilot"
-                          element={<HistoricoPublicacoesAutopilot />}
-                        />
-                      </Route>
-                      {/* Fábrica de Criativos - Rotas aninhadas */}
-                      <Route
-                        path="/geradores/fabrica-criativos"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-criativos">
-                            <FabricaCriativos />
-                          </PermissionProtectedRoute>
-                        }
-                      >
-                        <Route
-                          path="dashboard"
-                          element={<DashboardFabricaCriativos />}
+                          path="/ia/agents/new"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="editar-agentes">
+                              <AgentEdit />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="revisao-diaria"
-                          element={<RevisaoDiariaCriativos />}
+                          path="/ia/agents/:agentId"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="agentes-ia">
+                              <AgentEdit />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="configuracao"
-                          element={<ConfiguracaoFabricaCriativos />}
+                          path="/ia/agents/:agentId/edit"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="agentes-ia">
+                              <AgentEdit />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="temas"
-                          element={<TemasFabricaCriativos />}
+                          path="/ia/skills"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="skills-ia">
+                              <SkillsPage />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="historico"
-                          element={<HistoricoGeracoesCriativos />}
+                          path="/ia/skills/new"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="editar-skills">
+                              <SkillEditPage />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="publicados"
-                          element={<CriativosPublicados />}
-                        />
-                      </Route>
-                      {/* Fábrica de Carrosseis - Rotas aninhadas */}
-                      <Route
-                        path="/geradores/fabrica-carrosseis"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="geradores">
-                            <FabricaCarrosseis />
-                          </PermissionProtectedRoute>
-                        }
-                      >
-                        <Route
-                          path="dashboard"
-                          element={<DashboardFabricaCarrosseis />}
+                          path="/ia/skills/:id/edit"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="skills-ia">
+                              <SkillEditPage />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="revisao-diaria"
-                          element={<RevisaoDiariaCarrosseis />}
+                          path="/ia/squads"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="squads-ia">
+                              <AgentSquads />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="configuracao"
-                          element={<ConfiguracaoFabricaCarrosseis />}
+                          path="/ia/squads/:squadId/edit"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="squads-ia">
+                              <AgentSquadEditor />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="temas"
-                          element={<TemasFabricaCarrosseis />}
+                          path="/clientes"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="clientes">
+                              <Clientes />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="historico"
-                          element={<HistoricoGeracoesCarrosseis />}
+                          path="/clientes/:id/*"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="clientes">
+                              <ClienteDetalhes />
+                            </PermissionProtectedRoute>
+                          }
                         />
                         <Route
-                          path="publicados"
-                          element={<CarrosseisPublicados />}
+                          path="/campanhas"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="campanhas">
+                              <Campanhas />
+                            </PermissionProtectedRoute>
+                          }
                         />
-                      </Route>
-                      {/* Repositório de Criativos */}
-                      <Route
-                        path="/repositorio-criativos"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="repositorio-criativos">
-                            <RepositorioCriativos />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      {/* Gerador de Clipes Virais */}
-                      <Route
-                        path="/clips"
-                        element={
-                          <ProtectedRoute>
-                            <ClipsPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      {/* Editor de Imagens - Acesso direto ao editor visual */}
-                      <Route
-                        path="/editor-imagens"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="editor-imagens">
-                            <EditorImagens />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      {/* Rotas antigas - redirects para compatibilidade */}
-                      <Route
-                        path="/gerador-campanhas"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-campanhas">
-                            <GeradorCampanhas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/gerador-campanhas/:id"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-campanhas">
-                            <GeradorCampanhas />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/gerador-conteudo"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-conteudo">
-                            <GeradorConteudo />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/gerador-criativos"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="gerador-criativos">
-                            <GeradorCriativos />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/editor-funil"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="editor-funil">
-                            <EditorFunil />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/editor-funil/:clientId/:funnelId"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="editor-funil">
-                            <FunnelEditor />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/automacoes"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="automacoes">
-                            <Automacoes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/dashboard-orcamento"
-                        element={
-                          <ProtectedRoute>
-                            <DashboardOrcamento />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/agendamento"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="agendamento">
-                            <Agendamento />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/automatizadores"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="automatizadores">
-                            <AutomatizadoresHub />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/automatizadores/instagram"
-                        element={
-                          <ProtectedRoute>
-                            <AutomatizadoresInstagram />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/automatizadores/instagram/:configId"
-                        element={
-                          <ProtectedRoute>
-                            <AutomatizadorInstagramDetalhes />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/automatizadores/wordpress"
-                        element={
-                          <ProtectedRoute>
-                            <AutomatizadoresWordpress />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/automatizadores/wordpress/:configId"
-                        element={
-                          <ProtectedRoute>
-                            <AutomatizadorWordpressDetalhes />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/notificacoes"
-                        element={
-                          <ProtectedRoute>
-                            <Notificacoes />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/notificacoes/whatsapp"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="whatsapp">
-                            <NotificacoesWhatsApp />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="lead-intelligence">
-                            <LeadIntelligenceHub />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/segments-view"
-                        element={
-                          <ProtectedRoute>
-                            <LeadIntelligenceSegmentsView />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/segments"
-                        element={
-                          <ProtectedRoute>
-                            <LeadIntelligenceSegments />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/history"
-                        element={
-                          <ProtectedRoute>
-                            <LeadIntelligenceHistory />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/filters"
-                        element={
-                          <ProtectedRoute>
-                            <LeadIntelligenceFilters />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/api-keys"
-                        element={
-                          <ProtectedRoute>
-                            <LeadIntelligenceApiKeys />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/cnae-base"
-                        element={
-                          <ProtectedRoute>
-                            <CnaeBaseDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/cnae-base/:cnaeCode"
-                        element={
-                          <ProtectedRoute>
-                            <CnaeLeadsView />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/google-prospecting"
-                        element={
-                          <ProtectedRoute>
-                            <GoogleProspectingPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/lead-intelligence/instagram-prospecting"
-                        element={
-                          <ProtectedRoute>
-                            <InstagramProspectingPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/alertas"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="alertas">
-                            <AlertasDoSistema />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/reportes"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="reportes">
-                            <Reportes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/workspace"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="workspace">
-                            <Workspace />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/roteiros"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="roteiros">
-                            <Roteiros />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/roteiros/:id"
-                        element={
-                          <ProtectedRoute>
-                            <RoteiroDetalhe />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/checklist-templates"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="checklists">
-                            <ChecklistTemplates />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/keyword-planner"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="keyword-planner">
-                            <KeywordPlannerPage />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/marketing/relatorios"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios-marketing">
-                            <RelatoriosMarketing />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/marketing/relatorios/saldo-pre-pagos"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="relatorios-marketing">
-                            <RelatorioSaldoPrePagos />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/parametros-performance"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="parametros-performance">
-                            <ParametrosPerformancePage />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/planner-config"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="planner">
-                            <PlannerConfigPage />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/configuracoes/*"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="configuracoes">
-                            <Configuracoes />
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/perfil/*"
-                        element={
-                          <ProtectedRoute>
-                            <Perfil />
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      <Route
-                        path="/release-notes"
-                        element={
-                          <ProtectedRoute>
-                            <ReleaseNotes />
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      {/* Customer Success Module */}
-                      <Route
-                        path="/cs"
-                        element={
-                          <ProtectedRoute>
-                            <CSLayout />
-                          </ProtectedRoute>
-                        }
-                      >
                         <Route
-                          index
-                          element={<Navigate to="/cs/cockpit" replace />}
+                          path="/campanhas-unificadas"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="campanhas">
+                              <CampanhasUnificadas />
+                            </PermissionProtectedRoute>
+                          }
                         />
-                        <Route path="cockpit" element={<CSCockpitPage />} />
-                        <Route path="carteira" element={<CSPortfolioPage />} />
                         <Route
-                          path="jornada"
-                          element={<CSJourneyKanbanPage />}
+                          path="/campanhas/:id"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="campanhas">
+                              <CampanhaDetalhes />
+                            </PermissionProtectedRoute>
+                          }
                         />
-                        <Route path="acoes" element={<CSActionsPage />} />
-                        <Route path="clientes" element={<CSClientsList />} />
-                        <Route path="tv" element={<CSTVPage />} />
-                        <Route path="groupops" element={<GroupOpsPage />}>
-                          <Route index element={<GroupOpsDashboard />} />
+                        <Route
+                          path="/colaboradores"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="colaboradores">
+                              <Colaboradores />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/colaboradores/cargas-horarias"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="colaboradores">
+                              <WorkSchedules />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/squad"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="squad">
+                              <Squad />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/reunioes"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="reunioes">
+                              <Reunioes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/calendario"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="calendario">
+                              <Calendario />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/squad-dashboard"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="dashboard-equipe">
+                              <SquadDashboard />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/squad-command-center"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="command-center">
+                              <SquadCommandCenter />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/backlog-command-center"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="command-center">
+                              <BacklogCommandCenter />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/historias"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="command-center">
+                              <Historias />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/tarefas"
+                          element={
+                            <ProtectedRoute>
+                              <Tarefas />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/tarefas-aguardando-revisao"
+                          element={
+                            <ProtectedRoute>
+                              <TarefasAguardandoRevisao />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/tarefas-recorrentes"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="tarefas-recorrentes">
+                              <TarefasRecorrentes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/fluxos"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="fluxos">
+                              <TaskFlows />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/fluxos/:flowId"
+                          element={
+                            <ProtectedRoute>
+                              <TaskFlowEditorPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/mapas-mentais"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="mapas-mentais">
+                              <MapasMentais />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/mapas-mentais/:id"
+                          element={
+                            <ProtectedRoute>
+                              <MapaMentalEditor />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <Relatorios />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/executivo"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioExecutivo />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/funil"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioFunil />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/concorrencia"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioAnaliseCompetitiva />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/clientes-zona-critica"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioClientesZonaCritica />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/criativos-baixo-desempenho"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioCriativosBaixoDesempenho />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/campanhas-ineficientes"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioCampanhasIneficientes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/orcamento-mal-distribuido"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioOrcamentoMalDistribuido />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/oportunidades"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioOportunidades />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/performance-cliente"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioPerformanceCliente />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/campanhas"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioCampanhas />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/tarefas-planner"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioTarefasPlanner />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/produtividade-squads"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioProdutividadeSquads />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/rh-colaboradores"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioRHColaboradores />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/alertas-criticos"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioAlertasCriticos />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/relatorios/snapshots-performance"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios">
+                              <RelatorioSnapshotsPerformance />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/leads-desqualificados"
+                          element={
+                            <ProtectedRoute>
+                              <AdminLeadReports />
+                            </ProtectedRoute>
+                          }
+                        />
+                        {/* Nova página de Geradores */}
+                        <Route
+                          path="/geradores"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="geradores">
+                              <Geradores />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        {/* Novas rotas dos geradores */}
+                        <Route
+                          path="/geradores/campanhas"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-campanhas">
+                              <GeradorCampanhas />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/geradores/campanhas/:id"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-campanhas">
+                              <GeradorCampanhas />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/geradores/conteudo"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-conteudo">
+                              <GeradorConteudo />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/geradores/criativos"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-criativos">
+                              <GeradorCriativos />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        {/* Gerador de Carrossel - Standalone */}
+                        <Route
+                          path="/geradores/carrosseis"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="geradores">
+                              <GeradorCarrosseis />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/geradores/carrosseis/studio/:projectId"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="geradores">
+                              <CarouselStudio />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/geradores/apresentacoes"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="geradores">
+                              <GeradorApresentacoes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/geradores/apresentacoes/:id"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="geradores">
+                              <ApresentacaoDetalhes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/geradores/planejamento-conteudo"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="planejador-conteudo">
+                              <PlanejamentoConteudo />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        {/* Fábrica de Anúncios - Rotas aninhadas */}
+                        <Route
+                          path="/geradores/fabrica-anuncios"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="geradores">
+                              <FabricaAnuncios />
+                            </PermissionProtectedRoute>
+                          }
+                        >
                           <Route
-                            path="grupos"
-                            element={<GroupOpsGroupsList />}
+                            path="dashboard"
+                            element={<DashboardFabrica />}
                           />
                           <Route
-                            path="membros"
-                            element={<GroupOpsMembersList />}
+                            path="revisao-diaria"
+                            element={<RevisaoDiaria />}
                           />
                           <Route
-                            path="campanhas"
-                            element={<GroupOpsCampaignsList />}
+                            path="configuracao"
+                            element={<ConfiguracaoFabrica />}
                           />
                           <Route
-                            path="templates"
-                            element={<GroupOpsTemplatesList />}
+                            path="vencedores"
+                            element={<AnunciosVencedores />}
                           />
                           <Route
-                            path="pontuacao"
-                            element={<GroupOpsScoring />}
+                            path="historico"
+                            element={<HistoricoGeracoes />}
                           />
                           <Route
-                            path="eventos"
-                            element={<GroupOpsEventsFeed />}
-                          />
-                          <Route
-                            path="moderacao"
-                            element={<GroupOpsModeration />}
-                          />
-                          <Route
-                            path="relatorios"
-                            element={<GroupOpsReports />}
-                          />
-                          <Route
-                            path="configuracoes"
-                            element={<GroupOpsSettings />}
+                            path="publicacoes-autopilot"
+                            element={<HistoricoPublicacoesAutopilot />}
                           />
                         </Route>
-                      </Route>
+                        {/* Fábrica de Criativos - Rotas aninhadas */}
+                        <Route
+                          path="/geradores/fabrica-criativos"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-criativos">
+                              <FabricaCriativos />
+                            </PermissionProtectedRoute>
+                          }
+                        >
+                          <Route
+                            path="dashboard"
+                            element={<DashboardFabricaCriativos />}
+                          />
+                          <Route
+                            path="revisao-diaria"
+                            element={<RevisaoDiariaCriativos />}
+                          />
+                          <Route
+                            path="configuracao"
+                            element={<ConfiguracaoFabricaCriativos />}
+                          />
+                          <Route
+                            path="temas"
+                            element={<TemasFabricaCriativos />}
+                          />
+                          <Route
+                            path="historico"
+                            element={<HistoricoGeracoesCriativos />}
+                          />
+                          <Route
+                            path="publicados"
+                            element={<CriativosPublicados />}
+                          />
+                        </Route>
+                        {/* Fábrica de Carrosseis - Rotas aninhadas */}
+                        <Route
+                          path="/geradores/fabrica-carrosseis"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="geradores">
+                              <FabricaCarrosseis />
+                            </PermissionProtectedRoute>
+                          }
+                        >
+                          <Route
+                            path="dashboard"
+                            element={<DashboardFabricaCarrosseis />}
+                          />
+                          <Route
+                            path="revisao-diaria"
+                            element={<RevisaoDiariaCarrosseis />}
+                          />
+                          <Route
+                            path="configuracao"
+                            element={<ConfiguracaoFabricaCarrosseis />}
+                          />
+                          <Route
+                            path="temas"
+                            element={<TemasFabricaCarrosseis />}
+                          />
+                          <Route
+                            path="historico"
+                            element={<HistoricoGeracoesCarrosseis />}
+                          />
+                          <Route
+                            path="publicados"
+                            element={<CarrosseisPublicados />}
+                          />
+                        </Route>
+                        {/* Repositório de Criativos */}
+                        <Route
+                          path="/repositorio-criativos"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="repositorio-criativos">
+                              <RepositorioCriativos />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        {/* Gerador de Clipes Virais */}
+                        <Route
+                          path="/clips"
+                          element={
+                            <ProtectedRoute>
+                              <ClipsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        {/* Editor de Imagens - Acesso direto ao editor visual */}
+                        <Route
+                          path="/editor-imagens"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="editor-imagens">
+                              <EditorImagens />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        {/* Rotas antigas - redirects para compatibilidade */}
+                        <Route
+                          path="/gerador-campanhas"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-campanhas">
+                              <GeradorCampanhas />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/gerador-campanhas/:id"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-campanhas">
+                              <GeradorCampanhas />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/gerador-conteudo"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-conteudo">
+                              <GeradorConteudo />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/gerador-criativos"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="gerador-criativos">
+                              <GeradorCriativos />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/editor-funil"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="editor-funil">
+                              <EditorFunil />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/editor-funil/:clientId/:funnelId"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="editor-funil">
+                              <FunnelEditor />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/automacoes"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="automacoes">
+                              <Automacoes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/dashboard-orcamento"
+                          element={
+                            <ProtectedRoute>
+                              <DashboardOrcamento />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/agendamento"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="agendamento">
+                              <Agendamento />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/automatizadores"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="automatizadores">
+                              <AutomatizadoresHub />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/automatizadores/instagram"
+                          element={
+                            <ProtectedRoute>
+                              <AutomatizadoresInstagram />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/automatizadores/instagram/:configId"
+                          element={
+                            <ProtectedRoute>
+                              <AutomatizadorInstagramDetalhes />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/automatizadores/wordpress"
+                          element={
+                            <ProtectedRoute>
+                              <AutomatizadoresWordpress />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/automatizadores/wordpress/:configId"
+                          element={
+                            <ProtectedRoute>
+                              <AutomatizadorWordpressDetalhes />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/notificacoes"
+                          element={
+                            <ProtectedRoute>
+                              <Notificacoes />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/notificacoes/whatsapp"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="whatsapp">
+                              <NotificacoesWhatsApp />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="lead-intelligence">
+                              <LeadIntelligenceHub />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/segments-view"
+                          element={
+                            <ProtectedRoute>
+                              <LeadIntelligenceSegmentsView />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/segments"
+                          element={
+                            <ProtectedRoute>
+                              <LeadIntelligenceSegments />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/history"
+                          element={
+                            <ProtectedRoute>
+                              <LeadIntelligenceHistory />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/filters"
+                          element={
+                            <ProtectedRoute>
+                              <LeadIntelligenceFilters />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/api-keys"
+                          element={
+                            <ProtectedRoute>
+                              <LeadIntelligenceApiKeys />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/cnae-base"
+                          element={
+                            <ProtectedRoute>
+                              <CnaeBaseDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/cnae-base/:cnaeCode"
+                          element={
+                            <ProtectedRoute>
+                              <CnaeLeadsView />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/google-prospecting"
+                          element={
+                            <ProtectedRoute>
+                              <GoogleProspectingPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/lead-intelligence/instagram-prospecting"
+                          element={
+                            <ProtectedRoute>
+                              <InstagramProspectingPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/alertas"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="alertas">
+                              <AlertasDoSistema />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/reportes"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="reportes">
+                              <Reportes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/workspace"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="workspace">
+                              <Workspace />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/roteiros"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="roteiros">
+                              <Roteiros />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/roteiros/:id"
+                          element={
+                            <ProtectedRoute>
+                              <RoteiroDetalhe />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/checklist-templates"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="checklists">
+                              <ChecklistTemplates />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/keyword-planner"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="keyword-planner">
+                              <KeywordPlannerPage />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/marketing/relatorios"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios-marketing">
+                              <RelatoriosMarketing />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/marketing/relatorios/saldo-pre-pagos"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="relatorios-marketing">
+                              <RelatorioSaldoPrePagos />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/parametros-performance"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="parametros-performance">
+                              <ParametrosPerformancePage />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/planner-config"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="planner">
+                              <PlannerConfigPage />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/configuracoes/*"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="configuracoes">
+                              <Configuracoes />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/perfil/*"
+                          element={
+                            <ProtectedRoute>
+                              <Perfil />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* Public CS Routes */}
-                      <Route
-                        path="/cs/value-statement/:token"
-                        element={<ValueStatementPublic />}
-                      />
+                        <Route
+                          path="/release-notes"
+                          element={
+                            <ProtectedRoute>
+                              <ReleaseNotes />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* Task TV Dashboard */}
-                      <Route
-                        path="/tarefas-tv"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="dashboard-equipe">
-                            <TaskTvDashboard />
-                          </PermissionProtectedRoute>
-                        }
-                      />
+                        {/* Customer Success Module */}
+                        <Route
+                          path="/cs"
+                          element={
+                            <ProtectedRoute>
+                              <CSLayout />
+                            </ProtectedRoute>
+                          }
+                        >
+                          <Route
+                            index
+                            element={<Navigate to="/cs/cockpit" replace />}
+                          />
+                          <Route path="cockpit" element={<CSCockpitPage />} />
+                          <Route
+                            path="carteira"
+                            element={<CSPortfolioPage />}
+                          />
+                          <Route
+                            path="jornada"
+                            element={<CSJourneyKanbanPage />}
+                          />
+                          <Route path="acoes" element={<CSActionsPage />} />
+                          <Route path="clientes" element={<CSClientsList />} />
+                          <Route path="tv" element={<CSTVPage />} />
+                          <Route path="groupops" element={<GroupOpsPage />}>
+                            <Route index element={<GroupOpsDashboard />} />
+                            <Route
+                              path="grupos"
+                              element={<GroupOpsGroupsList />}
+                            />
+                            <Route
+                              path="membros"
+                              element={<GroupOpsMembersList />}
+                            />
+                            <Route
+                              path="campanhas"
+                              element={<GroupOpsCampaignsList />}
+                            />
+                            <Route
+                              path="templates"
+                              element={<GroupOpsTemplatesList />}
+                            />
+                            <Route
+                              path="pontuacao"
+                              element={<GroupOpsScoring />}
+                            />
+                            <Route
+                              path="eventos"
+                              element={<GroupOpsEventsFeed />}
+                            />
+                            <Route
+                              path="moderacao"
+                              element={<GroupOpsModeration />}
+                            />
+                            <Route
+                              path="relatorios"
+                              element={<GroupOpsReports />}
+                            />
+                            <Route
+                              path="configuracoes"
+                              element={<GroupOpsSettings />}
+                            />
+                          </Route>
+                        </Route>
 
-                      {/* YouTube Content Lab */}
-                      <Route
-                        path="/youtube-content-lab"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="youtube-content-lab">
-                            <DashboardLayout>
-                              <YouTubeContentLabListPage />
-                            </DashboardLayout>
-                          </PermissionProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/youtube-content-lab/:labId"
-                        element={
-                          <PermissionProtectedRoute requiredPermission="youtube-content-lab">
-                            <DashboardLayout>
-                              <YouTubeContentLabPage />
-                            </DashboardLayout>
-                          </PermissionProtectedRoute>
-                        }
-                      />
+                        {/* Public CS Routes */}
+                        <Route
+                          path="/cs/value-statement/:token"
+                          element={<ValueStatementPublic />}
+                        />
 
-                      {/* Catch-all route */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </React.Suspense>
+                        {/* Task TV Dashboard */}
+                        <Route
+                          path="/tarefas-tv"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="dashboard-equipe">
+                              <TaskTvDashboard />
+                            </PermissionProtectedRoute>
+                          }
+                        />
+
+                        {/* YouTube Content Lab */}
+                        <Route
+                          path="/youtube-content-lab"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="youtube-content-lab">
+                              <DashboardLayout>
+                                <YouTubeContentLabListPage />
+                              </DashboardLayout>
+                            </PermissionProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/youtube-content-lab/:labId"
+                          element={
+                            <PermissionProtectedRoute requiredPermission="youtube-content-lab">
+                              <DashboardLayout>
+                                <YouTubeContentLabPage />
+                              </DashboardLayout>
+                            </PermissionProtectedRoute>
+                          }
+                        />
+
+                        {/* Catch-all route */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </React.Suspense>
+                  </InstallationGuard>
                 </ActivityLoggerProvider>
               </CRMAuthProvider>
             </CompanyProvider>

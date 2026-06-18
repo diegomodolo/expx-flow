@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  getAppUrl,
+  type SystemConfigApp,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,6 +60,9 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const appCfg = await getSystemConfig<SystemConfigApp>(supabase, "app");
+  const appBaseUrl = getAppUrl(appCfg, req);
 
   try {
     const payload: TestNotificationPayload = await req.json();
@@ -255,8 +263,8 @@ serve(async (req) => {
 
     // Build dashboard link
     const dashboardLink = client.dashboard_token
-      ? `https://controledetrafego.com.br/dashboard-publico/${client.dashboard_token}`
-      : "https://controledetrafego.com.br";
+      ? `${appBaseUrl}/dashboard-publico/${client.dashboard_token}`
+      : appBaseUrl;
 
     const recipients: { phone: string; profile: string; name: string }[] = [];
 

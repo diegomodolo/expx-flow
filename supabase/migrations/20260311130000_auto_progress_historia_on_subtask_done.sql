@@ -10,14 +10,19 @@ BEGIN
     WHERE id = NEW.parent_task_id
       AND task_type = 'História'
       AND status = 'todo';
+
   END IF;
+
   RETURN NEW;
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- Drop trigger se existir para evitar duplicata
 DROP TRIGGER IF EXISTS trg_auto_progress_historia_on_subtask_done ON tasks;
-
+DROP TRIGGER IF EXISTS trg_auto_progress_historia_on_subtask_done ON tasks;
 CREATE TRIGGER trg_auto_progress_historia_on_subtask_done
   AFTER UPDATE OF status ON tasks
   FOR EACH ROW

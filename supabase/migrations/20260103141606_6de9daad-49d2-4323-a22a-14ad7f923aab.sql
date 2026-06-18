@@ -1,6 +1,7 @@
 -- Remove old cron job if exists
 SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'daily-ad-generator-scheduler';
 
+
 -- Create cron job to run every 15 minutes for better precision with generation times
 SELECT cron.schedule(
   'daily-ad-generator-scheduler',
@@ -14,5 +15,6 @@ SELECT cron.schedule(
     ),
     body := '{}'::jsonb
   ) as request_id;
+
   $$
 );

@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { functionUrl } from "@/integrations/supabase/runtime";
 import {
   Loader2,
   Settings,
@@ -61,8 +62,8 @@ export function MetaConnectionCard({
   const [isInitialized, setIsInitialized] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Generate webhook URL
-  const webhookUrl = `https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/meta-whatsapp-webhook`;
+  // Generate webhook URL (self-host: derivado de VITE_SUPABASE_URL)
+  const webhookUrl = functionUrl("meta-whatsapp-webhook");
 
   // Initialize form with config data
   useEffect(() => {

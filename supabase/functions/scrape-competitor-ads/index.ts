@@ -1,5 +1,11 @@
 // Deno.serve is available natively in modern Deno
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-gateway.ts";
+import {
+  getSystemConfig,
+  resolveCredential,
+  type SystemConfigTools,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,12 +44,20 @@ Deno.serve(async (req) => {
     }
 
     // Check required API keys
-    const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const toolsCfg = await getSystemConfig<SystemConfigTools>(
+      supabase,
+      "tools",
+    );
+    const firecrawlApiKey = resolveCredential(
+      Deno.env.get("FIRECRAWL_API_KEY"),
+      toolsCfg?.firecrawl_api_key,
+      "Firecrawl API Key não configurada. Acesse Configurações > Sistema > Ferramentas.",
+    );
     console.log("Firecrawl API Key available:", !!firecrawlApiKey);
-
-    if (!firecrawlApiKey) {
-      throw new Error("FIRECRAWL_API_KEY não configurada");
-    }
 
     // Step 1: Get raw content from Firecrawl
     console.log("Making request to Firecrawl API...");

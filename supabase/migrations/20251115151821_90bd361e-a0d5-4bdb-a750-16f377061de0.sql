@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.facebook_sync_schedules (
   UNIQUE(company_id)
 );
 
+
 -- Criar tabela para logs de execução
 CREATE TABLE IF NOT EXISTS public.facebook_sync_execution_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -34,30 +35,40 @@ CREATE TABLE IF NOT EXISTS public.facebook_sync_execution_logs (
   execution_details JSONB DEFAULT '{}'::jsonb
 );
 
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_facebook_sync_schedules_company ON public.facebook_sync_schedules(company_id);
+
 CREATE INDEX IF NOT EXISTS idx_facebook_sync_schedules_next_execution ON public.facebook_sync_schedules(next_execution_at) WHERE is_enabled = true;
+
 CREATE INDEX IF NOT EXISTS idx_facebook_sync_execution_logs_company ON public.facebook_sync_execution_logs(company_id);
+
 CREATE INDEX IF NOT EXISTS idx_facebook_sync_execution_logs_schedule ON public.facebook_sync_execution_logs(schedule_id);
+
 
 -- Trigger para atualizar updated_at
 CREATE OR REPLACE FUNCTION update_facebook_sync_schedules_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
+  RETURN NEW;
+
+END;
+
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS update_facebook_sync_schedules_timestamp ON public.facebook_sync_schedules;
 CREATE TRIGGER update_facebook_sync_schedules_timestamp
   BEFORE UPDATE ON public.facebook_sync_schedules
   FOR EACH ROW
   EXECUTE FUNCTION update_facebook_sync_schedules_updated_at();
 
+
+
 -- RLS Policies para facebook_sync_schedules
 ALTER TABLE public.facebook_sync_schedules ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view sync schedules"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view sync schedules"
   ON public.facebook_sync_schedules
   FOR SELECT
   USING (
@@ -66,8 +77,11 @@ CREATE POLICY "Company members can view sync schedules"
       WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can manage sync schedules"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage sync schedules"
   ON public.facebook_sync_schedules
   FOR ALL
   USING (
@@ -76,11 +90,15 @@ CREATE POLICY "Company members can manage sync schedules"
       WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- RLS Policies para facebook_sync_execution_logs
 ALTER TABLE public.facebook_sync_execution_logs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view execution logs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view execution logs"
   ON public.facebook_sync_execution_logs
   FOR SELECT
   USING (
@@ -89,13 +107,21 @@ CREATE POLICY "Company members can view execution logs"
       WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Service role can insert execution logs"
+DO $$ BEGIN
+  CREATE POLICY "Service role can insert execution logs"
   ON public.facebook_sync_execution_logs
   FOR INSERT
   WITH CHECK (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Service role can update execution logs"
+DO $$ BEGIN
+  CREATE POLICY "Service role can update execution logs"
   ON public.facebook_sync_execution_logs
   FOR UPDATE
   USING (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

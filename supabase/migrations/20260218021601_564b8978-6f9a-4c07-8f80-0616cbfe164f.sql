@@ -1,6 +1,5 @@
-
 -- Table for hand raises in channels
-CREATE TABLE public.channel_hand_raises (
+CREATE TABLE IF NOT EXISTS public.channel_hand_raises (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   channel_id UUID NOT NULL REFERENCES public.internal_channels(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,
@@ -8,11 +7,13 @@ CREATE TABLE public.channel_hand_raises (
   raised_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   dismissed_at TIMESTAMPTZ,
   UNIQUE(channel_id, user_id)
-);
+);;
+
+
 
 ALTER TABLE public.channel_hand_raises ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view hand raises in their company channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can view hand raises in their company channels"
 ON public.channel_hand_raises FOR SELECT
 USING (
   EXISTS (
@@ -22,15 +23,26 @@ USING (
     AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can raise their own hand"
+DO $$ BEGIN
+  CREATE POLICY "Users can raise their own hand"
 ON public.channel_hand_raises FOR INSERT
 WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can dismiss their own hand raise"
+DO $$ BEGIN
+  CREATE POLICY "Users can dismiss their own hand raise"
 ON public.channel_hand_raises FOR UPDATE
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their own hand raise"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their own hand raise"
 ON public.channel_hand_raises FOR DELETE
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

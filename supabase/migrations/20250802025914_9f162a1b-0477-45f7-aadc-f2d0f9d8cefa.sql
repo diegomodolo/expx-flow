@@ -1,6 +1,7 @@
 -- Corrigir o problema de Security Definer na view task_stats
 DROP VIEW IF EXISTS public.task_stats;
 
+
 -- Criar view sem security definer (views devem usar DEFINER por padrão para RLS)
 CREATE VIEW public.task_stats AS
 SELECT 
@@ -14,6 +15,7 @@ SELECT
   AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) FILTER (WHERE completed_at IS NOT NULL) as avg_completion_days
 FROM public.tasks
 GROUP BY company_id;
+
 
 -- Definir politica RLS para a view
 ALTER VIEW public.task_stats SET (security_invoker = true);

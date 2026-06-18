@@ -1,5 +1,5 @@
 -- Create table for generated campaigns
-CREATE TABLE public.generated_campaigns (
+CREATE TABLE IF NOT EXISTS public.generated_campaigns (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   company_id UUID NOT NULL,
@@ -12,41 +12,53 @@ CREATE TABLE public.generated_campaigns (
   status TEXT NOT NULL DEFAULT 'completed',
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable Row Level Security
 ALTER TABLE public.generated_campaigns ENABLE ROW LEVEL SECURITY;
-
--- Create policies for company access
-CREATE POLICY "Company members can view generated campaigns" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view generated campaigns" 
 ON public.generated_campaigns 
 FOR SELECT 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create generated campaigns" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create generated campaigns" 
 ON public.generated_campaigns 
 FOR INSERT 
 WITH CHECK (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update generated campaigns" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update generated campaigns" 
 ON public.generated_campaigns 
 FOR UPDATE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete generated campaigns" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete generated campaigns" 
 ON public.generated_campaigns 
 FOR DELETE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_generated_campaigns_updated_at ON public.generated_campaigns;
 CREATE TRIGGER update_generated_campaigns_updated_at
 BEFORE UPDATE ON public.generated_campaigns
 FOR EACH ROW

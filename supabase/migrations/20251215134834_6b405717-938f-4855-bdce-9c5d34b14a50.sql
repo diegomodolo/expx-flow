@@ -1,5 +1,5 @@
 -- Tabela de configuração Z-API por empresa
-CREATE TABLE public.whatsapp_configs (
+CREATE TABLE IF NOT EXISTS public.whatsapp_configs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   instance_id TEXT,
@@ -12,10 +12,10 @@ CREATE TABLE public.whatsapp_configs (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   UNIQUE(company_id)
-);
+);;
 
 -- Tabela de preferências de notificação
-CREATE TABLE public.whatsapp_notification_preferences (
+CREATE TABLE IF NOT EXISTS public.whatsapp_notification_preferences (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   notify_high_cpa BOOLEAN DEFAULT true,
@@ -31,10 +31,10 @@ CREATE TABLE public.whatsapp_notification_preferences (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   UNIQUE(company_id)
-);
+);;
 
 -- Tabela de destinatários
-CREATE TABLE public.whatsapp_recipients (
+CREATE TABLE IF NOT EXISTS public.whatsapp_recipients (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -45,10 +45,10 @@ CREATE TABLE public.whatsapp_recipients (
   client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Tabela de log de notificações
-CREATE TABLE public.whatsapp_notification_log (
+CREATE TABLE IF NOT EXISTS public.whatsapp_notification_log (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   recipient_phone TEXT NOT NULL,
@@ -61,16 +61,20 @@ CREATE TABLE public.whatsapp_notification_log (
   related_entity_id UUID,
   sent_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   delivered_at TIMESTAMP WITH TIME ZONE
-);
+);;
+
+
 
 -- Habilitar RLS
 ALTER TABLE public.whatsapp_configs ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.whatsapp_notification_preferences ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.whatsapp_recipients ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.whatsapp_notification_log ENABLE ROW LEVEL SECURITY;
-
--- Policies para whatsapp_configs
-CREATE POLICY "Company admins can manage whatsapp configs"
+DO $$ BEGIN
+  CREATE POLICY "Company admins can manage whatsapp configs"
 ON public.whatsapp_configs
 FOR ALL
 USING (company_id IN (
@@ -78,17 +82,22 @@ USING (company_id IN (
   WHERE company_members.user_id = auth.uid()
   AND company_members.role IN ('owner', 'admin')
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view whatsapp configs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view whatsapp configs"
 ON public.whatsapp_configs
 FOR SELECT
 USING (company_id IN (
   SELECT company_members.company_id FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies para whatsapp_notification_preferences
-CREATE POLICY "Company admins can manage notification preferences"
+DO $$ BEGIN
+  CREATE POLICY "Company admins can manage notification preferences"
 ON public.whatsapp_notification_preferences
 FOR ALL
 USING (company_id IN (
@@ -96,17 +105,22 @@ USING (company_id IN (
   WHERE company_members.user_id = auth.uid()
   AND company_members.role IN ('owner', 'admin')
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view notification preferences"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view notification preferences"
 ON public.whatsapp_notification_preferences
 FOR SELECT
 USING (company_id IN (
   SELECT company_members.company_id FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies para whatsapp_recipients
-CREATE POLICY "Company admins can manage recipients"
+DO $$ BEGIN
+  CREATE POLICY "Company admins can manage recipients"
 ON public.whatsapp_recipients
 FOR ALL
 USING (company_id IN (
@@ -114,45 +128,60 @@ USING (company_id IN (
   WHERE company_members.user_id = auth.uid()
   AND company_members.role IN ('owner', 'admin')
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view recipients"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view recipients"
 ON public.whatsapp_recipients
 FOR SELECT
 USING (company_id IN (
   SELECT company_members.company_id FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies para whatsapp_notification_log
-CREATE POLICY "Company members can view notification logs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view notification logs"
 ON public.whatsapp_notification_log
 FOR SELECT
 USING (company_id IN (
   SELECT company_members.company_id FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "System can create notification logs"
+DO $$ BEGIN
+  CREATE POLICY "System can create notification logs"
 ON public.whatsapp_notification_log
 FOR INSERT
 WITH CHECK (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "System can update notification logs"
+DO $$ BEGIN
+  CREATE POLICY "System can update notification logs"
 ON public.whatsapp_notification_log
 FOR UPDATE
 USING (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_whatsapp_configs_updated_at ON public.whatsapp_configs;
 CREATE TRIGGER update_whatsapp_configs_updated_at
 BEFORE UPDATE ON public.whatsapp_configs
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_whatsapp_notification_preferences_updated_at ON public.whatsapp_notification_preferences;
 CREATE TRIGGER update_whatsapp_notification_preferences_updated_at
 BEFORE UPDATE ON public.whatsapp_notification_preferences
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_whatsapp_recipients_updated_at ON public.whatsapp_recipients;
 CREATE TRIGGER update_whatsapp_recipients_updated_at
 BEFORE UPDATE ON public.whatsapp_recipients
 FOR EACH ROW

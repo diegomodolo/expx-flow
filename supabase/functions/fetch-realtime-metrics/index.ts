@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredentialOptional,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -270,24 +275,36 @@ async function fetchGoogleMetrics(
 
     // Check if token is expired and refresh if needed
     let accessToken = integration.access_token;
+
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(
+      supabase as { from: (t: string) => unknown },
+      "google",
+    );
+
     if (
       integration.expires_at &&
       new Date(integration.expires_at) < new Date()
     ) {
       console.log(`Google token expired, attempting refresh...`);
 
-      const clientId = Deno.env.get("GOOGLE_ADS_CLIENT_ID");
-      const clientSecret = Deno.env.get("GOOGLE_ADS_CLIENT_SECRET");
+      const adsClientId = resolveCredentialOptional(
+        Deno.env.get("GOOGLE_ADS_CLIENT_ID"),
+        gCfg?.ads_client_id,
+      );
+      const adsClientSecret = resolveCredentialOptional(
+        Deno.env.get("GOOGLE_ADS_CLIENT_SECRET"),
+        gCfg?.ads_client_secret,
+      );
 
-      if (clientId && clientSecret && integration.refresh_token) {
+      if (adsClientId && adsClientSecret && integration.refresh_token) {
         const tokenResponse = await fetch(
           "https://oauth2.googleapis.com/token",
           {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({
-              client_id: clientId,
-              client_secret: clientSecret,
+              client_id: adsClientId,
+              client_secret: adsClientSecret,
               refresh_token: integration.refresh_token,
               grant_type: "refresh_token",
             }),
@@ -341,7 +358,10 @@ async function fetchGoogleMetrics(
       WHERE segments.date BETWEEN '${startDateStr}' AND '${endDateStr}'
     `;
 
-    const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
+    const developerToken = resolveCredentialOptional(
+      Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+      gCfg?.ads_developer_token,
+    );
     if (!developerToken) {
       console.log("Missing GOOGLE_ADS_DEVELOPER_TOKEN");
       return null;

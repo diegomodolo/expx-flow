@@ -1,9 +1,9 @@
 -- Drop existing SELECT policies on crm_lead_links
 DROP POLICY IF EXISTS "Company members can view lead links" ON crm_lead_links;
+
 DROP POLICY IF EXISTS "Workspace users can view lead links" ON crm_lead_links;
-
--- Recreate "Company members can view lead links" policy with lead_b_id check
-CREATE POLICY "Company members can view lead links"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view lead links"
 ON crm_lead_links
 FOR SELECT
 USING (
@@ -23,9 +23,11 @@ USING (
     WHERE cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Recreate "Workspace users can view lead links" policy with lead_b_id check
-CREATE POLICY "Workspace users can view lead links"
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can view lead links"
 ON crm_lead_links
 FOR SELECT
 USING (
@@ -49,3 +51,5 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

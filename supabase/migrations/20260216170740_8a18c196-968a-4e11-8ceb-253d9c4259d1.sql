@@ -1,5 +1,4 @@
-
-CREATE TABLE public.task_history (
+CREATE TABLE IF NOT EXISTS public.task_history (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   task_id UUID NOT NULL,
   company_id UUID NOT NULL,
@@ -13,38 +12,53 @@ CREATE TABLE public.task_history (
   new_value TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
-CREATE INDEX idx_task_history_task_id ON public.task_history(task_id);
-CREATE INDEX idx_task_history_company_id ON public.task_history(company_id);
-CREATE INDEX idx_task_history_created_at ON public.task_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_task_history_task_id ON public.task_history(task_id);;
+
+CREATE INDEX IF NOT EXISTS idx_task_history_company_id ON public.task_history(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_task_history_created_at ON public.task_history(created_at DESC);;
+
+
 
 ALTER TABLE public.task_history ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view task history in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view task history in their company"
   ON public.task_history FOR SELECT
   USING (
     company_id IN (
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert task history"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert task history"
   ON public.task_history FOR INSERT
   WITH CHECK (
     company_id IN (
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their own manual history"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their own manual history"
   ON public.task_history FOR UPDATE
   USING (
     history_type = 'manual' AND user_id = auth.uid()
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their own manual history"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their own manual history"
   ON public.task_history FOR DELETE
   USING (
     history_type = 'manual' AND user_id = auth.uid()
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

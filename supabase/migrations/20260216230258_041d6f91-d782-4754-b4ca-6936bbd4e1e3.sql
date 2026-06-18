@@ -7,13 +7,19 @@ BEGIN
     DELETE FROM public.tasks
     WHERE parent_task_id = NEW.id
       AND origin = 'ghost';
+
   END IF;
 
+
   RETURN NEW;
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+
 -- Create trigger (drop first if exists)
+DROP TRIGGER IF EXISTS trg_cleanup_ghost_on_completion ON public.tasks;
 DROP TRIGGER IF EXISTS trg_cleanup_ghost_on_completion ON public.tasks;
 CREATE TRIGGER trg_cleanup_ghost_on_completion
   AFTER UPDATE ON public.tasks

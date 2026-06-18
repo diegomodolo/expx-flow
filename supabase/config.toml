@@ -1,4 +1,6 @@
-project_id = "ejwpfztkspbvmuwwiwmk"
+# Self-host: substitua <SEU_PROJECT_REF> pelo Project Reference ID do seu Supabase.
+# Encontre em: Supabase Dashboard > Project Settings > API
+project_id = "<SEU_PROJECT_REF>"
 
 [functions.dm-agent-responder]
 verify_jwt = false
@@ -128,8 +130,11 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-site_url = "https://controledetrafego.com.br"
-additional_redirect_urls = ["https://controledetrafego.com.br/**", "https://expxflow.com.br/**"]
+# Self-host: substitua pelo seu domínio (Vercel ou custom).
+# Ex.: "https://seu-app.vercel.app"
+site_url = "<SUA_URL_PUBLICA>"
+# Self-host: adicione seu domínio + localhost para desenvolvimento.
+additional_redirect_urls = ["<SUA_URL_PUBLICA>/**", "http://localhost:8080/**"]
 jwt_expiry = 3600
 
 [auth.email]

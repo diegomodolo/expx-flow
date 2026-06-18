@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,6 +76,8 @@ function getDateRange(days: number): { startDate: string; endDate: string } {
 async function refreshTokenIfNeeded(
   supabase: unknown,
   integration: unknown,
+  adsClientId: string,
+  adsClientSecret: string,
 ): Promise<string> {
   const now = new Date();
   const expiresAt = new Date(integration.expires_at);
@@ -79,8 +86,8 @@ async function refreshTokenIfNeeded(
   if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
     console.log("🔄 Refreshing access token...");
 
-    const clientId = Deno.env.get("GOOGLE_ADS_CLIENT_ID");
-    const clientSecret = Deno.env.get("GOOGLE_ADS_CLIENT_SECRET");
+    const clientId = adsClientId;
+    const clientSecret = adsClientSecret;
 
     if (!clientId || !clientSecret) {
       throw new Error(
@@ -385,6 +392,19 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(supabase, "google");
+
+    const adsClientId = resolveCredential(
+      Deno.env.get("GOOGLE_ADS_CLIENT_ID"),
+      gCfg?.ads_client_id,
+      "Google Ads Client ID não configurado. Acesse Configurações > Sistema > Google.",
+    );
+    const adsClientSecret = resolveCredential(
+      Deno.env.get("GOOGLE_ADS_CLIENT_SECRET"),
+      gCfg?.ads_client_secret,
+      "Google Ads Client Secret não configurado. Acesse Configurações > Sistema > Google.",
+    );
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("Missing authorization header");
@@ -507,8 +527,17 @@ serve(async (req) => {
     }
 
     // Refresh token if needed
-    const accessToken = await refreshTokenIfNeeded(supabase, integration);
-    const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
+    const accessToken = await refreshTokenIfNeeded(
+      supabase,
+      integration,
+      adsClientId,
+      adsClientSecret,
+    );
+    const developerToken = resolveCredential(
+      Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+      gCfg?.ads_developer_token,
+      "Google Ads Developer Token não configurado. Acesse Configurações > Sistema > Google.",
+    );
 
     if (!developerToken) {
       throw new Error("Missing GOOGLE_ADS_DEVELOPER_TOKEN secret");

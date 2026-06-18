@@ -1,5 +1,5 @@
 -- Create table for YouTube videos knowledge base
-CREATE TABLE public.instagram_autopost_knowledge_videos (
+CREATE TABLE IF NOT EXISTS public.instagram_autopost_knowledge_videos (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   config_id UUID NOT NULL REFERENCES public.instagram_auto_post_configs(id) ON DELETE CASCADE,
   video_id TEXT NOT NULL,
@@ -13,10 +13,10 @@ CREATE TABLE public.instagram_autopost_knowledge_videos (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by UUID REFERENCES auth.users(id),
   UNIQUE(config_id, video_id)
-);
+);;
 
 -- Create table for PDF files knowledge base
-CREATE TABLE public.instagram_autopost_knowledge_files (
+CREATE TABLE IF NOT EXISTS public.instagram_autopost_knowledge_files (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   config_id UUID NOT NULL REFERENCES public.instagram_auto_post_configs(id) ON DELETE CASCADE,
   file_name TEXT NOT NULL,
@@ -26,14 +26,16 @@ CREATE TABLE public.instagram_autopost_knowledge_files (
   processing_status TEXT NOT NULL DEFAULT 'pending',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by UUID REFERENCES auth.users(id)
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.instagram_autopost_knowledge_videos ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.instagram_autopost_knowledge_files ENABLE ROW LEVEL SECURITY;
-
--- RLS policies for knowledge_videos
-CREATE POLICY "Users can view their company's knowledge videos" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company's knowledge videos" 
 ON public.instagram_autopost_knowledge_videos 
 FOR SELECT 
 USING (
@@ -43,8 +45,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert knowledge videos for their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can insert knowledge videos for their company" 
 ON public.instagram_autopost_knowledge_videos 
 FOR INSERT 
 WITH CHECK (
@@ -54,8 +59,11 @@ WITH CHECK (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company's knowledge videos" 
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company's knowledge videos" 
 ON public.instagram_autopost_knowledge_videos 
 FOR UPDATE 
 USING (
@@ -65,8 +73,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their company's knowledge videos" 
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their company's knowledge videos" 
 ON public.instagram_autopost_knowledge_videos 
 FOR DELETE 
 USING (
@@ -76,9 +87,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS policies for knowledge_files
-CREATE POLICY "Users can view their company's knowledge files" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company's knowledge files" 
 ON public.instagram_autopost_knowledge_files 
 FOR SELECT 
 USING (
@@ -88,8 +101,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert knowledge files for their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can insert knowledge files for their company" 
 ON public.instagram_autopost_knowledge_files 
 FOR INSERT 
 WITH CHECK (
@@ -99,8 +115,11 @@ WITH CHECK (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company's knowledge files" 
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company's knowledge files" 
 ON public.instagram_autopost_knowledge_files 
 FOR UPDATE 
 USING (
@@ -110,8 +129,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their company's knowledge files" 
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their company's knowledge files" 
 ON public.instagram_autopost_knowledge_files 
 FOR DELETE 
 USING (
@@ -121,14 +143,17 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Create storage bucket for knowledge PDFs
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('instagram-knowledge-files', 'instagram-knowledge-files', false)
 ON CONFLICT (id) DO NOTHING;
-
--- Storage policies for knowledge files bucket
-CREATE POLICY "Users can view knowledge files from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view knowledge files from their company"
 ON storage.objects FOR SELECT
 USING (
   bucket_id = 'instagram-knowledge-files' 
@@ -138,8 +163,11 @@ USING (
     AND (storage.foldername(name))[1] = cm.company_id::text
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can upload knowledge files to their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can upload knowledge files to their company"
 ON storage.objects FOR INSERT
 WITH CHECK (
   bucket_id = 'instagram-knowledge-files'
@@ -149,8 +177,11 @@ WITH CHECK (
     AND (storage.foldername(name))[1] = cm.company_id::text
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete knowledge files from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete knowledge files from their company"
 ON storage.objects FOR DELETE
 USING (
   bucket_id = 'instagram-knowledge-files'
@@ -160,7 +191,10 @@ USING (
     AND (storage.foldername(name))[1] = cm.company_id::text
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create indexes for performance
-CREATE INDEX idx_knowledge_videos_config_id ON public.instagram_autopost_knowledge_videos(config_id);
-CREATE INDEX idx_knowledge_files_config_id ON public.instagram_autopost_knowledge_files(config_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_videos_config_id ON public.instagram_autopost_knowledge_videos(config_id);;
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_files_config_id ON public.instagram_autopost_knowledge_files(config_id);;

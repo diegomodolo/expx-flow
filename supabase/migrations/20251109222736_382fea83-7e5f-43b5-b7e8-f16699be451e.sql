@@ -10,15 +10,17 @@ CREATE TABLE IF NOT EXISTS public.crm_lead_links (
   CONSTRAINT unique_link CHECK (lead_a_id < lead_b_id)
 );
 
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_lead_links_a ON public.crm_lead_links(lead_a_id);
+
 CREATE INDEX IF NOT EXISTS idx_lead_links_b ON public.crm_lead_links(lead_b_id);
+
 
 -- Enable RLS
 ALTER TABLE public.crm_lead_links ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Company members can view lead links"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view lead links"
   ON public.crm_lead_links FOR SELECT
   USING (
     lead_a_id IN (
@@ -28,8 +30,11 @@ CREATE POLICY "Company members can view lead links"
       WHERE cm.user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Workspace users can view lead links"
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can view lead links"
   ON public.crm_lead_links FOR SELECT
   USING (
     lead_a_id IN (
@@ -39,16 +44,24 @@ CREATE POLICY "Workspace users can view lead links"
       )
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Anyone can create lead links"
+DO $$ BEGIN
+  CREATE POLICY "Anyone can create lead links"
   ON public.crm_lead_links FOR INSERT
   WITH CHECK (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Add workflow fields to crm_stages
 ALTER TABLE public.crm_stages
 ADD COLUMN IF NOT EXISTS workflow_enabled BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS workflow_target_board_id UUID REFERENCES public.crm_boards(id) ON DELETE SET NULL,
 ADD COLUMN IF NOT EXISTS workflow_target_stage_id UUID REFERENCES public.crm_stages(id) ON DELETE SET NULL;
+
 
 -- Create index for workflow queries
 CREATE INDEX IF NOT EXISTS idx_stages_workflow ON public.crm_stages(workflow_enabled) 

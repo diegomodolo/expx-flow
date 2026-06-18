@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +23,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(
+      supabaseClient,
+      "google",
+    );
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing authorization header");
 
@@ -32,8 +42,16 @@ serve(async (req) => {
     const { action, code, companyId, redirectUri, userId } = body;
 
     if (action === "exchange") {
-      const clientId = Deno.env.get("GOOGLE_MEET_CLIENT_ID")?.trim();
-      const clientSecret = Deno.env.get("GOOGLE_MEET_CLIENT_SECRET")?.trim();
+      const clientId = resolveCredential(
+        Deno.env.get("GOOGLE_MEET_CLIENT_ID"),
+        gCfg?.meet_client_id,
+        "Google Meet Client ID não configurado. Acesse Configurações > Sistema > Google.",
+      );
+      const clientSecret = resolveCredential(
+        Deno.env.get("GOOGLE_MEET_CLIENT_SECRET"),
+        gCfg?.meet_client_secret,
+        "Google Meet Client Secret não configurado. Acesse Configurações > Sistema > Google.",
+      );
 
       if (!clientId || !clientSecret) {
         throw new Error("Google OAuth credentials not configured");
@@ -140,8 +158,16 @@ serve(async (req) => {
     }
 
     if (action === "refresh_token") {
-      const clientId = Deno.env.get("GOOGLE_MEET_CLIENT_ID")?.trim();
-      const clientSecret = Deno.env.get("GOOGLE_MEET_CLIENT_SECRET")?.trim();
+      const clientId = resolveCredential(
+        Deno.env.get("GOOGLE_MEET_CLIENT_ID"),
+        gCfg?.meet_client_id,
+        "Google Meet Client ID não configurado. Acesse Configurações > Sistema > Google.",
+      );
+      const clientSecret = resolveCredential(
+        Deno.env.get("GOOGLE_MEET_CLIENT_SECRET"),
+        gCfg?.meet_client_secret,
+        "Google Meet Client Secret não configurado. Acesse Configurações > Sistema > Google.",
+      );
 
       if (!clientId || !clientSecret) {
         throw new Error("Google OAuth credentials not configured");

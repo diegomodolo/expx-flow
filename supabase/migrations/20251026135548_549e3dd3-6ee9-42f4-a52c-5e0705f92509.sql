@@ -4,6 +4,7 @@ RETURNS void AS $$
 BEGIN
   -- Deletar regras existentes da empresa (se houver)
   DELETE FROM client_status_rules WHERE company_id = p_company_id;
+
   
   -- Regra 1: Sem Fundos
   INSERT INTO client_status_rules (
@@ -23,6 +24,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 2: Inativo por Inatividade
   INSERT INTO client_status_rules (
@@ -40,6 +42,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 3: Emergencial - Poucos Leads
   INSERT INTO client_status_rules (
@@ -57,6 +60,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 4: Emergencial - Múltiplos Critérios
   INSERT INTO client_status_rules (
@@ -76,6 +80,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 5: Atenção
   INSERT INTO client_status_rules (
@@ -94,6 +99,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 6: Excelente - Opção 1
   INSERT INTO client_status_rules (
@@ -113,6 +119,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 7: Excelente - Opção 2
   INSERT INTO client_status_rules (
@@ -132,6 +139,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 8: Excelente - Opção 3
   INSERT INTO client_status_rules (
@@ -151,6 +159,7 @@ BEGIN
       )
     )
   );
+
   
   -- Regra 9: Excelente - Opção 4 (CTR Alto + Otimização Recente)
   INSERT INTO client_status_rules (
@@ -169,8 +178,11 @@ BEGIN
       )
     )
   );
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- Aplicar regras padrão para todas as empresas existentes
 DO $$

@@ -1,5 +1,5 @@
 -- Tabela de configuração do agente de IA para WhatsApp
-CREATE TABLE public.whatsapp_ai_agent_config (
+CREATE TABLE IF NOT EXISTS public.whatsapp_ai_agent_config (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   instance_id UUID REFERENCES public.whatsapp_instances(id) ON DELETE SET NULL,
@@ -39,45 +39,58 @@ CREATE TABLE public.whatsapp_ai_agent_config (
   
   -- Constraint de unicidade por empresa (ou por instância se especificada)
   CONSTRAINT unique_company_instance_config UNIQUE (company_id, instance_id)
-);
+);;
 
 -- Index para busca rápida
-CREATE INDEX idx_whatsapp_ai_config_company ON public.whatsapp_ai_agent_config(company_id);
-CREATE INDEX idx_whatsapp_ai_config_instance ON public.whatsapp_ai_agent_config(instance_id) WHERE instance_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_whatsapp_ai_config_company ON public.whatsapp_ai_agent_config(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_whatsapp_ai_config_instance ON public.whatsapp_ai_agent_config(instance_id) WHERE instance_id IS NOT NULL;;
+
+
 
 -- RLS
 ALTER TABLE public.whatsapp_ai_agent_config ENABLE ROW LEVEL SECURITY;
-
--- Políticas RLS
-CREATE POLICY "Users can view their company AI config"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company AI config"
 ON public.whatsapp_ai_agent_config
 FOR SELECT
 USING (
   company_id IN (SELECT get_user_company_ids(auth.uid()))
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert AI config for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert AI config for their company"
 ON public.whatsapp_ai_agent_config
 FOR INSERT
 WITH CHECK (
   company_id IN (SELECT get_user_company_ids(auth.uid()))
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company AI config"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company AI config"
 ON public.whatsapp_ai_agent_config
 FOR UPDATE
 USING (
   company_id IN (SELECT get_user_company_ids(auth.uid()))
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their company AI config"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their company AI config"
 ON public.whatsapp_ai_agent_config
 FOR DELETE
 USING (
   company_id IN (SELECT get_user_company_ids(auth.uid()))
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_whatsapp_ai_config_updated_at ON public.whatsapp_ai_agent_config;
 CREATE TRIGGER update_whatsapp_ai_config_updated_at
 BEFORE UPDATE ON public.whatsapp_ai_agent_config
 FOR EACH ROW

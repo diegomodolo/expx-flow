@@ -1,5 +1,5 @@
 -- Create companies table for multi-tenant architecture
-CREATE TABLE public.companies (
+CREATE TABLE IF NOT EXISTS public.companies (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT UNIQUE,
@@ -7,10 +7,10 @@ CREATE TABLE public.companies (
   created_by UUID NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Create company members table for user-company relationships
-CREATE TABLE public.company_members (
+CREATE TABLE IF NOT EXISTS public.company_members (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -23,10 +23,10 @@ CREATE TABLE public.company_members (
   
   CONSTRAINT company_members_role_check CHECK (role IN ('owner', 'admin', 'member')),
   CONSTRAINT company_members_unique_user_company UNIQUE (user_id, company_id)
-);
+);;
 
 -- Create company invites table for pending invitations
-CREATE TABLE public.company_invites (
+CREATE TABLE IF NOT EXISTS public.company_invites (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT NOT NULL,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -39,15 +39,18 @@ CREATE TABLE public.company_invites (
   
   CONSTRAINT company_invites_role_check CHECK (role IN ('admin', 'member')),
   CONSTRAINT company_invites_unique_email_company UNIQUE (email, company_id)
-);
+);;
+
+
 
 -- Enable Row Level Security
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.company_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.company_invites ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for companies
-CREATE POLICY "Users can view companies they are members of" 
+ALTER TABLE public.company_members ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.company_invites ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view companies they are members of" 
 ON public.companies 
 FOR SELECT 
 USING (
@@ -56,13 +59,19 @@ USING (
     WHERE user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create companies" 
+DO $$ BEGIN
+  CREATE POLICY "Users can create companies" 
 ON public.companies 
 FOR INSERT 
 WITH CHECK (auth.uid() = created_by);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company owners and admins can update company" 
+DO $$ BEGIN
+  CREATE POLICY "Company owners and admins can update company" 
 ON public.companies 
 FOR UPDATE 
 USING (
@@ -71,9 +80,11 @@ USING (
     WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS Policies for company_members
-CREATE POLICY "Users can view members of their companies" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view members of their companies" 
 ON public.company_members 
 FOR SELECT 
 USING (
@@ -82,8 +93,11 @@ USING (
     WHERE cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company owners and admins can manage members" 
+DO $$ BEGIN
+  CREATE POLICY "Company owners and admins can manage members" 
 ON public.company_members 
 FOR ALL 
 USING (
@@ -92,14 +106,19 @@ USING (
     WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view their own membership" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view their own membership" 
 ON public.company_members 
 FOR SELECT 
 USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS Policies for company_invites  
-CREATE POLICY "Company owners and admins can manage invites" 
+DO $$ BEGIN
+  CREATE POLICY "Company owners and admins can manage invites" 
 ON public.company_invites 
 FOR ALL 
 USING (
@@ -108,17 +127,22 @@ USING (
     WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create triggers for timestamp updates
+DROP TRIGGER IF EXISTS update_companies_updated_at ON public.companies;
 CREATE TRIGGER update_companies_updated_at
 BEFORE UPDATE ON public.companies
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_company_members_updated_at ON public.company_members;
 CREATE TRIGGER update_company_members_updated_at
 BEFORE UPDATE ON public.company_members
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
+
+
 
 -- Function to create initial company membership when company is created
 CREATE OR REPLACE FUNCTION public.handle_new_company()
@@ -127,12 +151,14 @@ BEGIN
   -- Create owner membership for company creator
   INSERT INTO public.company_members (user_id, company_id, role, joined_at)
   VALUES (NEW.created_by, NEW.id, 'owner', now());
+
   
   RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to auto-create company owner membership
+END;
+
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+DROP TRIGGER IF EXISTS on_company_created ON public.companies;
 CREATE TRIGGER on_company_created
   AFTER INSERT ON public.companies
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_company();

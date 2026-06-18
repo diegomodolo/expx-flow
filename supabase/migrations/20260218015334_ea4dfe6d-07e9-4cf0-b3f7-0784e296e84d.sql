@@ -11,13 +11,18 @@ SET search_path TO 'public'
 AS $$
 DECLARE
   v_channel_id UUID;
+
   v_bot_user_id UUID := '00000000-0000-0000-0000-000000000000';
+
   v_task_msg TEXT;
+
 BEGIN
   -- Only on new tasks with a team_id
   IF NEW.team_id IS NULL THEN
     RETURN NEW;
+
   END IF;
+
 
   -- Find the squad channel for this team
   SELECT id INTO v_channel_id
@@ -26,9 +31,12 @@ BEGIN
     AND channel_type = 'squad'
   LIMIT 1;
 
+
   IF v_channel_id IS NULL THEN
     RETURN NEW;
+
   END IF;
+
 
   -- Build message
   v_task_msg := '📋 Nova tarefa criada: **' || COALESCE(NEW.title, 'Sem título') || '**'
@@ -36,17 +44,23 @@ BEGIN
     || CASE WHEN NEW.deadline IS NOT NULL THEN E'\n📅 Prazo: ' || NEW.deadline::TEXT ELSE '' END
     || E'\n🔗 #' || NEW.id::TEXT;
 
+
   INSERT INTO public.internal_messages (channel_id, user_id, content, task_reference_id)
   VALUES (v_channel_id, COALESCE(auth.uid(), v_bot_user_id), v_task_msg, NEW.id);
 
-  RETURN NEW;
-END;
-$$;
 
+  RETURN NEW;
+
+END;
+
+$$;
+DROP TRIGGER IF EXISTS auto_post_task_to_squad_channel ON public.tasks;
 CREATE TRIGGER auto_post_task_to_squad_channel
 AFTER INSERT ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION public.auto_post_task_to_channel();
+
+
 
 -- =============================================
 -- 2. Task comments from chat (Reply-to-Task)
@@ -63,9 +77,10 @@ CREATE TABLE IF NOT EXISTS public.task_chat_comments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.task_chat_comments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read task comments from their company"
+ALTER TABLE public.task_chat_comments ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can read task comments from their company"
 ON public.task_chat_comments FOR SELECT
 USING (
   EXISTS (
@@ -73,14 +88,24 @@ USING (
     WHERE cm.user_id = auth.uid() AND cm.company_id = task_chat_comments.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert task comments"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert task comments"
 ON public.task_chat_comments FOR INSERT
 WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their own task comments"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their own task comments"
 ON public.task_chat_comments FOR DELETE
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- =============================================
 -- 3. Internal notifications table
@@ -103,17 +128,24 @@ CREATE TABLE IF NOT EXISTS public.internal_notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.internal_notifications ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read their own notifications"
+ALTER TABLE public.internal_notifications ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can read their own notifications"
 ON public.internal_notifications FOR SELECT
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their own notifications"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their own notifications"
 ON public.internal_notifications FOR UPDATE
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "System can insert notifications"
+DO $$ BEGIN
+  CREATE POLICY "System can insert notifications"
 ON public.internal_notifications FOR INSERT
 WITH CHECK (
   EXISTS (
@@ -121,10 +153,12 @@ WITH CHECK (
     WHERE cm.user_id = auth.uid() AND cm.company_id = internal_notifications.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE INDEX idx_internal_notifications_user_unread
+CREATE INDEX IF NOT EXISTS idx_internal_notifications_user_unread
 ON public.internal_notifications (user_id, is_read)
-WHERE is_read = false;
+WHERE is_read = false;;
 
-CREATE INDEX idx_task_chat_comments_task
-ON public.task_chat_comments (task_id);
+CREATE INDEX IF NOT EXISTS idx_task_chat_comments_task
+ON public.task_chat_comments (task_id);;

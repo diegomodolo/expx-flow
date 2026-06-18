@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredentialOptional,
+  type SystemConfigTools,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -139,8 +144,19 @@ serve(async (req) => {
         .eq("id", job.id);
 
       try {
-        const apiBase =
-          "https://refreshing-beauty-production-f560.up.railway.app";
+        const toolsCfg = await getSystemConfig<SystemConfigTools>(
+          supabase,
+          "tools",
+        );
+        const apiBase = resolveCredentialOptional(
+          Deno.env.get("YOUTUBE_PROXY_URL"),
+          toolsCfg?.youtube_proxy_url,
+        );
+        if (!apiBase) {
+          throw new Error(
+            "YouTube proxy não configurado. Acesse Configurações > Sistema > Ferramentas para definir youtube_proxy_url, ou faça upload manual do .mp4.",
+          );
+        }
         const normalizedUrl = normalizeYouTubeUrl(videoUrl);
         console.log(
           "Downloading YouTube video via /stream proxy:",

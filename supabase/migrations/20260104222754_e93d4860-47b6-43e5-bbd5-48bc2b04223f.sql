@@ -1,5 +1,5 @@
 -- Criar tabela para feed de atividades
-CREATE TABLE public.activity_feed (
+CREATE TABLE IF NOT EXISTS public.activity_feed (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -10,19 +10,23 @@ CREATE TABLE public.activity_feed (
   description TEXT,
   metadata JSONB DEFAULT '{}', -- dados extras (imagem_url, cliente_name, etc.)
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
 
 -- Índices para performance
-CREATE INDEX idx_activity_feed_company_id ON public.activity_feed(company_id);
-CREATE INDEX idx_activity_feed_user_id ON public.activity_feed(user_id);
-CREATE INDEX idx_activity_feed_created_at ON public.activity_feed(created_at DESC);
-CREATE INDEX idx_activity_feed_activity_type ON public.activity_feed(activity_type);
+CREATE INDEX IF NOT EXISTS idx_activity_feed_company_id ON public.activity_feed(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_activity_feed_user_id ON public.activity_feed(user_id);;
+
+CREATE INDEX IF NOT EXISTS idx_activity_feed_created_at ON public.activity_feed(created_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_activity_feed_activity_type ON public.activity_feed(activity_type);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.activity_feed ENABLE ROW LEVEL SECURITY;
-
--- Policies
-CREATE POLICY "Users can view activities from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view activities from their company" 
 ON public.activity_feed 
 FOR SELECT 
 USING (
@@ -32,8 +36,11 @@ USING (
     SELECT id FROM public.companies WHERE user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert activities for their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can insert activities for their company" 
 ON public.activity_feed 
 FOR INSERT 
 WITH CHECK (
@@ -43,11 +50,18 @@ WITH CHECK (
     SELECT id FROM public.companies WHERE user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their own activities" 
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their own activities" 
 ON public.activity_feed 
 FOR DELETE 
 USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Função para registrar atividade automaticamente
 CREATE OR REPLACE FUNCTION public.log_activity(
@@ -67,6 +81,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_activity_id UUID;
+
 BEGIN
   INSERT INTO activity_feed (
     company_id,
@@ -88,7 +103,10 @@ BEGIN
     p_metadata
   )
   RETURNING id INTO v_activity_id;
+
   
   RETURN v_activity_id;
+
 END;
+
 $$;

@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  getAppUrl,
+  type SystemConfigApp,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -385,6 +390,7 @@ async function fetchPresentationData(
   supabase: unknown,
   meetingId: string | null,
   clientId: string,
+  appBaseUrl: string,
 ) {
   if (!meetingId) return null;
 
@@ -466,7 +472,7 @@ async function fetchPresentationData(
         : "-",
       duracao: duration,
       link: meeting.presentation.public_token
-        ? `https://controledetrafego.com.br/apresentacao/${meeting.presentation.public_token}`
+        ? `${appBaseUrl}/apresentacao/${meeting.presentation.public_token}`
         : "",
     };
   } catch (error) {
@@ -553,6 +559,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const appCfg = await getSystemConfig<SystemConfigApp>(supabase, "app");
+    const appBaseUrl = getAppUrl(appCfg, req);
 
     const now = new Date();
     const sp = getSaoPauloTime();
@@ -1060,8 +1069,8 @@ serve(async (req) => {
 
         // Build dashboard link
         const dashboardLink = client.dashboard_token
-          ? `https://controledetrafego.com.br/dashboard-publico/${client.dashboard_token}`
-          : "https://controledetrafego.com.br";
+          ? `${appBaseUrl}/dashboard-publico/${client.dashboard_token}`
+          : appBaseUrl;
 
         // Build variables for this client
         const variables: Record<string, string> = {
@@ -1159,6 +1168,7 @@ serve(async (req) => {
             supabase,
             meetingId,
             clientId,
+            appBaseUrl,
           );
 
           if (presentationData) {

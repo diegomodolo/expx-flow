@@ -9,15 +9,21 @@ CREATE TABLE IF NOT EXISTS public.company_external_api_keys (
   UNIQUE (company_id, provider)
 );
 
-ALTER TABLE public.company_external_api_keys ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "company members can manage external api keys"
+ALTER TABLE public.company_external_api_keys ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "company members can manage external api keys"
   ON public.company_external_api_keys
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())))
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON public.company_external_api_keys TO authenticated;
+
 
 CREATE INDEX IF NOT EXISTS idx_company_ext_api_keys_company
   ON public.company_external_api_keys(company_id);

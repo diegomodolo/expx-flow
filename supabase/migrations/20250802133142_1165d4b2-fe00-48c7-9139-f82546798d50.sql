@@ -1,12 +1,13 @@
--- Criar colaboradores para usuários existentes que não têm colaborador na sua própria empresa
+-- Self-host: garante constraint antes de usar.
+DO $$ BEGIN
+  ALTER TABLE public.employees
+  ADD CONSTRAINT employees_user_id_company_id_key
+  UNIQUE (user_id, company_id);
+EXCEPTION WHEN duplicate_table THEN null;
+END $$;
+
 INSERT INTO public.employees (
-  user_id,
-  company_id,
-  name,
-  email,
-  role,
-  status,
-  start_date
+  user_id, company_id, name, email, role, status, start_date
 )
 SELECT DISTINCT
   c.created_by as user_id,
@@ -19,5 +20,5 @@ SELECT DISTINCT
 FROM companies c
 LEFT JOIN profiles p ON c.created_by = p.user_id
 LEFT JOIN employees e ON c.created_by = e.user_id AND c.id = e.company_id
-WHERE e.id IS NULL  -- Só inserir se não existir colaborador
+WHERE e.id IS NULL
 ON CONFLICT (user_id, company_id) DO NOTHING;

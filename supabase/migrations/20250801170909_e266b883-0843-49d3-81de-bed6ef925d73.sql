@@ -1,6 +1,8 @@
 -- Add email and phone fields to companies table
 ALTER TABLE public.companies ADD COLUMN email TEXT;
+
 ALTER TABLE public.companies ADD COLUMN phone TEXT;
+
 
 -- Create function to automatically create company for new users
 CREATE OR REPLACE FUNCTION public.handle_new_user_company()
@@ -17,12 +19,14 @@ BEGIN
     NEW.id,
     NEW.email
   );
+
   
   RETURN NEW;
-END;
-$$;
 
--- Create trigger to auto-create company when user signs up
+END;
+
+$$;
+DROP TRIGGER IF EXISTS on_auth_user_created_company ON auth.users;
 CREATE TRIGGER on_auth_user_created_company
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_company();

@@ -3,8 +3,11 @@ ALTER TABLE public.whatsapp_configs
   ADD COLUMN IF NOT EXISTS api4com_token TEXT,
   ADD COLUMN IF NOT EXISTS api4com_extension TEXT;
 
+
 COMMENT ON COLUMN public.whatsapp_configs.api4com_token IS 'Token de autenticação da API4Com (POST /users/login → id)';
+
 COMMENT ON COLUMN public.whatsapp_configs.api4com_extension IS 'Ramal do agente para chamadas saintes (ex: 1000)';
+
 
 -- Tabela de histórico de chamadas
 CREATE TABLE IF NOT EXISTS public.voice_calls (
@@ -26,30 +29,40 @@ CREATE TABLE IF NOT EXISTS public.voice_calls (
   initiated_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_voice_calls_company ON public.voice_calls(company_id);;
 
-CREATE INDEX idx_voice_calls_company ON public.voice_calls(company_id);
-CREATE INDEX idx_voice_calls_conversation ON public.voice_calls(conversation_id);
-CREATE INDEX idx_voice_calls_created ON public.voice_calls(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_voice_calls_conversation ON public.voice_calls(conversation_id);;
+
+CREATE INDEX IF NOT EXISTS idx_voice_calls_created ON public.voice_calls(created_at DESC);;
+
+
 
 ALTER TABLE public.voice_calls ENABLE ROW LEVEL SECURITY;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.voice_calls TO authenticated;
 
-CREATE POLICY "Company members can view voice calls"
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.voice_calls TO authenticated;
+DO $$ BEGIN
+  CREATE POLICY "Company members can view voice calls"
 ON public.voice_calls FOR SELECT
 TO authenticated
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can insert voice calls"
+DO $$ BEGIN
+  CREATE POLICY "Company members can insert voice calls"
 ON public.voice_calls FOR INSERT
 TO authenticated
 WITH CHECK (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update voice calls"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update voice calls"
 ON public.voice_calls FOR UPDATE
 TO authenticated
 USING (company_id IN (
@@ -58,9 +71,14 @@ USING (company_id IN (
 WITH CHECK (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Service role can manage voice calls"
+DO $$ BEGIN
+  CREATE POLICY "Service role can manage voice calls"
 ON public.voice_calls FOR ALL
 TO service_role
 USING (true)
 WITH CHECK (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

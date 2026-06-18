@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-gateway.ts";
+import {
+  getSystemConfig,
+  resolveCredential,
+  type SystemConfigTools,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,21 +30,18 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!firecrawlApiKey) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "FIRECRAWL_API_KEY not configured",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
+    const toolsCfg = await getSystemConfig<SystemConfigTools>(
+      supabase,
+      "tools",
+    );
+    const firecrawlApiKey = resolveCredential(
+      Deno.env.get("FIRECRAWL_API_KEY"),
+      toolsCfg?.firecrawl_api_key,
+      "Firecrawl API Key não configurada. Acesse Configurações > Sistema > Ferramentas.",
+    );
+    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
     if (!openRouterApiKey) {
       return new Response(
@@ -53,8 +55,6 @@ serve(async (req) => {
         },
       );
     }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Determine which URLs to analyze
     let urlsToAnalyze: string[] = [];

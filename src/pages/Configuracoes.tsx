@@ -17,6 +17,7 @@ import { UsageDefaultsSettings } from "@/components/settings/UsageDefaultsSettin
 import { AISettings } from "@/components/settings/ai/AISettings";
 import { ExternalApiKeysSettings } from "@/components/settings/ExternalApiKeysSettings";
 import { LogsAtividadesUsuarios } from "@/pages/configuracoes/LogsAtividadesUsuarios";
+import { SystemConfigSettings } from "@/components/settings/SystemConfigSettings";
 
 const Configuracoes = () => {
   return (
@@ -60,6 +61,7 @@ const Configuracoes = () => {
             <Route path="ia" element={<AISettings />} />
             <Route path="api-keys" element={<ExternalApiKeysSettings />} />
             <Route path="logs-atividade" element={<LogsAtividadesUsuarios />} />
+            <Route path="sistema" element={<SystemConfigSettings />} />
           </Routes>
         </SettingsLayout>
       </div>

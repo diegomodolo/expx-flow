@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getValidGoogleAdsToken } from "../_shared/googleAdsTokenRefresh.ts";
+import {
+  getSystemConfig,
+  resolveCredential,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +22,11 @@ serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(
+      supabaseClient,
+      "google",
     );
 
     const authHeader = req.headers.get("Authorization");
@@ -66,7 +76,11 @@ serve(async (req) => {
       console.log("Token was automatically refreshed");
     }
 
-    const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
+    const developerToken = resolveCredential(
+      Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+      gCfg?.ads_developer_token,
+      "Google Ads Developer Token não configurado. Acesse Configurações > Sistema > Google.",
+    );
     if (!developerToken) {
       throw new Error("GOOGLE_ADS_DEVELOPER_TOKEN not configured");
     }

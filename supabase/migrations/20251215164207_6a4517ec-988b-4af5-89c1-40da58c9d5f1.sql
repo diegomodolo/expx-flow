@@ -1,5 +1,5 @@
 -- Tabela para cache local dos públicos Meta
-CREATE TABLE public.meta_audiences (
+CREATE TABLE IF NOT EXISTS public.meta_audiences (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -14,10 +14,10 @@ CREATE TABLE public.meta_audiences (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   synced_at TIMESTAMP WITH TIME ZONE,
   UNIQUE(client_id, meta_audience_id)
-);
+);;
 
 -- Tabela para histórico de uploads de leads
-CREATE TABLE public.meta_audience_uploads (
+CREATE TABLE IF NOT EXISTS public.meta_audience_uploads (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   audience_id UUID NOT NULL REFERENCES public.meta_audiences(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -31,62 +31,85 @@ CREATE TABLE public.meta_audience_uploads (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   completed_at TIMESTAMP WITH TIME ZONE,
   created_by UUID
-);
+);;
 
 -- Índices para performance
-CREATE INDEX idx_meta_audiences_client_id ON public.meta_audiences(client_id);
-CREATE INDEX idx_meta_audiences_company_id ON public.meta_audiences(company_id);
-CREATE INDEX idx_meta_audience_uploads_audience_id ON public.meta_audience_uploads(audience_id);
+CREATE INDEX IF NOT EXISTS idx_meta_audiences_client_id ON public.meta_audiences(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_meta_audiences_company_id ON public.meta_audiences(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_meta_audience_uploads_audience_id ON public.meta_audience_uploads(audience_id);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.meta_audiences ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.meta_audience_uploads ENABLE ROW LEVEL SECURITY;
 
--- Políticas RLS para meta_audiences
-CREATE POLICY "Company members can view audiences"
+ALTER TABLE public.meta_audience_uploads ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Company members can view audiences"
 ON public.meta_audiences FOR SELECT
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create audiences"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create audiences"
 ON public.meta_audiences FOR INSERT
 WITH CHECK (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update audiences"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update audiences"
 ON public.meta_audiences FOR UPDATE
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete audiences"
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete audiences"
 ON public.meta_audiences FOR DELETE
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Políticas RLS para meta_audience_uploads
-CREATE POLICY "Company members can view uploads"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view uploads"
 ON public.meta_audience_uploads FOR SELECT
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create uploads"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create uploads"
 ON public.meta_audience_uploads FOR INSERT
 WITH CHECK (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update uploads"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update uploads"
 ON public.meta_audience_uploads FOR UPDATE
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_meta_audiences_updated_at ON public.meta_audiences;
 CREATE TRIGGER update_meta_audiences_updated_at
 BEFORE UPDATE ON public.meta_audiences
 FOR EACH ROW

@@ -22,7 +22,10 @@ BEGIN
     (NEW.id, NEW.company_id, 'configuracoes', false),
     (NEW.id, NEW.company_id, 'agentes-ia', false),
     (NEW.id, NEW.company_id, 'editar-agentes', false);
+
   
   RETURN NEW;
+
 END;
+
 $function$;

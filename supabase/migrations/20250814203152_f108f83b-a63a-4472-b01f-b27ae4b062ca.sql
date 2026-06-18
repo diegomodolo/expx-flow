@@ -12,6 +12,7 @@ AND NOT EXISTS (
     WHERE ep.employee_id = e.id AND ep.menu_item = 'gerador-conteudo'
 );
 
+
 INSERT INTO public.employee_permissions (employee_id, company_id, menu_item, is_enabled)
 SELECT 
     e.id as employee_id,

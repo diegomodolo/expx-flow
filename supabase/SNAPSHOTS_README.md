@@ -17,6 +17,7 @@ Sistema implementado para coletar dados históricos diários de performance de c
 **Tabela**: `performance_snapshots`
 
 Armazena métricas diárias de performance:
+
 - `entity_type`: 'campaign', 'ad_set', ou 'ad'
 - `entity_id`: ID da entidade no banco
 - `snapshot_date`: Data do snapshot (YYYY-MM-DD)
@@ -30,6 +31,7 @@ Armazena métricas diárias de performance:
 **Execução**: Diariamente às 0h (horário de Brasília)
 
 **Processo**:
+
 1. Calcula a data de "ontem" (dia anterior)
 2. Busca todos os clientes ativos com `ad_account_id` e `access_token`
 3. Para cada cliente:
@@ -42,6 +44,7 @@ Armazena métricas diárias de performance:
 5. Registra execução na tabela `snapshot_execution_log`
 
 **Rate Limiting**:
+
 - 100ms de delay entre inserções de snapshots
 - 500ms de delay entre tipos de entidade
 - 1000ms de delay entre clientes
@@ -52,6 +55,7 @@ Armazena métricas diárias de performance:
 **Arquivo**: `supabase/functions/execute-campaign-automations/index.ts`
 
 **Mudança**: Função `evaluateConditionsWithTimeWindow` agora:
+
 1. Detecta automaticamente o tipo de entidade (campaign, ad_set, ad)
 2. Se `time_window_days > 1`:
    - Busca snapshots dos últimos X dias
@@ -59,7 +63,7 @@ Armazena métricas diárias de performance:
      - **Soma**: spend, conversions, clicks, impressions
      - **Média**: frequency
      - **Cálculo**: CPA = totalSpend / totalConversions
-     - **Cálculo**: CTR = (totalClicks / totalImpressions) * 100
+     - **Cálculo**: CTR = (totalClicks / totalImpressions) \* 100
      - **Cálculo**: CPC = totalSpend / totalClicks
 3. Se não houver snapshots, usa dados atuais (fallback)
 
@@ -68,6 +72,7 @@ Armazena métricas diárias de performance:
 **Tabela**: `snapshot_execution_log`
 
 Registra cada execução do cron:
+
 - Data de execução
 - Status (running, completed, failed, partial)
 - Contadores (clientes processados, snapshots criados, erros)
@@ -80,6 +85,7 @@ Registra cada execução do cron:
 **Horário**: 3h UTC (0h horário de Brasília)
 
 **Comando**:
+
 ```sql
 SELECT cron.schedule(
   'daily-performance-snapshot',
@@ -95,21 +101,21 @@ SELECT cron.schedule(
 ```bash
 # Via curl
 curl -X POST \
-  'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/daily-performance-snapshot' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ' \
+  'https://SEU_PROJETO.supabase.co/functions/v1/daily-performance-snapshot' \
+  -H 'Authorization: Bearer <SUA_ANON_KEY>' \
   -H 'Content-Type: application/json' \
   -d '{}'
 ```
 
 ### 2. Verificar Logs da Função
 
-Acesse: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/functions/daily-performance-snapshot/logs
+Acesse: https://supabase.com/dashboard/project/SEU_PROJETO/functions/daily-performance-snapshot/logs
 
 ### 3. Consultar Snapshots Criados
 
 ```sql
 -- Ver snapshots do dia de ontem
-SELECT 
+SELECT
   entity_type,
   entity_name,
   snapshot_date,
@@ -121,9 +127,9 @@ WHERE snapshot_date = CURRENT_DATE - INTERVAL '1 day'
 ORDER BY entity_type, entity_name;
 
 -- Ver log de execução
-SELECT * 
-FROM snapshot_execution_log 
-ORDER BY started_at DESC 
+SELECT *
+FROM snapshot_execution_log
+ORDER BY started_at DESC
 LIMIT 5;
 ```
 
@@ -140,6 +146,7 @@ LIMIT 5;
 ### Cenário: CPA Alto nos Últimos 30 Dias
 
 **Regra de Automação**:
+
 ```json
 {
   "rule_name": "Pausar Criativos - CPA Alto",
@@ -147,15 +154,14 @@ LIMIT 5;
   "time_window_days": 30,
   "conditions": {
     "logic": "AND",
-    "conditions": [
-      { "field": "cpa", "operator": ">", "value": 30 }
-    ]
+    "conditions": [{ "field": "cpa", "operator": ">", "value": 30 }]
   },
   "action_type": "pause_ad"
 }
 ```
 
 **Fluxo**:
+
 1. Sistema busca snapshots dos últimos 30 dias do criativo
 2. Soma `spend` e `conversions` de todos os 30 dias
 3. Calcula: `CPA = totalSpend / totalConversions`
@@ -163,10 +169,12 @@ LIMIT 5;
 5. Se sim, pausa o criativo
 
 **Antes (Incorreto)**:
+
 - Usava CPA acumulado total desde o início da campanha
 - Não refletia performance recente
 
 **Depois (Correto)**:
+
 - Usa CPA calculado apenas dos últimos 30 dias
 - Reflete performance atual com precisão
 
@@ -174,7 +182,7 @@ LIMIT 5;
 
 ### 1. Configurar Cron Job
 
-Execute o SQL em: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/sql/new
+Execute o SQL em: https://supabase.com/dashboard/project/SEU_PROJETO/sql/new
 
 ```sql
 -- Ver arquivo supabase/CONFIGURE_CRON.sql
@@ -183,6 +191,7 @@ Execute o SQL em: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/sq
 ### 2. Verificar Permissões
 
 Certifique-se de que todos os clientes têm:
+
 - `ad_account_id` preenchido
 - `access_token` válido e ativo
 - Token com permissões: `ads_read`, `ads_management`
@@ -203,7 +212,7 @@ Para ter dados históricos anteriores ao deploy:
 
 ```sql
 -- Ver status das últimas execuções
-SELECT 
+SELECT
   execution_date,
   status,
   clients_processed,
@@ -215,7 +224,7 @@ ORDER BY execution_date DESC
 LIMIT 10;
 
 -- Ver erros recentes
-SELECT 
+SELECT
   execution_date,
   error_messages
 FROM snapshot_execution_log
@@ -236,13 +245,13 @@ WHERE snapshot_date < CURRENT_DATE - INTERVAL '90 days';
 
 ```sql
 -- Pausar (mantém configuração)
-UPDATE cron.job 
-SET active = false 
+UPDATE cron.job
+SET active = false
 WHERE jobname = 'daily-performance-snapshot';
 
 -- Reativar
-UPDATE cron.job 
-SET active = true 
+UPDATE cron.job
+SET active = true
 WHERE jobname = 'daily-performance-snapshot';
 ```
 
@@ -292,8 +301,8 @@ WHERE jobname = 'daily-performance-snapshot';
 
 ## 🔗 Links Úteis
 
-- **SQL Editor**: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/sql/new
-- **Function Logs**: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/functions/daily-performance-snapshot/logs
+- **SQL Editor**: https://supabase.com/dashboard/project/SEU_PROJETO/sql/new
+- **Function Logs**: https://supabase.com/dashboard/project/SEU_PROJETO/functions/daily-performance-snapshot/logs
 - **Cron Jobs**: Visualizar via SQL (`SELECT * FROM cron.job`)
 - **Facebook Graph API Docs**: https://developers.facebook.com/docs/marketing-api/insights
 

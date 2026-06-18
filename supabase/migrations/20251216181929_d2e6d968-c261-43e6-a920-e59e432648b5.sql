@@ -1,5 +1,5 @@
 -- Tabela para log de requisições da API de leads
-CREATE TABLE public.lead_api_request_log (
+CREATE TABLE IF NOT EXISTS public.lead_api_request_log (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   api_key_id UUID REFERENCES public.company_api_keys(id) ON DELETE SET NULL,
@@ -10,10 +10,10 @@ CREATE TABLE public.lead_api_request_log (
   status TEXT NOT NULL DEFAULT 'success' CHECK (status IN ('success', 'error', 'partial')),
   error_message TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Tabela para filtros salvos de leads
-CREATE TABLE public.lead_saved_filters (
+CREATE TABLE IF NOT EXISTS public.lead_saved_filters (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -23,10 +23,10 @@ CREATE TABLE public.lead_saved_filters (
   created_by UUID NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Tabela para histórico de importações de leads
-CREATE TABLE public.lead_import_history (
+CREATE TABLE IF NOT EXISTS public.lead_import_history (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   file_name TEXT NOT NULL,
@@ -39,56 +39,84 @@ CREATE TABLE public.lead_import_history (
   status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('processing', 'completed', 'failed')),
   error_message TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Índices para performance
-CREATE INDEX idx_lead_api_request_log_company ON public.lead_api_request_log(company_id);
-CREATE INDEX idx_lead_api_request_log_created ON public.lead_api_request_log(created_at DESC);
-CREATE INDEX idx_lead_saved_filters_company ON public.lead_saved_filters(company_id);
-CREATE INDEX idx_lead_import_history_company ON public.lead_import_history(company_id);
-CREATE INDEX idx_lead_import_history_created ON public.lead_import_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_lead_api_request_log_company ON public.lead_api_request_log(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_lead_api_request_log_created ON public.lead_api_request_log(created_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_lead_saved_filters_company ON public.lead_saved_filters(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_lead_import_history_company ON public.lead_import_history(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_lead_import_history_created ON public.lead_import_history(created_at DESC);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.lead_api_request_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lead_saved_filters ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lead_import_history ENABLE ROW LEVEL SECURITY;
 
--- Policies para lead_api_request_log
-CREATE POLICY "Company members can view API logs"
+ALTER TABLE public.lead_saved_filters ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.lead_import_history ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Company members can view API logs"
   ON public.lead_api_request_log FOR SELECT
   USING (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "System can insert API logs"
+DO $$ BEGIN
+  CREATE POLICY "System can insert API logs"
   ON public.lead_api_request_log FOR INSERT
   WITH CHECK (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies para lead_saved_filters
-CREATE POLICY "Company members can view saved filters"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view saved filters"
   ON public.lead_saved_filters FOR SELECT
   USING (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create saved filters"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create saved filters"
   ON public.lead_saved_filters FOR INSERT
   WITH CHECK (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update saved filters"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update saved filters"
   ON public.lead_saved_filters FOR UPDATE
   USING (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete saved filters"
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete saved filters"
   ON public.lead_saved_filters FOR DELETE
   USING (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies para lead_import_history
-CREATE POLICY "Company members can view import history"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view import history"
   ON public.lead_import_history FOR SELECT
   USING (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create import history"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create import history"
   ON public.lead_import_history FOR INSERT
   WITH CHECK (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para atualizar updated_at em lead_saved_filters
+DROP TRIGGER IF EXISTS update_lead_saved_filters_updated_at ON public.lead_saved_filters;
 CREATE TRIGGER update_lead_saved_filters_updated_at
   BEFORE UPDATE ON public.lead_saved_filters
   FOR EACH ROW

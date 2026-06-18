@@ -13,7 +13,9 @@ AS $$
       AND company_id = _company_id
       AND role IN ('owner', 'admin')
   );
+
 $$;
+
 
 CREATE OR REPLACE FUNCTION public.get_user_company_ids(_user_id uuid)
 RETURNS TABLE(company_id uuid)
@@ -25,4 +27,5 @@ AS $$
   SELECT cm.company_id
   FROM public.company_members cm
   WHERE cm.user_id = _user_id;
+
 $$;

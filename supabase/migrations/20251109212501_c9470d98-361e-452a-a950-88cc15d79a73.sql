@@ -1,5 +1,5 @@
 -- Criar tabela de metas para workspaces CRM
-CREATE TABLE crm_workspace_goals (
+CREATE TABLE IF NOT EXISTS crm_workspace_goals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id UUID NOT NULL REFERENCES crm_workspaces(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -17,13 +17,14 @@ CREATE TABLE crm_workspace_goals (
   created_by UUID REFERENCES auth.users(id),
   
   UNIQUE(workspace_id, month, year)
-);
+);;
+
+
 
 -- Habilitar RLS
 ALTER TABLE crm_workspace_goals ENABLE ROW LEVEL SECURITY;
-
--- Company members podem visualizar metas
-CREATE POLICY "Company members can view workspace goals"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view workspace goals"
   ON crm_workspace_goals FOR SELECT
   USING (
     workspace_id IN (
@@ -32,9 +33,11 @@ CREATE POLICY "Company members can view workspace goals"
       WHERE cm.user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Company members podem criar metas
-CREATE POLICY "Company members can create workspace goals"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create workspace goals"
   ON crm_workspace_goals FOR INSERT
   WITH CHECK (
     workspace_id IN (
@@ -43,9 +46,11 @@ CREATE POLICY "Company members can create workspace goals"
       WHERE cm.user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Company members podem atualizar metas
-CREATE POLICY "Company members can update workspace goals"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update workspace goals"
   ON crm_workspace_goals FOR UPDATE
   USING (
     workspace_id IN (
@@ -54,9 +59,11 @@ CREATE POLICY "Company members can update workspace goals"
       WHERE cm.user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Company members podem deletar metas
-CREATE POLICY "Company members can delete workspace goals"
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete workspace goals"
   ON crm_workspace_goals FOR DELETE
   USING (
     workspace_id IN (
@@ -65,8 +72,12 @@ CREATE POLICY "Company members can delete workspace goals"
       WHERE cm.user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Index para melhorar performance de queries
-CREATE INDEX idx_crm_workspace_goals_workspace_id ON crm_workspace_goals(workspace_id);
-CREATE INDEX idx_crm_workspace_goals_company_id ON crm_workspace_goals(company_id);
-CREATE INDEX idx_crm_workspace_goals_month_year ON crm_workspace_goals(month, year);
+CREATE INDEX IF NOT EXISTS idx_crm_workspace_goals_workspace_id ON crm_workspace_goals(workspace_id);;
+
+CREATE INDEX IF NOT EXISTS idx_crm_workspace_goals_company_id ON crm_workspace_goals(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_crm_workspace_goals_month_year ON crm_workspace_goals(month, year);;

@@ -1,2 +1,2 @@
--- Add new permission type to employee_permissions enum
-ALTER TYPE menu_item ADD VALUE 'gerador-criativos';
+-- Self-host: type correto é menu_item_type.
+ALTER TYPE menu_item_type ADD VALUE IF NOT EXISTS 'gerador-criativos';

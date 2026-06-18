@@ -1,5 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { callAI } from "../_shared/ai-gateway.ts";
+import {
+  getSystemConfig,
+  resolveCredentialOptional,
+  type SystemConfigGithub,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -154,18 +159,37 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const githubPat = Deno.env.get("GITHUB_PAT");
-    const repoOwner = Deno.env.get("GITHUB_REPO_OWNER") || "bittencourtthulio";
-    const repoName = Deno.env.get("GITHUB_REPO_NAME") || "controledetrafego";
-
-    if (!githubPat) {
-      throw new Error("GITHUB_PAT não configurado");
-    }
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    const ghCfg = await getSystemConfig<SystemConfigGithub>(supabase, "github");
+    const repoOwner = resolveCredentialOptional(
+      Deno.env.get("GITHUB_REPO_OWNER"),
+      ghCfg?.repo_owner,
+    );
+    const repoName = resolveCredentialOptional(
+      Deno.env.get("GITHUB_REPO_NAME"),
+      ghCfg?.repo_name,
+    );
+    const githubPat = resolveCredentialOptional(
+      Deno.env.get("GITHUB_PAT"),
+      ghCfg?.pat,
+    );
+
+    if (!repoOwner || !repoName || !githubPat) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Integração GitHub não configurada. Acesse Configurações > Sistema > GitHub.",
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // Get last published_at from release_notes
     const { data: lastNote } = await supabase

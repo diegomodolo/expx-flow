@@ -1,6 +1,11 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { Resend } from "npm:resend@4.0.0";
+import {
+  getSystemConfig,
+  resolveCredentialOptional,
+  type SystemConfigEmail,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,9 +29,18 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const emailCfg = await getSystemConfig<SystemConfigEmail>(
+      supabase,
+      "email",
+    );
+    const resendApiKey = resolveCredentialOptional(
+      Deno.env.get("RESEND_API_KEY"),
+      emailCfg?.resend_api_key,
+    );
+    const fromEmail = emailCfg?.from_email || "noreply@exemplo.com";
 
     const {
       email,
@@ -77,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
         const resend = new Resend(resendApiKey);
 
         await resend.emails.send({
-          from: `${companyName} <sistema@controledetrafego.com.br>`,
+          from: `${companyName} <${fromEmail}>`,
           to: [email],
           subject: `Bem-vindo(a) à ${companyName}!`,
           html: `

@@ -1,7 +1,7 @@
 -- Sistema de Auditoria Completo para Análise de Impacto de Mudanças
 
 -- 1. Tabela principal de auditoria de mudanças
-CREATE TABLE public.change_audit_log (
+CREATE TABLE IF NOT EXISTS public.change_audit_log (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL,
   entity_type TEXT NOT NULL, -- 'campaign', 'ad_set', 'ad'
@@ -20,10 +20,10 @@ CREATE TABLE public.change_audit_log (
   -- Índices para performance
   CONSTRAINT fk_change_audit_company FOREIGN KEY (company_id) REFERENCES companies(id),
   CONSTRAINT fk_change_audit_user FOREIGN KEY (changed_by) REFERENCES auth.users(id)
-);
+);;
 
 -- 2. Tabela de snapshots de performance para análise temporal
-CREATE TABLE public.performance_snapshots (
+CREATE TABLE IF NOT EXISTS public.performance_snapshots (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL,
   entity_type TEXT NOT NULL, -- 'campaign', 'ad_set', 'ad'
@@ -51,10 +51,10 @@ CREATE TABLE public.performance_snapshots (
   -- Constraints
   CONSTRAINT fk_performance_snapshots_company FOREIGN KEY (company_id) REFERENCES companies(id),
   CONSTRAINT unique_snapshot UNIQUE (entity_type, entity_id, snapshot_date, snapshot_period)
-);
+);;
 
 -- 3. Tabela de análise de impacto de mudanças
-CREATE TABLE public.change_impact_analysis (
+CREATE TABLE IF NOT EXISTS public.change_impact_analysis (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL,
   change_log_id UUID NOT NULL,
@@ -100,10 +100,10 @@ CREATE TABLE public.change_impact_analysis (
   CONSTRAINT fk_change_impact_company FOREIGN KEY (company_id) REFERENCES companies(id),
   CONSTRAINT fk_change_impact_log FOREIGN KEY (change_log_id) REFERENCES change_audit_log(id),
   CONSTRAINT unique_change_analysis UNIQUE (change_log_id, analysis_period_start, analysis_period_end)
-);
+);;
 
 -- 4. Tabela de versões de criativos para rastreamento detalhado
-CREATE TABLE public.creative_versions (
+CREATE TABLE IF NOT EXISTS public.creative_versions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL,
   ad_id UUID NOT NULL,
@@ -134,32 +134,43 @@ CREATE TABLE public.creative_versions (
   -- Constraints
   CONSTRAINT fk_creative_versions_company FOREIGN KEY (company_id) REFERENCES companies(id),
   CONSTRAINT fk_creative_versions_user FOREIGN KEY (replaced_by) REFERENCES auth.users(id)
-);
+);;
 
 -- Índices para performance
-CREATE INDEX idx_change_audit_company_date ON change_audit_log(company_id, created_at DESC);
-CREATE INDEX idx_change_audit_entity ON change_audit_log(entity_type, entity_id);
-CREATE INDEX idx_change_audit_campaign ON change_audit_log(campaign_id, created_at DESC);
-CREATE INDEX idx_change_audit_client ON change_audit_log(client_id, created_at DESC);
-CREATE INDEX idx_change_audit_type ON change_audit_log(change_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_change_audit_company_date ON change_audit_log(company_id, created_at DESC);;
 
-CREATE INDEX idx_performance_snapshots_entity ON performance_snapshots(entity_type, entity_id, snapshot_date DESC);
-CREATE INDEX idx_performance_snapshots_campaign ON performance_snapshots(campaign_id, snapshot_date DESC);
-CREATE INDEX idx_performance_snapshots_client ON performance_snapshots(client_id, snapshot_date DESC);
+CREATE INDEX IF NOT EXISTS idx_change_audit_entity ON change_audit_log(entity_type, entity_id);;
 
-CREATE INDEX idx_change_impact_company ON change_impact_analysis(company_id, calculated_at DESC);
-CREATE INDEX idx_change_impact_campaign ON change_impact_analysis(campaign_id, calculated_at DESC);
-CREATE INDEX idx_change_impact_score ON change_impact_analysis(impact_score DESC);
+CREATE INDEX IF NOT EXISTS idx_change_audit_campaign ON change_audit_log(campaign_id, created_at DESC);;
 
-CREATE INDEX idx_creative_versions_ad ON creative_versions(ad_id, version_number DESC);
-CREATE INDEX idx_creative_versions_current ON creative_versions(ad_id) WHERE is_current = true;
+CREATE INDEX IF NOT EXISTS idx_change_audit_client ON change_audit_log(client_id, created_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_change_audit_type ON change_audit_log(change_type, created_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_performance_snapshots_entity ON performance_snapshots(entity_type, entity_id, snapshot_date DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_performance_snapshots_campaign ON performance_snapshots(campaign_id, snapshot_date DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_performance_snapshots_client ON performance_snapshots(client_id, snapshot_date DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_change_impact_company ON change_impact_analysis(company_id, calculated_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_change_impact_campaign ON change_impact_analysis(campaign_id, calculated_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_change_impact_score ON change_impact_analysis(impact_score DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_versions_ad ON creative_versions(ad_id, version_number DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_versions_current ON creative_versions(ad_id) WHERE is_current = true;;
+
+
 
 -- RLS Policies
 
 -- Change Audit Log
 ALTER TABLE public.change_audit_log ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view change audit log" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view change audit log" 
 ON public.change_audit_log 
 FOR SELECT 
 USING (company_id IN (
@@ -167,8 +178,11 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create change audit log" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create change audit log" 
 ON public.change_audit_log 
 FOR INSERT 
 WITH CHECK (company_id IN (
@@ -176,11 +190,15 @@ WITH CHECK (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Performance Snapshots
 ALTER TABLE public.performance_snapshots ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view performance snapshots" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view performance snapshots" 
 ON public.performance_snapshots 
 FOR SELECT 
 USING (company_id IN (
@@ -188,8 +206,11 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create performance snapshots" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create performance snapshots" 
 ON public.performance_snapshots 
 FOR INSERT 
 WITH CHECK (company_id IN (
@@ -197,8 +218,11 @@ WITH CHECK (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update performance snapshots" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update performance snapshots" 
 ON public.performance_snapshots 
 FOR UPDATE 
 USING (company_id IN (
@@ -206,11 +230,15 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Change Impact Analysis
 ALTER TABLE public.change_impact_analysis ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view change impact analysis" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view change impact analysis" 
 ON public.change_impact_analysis 
 FOR SELECT 
 USING (company_id IN (
@@ -218,8 +246,11 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create change impact analysis" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create change impact analysis" 
 ON public.change_impact_analysis 
 FOR INSERT 
 WITH CHECK (company_id IN (
@@ -227,8 +258,11 @@ WITH CHECK (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update change impact analysis" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update change impact analysis" 
 ON public.change_impact_analysis 
 FOR UPDATE 
 USING (company_id IN (
@@ -236,11 +270,15 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Creative Versions
 ALTER TABLE public.creative_versions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view creative versions" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view creative versions" 
 ON public.creative_versions 
 FOR SELECT 
 USING (company_id IN (
@@ -248,8 +286,11 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create creative versions" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create creative versions" 
 ON public.creative_versions 
 FOR INSERT 
 WITH CHECK (company_id IN (
@@ -257,8 +298,11 @@ WITH CHECK (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update creative versions" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update creative versions" 
 ON public.creative_versions 
 FOR UPDATE 
 USING (company_id IN (
@@ -266,6 +310,10 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Funções auxiliares
 
@@ -274,52 +322,101 @@ CREATE OR REPLACE FUNCTION public.log_change_audit()
 RETURNS TRIGGER AS $$
 DECLARE
   _company_id UUID;
+
   _campaign_id UUID;
+
   _client_id UUID;
+
   _changed_fields TEXT[] := '{}';
+
   _field_name TEXT;
+
 BEGIN
   -- Determinar company_id baseado na tabela
   CASE TG_TABLE_NAME
     WHEN 'campaigns' THEN
       _company_id := COALESCE(NEW.company_id, OLD.company_id);
+
       _campaign_id := COALESCE(NEW.id, OLD.id);
+
       _client_id := COALESCE(NEW.client_id, OLD.client_id);
+
     WHEN 'ad_sets' THEN
       _company_id := COALESCE(NEW.company_id, OLD.company_id);
+
       _campaign_id := COALESCE(NEW.campaign_id, OLD.campaign_id);
+
       _client_id := COALESCE(NEW.client_id, OLD.client_id);
+
     WHEN 'ads' THEN
       _company_id := COALESCE(NEW.company_id, OLD.company_id);
+
       _campaign_id := COALESCE(NEW.campaign_id, OLD.campaign_id);
+
       _client_id := COALESCE(NEW.client_id, OLD.client_id);
+
   END CASE;
+
 
   -- Para UPDATE, identificar campos que mudaram
   IF TG_OP = 'UPDATE' THEN
     -- Verificar campos específicos por tabela
     CASE TG_TABLE_NAME
       WHEN 'campaigns' THEN
-        IF OLD.name != NEW.name THEN _changed_fields := array_append(_changed_fields, 'name'); END IF;
-        IF OLD.status != NEW.status THEN _changed_fields := array_append(_changed_fields, 'status'); END IF;
-        IF OLD.spend != NEW.spend THEN _changed_fields := array_append(_changed_fields, 'spend'); END IF;
-        IF OLD.cpc != NEW.cpc THEN _changed_fields := array_append(_changed_fields, 'cpc'); END IF;
-        IF OLD.ctr != NEW.ctr THEN _changed_fields := array_append(_changed_fields, 'ctr'); END IF;
-        IF OLD.conversions != NEW.conversions THEN _changed_fields := array_append(_changed_fields, 'conversions'); END IF;
+        IF OLD.name != NEW.name THEN _changed_fields := array_append(_changed_fields, 'name');
+ END IF;
+
+        IF OLD.status != NEW.status THEN _changed_fields := array_append(_changed_fields, 'status');
+ END IF;
+
+        IF OLD.spend != NEW.spend THEN _changed_fields := array_append(_changed_fields, 'spend');
+ END IF;
+
+        IF OLD.cpc != NEW.cpc THEN _changed_fields := array_append(_changed_fields, 'cpc');
+ END IF;
+
+        IF OLD.ctr != NEW.ctr THEN _changed_fields := array_append(_changed_fields, 'ctr');
+ END IF;
+
+        IF OLD.conversions != NEW.conversions THEN _changed_fields := array_append(_changed_fields, 'conversions');
+ END IF;
+
       WHEN 'ad_sets' THEN
-        IF OLD.name != NEW.name THEN _changed_fields := array_append(_changed_fields, 'name'); END IF;
-        IF OLD.status != NEW.status THEN _changed_fields := array_append(_changed_fields, 'status'); END IF;
-        IF OLD.daily_budget != NEW.daily_budget THEN _changed_fields := array_append(_changed_fields, 'daily_budget'); END IF;
-        IF OLD.targeting != NEW.targeting THEN _changed_fields := array_append(_changed_fields, 'targeting'); END IF;
+        IF OLD.name != NEW.name THEN _changed_fields := array_append(_changed_fields, 'name');
+ END IF;
+
+        IF OLD.status != NEW.status THEN _changed_fields := array_append(_changed_fields, 'status');
+ END IF;
+
+        IF OLD.daily_budget != NEW.daily_budget THEN _changed_fields := array_append(_changed_fields, 'daily_budget');
+ END IF;
+
+        IF OLD.targeting != NEW.targeting THEN _changed_fields := array_append(_changed_fields, 'targeting');
+ END IF;
+
       WHEN 'ads' THEN
-        IF OLD.name != NEW.name THEN _changed_fields := array_append(_changed_fields, 'name'); END IF;
-        IF OLD.status != NEW.status THEN _changed_fields := array_append(_changed_fields, 'status'); END IF;
-        IF OLD.creative_title != NEW.creative_title THEN _changed_fields := array_append(_changed_fields, 'creative_title'); END IF;
-        IF OLD.creative_body != NEW.creative_body THEN _changed_fields := array_append(_changed_fields, 'creative_body'); END IF;
-        IF OLD.image_url != NEW.image_url THEN _changed_fields := array_append(_changed_fields, 'image_url'); END IF;
-        IF OLD.video_url != NEW.video_url THEN _changed_fields := array_append(_changed_fields, 'video_url'); END IF;
+        IF OLD.name != NEW.name THEN _changed_fields := array_append(_changed_fields, 'name');
+ END IF;
+
+        IF OLD.status != NEW.status THEN _changed_fields := array_append(_changed_fields, 'status');
+ END IF;
+
+        IF OLD.creative_title != NEW.creative_title THEN _changed_fields := array_append(_changed_fields, 'creative_title');
+ END IF;
+
+        IF OLD.creative_body != NEW.creative_body THEN _changed_fields := array_append(_changed_fields, 'creative_body');
+ END IF;
+
+        IF OLD.image_url != NEW.image_url THEN _changed_fields := array_append(_changed_fields, 'image_url');
+ END IF;
+
+        IF OLD.video_url != NEW.video_url THEN _changed_fields := array_append(_changed_fields, 'video_url');
+ END IF;
+
     END CASE;
+
   END IF;
+
 
   -- Inserir log de auditoria
   INSERT INTO public.change_audit_log (
@@ -352,9 +449,13 @@ BEGIN
     _client_id
   );
 
+
   RETURN COALESCE(NEW, OLD);
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- Função para criar snapshot de performance
 CREATE OR REPLACE FUNCTION public.create_performance_snapshot(
@@ -365,32 +466,53 @@ CREATE OR REPLACE FUNCTION public.create_performance_snapshot(
 RETURNS VOID AS $$
 DECLARE
   _entity_record RECORD;
+
   _company_id UUID;
+
   _campaign_id UUID;
+
   _client_id UUID;
+
   _entity_name TEXT;
+
 BEGIN
   -- Buscar dados da entidade baseado no tipo
   CASE _entity_type
     WHEN 'campaign' THEN
       SELECT * INTO _entity_record FROM campaigns WHERE id = _entity_id;
+
       _company_id := _entity_record.company_id;
+
       _campaign_id := _entity_record.id;
+
       _client_id := _entity_record.client_id;
+
       _entity_name := _entity_record.name;
+
     WHEN 'ad_set' THEN
       SELECT * INTO _entity_record FROM ad_sets WHERE id = _entity_id;
+
       _company_id := _entity_record.company_id;
+
       _campaign_id := _entity_record.campaign_id;
+
       _client_id := _entity_record.client_id;
+
       _entity_name := _entity_record.name;
+
     WHEN 'ad' THEN
       SELECT * INTO _entity_record FROM ads WHERE id = _entity_id;
+
       _company_id := _entity_record.company_id;
+
       _campaign_id := _entity_record.campaign_id;
+
       _client_id := _entity_record.client_id;
+
       _entity_name := _entity_record.name;
+
   END CASE;
+
 
   -- Inserir ou atualizar snapshot
   INSERT INTO public.performance_snapshots (
@@ -440,8 +562,11 @@ BEGIN
     cpc = EXCLUDED.cpc,
     cpa = EXCLUDED.cpa,
     frequency = EXCLUDED.frequency;
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- Função para calcular impacto de mudanças
 CREATE OR REPLACE FUNCTION public.calculate_change_impact(
@@ -452,18 +577,27 @@ CREATE OR REPLACE FUNCTION public.calculate_change_impact(
 RETURNS VOID AS $$
 DECLARE
   _change_record RECORD;
+
   _before_metrics RECORD;
+
   _after_metrics RECORD;
+
   _improvement_pct NUMERIC;
+
   _impact_score NUMERIC := 0;
+
   _impact_class TEXT := 'neutral';
+
 BEGIN
   -- Buscar dados da mudança
   SELECT * INTO _change_record FROM change_audit_log WHERE id = _change_log_id;
+
   
   IF NOT FOUND THEN
     RETURN;
+
   END IF;
+
 
   -- Calcular métricas antes da mudança
   SELECT 
@@ -478,6 +612,7 @@ BEGIN
     AND entity_id = _change_record.entity_id
     AND snapshot_date BETWEEN (_change_record.created_at::DATE - _days_before) AND _change_record.created_at::DATE;
 
+
   -- Calcular métricas depois da mudança  
   SELECT 
     COALESCE(AVG(spend), 0) as avg_spend,
@@ -491,12 +626,14 @@ BEGIN
     AND entity_id = _change_record.entity_id
     AND snapshot_date BETWEEN _change_record.created_at::DATE AND (_change_record.created_at::DATE + _days_after);
 
+
   -- Calcular melhorias percentuais
   _improvement_pct := CASE 
     WHEN _before_metrics.avg_conversions > 0 THEN 
       ((_after_metrics.avg_conversions - _before_metrics.avg_conversions) / _before_metrics.avg_conversions) * 100
     ELSE 0 
   END;
+
 
   -- Calcular score de impacto (combinação de métricas)
   _impact_score := (
@@ -511,12 +648,14 @@ BEGIN
     ELSE 0 END
   );
 
+
   -- Classificar impacto
   _impact_class := CASE 
     WHEN _impact_score > 10 THEN 'positive'
     WHEN _impact_score < -10 THEN 'negative'
     ELSE 'neutral'
   END;
+
 
   -- Inserir análise de impacto
   INSERT INTO public.change_impact_analysis (
@@ -576,18 +715,21 @@ BEGIN
     impact_score = EXCLUDED.impact_score,
     is_significant = EXCLUDED.is_significant,
     calculated_at = now();
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Triggers para auditoria automática
+END;
+
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+DROP TRIGGER IF EXISTS audit_campaigns_changes ON campaigns;
 CREATE TRIGGER audit_campaigns_changes
   AFTER INSERT OR UPDATE OR DELETE ON campaigns
   FOR EACH ROW EXECUTE FUNCTION log_change_audit();
 
+DROP TRIGGER IF EXISTS audit_ad_sets_changes ON ad_sets;
 CREATE TRIGGER audit_ad_sets_changes
   AFTER INSERT OR UPDATE OR DELETE ON ad_sets
   FOR EACH ROW EXECUTE FUNCTION log_change_audit();
 
+DROP TRIGGER IF EXISTS audit_ads_changes ON ads;
 CREATE TRIGGER audit_ads_changes
   AFTER INSERT OR UPDATE OR DELETE ON ads
   FOR EACH ROW EXECUTE FUNCTION log_change_audit();

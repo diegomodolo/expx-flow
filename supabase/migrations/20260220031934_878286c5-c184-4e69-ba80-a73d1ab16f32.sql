@@ -9,9 +9,13 @@ SET search_path = public
 AS $$
 DECLARE
   supabase_url text;
+
   service_key text;
+
   request_body jsonb;
+
   headers jsonb;
+
 BEGIN
   -- Skip if this message was inserted by an agent (avoid infinite loops)
   -- Check if user_id belongs to an AI agent
@@ -20,7 +24,9 @@ BEGIN
     WHERE id = NEW.user_id AND is_collaborator = true
   ) THEN
     RETURN NEW;
+
   END IF;
+
 
   -- Only process DM channels
   IF NOT EXISTS (
@@ -28,18 +34,26 @@ BEGIN
     WHERE id = NEW.channel_id AND channel_type = 'dm'
   ) THEN
     RETURN NEW;
+
   END IF;
+
 
   BEGIN
     supabase_url := current_setting('app.settings.supabase_url', true);
+
     service_key := current_setting('app.settings.service_role_key', true);
+
   EXCEPTION WHEN OTHERS THEN
     RETURN NEW;
+
   END;
+
 
   IF supabase_url IS NULL OR service_key IS NULL THEN
     RETURN NEW;
+
   END IF;
+
 
   request_body := jsonb_build_object(
     'message_id', NEW.id,
@@ -48,10 +62,12 @@ BEGIN
     'content', NEW.content
   );
 
+
   headers := jsonb_build_object(
     'Content-Type', 'application/json',
     'Authorization', 'Bearer ' || service_key
   );
+
 
   BEGIN
     PERFORM net.http_post(
@@ -60,18 +76,24 @@ BEGIN
       '{}'::jsonb,
       headers
     );
+
   EXCEPTION WHEN OTHERS THEN
     -- Never block the message insert
     NULL;
+
   END;
 
+
   RETURN NEW;
+
 END;
+
 $$;
+
 
 -- Ensure the trigger exists on internal_messages
 DROP TRIGGER IF EXISTS on_dm_message_inserted ON public.internal_messages;
-
+DROP TRIGGER IF EXISTS on_dm_message_inserted ON public.internal_messages;
 CREATE TRIGGER on_dm_message_inserted
   AFTER INSERT ON public.internal_messages
   FOR EACH ROW

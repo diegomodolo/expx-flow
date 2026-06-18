@@ -14,7 +14,10 @@ BEGIN
     (NEW.id, NEW.company_id, 'relatorios', false),
     (NEW.id, NEW.company_id, 'gerador-campanhas', false),
     (NEW.id, NEW.company_id, 'configuracoes', false);
+
   
   RETURN NEW;
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';

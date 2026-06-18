@@ -4,6 +4,7 @@ ALTER TABLE carousel_studio_slides
   ALTER COLUMN font_size_subtitle SET DEFAULT 41,
   ALTER COLUMN line_spacing       SET DEFAULT 105;
 
+
 -- Atualiza slides existentes que ainda usam os valores antigos padrão
 UPDATE carousel_studio_slides
 SET

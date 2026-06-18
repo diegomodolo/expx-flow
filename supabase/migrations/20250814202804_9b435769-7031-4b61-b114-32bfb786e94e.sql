@@ -1,3 +1,3 @@
--- Add new values to the menu_item enum
-ALTER TYPE menu_item ADD VALUE 'gerador-conteudo';
-ALTER TYPE menu_item ADD VALUE 'ia';
+-- Self-host: type correto é menu_item_type.
+ALTER TYPE menu_item_type ADD VALUE IF NOT EXISTS 'gerador-conteudo';
+ALTER TYPE menu_item_type ADD VALUE IF NOT EXISTS 'ia';

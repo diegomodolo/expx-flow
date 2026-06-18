@@ -1,6 +1,5 @@
--- Create public RLS policy for clients table to allow reading client data 
--- when there's a valid lead disqualification token
-CREATE POLICY "Public can view client data with valid disqualification token" 
+DO $$ BEGIN
+  CREATE POLICY "Public can view client data with valid disqualification token" 
 ON public.clients 
 FOR SELECT 
 USING (
@@ -10,3 +9,5 @@ USING (
     WHERE client_id = clients.id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

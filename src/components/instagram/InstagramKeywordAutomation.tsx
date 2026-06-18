@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { functionUrl } from "@/integrations/supabase/runtime";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -306,7 +307,7 @@ export function InstagramKeywordAutomation() {
     return "Qualquer";
   };
 
-  const webhookUrl = `https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/instagram-messaging-webhook`;
+  const webhookUrl = functionUrl("instagram-messaging-webhook");
 
   return (
     <div className="space-y-6">

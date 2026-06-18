@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { functionUrl } from "@/integrations/supabase/runtime";
 import { useToast } from "@/hooks/use-toast";
 
 interface WebhookToken {
@@ -18,13 +19,13 @@ export const useWebhookTokens = (clientId: string) => {
   const queryClient = useQueryClient();
 
   const { data: token, isLoading } = useQuery({
-    queryKey: ['webhook-token', clientId],
+    queryKey: ["webhook-token", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('offline_conversion_webhook_tokens')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('is_active', true)
+        .from("offline_conversion_webhook_tokens")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
         .maybeSingle();
 
       if (error) throw error;
@@ -37,15 +38,15 @@ export const useWebhookTokens = (clientId: string) => {
     mutationFn: async () => {
       // Get company_id from clients table
       const { data: client, error: clientError } = await supabase
-        .from('clients')
-        .select('company_id')
-        .eq('id', clientId)
+        .from("clients")
+        .select("company_id")
+        .eq("id", clientId)
         .single();
 
       if (clientError) throw clientError;
 
       const { data, error } = await supabase
-        .from('offline_conversion_webhook_tokens')
+        .from("offline_conversion_webhook_tokens")
         .insert({
           client_id: clientId,
           company_id: client.company_id,
@@ -57,7 +58,7 @@ export const useWebhookTokens = (clientId: string) => {
       return data as WebhookToken;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['webhook-token', clientId] });
+      queryClient.invalidateQueries({ queryKey: ["webhook-token", clientId] });
       toast({
         title: "Token gerado",
         description: "URL do webhook criada com sucesso!",
@@ -77,22 +78,22 @@ export const useWebhookTokens = (clientId: string) => {
       // Deactivate old token
       if (token) {
         await supabase
-          .from('offline_conversion_webhook_tokens')
+          .from("offline_conversion_webhook_tokens")
           .update({ is_active: false })
-          .eq('id', token.id);
+          .eq("id", token.id);
       }
 
       // Generate new token
       const { data: client, error: clientError } = await supabase
-        .from('clients')
-        .select('company_id')
-        .eq('id', clientId)
+        .from("clients")
+        .select("company_id")
+        .eq("id", clientId)
         .single();
 
       if (clientError) throw clientError;
 
       const { data, error } = await supabase
-        .from('offline_conversion_webhook_tokens')
+        .from("offline_conversion_webhook_tokens")
         .insert({
           client_id: clientId,
           company_id: client.company_id,
@@ -104,10 +105,11 @@ export const useWebhookTokens = (clientId: string) => {
       return data as WebhookToken;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['webhook-token', clientId] });
+      queryClient.invalidateQueries({ queryKey: ["webhook-token", clientId] });
       toast({
         title: "Token regenerado",
-        description: "Nova URL do webhook gerada. A URL antiga não funcionará mais.",
+        description:
+          "Nova URL do webhook gerada. A URL antiga não funcionará mais.",
       });
     },
     onError: (error: Error) => {
@@ -122,11 +124,11 @@ export const useWebhookTokens = (clientId: string) => {
   const testWebhook = useMutation({
     mutationFn: async (webhookToken: string) => {
       const webhookUrl = getWebhookUrl(webhookToken);
-      
+
       const testPayload = {
         eventName: "Purchase",
         eventTime: Math.floor(Date.now() / 1000),
-        value: 99.90,
+        value: 99.9,
         currency: "BRL",
         userData: {
           email: "test@example.com",
@@ -135,36 +137,36 @@ export const useWebhookTokens = (clientId: string) => {
           lastName: "Webhook",
           city: "São Paulo",
           state: "SP",
-          country: "BR"
+          country: "BR",
         },
         customData: {
           content_name: "Teste Webhook",
-          order_id: "TEST-" + Date.now()
-        }
+          order_id: "TEST-" + Date.now(),
+        },
       };
 
       const response = await fetch(webhookUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(testPayload),
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao testar webhook');
+        throw new Error(data.error || "Erro ao testar webhook");
       }
 
       return data;
     },
     onSuccess: (data) => {
       // Invalidar query de conversões para atualizar a lista
-      queryClient.invalidateQueries({ 
-        queryKey: ['offline-conversions', clientId] 
+      queryClient.invalidateQueries({
+        queryKey: ["offline-conversions", clientId],
       });
-      
+
       toast({
         title: "Teste realizado com sucesso!",
         description: `Conversão de teste enviada ao Meta. ${data.eventsReceived || 0} evento(s) recebido(s).`,
@@ -180,7 +182,7 @@ export const useWebhookTokens = (clientId: string) => {
   });
 
   const getWebhookUrl = (webhookToken: string) => {
-    return `https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/webhook-offline-conversion/${webhookToken}`;
+    return `${functionUrl("webhook-offline-conversion")}/${webhookToken}`;
   };
 
   return {

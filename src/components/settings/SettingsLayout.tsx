@@ -23,6 +23,7 @@ import {
   Brain,
   Key,
   Activity,
+  Settings2,
 } from "lucide-react";
 import { SiGoogle, SiDiscord } from "react-icons/si";
 
@@ -92,6 +93,12 @@ const settingsNavItems: NavItem[] = [
     href: "/configuracoes/logs-atividade",
     icon: Activity,
     description: "Histórico de uso dos colaboradores",
+  },
+  {
+    title: "Sistema",
+    href: "/configuracoes/sistema",
+    icon: Settings2,
+    description: "Configurações globais da instalação (self-hosting)",
   },
 ];
 

@@ -2,6 +2,7 @@
 ALTER TABLE google_ads_sync_schedules 
 ADD COLUMN IF NOT EXISTS sync_options jsonb DEFAULT '{"period": "last_30_days", "campaigns": true, "adGroups": false, "ads": false, "includeInactive": false}'::jsonb;
 
+
 -- Create google_ads_sync_execution_logs table (mirroring facebook_sync_execution_logs)
 CREATE TABLE IF NOT EXISTS google_ads_sync_execution_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,25 +19,33 @@ CREATE TABLE IF NOT EXISTS google_ads_sync_execution_logs (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_google_ads_sync_execution_logs_company_id 
   ON google_ads_sync_execution_logs(company_id);
+
 CREATE INDEX IF NOT EXISTS idx_google_ads_sync_execution_logs_started_at 
   ON google_ads_sync_execution_logs(started_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_google_ads_sync_execution_logs_schedule_id 
   ON google_ads_sync_execution_logs(schedule_id);
 
+
 -- Enable RLS
 ALTER TABLE google_ads_sync_execution_logs ENABLE ROW LEVEL SECURITY;
-
--- RLS policies for google_ads_sync_execution_logs
-CREATE POLICY "Users can view execution logs of their companies" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view execution logs of their companies" 
   ON google_ads_sync_execution_logs 
   FOR SELECT 
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Service role can manage execution logs" 
+DO $$ BEGIN
+  CREATE POLICY "Service role can manage execution logs" 
   ON google_ads_sync_execution_logs 
   FOR ALL 
   USING (true)
   WITH CHECK (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

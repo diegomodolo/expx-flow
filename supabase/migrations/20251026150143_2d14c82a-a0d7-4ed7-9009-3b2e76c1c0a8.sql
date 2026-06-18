@@ -12,6 +12,7 @@ WHERE e.status = 'active'
     WHERE ep.employee_id = e.id AND ep.menu_item = 'agentes-ia'
   );
 
+
 INSERT INTO public.employee_permissions (employee_id, company_id, menu_item, is_enabled)
 SELECT 
   e.id,

@@ -1,5 +1,5 @@
 -- Create ad_sets table for Facebook ad sets
-CREATE TABLE public.ad_sets (
+CREATE TABLE IF NOT EXISTS public.ad_sets (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   facebook_id TEXT NOT NULL UNIQUE,
   campaign_id UUID NOT NULL,
@@ -24,10 +24,10 @@ CREATE TABLE public.ad_sets (
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Create ads table for Facebook ads/creatives
-CREATE TABLE public.ads (
+CREATE TABLE IF NOT EXISTS public.ads (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   facebook_id TEXT NOT NULL UNIQUE,
   ad_set_id UUID NOT NULL,
@@ -56,88 +56,120 @@ CREATE TABLE public.ads (
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable Row Level Security
 ALTER TABLE public.ad_sets ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.ads ENABLE ROW LEVEL SECURITY;
-
--- Create policies for ad_sets
-CREATE POLICY "Company members can view ad_sets" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view ad_sets" 
 ON public.ad_sets 
 FOR SELECT 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create ad_sets" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create ad_sets" 
 ON public.ad_sets 
 FOR INSERT 
 WITH CHECK (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update ad_sets" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update ad_sets" 
 ON public.ad_sets 
 FOR UPDATE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete ad_sets" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete ad_sets" 
 ON public.ad_sets 
 FOR DELETE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create policies for ads
-CREATE POLICY "Company members can view ads" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view ads" 
 ON public.ads 
 FOR SELECT 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create ads" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create ads" 
 ON public.ads 
 FOR INSERT 
 WITH CHECK (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update ads" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update ads" 
 ON public.ads 
 FOR UPDATE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete ads" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete ads" 
 ON public.ads 
 FOR DELETE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create indexes for better performance
-CREATE INDEX idx_ad_sets_campaign_id ON public.ad_sets(campaign_id);
-CREATE INDEX idx_ad_sets_client_id ON public.ad_sets(client_id);
-CREATE INDEX idx_ad_sets_facebook_id ON public.ad_sets(facebook_id);
-CREATE INDEX idx_ad_sets_company_id ON public.ad_sets(company_id);
+CREATE INDEX IF NOT EXISTS idx_ad_sets_campaign_id ON public.ad_sets(campaign_id);;
 
-CREATE INDEX idx_ads_ad_set_id ON public.ads(ad_set_id);
-CREATE INDEX idx_ads_campaign_id ON public.ads(campaign_id);
-CREATE INDEX idx_ads_client_id ON public.ads(client_id);
-CREATE INDEX idx_ads_facebook_id ON public.ads(facebook_id);
-CREATE INDEX idx_ads_company_id ON public.ads(company_id);
+CREATE INDEX IF NOT EXISTS idx_ad_sets_client_id ON public.ad_sets(client_id);;
 
--- Add triggers for automatic timestamp updates
+CREATE INDEX IF NOT EXISTS idx_ad_sets_facebook_id ON public.ad_sets(facebook_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ad_sets_company_id ON public.ad_sets(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ads_ad_set_id ON public.ads(ad_set_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ads_campaign_id ON public.ads(campaign_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ads_client_id ON public.ads(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ads_facebook_id ON public.ads(facebook_id);;
+
+CREATE INDEX IF NOT EXISTS idx_ads_company_id ON public.ads(company_id);;
+
+DROP TRIGGER IF EXISTS update_ad_sets_updated_at ON public.ad_sets;
 CREATE TRIGGER update_ad_sets_updated_at
 BEFORE UPDATE ON public.ad_sets
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_ads_updated_at ON public.ads;
 CREATE TRIGGER update_ads_updated_at
 BEFORE UPDATE ON public.ads
 FOR EACH ROW

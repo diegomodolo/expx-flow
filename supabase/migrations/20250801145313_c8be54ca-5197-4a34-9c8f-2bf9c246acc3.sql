@@ -18,10 +18,14 @@ BEGIN
             WHERE team_id = COALESCE(NEW.team_id, OLD.team_id)
         )
     WHERE id = COALESCE(NEW.team_id, OLD.team_id);
+
     
     RETURN COALESCE(NEW, OLD);
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
+
 
 -- Update client stats function with proper search_path
 CREATE OR REPLACE FUNCTION public.update_client_stats()
@@ -41,7 +45,10 @@ BEGIN
             WHERE client_id = COALESCE(NEW.client_id, OLD.client_id)
         )
     WHERE id = COALESCE(NEW.client_id, OLD.client_id);
+
     
     RETURN COALESCE(NEW, OLD);
+
 END;
+
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';

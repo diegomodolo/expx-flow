@@ -1,5 +1,5 @@
--- Criar política RLS para permitir UPDATE nos lead_disqualification_reports por membros da empresa
-CREATE POLICY "Company members can update reports" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update reports" 
 ON public.lead_disqualification_reports 
 FOR UPDATE 
 USING (company_id IN ( 
@@ -7,3 +7,5 @@ USING (company_id IN (
   FROM company_members
   WHERE (company_members.user_id = auth.uid())
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

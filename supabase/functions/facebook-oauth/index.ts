@@ -1,4 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  getAppUrl,
+  resolveCredential,
+  type SystemConfigFacebook,
+  type SystemConfigApp,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +27,14 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
+    const fbCfg = await getSystemConfig<SystemConfigFacebook>(
+      supabase,
+      "facebook",
+    );
+    const graphVersion = fbCfg?.graph_api_version || "v21.0";
+    const appCfg = await getSystemConfig<SystemConfigApp>(supabase, "app");
+    const appUrl = getAppUrl(appCfg, req);
+
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
     console.log("Action parameter:", action);
@@ -32,35 +47,22 @@ Deno.serve(async (req) => {
         companyId,
       });
 
-      const facebookAppId = Deno.env.get("FACEBOOK_APP_ID");
-      const facebookAppSecret = Deno.env.get("FACEBOOK_APP_SECRET");
+      const facebookAppId = resolveCredential(
+        Deno.env.get("FACEBOOK_APP_ID"),
+        fbCfg?.app_id,
+        "Facebook App ID não configurado. Acesse Configurações > Sistema > Facebook.",
+      );
+      const facebookAppSecret = resolveCredential(
+        Deno.env.get("FACEBOOK_APP_SECRET"),
+        fbCfg?.app_secret,
+        "Facebook App Secret não configurado. Acesse Configurações > Sistema > Facebook.",
+      );
 
-      console.log("Facebook credentials check:", {
-        appIdExists: !!facebookAppId,
-        secretExists: !!facebookAppSecret,
-      });
-
-      if (!facebookAppId || !facebookAppSecret) {
-        console.error("Facebook credentials missing");
-        throw new Error("Facebook credentials not configured");
-      }
-
-      // Get redirect URI based on current domain
-      const origin = req.headers.get("origin") || "";
-      let redirectUri = "";
-      if (
-        origin.includes("expxflow.com.br") ||
-        origin.includes("controledetrafego.com.br")
-      ) {
-        redirectUri = `${origin}/auth/callback`;
-      } else {
-        redirectUri = "https://expxflow.com.br/auth/callback";
-      }
+      const redirectUri = `${appUrl}/auth/callback`;
 
       console.log("Redirect URI determined:", redirectUri);
 
-      // Exchange code for access token
-      const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token`;
+      const tokenUrl = `https://graph.facebook.com/${graphVersion}/oauth/access_token`;
       const tokenParams = new URLSearchParams({
         client_id: facebookAppId,
         client_secret: facebookAppSecret,
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
 
       // Get user's ad accounts with pagination to fetch all accounts
       let allAdAccounts = [];
-      let nextUrl = `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&limit=100&access_token=${tokenData.access_token}`;
+      let nextUrl = `https://graph.facebook.com/${graphVersion}/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&limit=100&access_token=${tokenData.access_token}`;
 
       while (nextUrl) {
         console.log(
@@ -272,7 +274,7 @@ Deno.serve(async (req) => {
 
       // Fetch current ad accounts from Facebook with pagination
       let allAdAccounts = [];
-      let nextUrl = `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&limit=100&access_token=${integration.access_token}`;
+      let nextUrl = `https://graph.facebook.com/${graphVersion}/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&limit=100&access_token=${integration.access_token}`;
       let batchCount = 0;
 
       console.log("Starting refresh accounts pagination...");

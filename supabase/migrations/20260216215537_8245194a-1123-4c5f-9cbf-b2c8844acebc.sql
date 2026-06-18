@@ -1,6 +1,5 @@
-
 -- Create table for task flow configurations
-CREATE TABLE public.task_flows (
+CREATE TABLE IF NOT EXISTS public.task_flows (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL,
   name TEXT NOT NULL DEFAULT 'Novo Fluxo',
@@ -10,45 +9,57 @@ CREATE TABLE public.task_flows (
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.task_flows ENABLE ROW LEVEL SECURITY;
-
--- Policies
-CREATE POLICY "Users can view task flows from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view task flows from their company"
 ON public.task_flows FOR SELECT
 USING (
   company_id IN (
     SELECT company_id FROM public.employees WHERE user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create task flows for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create task flows for their company"
 ON public.task_flows FOR INSERT
 WITH CHECK (
   company_id IN (
     SELECT company_id FROM public.employees WHERE user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update task flows from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update task flows from their company"
 ON public.task_flows FOR UPDATE
 USING (
   company_id IN (
     SELECT company_id FROM public.employees WHERE user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete task flows from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete task flows from their company"
 ON public.task_flows FOR DELETE
 USING (
   company_id IN (
     SELECT company_id FROM public.employees WHERE user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_task_flows_updated_at ON public.task_flows;
 CREATE TRIGGER update_task_flows_updated_at
 BEFORE UPDATE ON public.task_flows
 FOR EACH ROW

@@ -1,8 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const youtubeApiKey = Deno.env.get("YOUTUBE_API_KEY");
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -55,21 +59,21 @@ function extractChannelInfo(
 }
 
 // Fetch channel info from YouTube API
-async function fetchChannelInfo(channelInfo: { type: string; value: string }) {
+async function fetchChannelInfo(
+  channelInfo: { type: string; value: string },
+  apiKey: string,
+) {
   let apiUrl: string;
 
   if (channelInfo.type === "id") {
-    apiUrl = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelInfo.value}&key=${youtubeApiKey}`;
+    apiUrl = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelInfo.value}&key=${apiKey}`;
   } else if (channelInfo.type === "handle") {
-    apiUrl = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${channelInfo.value}&key=${youtubeApiKey}`;
+    apiUrl = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${channelInfo.value}&key=${apiKey}`;
   } else {
-    apiUrl = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&forUsername=${channelInfo.value}&key=${youtubeApiKey}`;
+    apiUrl = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&forUsername=${channelInfo.value}&key=${apiKey}`;
   }
 
-  console.log(
-    "Fetching channel info from:",
-    apiUrl.replace(youtubeApiKey, "***"),
-  );
+  console.log("Fetching channel info from:", apiUrl.replace(apiKey, "***"));
 
   const response = await fetch(apiUrl);
   const data = await response.json();
@@ -89,10 +93,11 @@ async function fetchChannelInfo(channelInfo: { type: string; value: string }) {
 // Fetch recent videos from channel
 async function fetchChannelVideos(
   channelId: string,
-  publishedAfter?: string,
+  publishedAfter: string | undefined,
+  apiKey: string,
   maxResults = 50,
 ) {
-  let apiUrl = `https://youtube.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=${maxResults}&key=${youtubeApiKey}`;
+  let apiUrl = `https://youtube.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=${maxResults}&key=${apiKey}`;
 
   if (publishedAfter) {
     apiUrl += `&publishedAfter=${publishedAfter}`;
@@ -112,10 +117,10 @@ async function fetchChannelVideos(
 }
 
 // Fetch video statistics
-async function fetchVideoStats(videoIds: string[]) {
+async function fetchVideoStats(videoIds: string[], apiKey: string) {
   if (videoIds.length === 0) return [];
 
-  const apiUrl = `https://youtube.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${videoIds.join(",")}&key=${youtubeApiKey}`;
+  const apiUrl = `https://youtube.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${videoIds.join(",")}&key=${apiKey}`;
 
   console.log("Fetching stats for", videoIds.length, "videos");
 
@@ -157,21 +162,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!youtubeApiKey) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error:
-          "YOUTUBE_API_KEY não configurada. Configure em Supabase Dashboard > Project Settings > Edge Functions > Secrets.",
-      }),
-      {
-        status: 503,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  }
-
   try {
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(supabase, "google");
+    const youtubeApiKey = resolveCredential(
+      Deno.env.get("YOUTUBE_API_KEY"),
+      gCfg?.youtube_api_key,
+      "YouTube API Key não configurada. Acesse Configurações > Sistema > Google.",
+    );
+
     const { channelUrl, labId, companyId, periodDays = 30 } = await req.json();
 
     console.log("Analyzing YouTube channel:", channelUrl);
@@ -193,7 +191,7 @@ Deno.serve(async (req) => {
     console.log("Extracted channel info:", channelInfo);
 
     // Fetch channel data
-    const channel = await fetchChannelInfo(channelInfo);
+    const channel = await fetchChannelInfo(channelInfo, youtubeApiKey);
     console.log("Channel found:", channel.snippet.title);
 
     // Calculate date for period filter
@@ -204,6 +202,7 @@ Deno.serve(async (req) => {
     const videos = await fetchChannelVideos(
       channel.id,
       publishedAfter.toISOString(),
+      youtubeApiKey,
     );
     console.log("Found", videos.length, "videos in the period");
 
@@ -212,7 +211,7 @@ Deno.serve(async (req) => {
       (v: Record<string, unknown>) =>
         (v.id as Record<string, unknown>).videoId as string,
     );
-    const videoStats = await fetchVideoStats(videoIds);
+    const videoStats = await fetchVideoStats(videoIds, youtubeApiKey);
 
     // Create stats map
     const statsMap = new Map(

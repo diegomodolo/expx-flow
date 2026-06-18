@@ -26,11 +26,18 @@ ADD COLUMN IF NOT EXISTS legal_nature_code TEXT,
 ADD COLUMN IF NOT EXISTS legal_nature_description TEXT,
 ADD COLUMN IF NOT EXISTS partners TEXT;
 
+
 -- Criar índices para campos frequentemente usados em filtros
 CREATE INDEX IF NOT EXISTS idx_lead_master_pool_cnpj ON public.lead_master_pool(cnpj);
+
 CREATE INDEX IF NOT EXISTS idx_lead_master_pool_cnae_code ON public.lead_master_pool(cnae_code);
+
 CREATE INDEX IF NOT EXISTS idx_lead_master_pool_company_size ON public.lead_master_pool(company_size);
+
 CREATE INDEX IF NOT EXISTS idx_lead_master_pool_state ON public.lead_master_pool(state);
+
 CREATE INDEX IF NOT EXISTS idx_lead_master_pool_municipality_code ON public.lead_master_pool(municipality_code);
+
 CREATE INDEX IF NOT EXISTS idx_lead_master_pool_simples_option ON public.lead_master_pool(simples_option);
+
 CREATE INDEX IF NOT EXISTS idx_lead_master_pool_mei_option ON public.lead_master_pool(mei_option);

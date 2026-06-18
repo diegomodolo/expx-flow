@@ -1,11 +1,12 @@
 
 -- Drop existing broken policies
 DROP POLICY IF EXISTS "Users can view accessible channels" ON public.internal_channels;
-DROP POLICY IF EXISTS "Users can view messages in accessible channels" ON public.internal_messages;
-DROP POLICY IF EXISTS "Users can send messages in accessible channels" ON public.internal_messages;
 
--- Recreate SELECT policy for channels using CASE to avoid invalid UUID cast on DM reference_id
-CREATE POLICY "Users can view accessible channels"
+DROP POLICY IF EXISTS "Users can view messages in accessible channels" ON public.internal_messages;
+
+DROP POLICY IF EXISTS "Users can send messages in accessible channels" ON public.internal_messages;
+DO $$ BEGIN
+  CREATE POLICY "Users can view accessible channels"
 ON public.internal_channels
 FOR SELECT
 USING (
@@ -27,9 +28,11 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Recreate SELECT policy for messages using CASE to avoid invalid UUID cast on DM reference_id
-CREATE POLICY "Users can view messages in accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can view messages in accessible channels"
 ON public.internal_messages
 FOR SELECT
 USING (
@@ -55,9 +58,11 @@ USING (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Recreate INSERT policy for messages using CASE to avoid invalid UUID cast on DM reference_id
-CREATE POLICY "Users can send messages in accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can send messages in accessible channels"
 ON public.internal_messages
 FOR INSERT
 WITH CHECK (
@@ -84,3 +89,5 @@ WITH CHECK (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

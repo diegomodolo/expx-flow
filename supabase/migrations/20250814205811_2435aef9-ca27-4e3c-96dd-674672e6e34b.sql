@@ -1,5 +1,5 @@
 -- Create table for custom content prompts
-CREATE TABLE public.content_prompts (
+CREATE TABLE IF NOT EXISTS public.content_prompts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL,
   content_type TEXT NOT NULL,
@@ -9,41 +9,53 @@ CREATE TABLE public.content_prompts (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   UNIQUE(company_id, content_type)
-);
+);;
+
+
 
 -- Enable Row Level Security
 ALTER TABLE public.content_prompts ENABLE ROW LEVEL SECURITY;
-
--- Create policies for content prompts
-CREATE POLICY "Company members can view content prompts" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view content prompts" 
 ON public.content_prompts 
 FOR SELECT 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create content prompts" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create content prompts" 
 ON public.content_prompts 
 FOR INSERT 
 WITH CHECK (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update content prompts" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update content prompts" 
 ON public.content_prompts 
 FOR UPDATE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete content prompts" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete content prompts" 
 ON public.content_prompts 
 FOR DELETE 
 USING (company_id IN ( SELECT company_members.company_id
    FROM company_members
   WHERE (company_members.user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create trigger for automatic timestamp updates
+DROP TRIGGER IF EXISTS update_content_prompts_updated_at ON public.content_prompts;
 CREATE TRIGGER update_content_prompts_updated_at
 BEFORE UPDATE ON public.content_prompts
 FOR EACH ROW

@@ -1,8 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import {
+  getSystemConfig,
+  resolveCredential,
+  type SystemConfigEmail,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,6 +58,23 @@ const handler = async (req: Request): Promise<Response> => {
       meetingDate,
       companyId,
     }: SummaryRequest = await req.json();
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const emailCfg = await getSystemConfig<SystemConfigEmail>(
+      supabase,
+      "email",
+    );
+    const resendApiKey = resolveCredential(
+      Deno.env.get("RESEND_API_KEY"),
+      emailCfg?.resend_api_key,
+      "Resend API Key não configurada. Acesse Configurações > Sistema > Email.",
+    );
+    const fromEmail = emailCfg?.from_email || "noreply@exemplo.com";
+    const fromName = emailCfg?.from_name || "Expx Flow";
+    const resend = new Resend(resendApiKey);
 
     console.log(
       `Enviando resumo da reunião ${meetingId} para ${participants.length} participantes`,
@@ -189,7 +209,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emails = participants.map((p) => p.email);
 
     const emailResponse = await resend.emails.send({
-      from: "Expx Flow <noreply@expxflow.com.br>",
+      from: `${fromName} <${fromEmail}>`,
       to: emails,
       subject: `Resumo da Reunião: ${presentationName} - ${clientName}`,
       html: htmlContent,

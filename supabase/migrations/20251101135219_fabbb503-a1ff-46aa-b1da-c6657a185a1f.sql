@@ -24,7 +24,10 @@ BEGIN
     (NEW.id, NEW.company_id, 'agentes-ia', false),
     (NEW.id, NEW.company_id, 'editar-agentes', false),
     (NEW.id, NEW.company_id, 'editor-funil', false);
+
   
   RETURN NEW;
+
 END;
+
 $function$;

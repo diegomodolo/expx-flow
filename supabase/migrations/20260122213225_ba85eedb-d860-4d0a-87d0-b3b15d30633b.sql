@@ -22,5 +22,7 @@ BEGIN
   LEFT JOIN campaigns c ON a.campaign_id = c.id
   WHERE cu.company_id = p_company_id
   GROUP BY cu.id;
+
 END;
+
 $$;

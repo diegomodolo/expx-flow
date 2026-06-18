@@ -29,4 +29,5 @@ AS $$
     ) AS employee_name
   FROM task_board_columns tbc
   WHERE tbc.company_id = _company_id;
+
 $$;

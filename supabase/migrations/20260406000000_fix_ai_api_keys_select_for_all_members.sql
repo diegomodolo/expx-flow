@@ -7,8 +7,9 @@
 
 -- Remove a policy restritiva de SELECT (só owners)
 DROP POLICY IF EXISTS "Owners can view api keys" ON public.ai_api_keys;
-
--- Nova policy: qualquer membro da empresa pode ler (apenas select id, nunca a chave em si)
-CREATE POLICY "Members can view api keys for their company"
+DO $$ BEGIN
+  CREATE POLICY "Members can view api keys for their company"
   ON public.ai_api_keys FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

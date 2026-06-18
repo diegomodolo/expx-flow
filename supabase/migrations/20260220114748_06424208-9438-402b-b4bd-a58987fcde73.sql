@@ -1,6 +1,5 @@
-
 -- Create instagram_conversations table
-CREATE TABLE public.instagram_conversations (
+CREATE TABLE IF NOT EXISTS public.instagram_conversations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   instagram_account_id UUID NOT NULL REFERENCES public.instagram_accounts(id) ON DELETE CASCADE,
@@ -13,24 +12,34 @@ CREATE TABLE public.instagram_conversations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(company_id, instagram_account_id, ig_user_id)
-);
+);;
+
+
 
 ALTER TABLE public.instagram_conversations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view instagram conversations"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view instagram conversations"
   ON public.instagram_conversations FOR SELECT
   USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can insert instagram conversations"
+DO $$ BEGIN
+  CREATE POLICY "Company members can insert instagram conversations"
   ON public.instagram_conversations FOR INSERT
   WITH CHECK (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update instagram conversations"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update instagram conversations"
   ON public.instagram_conversations FOR UPDATE
   USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create instagram_messages table
-CREATE TABLE public.instagram_messages (
+CREATE TABLE IF NOT EXISTS public.instagram_messages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   conversation_id UUID NOT NULL REFERENCES public.instagram_conversations(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -42,20 +51,27 @@ CREATE TABLE public.instagram_messages (
   status TEXT DEFAULT 'delivered',
   sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.instagram_messages ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view instagram messages"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view instagram messages"
   ON public.instagram_messages FOR SELECT
   USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can insert instagram messages"
+DO $$ BEGIN
+  CREATE POLICY "Company members can insert instagram messages"
   ON public.instagram_messages FOR INSERT
   WITH CHECK (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create instagram_automation_flows table
-CREATE TABLE public.instagram_automation_flows (
+CREATE TABLE IF NOT EXISTS public.instagram_automation_flows (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   flow_name TEXT NOT NULL,
@@ -63,16 +79,20 @@ CREATE TABLE public.instagram_automation_flows (
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.instagram_automation_flows ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can manage instagram automation flows"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage instagram automation flows"
   ON public.instagram_automation_flows FOR ALL
   USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create instagram_keyword_triggers table
-CREATE TABLE public.instagram_keyword_triggers (
+CREATE TABLE IF NOT EXISTS public.instagram_keyword_triggers (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL,
@@ -84,16 +104,20 @@ CREATE TABLE public.instagram_keyword_triggers (
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.instagram_keyword_triggers ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can manage instagram keyword triggers"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage instagram keyword triggers"
   ON public.instagram_keyword_triggers FOR ALL
   USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create instagram_automation_logs table
-CREATE TABLE public.instagram_automation_logs (
+CREATE TABLE IF NOT EXISTS public.instagram_automation_logs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   trigger_id UUID REFERENCES public.instagram_keyword_triggers(id) ON DELETE SET NULL,
@@ -106,37 +130,56 @@ CREATE TABLE public.instagram_automation_logs (
   error_message TEXT,
   executed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.instagram_automation_logs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view instagram automation logs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view instagram automation logs"
   ON public.instagram_automation_logs FOR SELECT
   USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Trigger for updated_at on instagram_conversations
 CREATE OR REPLACE FUNCTION public.update_instagram_conversations_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
-
+BEGIN NEW.updated_at = now();
+ RETURN NEW;
+ END;
+ $$;
+DROP TRIGGER IF EXISTS update_instagram_conversations_updated_at ON public.instagram_conversations;
 CREATE TRIGGER update_instagram_conversations_updated_at
   BEFORE UPDATE ON public.instagram_conversations
   FOR EACH ROW EXECUTE FUNCTION public.update_instagram_conversations_updated_at();
 
+
+
 -- Trigger for updated_at on instagram_automation_flows  
 CREATE OR REPLACE FUNCTION public.update_instagram_automation_flows_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
-
+BEGIN NEW.updated_at = now();
+ RETURN NEW;
+ END;
+ $$;
+DROP TRIGGER IF EXISTS update_instagram_automation_flows_updated_at ON public.instagram_automation_flows;
 CREATE TRIGGER update_instagram_automation_flows_updated_at
   BEFORE UPDATE ON public.instagram_automation_flows
   FOR EACH ROW EXECUTE FUNCTION public.update_instagram_automation_flows_updated_at();
 
+
+
 -- Trigger for updated_at on instagram_keyword_triggers
 CREATE OR REPLACE FUNCTION public.update_instagram_keyword_triggers_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
-
+BEGIN NEW.updated_at = now();
+ RETURN NEW;
+ END;
+ $$;
+DROP TRIGGER IF EXISTS update_instagram_keyword_triggers_updated_at ON public.instagram_keyword_triggers;
 CREATE TRIGGER update_instagram_keyword_triggers_updated_at
   BEFORE UPDATE ON public.instagram_keyword_triggers
   FOR EACH ROW EXECUTE FUNCTION public.update_instagram_keyword_triggers_updated_at();

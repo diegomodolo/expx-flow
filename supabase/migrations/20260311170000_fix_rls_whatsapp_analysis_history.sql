@@ -10,27 +10,39 @@
 
 -- Drop old broken policies
 DROP POLICY IF EXISTS "Users can view analysis for their company conversations" ON public.whatsapp_realtime_analysis;
-DROP POLICY IF EXISTS "Users can insert analysis for their company conversations" ON public.whatsapp_realtime_analysis;
-DROP POLICY IF EXISTS "Users can update analysis for their company conversations" ON public.whatsapp_realtime_analysis;
 
--- Create corrected policies using get_user_company_ids (SECURITY DEFINER - bypasses nested RLS)
-CREATE POLICY "Users can view analysis for their company"
+DROP POLICY IF EXISTS "Users can insert analysis for their company conversations" ON public.whatsapp_realtime_analysis;
+
+DROP POLICY IF EXISTS "Users can update analysis for their company conversations" ON public.whatsapp_realtime_analysis;
+DO $$ BEGIN
+  CREATE POLICY "Users can view analysis for their company"
 ON public.whatsapp_realtime_analysis
 FOR SELECT
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert analysis for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert analysis for their company"
 ON public.whatsapp_realtime_analysis
 FOR INSERT
 WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update analysis for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update analysis for their company"
 ON public.whatsapp_realtime_analysis
 FOR UPDATE
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Add GRANT (was missing from original migration)
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_realtime_analysis TO authenticated;
+
 
 -- =============================================
 -- Fix whatsapp_realtime_analysis_history table
@@ -38,18 +50,25 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_realtime_analysis TO aut
 
 -- Drop old broken policies
 DROP POLICY IF EXISTS "Users can view analysis history for their company" ON public.whatsapp_realtime_analysis_history;
-DROP POLICY IF EXISTS "Users can insert analysis history for their company" ON public.whatsapp_realtime_analysis_history;
 
--- Create corrected policies using get_user_company_ids (SECURITY DEFINER - bypasses nested RLS)
-CREATE POLICY "Users can view analysis history for their company"
+DROP POLICY IF EXISTS "Users can insert analysis history for their company" ON public.whatsapp_realtime_analysis_history;
+DO $$ BEGIN
+  CREATE POLICY "Users can view analysis history for their company"
 ON public.whatsapp_realtime_analysis_history
 FOR SELECT
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert analysis history for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert analysis history for their company"
 ON public.whatsapp_realtime_analysis_history
 FOR INSERT
 WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Add GRANT (was missing from original migration)
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_realtime_analysis_history TO authenticated;

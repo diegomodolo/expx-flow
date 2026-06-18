@@ -2,12 +2,39 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
-const SUPABASE_URL = "https://ejwpfztkspbvmuwwiwmk.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ";
+// Self-host: lê apenas de env vars; storageKey derivada dinamicamente do project ref.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    "Configuração ausente: defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env (veja .env.example).",
+  );
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Extrai o project ref de uma URL Supabase.
+ * Ex.: https://abcdefgh.supabase.co → abcdefgh
+ *      https://abcdefgh.supabase.in → abcdefgh
+ */
+export function extractProjectRef(url: string): string {
+  const m = /^https?:\/\/([a-z0-9]+)\.supabase\./i.exec(url);
+  if (!m) {
+    // Fallback: usa um hash da URL para garantir storageKey estável e único
+    let h = 0;
+    for (let i = 0; i < url.length; i++) {
+      h = (h * 31 + url.charCodeAt(i)) | 0;
+    }
+    return `ref${(h >>> 0).toString(36)}`;
+  }
+  return m[1];
+}
+
+const PROJECT_REF = extractProjectRef(SUPABASE_URL);
+const STORAGE_KEY = `sb-${PROJECT_REF}-auth-token`;
 
 // Safe decode for Supabase Realtime (VSN 2.0.0 binary protocol).
 // Prevents uncaught TypeError when the server sends a JSON message whose
@@ -98,13 +125,13 @@ class RealtimeWebSocket extends WebSocket {
 
 export const supabase = createClient<Database>(
   SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_ANON_KEY,
   {
     auth: {
       storage: localStorage,
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: "sb-ejwpfztkspbvmuwwiwmk-auth-token",
+      storageKey: STORAGE_KEY,
       flowType: "pkce",
       lockAcquireTimeout: 15000,
     },

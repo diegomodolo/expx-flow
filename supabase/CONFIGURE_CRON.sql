@@ -9,7 +9,7 @@
 -- IMPORTANTE: Execute este SQL apenas UMA VEZ após o deploy da edge function.
 -- 
 -- Como executar:
--- 1. Acesse: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/sql/new
+-- 1. Acesse: https://supabase.com/dashboard/project/SEU_PROJETO/sql/new
 -- 2. Cole este SQL no editor
 -- 3. Clique em "Run" para executar
 -- ============================================================
@@ -29,10 +29,10 @@ SELECT cron.schedule(
   '0 3 * * *', -- 3h UTC = 0h Brasília
   $$
   SELECT net.http_post(
-    url := 'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/daily-performance-snapshot',
+    url := 'https://SEU_PROJETO.supabase.co/functions/v1/daily-performance-snapshot',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ'
+      'Authorization', 'Bearer <SUA_ANON_KEY>'
     ),
     body := jsonb_build_object('time', now()::text)
   ) as request_id;
@@ -74,10 +74,10 @@ WHERE jobname = 'daily-performance-snapshot';
 
 -- Para EXECUTAR MANUALMENTE (testar agora):
 -- SELECT net.http_post(
---   url := 'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/daily-performance-snapshot',
+--   url := 'https://SEU_PROJETO.supabase.co/functions/v1/daily-performance-snapshot',
 --   headers := jsonb_build_object(
 --     'Content-Type', 'application/json',
---     'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ'
+--     'Authorization', 'Bearer <SUA_ANON_KEY>'
 --   ),
 --   body := jsonb_build_object('time', now()::text)
 -- ) as request_id;

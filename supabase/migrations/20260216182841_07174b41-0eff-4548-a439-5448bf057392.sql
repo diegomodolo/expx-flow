@@ -1,6 +1,5 @@
-
 -- Create time tracking sessions table
-CREATE TABLE public.task_time_tracking (
+CREATE TABLE IF NOT EXISTS public.task_time_tracking (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,
@@ -15,27 +14,32 @@ CREATE TABLE public.task_time_tracking (
   ) STORED,
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Indexes
-CREATE INDEX idx_task_time_tracking_task_id ON public.task_time_tracking(task_id);
-CREATE INDEX idx_task_time_tracking_user_id ON public.task_time_tracking(user_id);
-CREATE INDEX idx_task_time_tracking_company_id ON public.task_time_tracking(company_id);
+CREATE INDEX IF NOT EXISTS idx_task_time_tracking_task_id ON public.task_time_tracking(task_id);;
+
+CREATE INDEX IF NOT EXISTS idx_task_time_tracking_user_id ON public.task_time_tracking(user_id);;
+
+CREATE INDEX IF NOT EXISTS idx_task_time_tracking_company_id ON public.task_time_tracking(company_id);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.task_time_tracking ENABLE ROW LEVEL SECURITY;
-
--- RLS: Users can view time tracking in their company
-CREATE POLICY "Users can view time tracking in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view time tracking in their company"
 ON public.task_time_tracking
 FOR SELECT
 TO authenticated
 USING (
   company_id IN (SELECT cm.company_id FROM company_members cm WHERE cm.user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS: Users can insert their own time tracking
-CREATE POLICY "Users can insert their own time tracking"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert their own time tracking"
 ON public.task_time_tracking
 FOR INSERT
 TO authenticated
@@ -43,17 +47,23 @@ WITH CHECK (
   auth.uid() = user_id AND
   company_id IN (SELECT cm.company_id FROM company_members cm WHERE cm.user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS: Users can update their own time tracking
-CREATE POLICY "Users can update their own time tracking"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their own time tracking"
 ON public.task_time_tracking
 FOR UPDATE
 TO authenticated
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS: Users can delete their own time tracking
-CREATE POLICY "Users can delete their own time tracking"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their own time tracking"
 ON public.task_time_tracking
 FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

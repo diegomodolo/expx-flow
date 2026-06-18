@@ -42,6 +42,7 @@ SET company_id = (
 )
 WHERE company_id IS NULL;
 
+
 -- Update campaigns
 UPDATE campaigns 
 SET company_id = (
@@ -51,6 +52,7 @@ SET company_id = (
     LIMIT 1
 )
 WHERE company_id IS NULL;
+
 
 -- Update sectors
 UPDATE sectors 
@@ -62,6 +64,7 @@ SET company_id = (
 )
 WHERE company_id IS NULL;
 
+
 -- Update tasks
 UPDATE tasks 
 SET company_id = (
@@ -71,6 +74,7 @@ SET company_id = (
     LIMIT 1
 )
 WHERE company_id IS NULL;
+
 
 -- Update teams
 UPDATE teams 
@@ -82,6 +86,7 @@ SET company_id = (
 )
 WHERE company_id IS NULL;
 
+
 -- Update employees
 UPDATE employees 
 SET company_id = (
@@ -91,6 +96,7 @@ SET company_id = (
     LIMIT 1
 )
 WHERE company_id IS NULL;
+
 
 -- Step 3: Make company_id required for future records (optional, but recommended)
 -- We can add NOT NULL constraints later if needed

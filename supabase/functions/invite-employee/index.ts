@@ -1,6 +1,13 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { Resend } from "npm:resend@4.0.0";
+import {
+  getSystemConfig,
+  buildAppLink,
+  resolveCredential,
+  type SystemConfigEmail,
+  type SystemConfigApp,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,13 +31,22 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY não configurado");
-    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const [emailCfg, appCfg] = await Promise.all([
+      getSystemConfig<SystemConfigEmail>(supabase, "email"),
+      getSystemConfig<SystemConfigApp>(supabase, "app"),
+    ]);
+    const resendApiKey = resolveCredential(
+      Deno.env.get("RESEND_API_KEY"),
+      emailCfg?.resend_api_key,
+      "Resend API Key não configurada. Acesse Configurações > Sistema > Email.",
+    );
+    const fromEmail = emailCfg?.from_email || "noreply@exemplo.com";
+    const fromName = emailCfg?.from_name || "Expx Flow";
+    const appUrl = buildAppLink(appCfg, req, "");
+
     const resend = new Resend(resendApiKey);
 
     const {
@@ -43,7 +59,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Enviar email com credenciais
     const emailResponse = await resend.emails.send({
-      from: `Expx Flow <sistema@expxflow.com.br>`,
+      from: `${fromName} <${fromEmail}>`,
       to: [email],
       subject: `Bem-vindo(a) à ${companyName}!`,
       html: `
@@ -63,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p><strong>IMPORTANTE:</strong> Por favor, altere sua senha no primeiro acesso por motivos de segurança.</p>
           
           <p>Clique no link abaixo para acessar o sistema:</p>
-          <a href="https://expxflow.com.br"
+          <a href="${appUrl}"
              style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
             Acessar Sistema
           </a>

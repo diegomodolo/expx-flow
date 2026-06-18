@@ -3,7 +3,7 @@
 -- =====================================================
 
 -- 1. Configuração de Saúde do Cliente (Health Score 360)
-CREATE TABLE public.client_health_config (
+CREATE TABLE IF NOT EXISTS public.client_health_config (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -35,10 +35,10 @@ CREATE TABLE public.client_health_config (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   
   UNIQUE(client_id)
-);
+);;
 
 -- 2. Milestones do Cliente (Jornada da Vitória)
-CREATE TABLE public.client_milestones (
+CREATE TABLE IF NOT EXISTS public.client_milestones (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -58,10 +58,10 @@ CREATE TABLE public.client_milestones (
   
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- 3. Templates de Milestones
-CREATE TABLE public.milestone_templates (
+CREATE TABLE IF NOT EXISTS public.milestone_templates (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   
@@ -76,10 +76,10 @@ CREATE TABLE public.milestone_templates (
   
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- 4. Touchpoints do Cliente
-CREATE TABLE public.client_touchpoints (
+CREATE TABLE IF NOT EXISTS public.client_touchpoints (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -95,10 +95,10 @@ CREATE TABLE public.client_touchpoints (
   
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- 5. Relatórios QBR
-CREATE TABLE public.qbr_reports (
+CREATE TABLE IF NOT EXISTS public.qbr_reports (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -119,10 +119,10 @@ CREATE TABLE public.qbr_reports (
   
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- 6. Respostas NPS
-CREATE TABLE public.client_nps_responses (
+CREATE TABLE IF NOT EXISTS public.client_nps_responses (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -139,10 +139,10 @@ CREATE TABLE public.client_nps_responses (
   follow_up_notes TEXT,
   
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- 7. Sugestões do Cliente
-CREATE TABLE public.client_suggestions (
+CREATE TABLE IF NOT EXISTS public.client_suggestions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -159,10 +159,10 @@ CREATE TABLE public.client_suggestions (
   
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- 8. Comprovantes de Valor Mensal
-CREATE TABLE public.value_statements (
+CREATE TABLE IF NOT EXISTS public.value_statements (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -193,149 +193,225 @@ CREATE TABLE public.value_statements (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   
   UNIQUE(client_id, period_month, period_year)
-);
+);;
 
 -- =====================================================
 -- ÍNDICES
 -- =====================================================
 
-CREATE INDEX idx_client_health_config_client ON public.client_health_config(client_id);
-CREATE INDEX idx_client_health_config_company ON public.client_health_config(company_id);
-CREATE INDEX idx_client_health_config_risk ON public.client_health_config(churn_risk_level);
-CREATE INDEX idx_client_health_config_score ON public.client_health_config(health_score_total);
+CREATE INDEX IF NOT EXISTS idx_client_health_config_client ON public.client_health_config(client_id);;
 
-CREATE INDEX idx_client_milestones_client ON public.client_milestones(client_id);
-CREATE INDEX idx_client_milestones_company ON public.client_milestones(company_id);
-CREATE INDEX idx_client_milestones_status ON public.client_milestones(status);
+CREATE INDEX IF NOT EXISTS idx_client_health_config_company ON public.client_health_config(company_id);;
 
-CREATE INDEX idx_client_touchpoints_client ON public.client_touchpoints(client_id);
-CREATE INDEX idx_client_touchpoints_company ON public.client_touchpoints(company_id);
-CREATE INDEX idx_client_touchpoints_occurred ON public.client_touchpoints(occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_client_health_config_risk ON public.client_health_config(churn_risk_level);;
 
-CREATE INDEX idx_qbr_reports_client ON public.qbr_reports(client_id);
-CREATE INDEX idx_qbr_reports_company ON public.qbr_reports(company_id);
-CREATE INDEX idx_qbr_reports_token ON public.qbr_reports(public_token);
+CREATE INDEX IF NOT EXISTS idx_client_health_config_score ON public.client_health_config(health_score_total);;
 
-CREATE INDEX idx_client_nps_responses_client ON public.client_nps_responses(client_id);
-CREATE INDEX idx_client_nps_responses_score ON public.client_nps_responses(score);
+CREATE INDEX IF NOT EXISTS idx_client_milestones_client ON public.client_milestones(client_id);;
 
-CREATE INDEX idx_client_suggestions_client ON public.client_suggestions(client_id);
-CREATE INDEX idx_client_suggestions_status ON public.client_suggestions(status);
+CREATE INDEX IF NOT EXISTS idx_client_milestones_company ON public.client_milestones(company_id);;
 
-CREATE INDEX idx_value_statements_client ON public.value_statements(client_id);
-CREATE INDEX idx_value_statements_token ON public.value_statements(public_token);
-CREATE INDEX idx_value_statements_period ON public.value_statements(period_year, period_month);
+CREATE INDEX IF NOT EXISTS idx_client_milestones_status ON public.client_milestones(status);;
+
+CREATE INDEX IF NOT EXISTS idx_client_touchpoints_client ON public.client_touchpoints(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_client_touchpoints_company ON public.client_touchpoints(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_client_touchpoints_occurred ON public.client_touchpoints(occurred_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_qbr_reports_client ON public.qbr_reports(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_qbr_reports_company ON public.qbr_reports(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_qbr_reports_token ON public.qbr_reports(public_token);;
+
+CREATE INDEX IF NOT EXISTS idx_client_nps_responses_client ON public.client_nps_responses(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_client_nps_responses_score ON public.client_nps_responses(score);;
+
+CREATE INDEX IF NOT EXISTS idx_client_suggestions_client ON public.client_suggestions(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_client_suggestions_status ON public.client_suggestions(status);;
+
+CREATE INDEX IF NOT EXISTS idx_value_statements_client ON public.value_statements(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_value_statements_token ON public.value_statements(public_token);;
+
+CREATE INDEX IF NOT EXISTS idx_value_statements_period ON public.value_statements(period_year, period_month);;
+
+
 
 -- =====================================================
 -- ROW LEVEL SECURITY
 -- =====================================================
 
 ALTER TABLE public.client_health_config ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.client_milestones ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.milestone_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.client_touchpoints ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.qbr_reports ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.client_nps_responses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.client_suggestions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.value_statements ENABLE ROW LEVEL SECURITY;
 
--- Policies usando company_members (tabela correta do projeto)
-CREATE POLICY "Users can view client health config from their company" 
+ALTER TABLE public.client_milestones ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.milestone_templates ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.client_touchpoints ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.qbr_reports ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.client_nps_responses ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.client_suggestions ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.value_statements ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view client health config from their company" 
 ON public.client_health_config FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage client health config from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage client health config from their company" 
 ON public.client_health_config FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view milestones from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view milestones from their company" 
 ON public.client_milestones FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage milestones from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage milestones from their company" 
 ON public.client_milestones FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view templates from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view templates from their company" 
 ON public.milestone_templates FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage templates from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage templates from their company" 
 ON public.milestone_templates FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view touchpoints from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view touchpoints from their company" 
 ON public.client_touchpoints FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage touchpoints from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage touchpoints from their company" 
 ON public.client_touchpoints FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view QBR reports from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view QBR reports from their company" 
 ON public.qbr_reports FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage QBR reports from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage QBR reports from their company" 
 ON public.qbr_reports FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Public can view QBR reports with valid token" 
+DO $$ BEGIN
+  CREATE POLICY "Public can view QBR reports with valid token" 
 ON public.qbr_reports FOR SELECT 
 USING (public_token IS NOT NULL);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view NPS responses from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view NPS responses from their company" 
 ON public.client_nps_responses FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage NPS responses from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage NPS responses from their company" 
 ON public.client_nps_responses FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view suggestions from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view suggestions from their company" 
 ON public.client_suggestions FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage suggestions from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage suggestions from their company" 
 ON public.client_suggestions FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can view value statements from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view value statements from their company" 
 ON public.value_statements FOR SELECT 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage value statements from their company" 
+DO $$ BEGIN
+  CREATE POLICY "Users can manage value statements from their company" 
 ON public.value_statements FOR ALL 
 USING (company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Public can view value statements with valid token" 
+DO $$ BEGIN
+  CREATE POLICY "Public can view value statements with valid token" 
 ON public.value_statements FOR SELECT 
 USING (public_token IS NOT NULL);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- =====================================================
--- TRIGGERS PARA UPDATED_AT
--- =====================================================
-
+DROP TRIGGER IF EXISTS update_client_health_config_updated_at ON public.client_health_config;
 CREATE TRIGGER update_client_health_config_updated_at
 BEFORE UPDATE ON public.client_health_config
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_client_milestones_updated_at ON public.client_milestones;
 CREATE TRIGGER update_client_milestones_updated_at
 BEFORE UPDATE ON public.client_milestones
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_milestone_templates_updated_at ON public.milestone_templates;
 CREATE TRIGGER update_milestone_templates_updated_at
 BEFORE UPDATE ON public.milestone_templates
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_qbr_reports_updated_at ON public.qbr_reports;
 CREATE TRIGGER update_qbr_reports_updated_at
 BEFORE UPDATE ON public.qbr_reports
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_client_suggestions_updated_at ON public.client_suggestions;
 CREATE TRIGGER update_client_suggestions_updated_at
 BEFORE UPDATE ON public.client_suggestions
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_value_statements_updated_at ON public.value_statements;
 CREATE TRIGGER update_value_statements_updated_at
 BEFORE UPDATE ON public.value_statements
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

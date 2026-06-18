@@ -8,13 +8,16 @@ FROM whatsapp_ai_chat_messages
 WHERE role = 'analysis'
 ORDER BY conversation_id, content, created_at ASC;
 
+
 -- Step 2: Delete all analysis messages that are not in the keep list
 DELETE FROM whatsapp_ai_chat_messages
 WHERE role = 'analysis'
 AND id NOT IN (SELECT id FROM analysis_to_keep);
 
+
 -- Step 3: Drop the temp table
 DROP TABLE analysis_to_keep;
+
 
 -- Step 4: Create a unique index to prevent future duplicates
 -- Using a hash of the content to avoid index size issues with large JSON content

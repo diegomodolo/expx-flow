@@ -7,9 +7,11 @@ ADD COLUMN IF NOT EXISTS notes TEXT,
 ADD COLUMN IF NOT EXISTS approved_count INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS rejected_count INTEGER DEFAULT 0;
 
+
 -- Add resubmitted tracking to approvals
 ALTER TABLE public.presentation_creative_approvals
 ADD COLUMN IF NOT EXISTS resubmitted_at TIMESTAMPTZ;
+
 
 -- Add status tracking and scheduling link to creatives
 ALTER TABLE public.presentation_creatives
@@ -18,13 +20,16 @@ ADD COLUMN IF NOT EXISTS scheduled_post_id UUID REFERENCES public.scheduled_post
 ADD COLUMN IF NOT EXISTS manager_approved_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS manager_approved_by UUID;
 
+
 -- Create index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_presentation_creatives_scheduled_post 
 ON public.presentation_creatives(scheduled_post_id) 
 WHERE scheduled_post_id IS NOT NULL;
 
+
 CREATE INDEX IF NOT EXISTS idx_presentation_creatives_current_status 
 ON public.presentation_creatives(current_status);
+
 
 -- Add RLS policies for the new columns (they inherit existing table policies)
 -- Update existing creatives to have 'pending' status

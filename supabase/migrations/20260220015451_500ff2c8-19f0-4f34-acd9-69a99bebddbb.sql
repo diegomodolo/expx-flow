@@ -9,8 +9,11 @@ SET search_path = public
 AS $$
 DECLARE
   v_client_name TEXT;
+
   v_headline TEXT;
+
   v_member RECORD;
+
 BEGIN
   -- Only act on INSERT or UPDATE where status becomes 'pending'
   IF (TG_OP = 'INSERT' AND NEW.status = 'pending') OR 
@@ -21,12 +24,14 @@ BEGIN
     FROM public.clients
     WHERE id = NEW.client_id;
 
+
     -- Extract headline from generated_content JSONB
     v_headline := COALESCE(
       NEW.generated_content->>'headline',
       NEW.generated_content->'ad'->>'headline',
       'Anúncio sem título'
     );
+
 
     -- Notify all company members
     FOR v_member IN
@@ -60,21 +65,30 @@ BEGIN
         'ad_queue',
         NEW.id::TEXT
       );
+
     END LOOP;
+
 
   END IF;
 
+
   RETURN NEW;
+
 END;
+
 $$;
 
+
 -- Create trigger on ad_generation_queue
+DROP TRIGGER IF EXISTS trigger_notify_pending_ad ON public.ad_generation_queue;
 DROP TRIGGER IF EXISTS trigger_notify_pending_ad ON public.ad_generation_queue;
 CREATE TRIGGER trigger_notify_pending_ad
   AFTER INSERT OR UPDATE OF status
   ON public.ad_generation_queue
   FOR EACH ROW
   EXECUTE FUNCTION public.notify_pending_ad();
+
+
 
 -- Fase 6a: Trigger para notificar autorizador quando tarefa vai para review
 CREATE OR REPLACE FUNCTION public.notify_task_review()
@@ -85,7 +99,9 @@ SET search_path = public
 AS $$
 DECLARE
   v_authorizer RECORD;
+
   v_auth_user_id UUID;
+
 BEGIN
   -- Only act when status changes to 'review'
   IF NEW.status = 'review' AND (OLD.status IS NULL OR OLD.status != 'review') THEN
@@ -102,6 +118,7 @@ BEGIN
       FROM public.employees
       WHERE id = v_authorizer.employee_id
         AND company_id = NEW.company_id;
+
 
       IF v_auth_user_id IS NOT NULL THEN
         INSERT INTO public.user_notifications (
@@ -130,21 +147,31 @@ BEGIN
           'task',
           NEW.id::TEXT
         );
+
       END IF;
+
     END LOOP;
+
 
   END IF;
 
+
   RETURN NEW;
+
 END;
+
 $$;
 
+
+DROP TRIGGER IF EXISTS trigger_notify_task_review ON public.tasks;
 DROP TRIGGER IF EXISTS trigger_notify_task_review ON public.tasks;
 CREATE TRIGGER trigger_notify_task_review
   AFTER UPDATE OF status
   ON public.tasks
   FOR EACH ROW
   EXECUTE FUNCTION public.notify_task_review();
+
+
 
 -- Fase 6b: Trigger para notificar responsável quando tarefa é atribuída
 CREATE OR REPLACE FUNCTION public.notify_task_assigned()
@@ -185,12 +212,18 @@ BEGIN
       NEW.id::TEXT
     );
 
+
   END IF;
 
+
   RETURN NEW;
+
 END;
+
 $$;
 
+
+DROP TRIGGER IF EXISTS trigger_notify_task_assigned ON public.tasks;
 DROP TRIGGER IF EXISTS trigger_notify_task_assigned ON public.tasks;
 CREATE TRIGGER trigger_notify_task_assigned
   AFTER INSERT OR UPDATE OF assigned_user_id

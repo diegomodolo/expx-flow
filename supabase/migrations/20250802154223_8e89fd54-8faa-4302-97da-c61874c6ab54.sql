@@ -1,5 +1,5 @@
--- Add RLS policy to allow company members to view each other's profiles
-CREATE POLICY "Company members can view profiles of other company members" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view profiles of other company members" 
 ON public.profiles 
 FOR SELECT 
 USING (
@@ -13,3 +13,5 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

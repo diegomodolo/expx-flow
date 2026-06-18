@@ -7,8 +7,11 @@ CREATE OR REPLACE FUNCTION public.notify_pending_ad()
 AS $function$
 DECLARE
   v_client_name TEXT;
+
   v_headline TEXT;
+
   v_member RECORD;
+
 BEGIN
   IF (TG_OP = 'INSERT' AND NEW.status = 'pending') OR 
      (TG_OP = 'UPDATE' AND NEW.status = 'pending' AND OLD.status != 'pending') THEN
@@ -17,11 +20,13 @@ BEGIN
     FROM public.clients
     WHERE id = NEW.client_id;
 
+
     v_headline := COALESCE(
       NEW.generated_content->>'headline',
       NEW.generated_content->'ad'->>'headline',
       'Anúncio sem título'
     );
+
 
     FOR v_member IN
       SELECT user_id FROM public.company_members
@@ -54,13 +59,19 @@ BEGIN
         'ad_queue',
         NEW.id::TEXT
       );
+
     END LOOP;
+
 
   END IF;
 
+
   RETURN NEW;
+
 END;
+
 $function$;
+
 
 -- Update existing notifications with wrong URL
 UPDATE public.user_notifications 

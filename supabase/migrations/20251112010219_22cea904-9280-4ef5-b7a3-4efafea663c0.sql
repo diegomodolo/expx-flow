@@ -8,24 +8,32 @@ CREATE TABLE IF NOT EXISTS automation_settings (
   UNIQUE(company_id)
 );
 
+
 -- Enable RLS
 ALTER TABLE automation_settings ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Users can view their company automation settings"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company automation settings"
   ON automation_settings FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Admins can manage automation settings"
+DO $$ BEGIN
+  CREATE POLICY "Admins can manage automation settings"
   ON automation_settings FOR ALL
   USING (is_company_admin_or_owner(auth.uid(), company_id));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_automation_settings_updated_at ON automation_settings;
 CREATE TRIGGER update_automation_settings_updated_at
   BEFORE UPDATE ON automation_settings
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+
+
 -- Add comment for documentation
 COMMENT ON TABLE automation_settings IS 'Stores automation configuration settings per company';
+
 COMMENT ON COLUMN automation_settings.campaign_name_prefix IS 'Prefix to add to campaign names when automations make changes';

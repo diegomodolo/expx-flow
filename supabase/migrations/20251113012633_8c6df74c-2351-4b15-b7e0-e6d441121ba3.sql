@@ -14,17 +14,21 @@ CREATE TABLE IF NOT EXISTS public.sync_jobs (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_sync_jobs_client_id ON public.sync_jobs(client_id);
+
 CREATE INDEX IF NOT EXISTS idx_sync_jobs_company_id ON public.sync_jobs(company_id);
+
 CREATE INDEX IF NOT EXISTS idx_sync_jobs_status ON public.sync_jobs(status);
+
 CREATE INDEX IF NOT EXISTS idx_sync_jobs_created_at ON public.sync_jobs(created_at DESC);
+
 
 -- Enable RLS
 ALTER TABLE public.sync_jobs ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Company members can view sync jobs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view sync jobs"
   ON public.sync_jobs
   FOR SELECT
   USING (
@@ -32,8 +36,11 @@ CREATE POLICY "Company members can view sync jobs"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can insert sync jobs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can insert sync jobs"
   ON public.sync_jobs
   FOR INSERT
   WITH CHECK (
@@ -41,8 +48,11 @@ CREATE POLICY "Company members can insert sync jobs"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update sync jobs"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update sync jobs"
   ON public.sync_jobs
   FOR UPDATE
   USING (
@@ -50,16 +60,23 @@ CREATE POLICY "Company members can update sync jobs"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_sync_jobs_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
+  RETURN NEW;
+
+END;
+
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS sync_jobs_updated_at ON public.sync_jobs;
 CREATE TRIGGER sync_jobs_updated_at
   BEFORE UPDATE ON public.sync_jobs
   FOR EACH ROW

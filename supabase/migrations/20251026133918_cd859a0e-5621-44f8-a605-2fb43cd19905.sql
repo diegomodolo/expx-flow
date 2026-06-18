@@ -13,18 +13,21 @@ CREATE TABLE IF NOT EXISTS public.client_status_rules (
   UNIQUE(company_id, rule_order)
 );
 
+
 -- Enable RLS
 ALTER TABLE public.client_status_rules ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Company members can view rules"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view rules"
   ON public.client_status_rules
   FOR SELECT
   USING (company_id IN (
     SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company admins can create rules"
+DO $$ BEGIN
+  CREATE POLICY "Company admins can create rules"
   ON public.client_status_rules
   FOR INSERT
   WITH CHECK (
@@ -33,8 +36,11 @@ CREATE POLICY "Company admins can create rules"
       WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company admins can update non-default rules"
+DO $$ BEGIN
+  CREATE POLICY "Company admins can update non-default rules"
   ON public.client_status_rules
   FOR UPDATE
   USING (
@@ -43,8 +49,11 @@ CREATE POLICY "Company admins can update non-default rules"
       WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company admins can delete non-default rules"
+DO $$ BEGIN
+  CREATE POLICY "Company admins can delete non-default rules"
   ON public.client_status_rules
   FOR DELETE
   USING (
@@ -54,12 +63,14 @@ CREATE POLICY "Company admins can delete non-default rules"
       WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_client_status_rules_updated_at ON public.client_status_rules;
 CREATE TRIGGER update_client_status_rules_updated_at
   BEFORE UPDATE ON public.client_status_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Create index for performance
-CREATE INDEX idx_client_status_rules_company_order ON public.client_status_rules(company_id, rule_order) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_client_status_rules_company_order ON public.client_status_rules(company_id, rule_order) WHERE is_active = true;;

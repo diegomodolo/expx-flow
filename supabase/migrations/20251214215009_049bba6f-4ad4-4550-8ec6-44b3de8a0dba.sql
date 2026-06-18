@@ -1,8 +1,7 @@
 -- Drop the restrictive update policy
 DROP POLICY IF EXISTS "Public can update meetings in progress" ON presentation_meetings;
-
--- Create a more permissive update policy that allows status changes
-CREATE POLICY "Public can update meetings for published presentations"
+DO $$ BEGIN
+  CREATE POLICY "Public can update meetings for published presentations"
 ON presentation_meetings FOR UPDATE
 USING (
   presentation_id IN (
@@ -16,3 +15,5 @@ WITH CHECK (
     WHERE public_token IS NOT NULL AND status = 'published'
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

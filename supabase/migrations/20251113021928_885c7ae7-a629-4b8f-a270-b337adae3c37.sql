@@ -1,5 +1,5 @@
 -- Create automation_schedules table
-CREATE TABLE automation_schedules (
+CREATE TABLE IF NOT EXISTS automation_schedules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL,
   client_id UUID NOT NULL,
@@ -22,30 +22,40 @@ CREATE TABLE automation_schedules (
   
   -- Only one configuration per client
   UNIQUE(client_id)
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE automation_schedules ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Company members can view schedules"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view schedules"
   ON automation_schedules FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can manage schedules"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage schedules"
   ON automation_schedules FOR ALL
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Indexes
-CREATE INDEX idx_automation_schedules_client ON automation_schedules(client_id);
-CREATE INDEX idx_automation_schedules_company ON automation_schedules(company_id);
-CREATE INDEX idx_automation_schedules_enabled ON automation_schedules(is_enabled) WHERE is_enabled = true;
+CREATE INDEX IF NOT EXISTS idx_automation_schedules_client ON automation_schedules(client_id);;
 
--- Trigger for updated_at
+CREATE INDEX IF NOT EXISTS idx_automation_schedules_company ON automation_schedules(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_automation_schedules_enabled ON automation_schedules(is_enabled) WHERE is_enabled = true;;
+
+DROP TRIGGER IF EXISTS update_automation_schedules_updated_at ON automation_schedules;
 CREATE TRIGGER update_automation_schedules_updated_at
   BEFORE UPDATE ON automation_schedules
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+
 
 -- Function to calculate schedule times
 CREATE OR REPLACE FUNCTION calculate_schedule_times(executions INTEGER)
@@ -54,24 +64,37 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
   times TEXT[] := '{}';
+
   interval_minutes INTEGER;
+
   current_minutes INTEGER := 0;
+
   hour INTEGER;
+
   minute INTEGER;
+
 BEGIN
   -- Calculate interval in minutes
   interval_minutes := (24 * 60) / executions;
+
   
   -- Generate array of times
   FOR i IN 1..executions LOOP
     hour := current_minutes / 60;
+
     minute := current_minutes % 60;
+
     times := array_append(times, 
       LPAD(hour::TEXT, 2, '0') || ':' || LPAD(minute::TEXT, 2, '0')
     );
+
     current_minutes := current_minutes + interval_minutes;
+
   END LOOP;
+
   
   RETURN times;
+
 END;
+
 $$;

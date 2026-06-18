@@ -3,7 +3,9 @@
 ALTER TABLE public.tasks
   ADD COLUMN IF NOT EXISTS task_quality_score NUMERIC(5,2) NOT NULL DEFAULT 100;
 
+
 COMMENT ON COLUMN public.tasks.task_quality_score IS 'Qualidade da tarefa 0-100. Inicia em 100, reduz a cada rejeição pelo autorizador.';
+
 
 -- 2. Create task_review_history table
 CREATE TABLE IF NOT EXISTS public.task_review_history (
@@ -19,14 +21,17 @@ CREATE TABLE IF NOT EXISTS public.task_review_history (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+
 CREATE INDEX IF NOT EXISTS idx_task_review_history_task_id ON public.task_review_history(task_id);
+
 CREATE INDEX IF NOT EXISTS idx_task_review_history_company_id ON public.task_review_history(company_id);
+
 CREATE INDEX IF NOT EXISTS idx_task_review_history_reviewer ON public.task_review_history(reviewer_employee_id);
 
-ALTER TABLE public.task_review_history ENABLE ROW LEVEL SECURITY;
 
--- RLS: company employees can view review history
-CREATE POLICY "Company employees can view task review history"
+ALTER TABLE public.task_review_history ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Company employees can view task review history"
   ON public.task_review_history FOR SELECT
   USING (
     EXISTS (
@@ -35,9 +40,11 @@ CREATE POLICY "Company employees can view task review history"
       AND e.company_id = task_review_history.company_id
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS: company employees can insert review history
-CREATE POLICY "Company employees can insert task review history"
+DO $$ BEGIN
+  CREATE POLICY "Company employees can insert task review history"
   ON public.task_review_history FOR INSERT
   WITH CHECK (
     EXISTS (
@@ -46,13 +53,20 @@ CREATE POLICY "Company employees can insert task review history"
       AND e.company_id = task_review_history.company_id
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- 3. Add notify_task_review to discord_config
 ALTER TABLE public.discord_config
   ADD COLUMN IF NOT EXISTS notify_task_review BOOLEAN NOT NULL DEFAULT true;
 
+
 ALTER TABLE public.discord_config
   ADD COLUMN IF NOT EXISTS notify_task_rejected BOOLEAN NOT NULL DEFAULT true;
 
+
 COMMENT ON COLUMN public.discord_config.notify_task_review IS 'Notifica quando tarefa vai para revisão (alerta para autorizador)';
+
 COMMENT ON COLUMN public.discord_config.notify_task_rejected IS 'Notifica o responsável quando uma tarefa é rejeitada';

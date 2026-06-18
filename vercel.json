@@ -1,3 +1,11 @@
 {
+  "functions": {
+    "api/installer/*.ts": {
+      "includeFiles": [
+        "supabase/functions/**",
+        "api/installer/_functions-manifest.json"
+      ]
+    }
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

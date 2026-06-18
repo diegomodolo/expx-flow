@@ -1,5 +1,5 @@
 -- Create period comparisons table to store comparison requests
-CREATE TABLE public.period_comparisons (
+CREATE TABLE IF NOT EXISTS public.period_comparisons (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL,
   company_id UUID NOT NULL,
@@ -16,10 +16,10 @@ CREATE TABLE public.period_comparisons (
   error_message TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Create period comparison campaigns table
-CREATE TABLE public.period_comparison_campaigns (
+CREATE TABLE IF NOT EXISTS public.period_comparison_campaigns (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   comparison_id UUID NOT NULL REFERENCES period_comparisons(id) ON DELETE CASCADE,
   period_number INTEGER NOT NULL, -- 1 or 2
@@ -40,10 +40,10 @@ CREATE TABLE public.period_comparison_campaigns (
   engagement_rate_ranking TEXT,
   conversion_rate_ranking TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Create period comparison ad sets table
-CREATE TABLE public.period_comparison_adsets (
+CREATE TABLE IF NOT EXISTS public.period_comparison_adsets (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   comparison_id UUID NOT NULL REFERENCES period_comparisons(id) ON DELETE CASCADE,
   period_number INTEGER NOT NULL,
@@ -66,10 +66,10 @@ CREATE TABLE public.period_comparison_adsets (
   cpc NUMERIC DEFAULT 0,
   cpa NUMERIC DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Create period comparison ads table
-CREATE TABLE public.period_comparison_ads (
+CREATE TABLE IF NOT EXISTS public.period_comparison_ads (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   comparison_id UUID NOT NULL REFERENCES period_comparisons(id) ON DELETE CASCADE,
   period_number INTEGER NOT NULL,
@@ -101,45 +101,60 @@ CREATE TABLE public.period_comparison_ads (
   video_views INTEGER DEFAULT 0,
   video_view_percentage NUMERIC DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable RLS for all tables
 ALTER TABLE public.period_comparisons ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.period_comparison_campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.period_comparison_adsets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.period_comparison_ads ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies for period_comparisons
-CREATE POLICY "Company members can create period comparisons"
+ALTER TABLE public.period_comparison_campaigns ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.period_comparison_adsets ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.period_comparison_ads ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Company members can create period comparisons"
 ON public.period_comparisons
 FOR INSERT
 WITH CHECK (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view period comparisons"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view period comparisons"
 ON public.period_comparisons
 FOR SELECT
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update period comparisons"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update period comparisons"
 ON public.period_comparisons
 FOR UPDATE
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete period comparisons"
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete period comparisons"
 ON public.period_comparisons
 FOR DELETE
 USING (company_id IN (
   SELECT company_id FROM company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create RLS policies for period_comparison_campaigns
-CREATE POLICY "Company members can create period comparison campaigns"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create period comparison campaigns"
 ON public.period_comparison_campaigns
 FOR INSERT
 WITH CHECK (comparison_id IN (
@@ -148,8 +163,11 @@ WITH CHECK (comparison_id IN (
     SELECT company_id FROM company_members WHERE user_id = auth.uid()
   )
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view period comparison campaigns"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view period comparison campaigns"
 ON public.period_comparison_campaigns
 FOR SELECT
 USING (comparison_id IN (
@@ -158,9 +176,11 @@ USING (comparison_id IN (
     SELECT company_id FROM company_members WHERE user_id = auth.uid()
   )
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create RLS policies for period_comparison_adsets
-CREATE POLICY "Company members can create period comparison adsets"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create period comparison adsets"
 ON public.period_comparison_adsets
 FOR INSERT
 WITH CHECK (comparison_id IN (
@@ -169,8 +189,11 @@ WITH CHECK (comparison_id IN (
     SELECT company_id FROM company_members WHERE user_id = auth.uid()
   )
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view period comparison adsets"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view period comparison adsets"
 ON public.period_comparison_adsets
 FOR SELECT
 USING (comparison_id IN (
@@ -179,9 +202,11 @@ USING (comparison_id IN (
     SELECT company_id FROM company_members WHERE user_id = auth.uid()
   )
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Create RLS policies for period_comparison_ads
-CREATE POLICY "Company members can create period comparison ads"
+DO $$ BEGIN
+  CREATE POLICY "Company members can create period comparison ads"
 ON public.period_comparison_ads
 FOR INSERT
 WITH CHECK (comparison_id IN (
@@ -190,8 +215,11 @@ WITH CHECK (comparison_id IN (
     SELECT company_id FROM company_members WHERE user_id = auth.uid()
   )
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can view period comparison ads"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view period comparison ads"
 ON public.period_comparison_ads
 FOR SELECT
 USING (comparison_id IN (
@@ -200,18 +228,27 @@ USING (comparison_id IN (
     SELECT company_id FROM company_members WHERE user_id = auth.uid()
   )
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create indexes for better performance
-CREATE INDEX idx_period_comparisons_client_id ON period_comparisons(client_id);
-CREATE INDEX idx_period_comparisons_company_id ON period_comparisons(company_id);
-CREATE INDEX idx_period_comparison_campaigns_comparison_id ON period_comparison_campaigns(comparison_id);
-CREATE INDEX idx_period_comparison_campaigns_period ON period_comparison_campaigns(comparison_id, period_number);
-CREATE INDEX idx_period_comparison_adsets_comparison_id ON period_comparison_adsets(comparison_id);
-CREATE INDEX idx_period_comparison_adsets_period ON period_comparison_adsets(comparison_id, period_number);
-CREATE INDEX idx_period_comparison_ads_comparison_id ON period_comparison_ads(comparison_id);
-CREATE INDEX idx_period_comparison_ads_period ON period_comparison_ads(comparison_id, period_number);
+CREATE INDEX IF NOT EXISTS idx_period_comparisons_client_id ON period_comparisons(client_id);;
 
--- Add trigger for updated_at
+CREATE INDEX IF NOT EXISTS idx_period_comparisons_company_id ON period_comparisons(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_period_comparison_campaigns_comparison_id ON period_comparison_campaigns(comparison_id);;
+
+CREATE INDEX IF NOT EXISTS idx_period_comparison_campaigns_period ON period_comparison_campaigns(comparison_id, period_number);;
+
+CREATE INDEX IF NOT EXISTS idx_period_comparison_adsets_comparison_id ON period_comparison_adsets(comparison_id);;
+
+CREATE INDEX IF NOT EXISTS idx_period_comparison_adsets_period ON period_comparison_adsets(comparison_id, period_number);;
+
+CREATE INDEX IF NOT EXISTS idx_period_comparison_ads_comparison_id ON period_comparison_ads(comparison_id);;
+
+CREATE INDEX IF NOT EXISTS idx_period_comparison_ads_period ON period_comparison_ads(comparison_id, period_number);;
+
+DROP TRIGGER IF EXISTS update_period_comparisons_updated_at ON period_comparisons;
 CREATE TRIGGER update_period_comparisons_updated_at
   BEFORE UPDATE ON period_comparisons
   FOR EACH ROW

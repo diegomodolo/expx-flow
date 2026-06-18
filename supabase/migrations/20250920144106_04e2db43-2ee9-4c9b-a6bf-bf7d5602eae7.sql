@@ -1,7 +1,5 @@
--- Verificar e criar políticas RLS para o bucket lead-evidence
-
--- Política para permitir SELECT (ver arquivos) no bucket lead-evidence
-CREATE POLICY "Company members can view lead evidence files" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view lead evidence files" 
 ON storage.objects 
 FOR SELECT 
 USING (
@@ -14,9 +12,11 @@ USING (
     WHERE cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Política para permitir download/acesso aos arquivos  
-CREATE POLICY "Company members can download lead evidence files" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can download lead evidence files" 
 ON storage.objects 
 FOR SELECT 
 USING (
@@ -29,3 +29,5 @@ USING (
     WHERE cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

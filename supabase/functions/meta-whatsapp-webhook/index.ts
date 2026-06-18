@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+  type SystemConfigFacebook,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,19 +92,24 @@ Deno.serve(async (req) => {
 
   // POST: Incoming messages from Meta
   if (req.method === "POST") {
-    const appSecret = Deno.env.get("META_WHATSAPP_APP_SECRET");
-    if (!appSecret) {
-      console.error("META_WHATSAPP_APP_SECRET not configured");
-      return new Response("Server error", {
-        status: 500,
-        headers: corsHeaders,
-      });
-    }
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const fbCfg = await getSystemConfig<SystemConfigFacebook>(
+      supabaseAdmin,
+      "facebook",
+    );
+    const appSecret = resolveCredential(
+      Deno.env.get("META_WHATSAPP_APP_SECRET"),
+      fbCfg?.app_secret,
+      "Meta App Secret não configurado. Acesse Configurações > Sistema > Facebook.",
+    );
 
     const signature = req.headers.get("x-hub-signature-256");
     const rawBody = await req.text();
 
-    // Validate signature
     if (!signature || !(await verifySignature(rawBody, signature, appSecret))) {
       console.error("Invalid signature");
       return new Response("Unauthorized", {
@@ -117,11 +127,6 @@ Deno.serve(async (req) => {
     }
 
     console.log("Received webhook payload:", JSON.stringify(payload, null, 2));
-
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
 
     // Process the payload
     if (payload.object === "whatsapp_business_account") {

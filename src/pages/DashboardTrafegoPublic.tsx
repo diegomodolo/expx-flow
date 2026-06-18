@@ -1,20 +1,26 @@
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
-import { TVKPIHeader } from '@/components/tv-dashboard/TVKPIHeader';
-import { TVAlertsList } from '@/components/tv-dashboard/TVAlertsList';
-import { TVCampaignRanking } from '@/components/tv-dashboard/TVCampaignRanking';
-import { TVClientsOnAlert } from '@/components/tv-dashboard/TVClientsOnAlert';
-import { TVControls } from '@/components/tv-dashboard/TVControls';
-import { TVTopClients } from '@/components/tv-dashboard/TVTopClients';
-import { TVWorstCampaigns } from '@/components/tv-dashboard/TVWorstCampaigns';
-import { TVBudgetAlerts } from '@/components/tv-dashboard/TVBudgetAlerts';
-import { TVPlatformChart } from '@/components/tv-dashboard/TVPlatformChart';
-import { TVConversionMetrics } from '@/components/tv-dashboard/TVConversionMetrics';
-import { TVInactiveClients } from '@/components/tv-dashboard/TVInactiveClients';
-import { TVProblematicUrls } from '@/components/tv-dashboard/TVProblematicUrls';
-import type { TVMetrics, TVAlert, TVCampaign, TVClient } from '@/hooks/useTrafegoDashboard';
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { functionUrl } from "@/integrations/supabase/runtime";
+import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { TVKPIHeader } from "@/components/tv-dashboard/TVKPIHeader";
+import { TVAlertsList } from "@/components/tv-dashboard/TVAlertsList";
+import { TVCampaignRanking } from "@/components/tv-dashboard/TVCampaignRanking";
+import { TVClientsOnAlert } from "@/components/tv-dashboard/TVClientsOnAlert";
+import { TVControls } from "@/components/tv-dashboard/TVControls";
+import { TVTopClients } from "@/components/tv-dashboard/TVTopClients";
+import { TVWorstCampaigns } from "@/components/tv-dashboard/TVWorstCampaigns";
+import { TVBudgetAlerts } from "@/components/tv-dashboard/TVBudgetAlerts";
+import { TVPlatformChart } from "@/components/tv-dashboard/TVPlatformChart";
+import { TVConversionMetrics } from "@/components/tv-dashboard/TVConversionMetrics";
+import { TVInactiveClients } from "@/components/tv-dashboard/TVInactiveClients";
+import { TVProblematicUrls } from "@/components/tv-dashboard/TVProblematicUrls";
+import type {
+  TVMetrics,
+  TVAlert,
+  TVCampaign,
+  TVClient,
+} from "@/hooks/useTrafegoDashboard";
 
 interface TVDashboardResponse {
   company: {
@@ -101,8 +107,8 @@ interface TVDashboardResponse {
     id: string;
     name: string;
     avatar: string | null;
-    category: 'saldo' | 'gasto';
-    severity: 'critical' | 'warning';
+    category: "saldo" | "gasto";
+    severity: "critical" | "warning";
     balance: number;
     spend: number;
     budget: number;
@@ -129,7 +135,7 @@ interface TVDashboardResponse {
     url: string;
     clientName: string;
     clientAvatar: string | null;
-    status: 'error' | 'timeout';
+    status: "error" | "timeout";
     statusCode: number | null;
     activeCampaigns: number;
   }>;
@@ -153,21 +159,21 @@ export default function DashboardTrafegoPublic() {
   };
 
   const { data, isLoading, error, isFetching, refetch } = useQuery({
-    queryKey: ['tv-dashboard-public', token],
+    queryKey: ["tv-dashboard-public", token],
     queryFn: async (): Promise<TVDashboardResponse> => {
       const response = await fetch(
-        `https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/tv-dashboard-data?token=${token}`,
+        `${functionUrl("tv-dashboard-data")}?token=${token}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao carregar dados');
+        throw new Error(errorData.error || "Erro ao carregar dados");
       }
 
       return response.json();
@@ -189,8 +195,12 @@ export default function DashboardTrafegoPublic() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-16 h-16 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Token não fornecido</h1>
-          <p className="text-muted-foreground">Por favor, acesse o dashboard através de um link válido.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Token não fornecido
+          </h1>
+          <p className="text-muted-foreground">
+            Por favor, acesse o dashboard através de um link válido.
+          </p>
         </div>
       </div>
     );
@@ -201,7 +211,9 @@ export default function DashboardTrafegoPublic() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-xl text-muted-foreground">Carregando dashboard...</p>
+          <p className="text-xl text-muted-foreground">
+            Carregando dashboard...
+          </p>
         </div>
       </div>
     );
@@ -212,8 +224,12 @@ export default function DashboardTrafegoPublic() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-16 h-16 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Erro ao carregar dashboard</h1>
-          <p className="text-muted-foreground mb-4">{(error as Error).message}</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Erro ao carregar dashboard
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            {(error as Error).message}
+          </p>
           <button
             onClick={() => refetch()}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
@@ -243,29 +259,37 @@ export default function DashboardTrafegoPublic() {
     ctrChange: data.metrics.ctrChange,
   };
 
-  const alerts: Array<TVAlert & { clientAvatar?: string | null }> = data.alerts.map(a => {
-    const type: TVAlert['type'] =
-      a.type === 'high_cpa' ? 'danger' : a.type === 'low_ctr' ? 'warning' : 'opportunity';
+  const alerts: Array<TVAlert & { clientAvatar?: string | null }> =
+    data.alerts.map((a) => {
+      const type: TVAlert["type"] =
+        a.type === "high_cpa"
+          ? "danger"
+          : a.type === "low_ctr"
+            ? "warning"
+            : "opportunity";
 
-    return {
-      id: a.id,
-      type,
-      title: a.title,
-      description: a.description,
-      clientName: a.clientName || 'Cliente',
-      clientAvatar: a.clientAvatar || null,
-      campaignName: a.campaignName || 'Campanha',
-      metric: a.type === 'high_cpa' || a.type === 'scale_opportunity' ? 'CPA' : 'CTR',
-      value: a.value || a.description,
-    };
-  });
+      return {
+        id: a.id,
+        type,
+        title: a.title,
+        description: a.description,
+        clientName: a.clientName || "Cliente",
+        clientAvatar: a.clientAvatar || null,
+        campaignName: a.campaignName || "Campanha",
+        metric:
+          a.type === "high_cpa" || a.type === "scale_opportunity"
+            ? "CPA"
+            : "CTR",
+        value: a.value || a.description,
+      };
+    });
 
-  const campaigns = data.campaigns.map(c => ({
+  const campaigns = data.campaigns.map((c) => ({
     id: c.id,
     name: c.name,
-    clientName: c.clientName || 'Cliente',
+    clientName: c.clientName || "Cliente",
     clientAvatar: c.clientAvatar || null,
-    clientId: c.clientId || '',
+    clientId: c.clientId || "",
     spend: c.spend,
     conversions: c.leads,
     cpa: c.cpa,
@@ -273,7 +297,7 @@ export default function DashboardTrafegoPublic() {
     status: c.status,
   }));
 
-  const clients = data.clientsOnAlert.map(c => ({
+  const clients = data.clientsOnAlert.map((c) => ({
     id: c.id,
     name: c.name,
     status: c.status,
@@ -282,7 +306,7 @@ export default function DashboardTrafegoPublic() {
     avgCpl: c.avgCpl || 0,
     avatar: c.avatar || null,
     isAccountRestricted: c.isAccountRestricted || false,
-    accountRestrictionReason: c.accountRestrictionReason || '',
+    accountRestrictionReason: c.accountRestrictionReason || "",
   }));
 
   const topClients = data.topClients || [];
@@ -295,9 +319,9 @@ export default function DashboardTrafegoPublic() {
   return (
     <div className="h-screen bg-background overflow-hidden">
       {/* Zoomable container */}
-      <div 
+      <div
         className="h-full flex flex-col origin-top-left"
-        style={{ 
+        style={{
           transform: `scale(${zoom / 100})`,
           width: `${10000 / zoom}%`,
           height: `${10000 / zoom}%`,
@@ -306,7 +330,9 @@ export default function DashboardTrafegoPublic() {
         {/* Header with company name - compact */}
         <div className="bg-card border-b border-border px-4 py-1.5 shrink-0">
           <div className="flex items-center justify-between">
-            <h1 className="text-base font-bold text-foreground">{data.company.name}</h1>
+            <h1 className="text-base font-bold text-foreground">
+              {data.company.name}
+            </h1>
             <span className="text-xs text-muted-foreground">Dashboard TV</span>
           </div>
         </div>
@@ -315,9 +341,9 @@ export default function DashboardTrafegoPublic() {
         <div className="flex-1 p-2 flex flex-col gap-2 overflow-hidden">
           {/* Row 1: KPI Header */}
           <div className="shrink-0">
-            <TVKPIHeader 
-              metrics={metrics} 
-              lastSync={data.lastSync} 
+            <TVKPIHeader
+              metrics={metrics}
+              lastSync={data.lastSync}
               syncInfo={data.syncInfo}
             />
           </div>
@@ -346,7 +372,7 @@ export default function DashboardTrafegoPublic() {
           {/* Row 4: Platform Chart, Conversion Metrics, Inactive Clients */}
           <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
             <TVPlatformChart data={platformData} />
-            <TVConversionMetrics 
+            <TVConversionMetrics
               conversionRate={data.metrics.conversionRate || 0}
               totalClicks={data.metrics.totalClicks || 0}
               totalLeads={data.metrics.totalLeads || 0}

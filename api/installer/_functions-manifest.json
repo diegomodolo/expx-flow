@@ -1,0 +1,1399 @@
+{
+  "functionsRoot": "supabase/functions",
+  "generatedAt": "2026-06-18T18:22:48.180Z",
+  "count": 232,
+  "functions": [
+    {
+      "name": "add-existing-user",
+      "entrypoint": "add-existing-user/index.ts",
+      "files": ["add-existing-user/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "agent-task-executor",
+      "entrypoint": "agent-task-executor/index.ts",
+      "files": ["agent-task-executor/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "ai-chat",
+      "entrypoint": "ai-chat/index.ts",
+      "files": ["ai-chat/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "analyze-ad-winners",
+      "entrypoint": "analyze-ad-winners/index.ts",
+      "files": ["analyze-ad-winners/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "analyze-carousel-from-url",
+      "entrypoint": "analyze-carousel-from-url/index.ts",
+      "files": ["analyze-carousel-from-url/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "analyze-carousel-slides",
+      "entrypoint": "analyze-carousel-slides/index.ts",
+      "files": ["analyze-carousel-slides/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "analyze-competitor-insights",
+      "entrypoint": "analyze-competitor-insights/index.ts",
+      "files": ["analyze-competitor-insights/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "analyze-creative-caption",
+      "entrypoint": "analyze-creative-caption/index.ts",
+      "files": ["analyze-creative-caption/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "analyze-url-content",
+      "entrypoint": "analyze-url-content/index.ts",
+      "files": ["analyze-url-content/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "analyze-youtube-channel",
+      "entrypoint": "analyze-youtube-channel/index.ts",
+      "files": ["analyze-youtube-channel/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "api4com-webhook",
+      "entrypoint": "api4com-webhook/index.ts",
+      "files": ["api4com-webhook/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "archive-whatsapp-chat",
+      "entrypoint": "archive-whatsapp-chat/index.ts",
+      "files": ["archive-whatsapp-chat/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "auto-report-error",
+      "entrypoint": "auto-report-error/index.ts",
+      "files": ["auto-report-error/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "autopilot-publisher",
+      "entrypoint": "autopilot-publisher/index.ts",
+      "files": ["autopilot-publisher/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "block-whatsapp-contact",
+      "entrypoint": "block-whatsapp-contact/index.ts",
+      "files": ["block-whatsapp-contact/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "calculate-cs-health-scores",
+      "entrypoint": "calculate-cs-health-scores/index.ts",
+      "files": ["calculate-cs-health-scores/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "check-adset-account-mismatches",
+      "entrypoint": "check-adset-account-mismatches/index.ts",
+      "files": ["check-adset-account-mismatches/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "check-cs-milestones",
+      "entrypoint": "check-cs-milestones/index.ts",
+      "files": ["check-cs-milestones/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "check-facebook-scopes",
+      "entrypoint": "check-facebook-scopes/index.ts",
+      "files": ["check-facebook-scopes/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "check-rss-feeds",
+      "entrypoint": "check-rss-feeds/index.ts",
+      "files": ["check-rss-feeds/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "check-user",
+      "entrypoint": "check-user/index.ts",
+      "files": ["check-user/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "client-dashboard-data",
+      "entrypoint": "client-dashboard-data/index.ts",
+      "files": ["client-dashboard-data/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "configure-telegram-webhook",
+      "entrypoint": "configure-telegram-webhook/index.ts",
+      "files": ["configure-telegram-webhook/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "configure-uazapi-webhook",
+      "entrypoint": "configure-uazapi-webhook/index.ts",
+      "files": ["configure-uazapi-webhook/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "content-plan-chat",
+      "entrypoint": "content-plan-chat/index.ts",
+      "files": ["content-plan-chat/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "copy-external-image",
+      "entrypoint": "copy-external-image/index.ts",
+      "files": ["copy-external-image/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-clip-job",
+      "entrypoint": "create-clip-job/index.ts",
+      "files": ["create-clip-job/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "create-crm-workspace",
+      "entrypoint": "create-crm-workspace/index.ts",
+      "files": ["create-crm-workspace/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-employee-user",
+      "entrypoint": "create-employee-user/index.ts",
+      "files": ["create-employee-user/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-facebook-campaign",
+      "entrypoint": "create-facebook-campaign/index.ts",
+      "files": ["create-facebook-campaign/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-github-issue",
+      "entrypoint": "create-github-issue/index.ts",
+      "files": ["create-github-issue/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-meta-ad",
+      "entrypoint": "create-meta-ad/index.ts",
+      "files": ["create-meta-ad/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-meta-adset",
+      "entrypoint": "create-meta-adset/index.ts",
+      "files": ["create-meta-adset/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-meta-campaign-full",
+      "entrypoint": "create-meta-campaign-full/index.ts",
+      "files": ["create-meta-campaign-full/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "create-uazapi-instance",
+      "entrypoint": "create-uazapi-instance/index.ts",
+      "files": ["create-uazapi-instance/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "crm-auth",
+      "entrypoint": "crm-auth/index.ts",
+      "files": ["crm-auth/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "cs-tv-dashboard-data",
+      "entrypoint": "cs-tv-dashboard-data/index.ts",
+      "files": ["cs-tv-dashboard-data/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-ad-generator",
+      "entrypoint": "daily-ad-generator/index.ts",
+      "files": ["daily-ad-generator/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-ad-generator-scheduler",
+      "entrypoint": "daily-ad-generator-scheduler/index.ts",
+      "files": ["daily-ad-generator-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-carousel-generator",
+      "entrypoint": "daily-carousel-generator/index.ts",
+      "files": ["daily-carousel-generator/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-carousel-generator-scheduler",
+      "entrypoint": "daily-carousel-generator-scheduler/index.ts",
+      "files": ["daily-carousel-generator-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-carousel-generator-stream",
+      "entrypoint": "daily-carousel-generator-stream/index.ts",
+      "files": ["daily-carousel-generator-stream/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-creative-generator",
+      "entrypoint": "daily-creative-generator/index.ts",
+      "files": ["daily-creative-generator/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-creative-generator-scheduler",
+      "entrypoint": "daily-creative-generator-scheduler/index.ts",
+      "files": ["daily-creative-generator-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "daily-performance-snapshot",
+      "entrypoint": "daily-performance-snapshot/index.ts",
+      "files": ["daily-performance-snapshot/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "delete-instagram-post",
+      "entrypoint": "delete-instagram-post/index.ts",
+      "files": ["delete-instagram-post/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "delete-tree-entity",
+      "entrypoint": "delete-tree-entity/index.ts",
+      "files": ["delete-tree-entity/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "delete-whatsapp-chat",
+      "entrypoint": "delete-whatsapp-chat/index.ts",
+      "files": ["delete-whatsapp-chat/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "delete-whatsapp-message",
+      "entrypoint": "delete-whatsapp-message/index.ts",
+      "files": ["delete-whatsapp-message/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "deploy-skill-function",
+      "entrypoint": "deploy-skill-function/index.ts",
+      "files": ["deploy-skill-function/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "discord-bot",
+      "entrypoint": "discord-bot/index.ts",
+      "files": ["discord-bot/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "dm-agent-responder",
+      "entrypoint": "dm-agent-responder/index.ts",
+      "files": ["dm-agent-responder/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "download-whatsapp-media",
+      "entrypoint": "download-whatsapp-media/index.ts",
+      "files": ["download-whatsapp-media/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "duplicate-tree-entity",
+      "entrypoint": "duplicate-tree-entity/index.ts",
+      "files": ["duplicate-tree-entity/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "edit-whatsapp-label",
+      "entrypoint": "edit-whatsapp-label/index.ts",
+      "files": ["edit-whatsapp-label/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "edit-whatsapp-message",
+      "entrypoint": "edit-whatsapp-message/index.ts",
+      "files": ["edit-whatsapp-message/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "execute-automation-recommendation",
+      "entrypoint": "execute-automation-recommendation/index.ts",
+      "files": ["execute-automation-recommendation/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "execute-campaign-automations",
+      "entrypoint": "execute-campaign-automations/index.ts",
+      "files": ["execute-campaign-automations/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "execute-skill",
+      "entrypoint": "execute-skill/index.ts",
+      "files": ["execute-skill/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "export-to-google-slides",
+      "entrypoint": "export-to-google-slides/index.ts",
+      "files": ["export-to-google-slides/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "extract-image-text",
+      "entrypoint": "extract-image-text/index.ts",
+      "files": ["extract-image-text/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "facebook-oauth",
+      "entrypoint": "facebook-oauth/index.ts",
+      "files": ["facebook-oauth/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "facebook-sync-scheduler",
+      "entrypoint": "facebook-sync-scheduler/index.ts",
+      "files": ["facebook-sync-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "fetch-creative-references",
+      "entrypoint": "fetch-creative-references/index.ts",
+      "files": ["fetch-creative-references/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-facebook-pages",
+      "entrypoint": "fetch-facebook-pages/index.ts",
+      "files": ["fetch-facebook-pages/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-github-issue-status",
+      "entrypoint": "fetch-github-issue-status/index.ts",
+      "files": ["fetch-github-issue-status/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-instagram-carousel-children",
+      "entrypoint": "fetch-instagram-carousel-children/index.ts",
+      "files": ["fetch-instagram-carousel-children/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-instagram-media",
+      "entrypoint": "fetch-instagram-media/index.ts",
+      "files": ["fetch-instagram-media/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-instagram-profile-picture",
+      "entrypoint": "fetch-instagram-profile-picture/index.ts",
+      "files": ["fetch-instagram-profile-picture/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-meta-videos",
+      "entrypoint": "fetch-meta-videos/index.ts",
+      "files": ["fetch-meta-videos/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-realtime-metrics",
+      "entrypoint": "fetch-realtime-metrics/index.ts",
+      "files": ["fetch-realtime-metrics/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "fetch-webpage-content",
+      "entrypoint": "fetch-webpage-content/index.ts",
+      "files": ["fetch-webpage-content/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-whatsapp-blocklist",
+      "entrypoint": "fetch-whatsapp-blocklist/index.ts",
+      "files": ["fetch-whatsapp-blocklist/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-whatsapp-groups",
+      "entrypoint": "fetch-whatsapp-groups/index.ts",
+      "files": ["fetch-whatsapp-groups/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-whatsapp-labels",
+      "entrypoint": "fetch-whatsapp-labels/index.ts",
+      "files": ["fetch-whatsapp-labels/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-whatsapp-messages",
+      "entrypoint": "fetch-whatsapp-messages/index.ts",
+      "files": ["fetch-whatsapp-messages/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "fetch-whatsapp-quick-replies",
+      "entrypoint": "fetch-whatsapp-quick-replies/index.ts",
+      "files": ["fetch-whatsapp-quick-replies/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-ai-campaign",
+      "entrypoint": "generate-ai-campaign/index.ts",
+      "files": ["generate-ai-campaign/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-ai-campaign-image",
+      "entrypoint": "generate-ai-campaign-image/index.ts",
+      "files": ["generate-ai-campaign-image/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-campaign-analysis",
+      "entrypoint": "generate-campaign-analysis/index.ts",
+      "files": ["generate-campaign-analysis/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-campaign-creatives",
+      "entrypoint": "generate-campaign-creatives/index.ts",
+      "files": ["generate-campaign-creatives/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-campaign-presentation-analysis",
+      "entrypoint": "generate-campaign-presentation-analysis/index.ts",
+      "files": ["generate-campaign-presentation-analysis/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-campaign-recommendation",
+      "entrypoint": "generate-campaign-recommendation/index.ts",
+      "files": ["generate-campaign-recommendation/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-campaign-strategy",
+      "entrypoint": "generate-campaign-strategy/index.ts",
+      "files": ["generate-campaign-strategy/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-carousel-caption",
+      "entrypoint": "generate-carousel-caption/index.ts",
+      "files": ["generate-carousel-caption/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-carousel-prompt",
+      "entrypoint": "generate-carousel-prompt/index.ts",
+      "files": ["generate-carousel-prompt/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-carousel-slide-image-prompt",
+      "entrypoint": "generate-carousel-slide-image-prompt/index.ts",
+      "files": ["generate-carousel-slide-image-prompt/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-client-briefing",
+      "entrypoint": "generate-client-briefing/index.ts",
+      "files": ["generate-client-briefing/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-client-suggestions",
+      "entrypoint": "generate-client-suggestions/index.ts",
+      "files": ["generate-client-suggestions/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-content-ai",
+      "entrypoint": "generate-content-ai/index.ts",
+      "files": ["generate-content-ai/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-creative-context",
+      "entrypoint": "generate-creative-context/index.ts",
+      "files": ["generate-creative-context/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-creative-suggestions",
+      "entrypoint": "generate-creative-suggestions/index.ts",
+      "files": ["generate-creative-suggestions/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-creative-texts",
+      "entrypoint": "generate-creative-texts/index.ts",
+      "files": ["generate-creative-texts/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-creative-variations",
+      "entrypoint": "generate-creative-variations/index.ts",
+      "files": ["generate-creative-variations/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-element",
+      "entrypoint": "generate-element/index.ts",
+      "files": ["generate-element/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "generate-groupops-template",
+      "entrypoint": "generate-groupops-template/index.ts",
+      "files": ["generate-groupops-template/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "generate-image-ai",
+      "entrypoint": "generate-image-ai/index.ts",
+      "files": ["generate-image-ai/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-instagram-auto-post",
+      "entrypoint": "generate-instagram-auto-post/index.ts",
+      "files": ["generate-instagram-auto-post/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-presentation-slides",
+      "entrypoint": "generate-presentation-slides/index.ts",
+      "files": ["generate-presentation-slides/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-recurring-tasks",
+      "entrypoint": "generate-recurring-tasks/index.ts",
+      "files": ["generate-recurring-tasks/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "generate-reels-video",
+      "entrypoint": "generate-reels-video/index.ts",
+      "files": ["generate-reels-video/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-research-themes",
+      "entrypoint": "generate-research-themes/index.ts",
+      "files": ["generate-research-themes/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-rss-post",
+      "entrypoint": "generate-rss-post/index.ts",
+      "files": ["generate-rss-post/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-skill-ai",
+      "entrypoint": "generate-skill-ai/index.ts",
+      "files": ["generate-skill-ai/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "generate-slide-design",
+      "entrypoint": "generate-slide-design/index.ts",
+      "files": ["generate-slide-design/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-slide-image",
+      "entrypoint": "generate-slide-image/index.ts",
+      "files": ["generate-slide-image/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-video-creative",
+      "entrypoint": "generate-video-creative/index.ts",
+      "files": ["generate-video-creative/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-video-script",
+      "entrypoint": "generate-video-script/index.ts",
+      "files": ["generate-video-script/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-video-suggestions",
+      "entrypoint": "generate-video-suggestions/index.ts",
+      "files": ["generate-video-suggestions/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-visual-creative",
+      "entrypoint": "generate-visual-creative/index.ts",
+      "files": ["generate-visual-creative/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-weekly-insights",
+      "entrypoint": "generate-weekly-insights/index.ts",
+      "files": ["generate-weekly-insights/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "generate-wordpress-auto-post",
+      "entrypoint": "generate-wordpress-auto-post/index.ts",
+      "files": ["generate-wordpress-auto-post/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-youtube-description",
+      "entrypoint": "generate-youtube-description/index.ts",
+      "files": ["generate-youtube-description/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-youtube-thumbnail",
+      "entrypoint": "generate-youtube-thumbnail/index.ts",
+      "files": ["generate-youtube-thumbnail/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "generate-youtube-titles",
+      "entrypoint": "generate-youtube-titles/index.ts",
+      "files": ["generate-youtube-titles/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "get-clip-job-status",
+      "entrypoint": "get-clip-job-status/index.ts",
+      "files": ["get-clip-job-status/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "get-openrouter-models",
+      "entrypoint": "get-openrouter-models/index.ts",
+      "files": ["get-openrouter-models/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "get-uazapi-qrcode",
+      "entrypoint": "get-uazapi-qrcode/index.ts",
+      "files": ["get-uazapi-qrcode/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "google-ads-fetch-account",
+      "entrypoint": "google-ads-fetch-account/index.ts",
+      "files": ["google-ads-fetch-account/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "google-ads-keyword-planner",
+      "entrypoint": "google-ads-keyword-planner/index.ts",
+      "files": ["google-ads-keyword-planner/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "google-ads-oauth",
+      "entrypoint": "google-ads-oauth/index.ts",
+      "files": ["google-ads-oauth/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "google-ads-sync-scheduler",
+      "entrypoint": "google-ads-sync-scheduler/index.ts",
+      "files": ["google-ads-sync-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "google-meet-check-transcript",
+      "entrypoint": "google-meet-check-transcript/index.ts",
+      "files": ["google-meet-check-transcript/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "google-meet-create",
+      "entrypoint": "google-meet-create/index.ts",
+      "files": ["google-meet-create/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "google-meet-oauth",
+      "entrypoint": "google-meet-oauth/index.ts",
+      "files": ["google-meet-oauth/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "google-meet-process-summary",
+      "entrypoint": "google-meet-process-summary/index.ts",
+      "files": ["google-meet-process-summary/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "google-trends",
+      "entrypoint": "google-trends/index.ts",
+      "files": ["google-trends/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "groupops-campaign-cron",
+      "entrypoint": "groupops-campaign-cron/index.ts",
+      "files": ["groupops-campaign-cron/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "groupops-sync-history",
+      "entrypoint": "groupops-sync-history/index.ts",
+      "files": ["groupops-sync-history/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "ia-agent-chat",
+      "entrypoint": "ia-agent-chat/index.ts",
+      "files": ["ia-agent-chat/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "import-campaign-urls",
+      "entrypoint": "import-campaign-urls/index.ts",
+      "files": ["import-campaign-urls/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "initiate-voice-call",
+      "entrypoint": "initiate-voice-call/index.ts",
+      "files": ["initiate-voice-call/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "instagram-auto-post-scheduler",
+      "entrypoint": "instagram-auto-post-scheduler/index.ts",
+      "files": ["instagram-auto-post-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "instagram-automation-executor",
+      "entrypoint": "instagram-automation-executor/index.ts",
+      "files": ["instagram-automation-executor/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "instagram-messaging-webhook",
+      "entrypoint": "instagram-messaging-webhook/index.ts",
+      "files": ["instagram-messaging-webhook/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "invite-employee",
+      "entrypoint": "invite-employee/index.ts",
+      "files": ["invite-employee/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "invite-with-magic-link",
+      "entrypoint": "invite-with-magic-link/index.ts",
+      "files": ["invite-with-magic-link/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "lead-capture-api",
+      "entrypoint": "lead-capture-api/index.ts",
+      "files": ["lead-capture-api/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "lead-conversion-api",
+      "entrypoint": "lead-conversion-api/index.ts",
+      "files": ["lead-conversion-api/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "listacnae-integration",
+      "entrypoint": "listacnae-integration/index.ts",
+      "files": ["listacnae-integration/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-audience-users",
+      "entrypoint": "manage-audience-users/index.ts",
+      "files": ["manage-audience-users/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-automation-schedule",
+      "entrypoint": "manage-automation-schedule/index.ts",
+      "files": ["manage-automation-schedule/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-facebook-campaign",
+      "entrypoint": "manage-facebook-campaign/index.ts",
+      "files": ["manage-facebook-campaign/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-facebook-sync-schedule",
+      "entrypoint": "manage-facebook-sync-schedule/index.ts",
+      "files": ["manage-facebook-sync-schedule/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-google-ads-sync-schedule",
+      "entrypoint": "manage-google-ads-sync-schedule/index.ts",
+      "files": ["manage-google-ads-sync-schedule/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-meta-audiences",
+      "entrypoint": "manage-meta-audiences/index.ts",
+      "files": ["manage-meta-audiences/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-meta-pixels",
+      "entrypoint": "manage-meta-pixels/index.ts",
+      "files": ["manage-meta-pixels/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-whatsapp-chat-labels",
+      "entrypoint": "manage-whatsapp-chat-labels/index.ts",
+      "files": ["manage-whatsapp-chat-labels/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-whatsapp-instance",
+      "entrypoint": "manage-whatsapp-instance/index.ts",
+      "files": ["manage-whatsapp-instance/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "manage-whatsapp-quick-reply",
+      "entrypoint": "manage-whatsapp-quick-reply/index.ts",
+      "files": ["manage-whatsapp-quick-reply/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "mark-whatsapp-read",
+      "entrypoint": "mark-whatsapp-read/index.ts",
+      "files": ["mark-whatsapp-read/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "master-automation-scheduler",
+      "entrypoint": "master-automation-scheduler/index.ts",
+      "files": ["master-automation-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "meta-whatsapp-webhook",
+      "entrypoint": "meta-whatsapp-webhook/index.ts",
+      "files": ["meta-whatsapp-webhook/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "monitor-cs-alerts",
+      "entrypoint": "monitor-cs-alerts/index.ts",
+      "files": ["monitor-cs-alerts/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "move-crm-lead",
+      "entrypoint": "move-crm-lead/index.ts",
+      "files": ["move-crm-lead/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "mute-whatsapp-chat",
+      "entrypoint": "mute-whatsapp-chat/index.ts",
+      "files": ["mute-whatsapp-chat/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "notify-user-new-company",
+      "entrypoint": "notify-user-new-company/index.ts",
+      "files": ["notify-user-new-company/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "organize-tasks-with-ai",
+      "entrypoint": "organize-tasks-with-ai/index.ts",
+      "files": ["organize-tasks-with-ai/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "pin-whatsapp-chat",
+      "entrypoint": "pin-whatsapp-chat/index.ts",
+      "files": ["pin-whatsapp-chat/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "prioritize-notification",
+      "entrypoint": "prioritize-notification/index.ts",
+      "files": ["prioritize-notification/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "process-lead-disqualification-report",
+      "entrypoint": "process-lead-disqualification-report/index.ts",
+      "files": ["process-lead-disqualification-report/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "process-recovery-triggers",
+      "entrypoint": "process-recovery-triggers/index.ts",
+      "files": ["process-recovery-triggers/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "process-task-review",
+      "entrypoint": "process-task-review/index.ts",
+      "files": ["process-task-review/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "process-whatsapp-notifications",
+      "entrypoint": "process-whatsapp-notifications/index.ts",
+      "files": ["process-whatsapp-notifications/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "prospect-apify-maps",
+      "entrypoint": "prospect-apify-maps/index.ts",
+      "files": ["prospect-apify-maps/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "prospect-google-leads",
+      "entrypoint": "prospect-google-leads/index.ts",
+      "files": ["prospect-google-leads/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "prospect-instagram-followers",
+      "entrypoint": "prospect-instagram-followers/index.ts",
+      "files": ["prospect-instagram-followers/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "proxy-external-image",
+      "entrypoint": "proxy-external-image/index.ts",
+      "files": ["proxy-external-image/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "public-content-review",
+      "entrypoint": "public-content-review/index.ts",
+      "files": ["public-content-review/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "publish-approved-ads",
+      "entrypoint": "publish-approved-ads/index.ts",
+      "files": ["publish-approved-ads/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "publish-instagram-auto-post",
+      "entrypoint": "publish-instagram-auto-post/index.ts",
+      "files": ["publish-instagram-auto-post/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "publish-scheduled-post",
+      "entrypoint": "publish-scheduled-post/index.ts",
+      "files": ["publish-scheduled-post/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "publish-wordpress-auto-post",
+      "entrypoint": "publish-wordpress-auto-post/index.ts",
+      "files": ["publish-wordpress-auto-post/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "radar-tv-dashboard-data",
+      "entrypoint": "radar-tv-dashboard-data/index.ts",
+      "files": ["radar-tv-dashboard-data/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "recalculate-client-statuses",
+      "entrypoint": "recalculate-client-statuses/index.ts",
+      "files": ["recalculate-client-statuses/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "refine-script-chat",
+      "entrypoint": "refine-script-chat/index.ts",
+      "files": ["refine-script-chat/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "refresh-account-balance",
+      "entrypoint": "refresh-account-balance/index.ts",
+      "files": ["refresh-account-balance/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "regenerate-carousel-images",
+      "entrypoint": "regenerate-carousel-images/index.ts",
+      "files": ["regenerate-carousel-images/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "regenerate-carousel-slides",
+      "entrypoint": "regenerate-carousel-slides/index.ts",
+      "files": ["regenerate-carousel-slides/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "resend-employee-invite",
+      "entrypoint": "resend-employee-invite/index.ts",
+      "files": ["resend-employee-invite/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "reset-employee-password",
+      "entrypoint": "reset-employee-password/index.ts",
+      "files": ["reset-employee-password/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "rollback-automation-action",
+      "entrypoint": "rollback-automation-action/index.ts",
+      "files": ["rollback-automation-action/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "roteiro-from-source",
+      "entrypoint": "roteiro-from-source/index.ts",
+      "files": ["roteiro-from-source/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "schedule-post",
+      "entrypoint": "schedule-post/index.ts",
+      "files": ["schedule-post/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "scheduled-automation-execution",
+      "entrypoint": "scheduled-automation-execution/index.ts",
+      "files": ["scheduled-automation-execution/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "scheduled-post-publisher",
+      "entrypoint": "scheduled-post-publisher/index.ts",
+      "files": ["scheduled-post-publisher/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "score-generated-ad",
+      "entrypoint": "score-generated-ad/index.ts",
+      "files": ["score-generated-ad/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "scrape-competitor-ads",
+      "entrypoint": "scrape-competitor-ads/index.ts",
+      "files": ["scrape-competitor-ads/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "search-meta-interests",
+      "entrypoint": "search-meta-interests/index.ts",
+      "files": ["search-meta-interests/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "search-pexels-photos",
+      "entrypoint": "search-pexels-photos/index.ts",
+      "files": ["search-pexels-photos/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "send-instagram-message",
+      "entrypoint": "send-instagram-message/index.ts",
+      "files": ["send-instagram-message/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "send-offline-conversion",
+      "entrypoint": "send-offline-conversion/index.ts",
+      "files": ["send-offline-conversion/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "send-pixel-event",
+      "entrypoint": "send-pixel-event/index.ts",
+      "files": ["send-pixel-event/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "send-poll",
+      "entrypoint": "send-poll/index.ts",
+      "files": ["send-poll/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "send-presentation-summary",
+      "entrypoint": "send-presentation-summary/index.ts",
+      "files": ["send-presentation-summary/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "send-whatsapp-media",
+      "entrypoint": "send-whatsapp-media/index.ts",
+      "files": ["send-whatsapp-media/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "send-whatsapp-notification",
+      "entrypoint": "send-whatsapp-notification/index.ts",
+      "files": ["send-whatsapp-notification/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "send-whatsapp-reaction",
+      "entrypoint": "send-whatsapp-reaction/index.ts",
+      "files": ["send-whatsapp-reaction/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "setup-cron-jobs",
+      "entrypoint": "setup-cron-jobs/index.ts",
+      "files": ["setup-cron-jobs/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "shotstack-webhook",
+      "entrypoint": "shotstack-webhook/index.ts",
+      "files": ["shotstack-webhook/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "social-tv-dashboard-data",
+      "entrypoint": "social-tv-dashboard-data/index.ts",
+      "files": ["social-tv-dashboard-data/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "squad-orchestrator",
+      "entrypoint": "squad-orchestrator/index.ts",
+      "files": ["squad-orchestrator/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "start-automation-execution",
+      "entrypoint": "start-automation-execution/index.ts",
+      "files": ["start-automation-execution/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "super-admin",
+      "entrypoint": "super-admin/index.ts",
+      "files": ["super-admin/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "sync-facebook-campaigns",
+      "entrypoint": "sync-facebook-campaigns/index.ts",
+      "files": ["sync-facebook-campaigns/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "sync-google-ads-campaigns",
+      "entrypoint": "sync-google-ads-campaigns/index.ts",
+      "files": ["sync-google-ads-campaigns/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "sync-groupops-members",
+      "entrypoint": "sync-groupops-members/index.ts",
+      "files": ["sync-groupops-members/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "sync-period-comparison",
+      "entrypoint": "sync-period-comparison/index.ts",
+      "files": ["sync-period-comparison/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "sync-release-notes",
+      "entrypoint": "sync-release-notes/index.ts",
+      "files": ["sync-release-notes/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "sync-whatsapp-chats",
+      "entrypoint": "sync-whatsapp-chats/index.ts",
+      "files": ["sync-whatsapp-chats/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "telegram-agent-webhook",
+      "entrypoint": "telegram-agent-webhook/index.ts",
+      "files": ["telegram-agent-webhook/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "test-send-notification",
+      "entrypoint": "test-send-notification/index.ts",
+      "files": ["test-send-notification/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "test-skill-execution",
+      "entrypoint": "test-skill-execution/index.ts",
+      "files": ["test-skill-execution/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "test-uazapi-connection",
+      "entrypoint": "test-uazapi-connection/index.ts",
+      "files": ["test-uazapi-connection/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "test-whatsapp-connection",
+      "entrypoint": "test-whatsapp-connection/index.ts",
+      "files": ["test-whatsapp-connection/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "test-wordpress-connection",
+      "entrypoint": "test-wordpress-connection/index.ts",
+      "files": ["test-wordpress-connection/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "toggle-whatsapp-chat-read",
+      "entrypoint": "toggle-whatsapp-chat-read/index.ts",
+      "files": ["toggle-whatsapp-chat-read/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "transcribe-audio",
+      "entrypoint": "transcribe-audio/index.ts",
+      "files": ["transcribe-audio/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "transcribe-youtube-video",
+      "entrypoint": "transcribe-youtube-video/index.ts",
+      "files": ["transcribe-youtube-video/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "translate-text",
+      "entrypoint": "translate-text/index.ts",
+      "files": ["translate-text/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "tv-dashboard-data",
+      "entrypoint": "tv-dashboard-data/index.ts",
+      "files": ["tv-dashboard-data/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "update-meta-ad",
+      "entrypoint": "update-meta-ad/index.ts",
+      "files": ["update-meta-ad/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "update-meta-adset",
+      "entrypoint": "update-meta-adset/index.ts",
+      "files": ["update-meta-adset/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "validate-client-urls",
+      "entrypoint": "validate-client-urls/index.ts",
+      "files": ["validate-client-urls/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "validate-image-text",
+      "entrypoint": "validate-image-text/index.ts",
+      "files": ["validate-image-text/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "validate-portuguese",
+      "entrypoint": "validate-portuguese/index.ts",
+      "files": ["validate-portuguese/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "validate-text-grammar",
+      "entrypoint": "validate-text-grammar/index.ts",
+      "files": ["validate-text-grammar/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "webhook-offline-conversion",
+      "entrypoint": "webhook-offline-conversion/index.ts",
+      "files": ["webhook-offline-conversion/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "whatsapp-ai-assistant",
+      "entrypoint": "whatsapp-ai-assistant/index.ts",
+      "files": ["whatsapp-ai-assistant/index.ts"],
+      "verifyJwt": true
+    },
+    {
+      "name": "whatsapp-webhook",
+      "entrypoint": "whatsapp-webhook/index.ts",
+      "files": ["whatsapp-webhook/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "wordpress-auto-post-scheduler",
+      "entrypoint": "wordpress-auto-post-scheduler/index.ts",
+      "files": ["wordpress-auto-post-scheduler/index.ts"],
+      "verifyJwt": false
+    },
+    {
+      "name": "youtube-posting-behavior-report",
+      "entrypoint": "youtube-posting-behavior-report/index.ts",
+      "files": ["youtube-posting-behavior-report/index.ts"],
+      "verifyJwt": false
+    }
+  ]
+}

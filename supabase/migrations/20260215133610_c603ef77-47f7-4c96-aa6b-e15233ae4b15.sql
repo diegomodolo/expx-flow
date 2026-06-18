@@ -1,6 +1,5 @@
-
 -- Skills catalog table
-CREATE TABLE public.ia_agent_skills (
+CREATE TABLE IF NOT EXISTS public.ia_agent_skills (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT NOT NULL,
@@ -11,36 +10,52 @@ CREATE TABLE public.ia_agent_skills (
   requires_client BOOLEAN DEFAULT false,
   tool_parameters JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.ia_agent_skills ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Skills catalog readable by authenticated users"
+DO $$ BEGIN
+  CREATE POLICY "Skills catalog readable by authenticated users"
   ON public.ia_agent_skills FOR SELECT
   USING (auth.role() = 'authenticated');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Enabled skills per agent
-CREATE TABLE public.ia_agent_enabled_skills (
+CREATE TABLE IF NOT EXISTS public.ia_agent_enabled_skills (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   agent_id UUID NOT NULL REFERENCES public.ia_agents(id) ON DELETE CASCADE,
   skill_id TEXT NOT NULL REFERENCES public.ia_agent_skills(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(agent_id, skill_id)
-);
+);;
+
+
 
 ALTER TABLE public.ia_agent_enabled_skills ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view enabled skills for their agents"
+DO $$ BEGIN
+  CREATE POLICY "Users can view enabled skills for their agents"
   ON public.ia_agent_enabled_skills FOR SELECT
   USING (EXISTS (SELECT 1 FROM public.ia_agents WHERE id = agent_id AND user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can enable skills for their agents"
+DO $$ BEGIN
+  CREATE POLICY "Users can enable skills for their agents"
   ON public.ia_agent_enabled_skills FOR INSERT
   WITH CHECK (EXISTS (SELECT 1 FROM public.ia_agents WHERE id = agent_id AND user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can disable skills for their agents"
+DO $$ BEGIN
+  CREATE POLICY "Users can disable skills for their agents"
   ON public.ia_agent_enabled_skills FOR DELETE
   USING (EXISTS (SELECT 1 FROM public.ia_agents WHERE id = agent_id AND user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Seed skills catalog
 INSERT INTO public.ia_agent_skills (id, name, description, category, edge_function, requires_client, tool_parameters) VALUES

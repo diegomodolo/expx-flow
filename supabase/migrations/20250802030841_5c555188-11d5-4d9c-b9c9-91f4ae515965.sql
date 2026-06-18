@@ -7,30 +7,47 @@ CREATE OR REPLACE FUNCTION public.create_task_from_alert(_company_id uuid, _aler
 AS $function$
 DECLARE
   _task_id uuid;
+
   _title text;
+
   _priority task_priority;
+
   _due_date timestamp with time zone;
+
   _team_id uuid;
+
   _responsible_user_id uuid;
+
 BEGIN
   -- Determinar título baseado no tipo de alerta
   CASE _alert_type
     WHEN 'high_cpa' THEN 
       _title := 'Otimizar CPA Alto';
+
       _priority := 'high';
+
     WHEN 'low_performance' THEN 
       _title := 'Revisar Performance Baixa';
+
       _priority := 'high';
+
     WHEN 'budget_exceeded' THEN 
       _title := 'Budget Excedido - Ação Necessária';
+
       _priority := 'high';
+
     WHEN 'scale_opportunity' THEN 
       _title := 'Oportunidade de Escalar Campanha';
+
       _priority := 'medium';
+
     ELSE 
       _title := 'Ação Necessária';
+
       _priority := 'medium';
+
   END CASE;
+
 
   -- Definir prazo baseado na prioridade
   _due_date := CASE _priority
@@ -39,11 +56,13 @@ BEGIN
     ELSE now() + interval '7 days'
   END;
 
+
   -- Buscar equipe responsável (primeira equipe da empresa)
   SELECT id INTO _team_id 
   FROM teams 
   WHERE company_id = _company_id 
   LIMIT 1;
+
 
   -- Se não encontrar equipe, criar uma equipe padrão
   IF _team_id IS NULL THEN
@@ -53,6 +72,7 @@ BEGIN
     WHERE company_id = _company_id
       AND role IN ('owner', 'admin')
     LIMIT 1;
+
     
     -- Se não encontrar responsável, buscar qualquer membro
     IF _responsible_user_id IS NULL THEN
@@ -60,7 +80,9 @@ BEGIN
       FROM company_members
       WHERE company_id = _company_id
       LIMIT 1;
+
     END IF;
+
     
     -- Criar equipe padrão se necessário
     INSERT INTO teams (
@@ -82,6 +104,7 @@ BEGIN
       _responsible_user_id,
       _company_id
     ) RETURNING id INTO _team_id;
+
   ELSE
     -- Buscar responsável (primeiro membro da equipe ou admin da empresa)
     SELECT user_id INTO _responsible_user_id
@@ -89,7 +112,9 @@ BEGIN
     WHERE company_id = _company_id
       AND role IN ('owner', 'admin')
     LIMIT 1;
+
   END IF;
+
 
   -- Se ainda não encontrar responsável, buscar qualquer membro
   IF _responsible_user_id IS NULL THEN
@@ -97,7 +122,9 @@ BEGIN
     FROM company_members
     WHERE company_id = _company_id
     LIMIT 1;
+
   END IF;
+
 
   -- Criar a tarefa
   INSERT INTO tasks (
@@ -134,6 +161,9 @@ BEGIN
     0
   ) RETURNING id INTO _task_id;
 
+
   RETURN _task_id;
+
 END;
+
 $function$;

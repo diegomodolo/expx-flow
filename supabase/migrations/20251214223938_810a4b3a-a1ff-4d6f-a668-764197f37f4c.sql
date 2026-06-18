@@ -5,6 +5,7 @@ WHERE meeting_id IN (
   WHERE presentation_id = '03bc2c89-0732-45ad-aa20-3d9b63abdbe4'
 );
 
+
 -- Delete participants (child records)
 DELETE FROM presentation_meeting_participants 
 WHERE meeting_id IN (
@@ -12,9 +13,11 @@ WHERE meeting_id IN (
   WHERE presentation_id = '03bc2c89-0732-45ad-aa20-3d9b63abdbe4'
 );
 
+
 -- Delete the meetings
 DELETE FROM presentation_meetings 
 WHERE presentation_id = '03bc2c89-0732-45ad-aa20-3d9b63abdbe4';
+
 
 -- Reset creative statuses back to pending
 UPDATE presentation_creatives 

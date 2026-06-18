@@ -9,10 +9,13 @@ SET search_path TO 'public'
 AS $function$
 DECLARE
   _time_slot_id uuid;
+
   _start_time time;
+
 BEGIN
   -- Extract time from start_date
   _start_time := _start_date::time;
+
   
   -- Primeiro: tentar encontrar slot exato (onde o horário está dentro do range)
   SELECT id INTO _time_slot_id
@@ -23,6 +26,7 @@ BEGIN
     AND _start_time <= end_time
   ORDER BY start_time
   LIMIT 1;
+
   
   -- Se não encontrou slot exato, encontrar o mais próximo
   IF _time_slot_id IS NULL THEN
@@ -34,6 +38,7 @@ BEGIN
       AND start_time > _start_time
     ORDER BY start_time
     LIMIT 1;
+
     
     -- Se ainda não encontrou, pegar o último slot do dia
     IF _time_slot_id IS NULL THEN
@@ -43,9 +48,14 @@ BEGIN
         AND is_active = true
       ORDER BY end_time DESC
       LIMIT 1;
+
     END IF;
+
   END IF;
+
   
   RETURN _time_slot_id;
+
 END;
+
 $function$;

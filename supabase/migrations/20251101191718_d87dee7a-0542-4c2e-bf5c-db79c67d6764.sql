@@ -14,6 +14,7 @@ WHERE NOT EXISTS (
   SELECT 1 FROM funnel_block_types WHERE funnel_block_types.name = t.name
 );
 
+
 -- 📚 NUTRIÇÃO / EDUCAÇÃO (Meio do funil)
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description)
 SELECT * FROM (VALUES
@@ -29,6 +30,7 @@ WHERE NOT EXISTS (
   SELECT 1 FROM funnel_block_types WHERE funnel_block_types.name = t.name
 );
 
+
 -- 🧩 QUALIFICAÇÃO / DIAGNÓSTICO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description)
 SELECT * FROM (VALUES
@@ -42,6 +44,7 @@ SELECT * FROM (VALUES
 WHERE NOT EXISTS (
   SELECT 1 FROM funnel_block_types WHERE funnel_block_types.name = t.name
 );
+
 
 -- 💰 PROPOSTA / AVANÇO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description)
@@ -57,6 +60,7 @@ WHERE NOT EXISTS (
   SELECT 1 FROM funnel_block_types WHERE funnel_block_types.name = t.name
 );
 
+
 -- 🔁 PÓS-VENDA / RETENÇÃO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description)
 SELECT * FROM (VALUES
@@ -71,6 +75,7 @@ WHERE NOT EXISTS (
   SELECT 1 FROM funnel_block_types WHERE funnel_block_types.name = t.name
 );
 
+
 -- ⚙️ AUTOMAÇÃO / SUPORTE TÉCNICO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description)
 SELECT * FROM (VALUES
@@ -83,6 +88,7 @@ SELECT * FROM (VALUES
 WHERE NOT EXISTS (
   SELECT 1 FROM funnel_block_types WHERE funnel_block_types.name = t.name
 );
+
 
 -- 🌐 SUPORTE A MÍDIAS E EVENTOS
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description)

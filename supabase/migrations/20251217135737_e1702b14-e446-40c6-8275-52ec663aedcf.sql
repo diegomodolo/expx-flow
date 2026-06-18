@@ -1,14 +1,20 @@
--- Enum para frequência de rotinas
-CREATE TYPE routine_frequency AS ENUM ('daily', 'weekly', 'monthly');
+DO $$ BEGIN
+  CREATE TYPE routine_frequency AS ENUM ('daily', 'weekly', 'monthly');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- Enum para categoria de rotinas
-CREATE TYPE routine_category AS ENUM ('saldo', 'campanhas', 'performance', 'criativos', 'alertas', 'relatorios', 'otimizacao', 'outros');
+DO $$ BEGIN
+  CREATE TYPE routine_category AS ENUM ('saldo', 'campanhas', 'performance', 'criativos', 'alertas', 'relatorios', 'otimizacao', 'outros');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- Enum para status de execução
-CREATE TYPE routine_execution_status AS ENUM ('pending', 'completed_on_time', 'completed_late', 'skipped');
+DO $$ BEGIN
+  CREATE TYPE routine_execution_status AS ENUM ('pending', 'completed_on_time', 'completed_late', 'skipped');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Tabela de templates de rotinas
-CREATE TABLE public.routine_templates (
+CREATE TABLE IF NOT EXISTS public.routine_templates (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -24,10 +30,10 @@ CREATE TABLE public.routine_templates (
   is_system BOOLEAN NOT NULL DEFAULT false, -- templates pré-configurados do sistema
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Tabela de execuções de rotinas
-CREATE TABLE public.routine_executions (
+CREATE TABLE IF NOT EXISTS public.routine_executions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   template_id UUID NOT NULL REFERENCES public.routine_templates(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -42,67 +48,99 @@ CREATE TABLE public.routine_executions (
   time_spent_minutes INTEGER,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
 
 -- Índices para performance
-CREATE INDEX idx_routine_templates_company ON public.routine_templates(company_id);
-CREATE INDEX idx_routine_templates_active ON public.routine_templates(company_id, is_active);
-CREATE INDEX idx_routine_executions_company_date ON public.routine_executions(company_id, scheduled_date);
-CREATE INDEX idx_routine_executions_template ON public.routine_executions(template_id);
-CREATE INDEX idx_routine_executions_employee ON public.routine_executions(employee_id);
-CREATE INDEX idx_routine_executions_status ON public.routine_executions(company_id, status, scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_routine_templates_company ON public.routine_templates(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_routine_templates_active ON public.routine_templates(company_id, is_active);;
+
+CREATE INDEX IF NOT EXISTS idx_routine_executions_company_date ON public.routine_executions(company_id, scheduled_date);;
+
+CREATE INDEX IF NOT EXISTS idx_routine_executions_template ON public.routine_executions(template_id);;
+
+CREATE INDEX IF NOT EXISTS idx_routine_executions_employee ON public.routine_executions(employee_id);;
+
+CREATE INDEX IF NOT EXISTS idx_routine_executions_status ON public.routine_executions(company_id, status, scheduled_date);;
 
 -- Constraint única para evitar duplicatas de execução
-CREATE UNIQUE INDEX idx_routine_executions_unique ON public.routine_executions(template_id, scheduled_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_routine_executions_unique ON public.routine_executions(template_id, scheduled_date);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.routine_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.routine_executions ENABLE ROW LEVEL SECURITY;
 
--- Policies para routine_templates
-CREATE POLICY "Users can view routine templates from their company"
+ALTER TABLE public.routine_executions ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view routine templates from their company"
 ON public.routine_templates FOR SELECT
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create routine templates for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create routine templates for their company"
 ON public.routine_templates FOR INSERT
 WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update routine templates from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update routine templates from their company"
 ON public.routine_templates FOR UPDATE
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete routine templates from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete routine templates from their company"
 ON public.routine_templates FOR DELETE
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())) AND is_system = false);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies para routine_executions
-CREATE POLICY "Users can view routine executions from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view routine executions from their company"
 ON public.routine_executions FOR SELECT
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create routine executions for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create routine executions for their company"
 ON public.routine_executions FOR INSERT
 WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update routine executions from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update routine executions from their company"
 ON public.routine_executions FOR UPDATE
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete routine executions from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete routine executions from their company"
 ON public.routine_executions FOR DELETE
 USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_routine_templates_updated_at ON public.routine_templates;
 CREATE TRIGGER update_routine_templates_updated_at
   BEFORE UPDATE ON public.routine_templates
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_routine_executions_updated_at ON public.routine_executions;
 CREATE TRIGGER update_routine_executions_updated_at
   BEFORE UPDATE ON public.routine_executions
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
+
+
 
 -- Função para criar execuções diárias automaticamente
 CREATE OR REPLACE FUNCTION public.create_daily_routine_executions(p_company_id UUID, p_date DATE DEFAULT CURRENT_DATE)
@@ -113,12 +151,18 @@ SET search_path TO 'public'
 AS $$
 DECLARE
   template_record RECORD;
+
   inserted_count INTEGER := 0;
+
   target_day_of_week INTEGER;
+
   target_day_of_month INTEGER;
+
 BEGIN
   target_day_of_week := EXTRACT(DOW FROM p_date);
+
   target_day_of_month := EXTRACT(DAY FROM p_date);
+
   
   FOR template_record IN 
     SELECT * FROM routine_templates 
@@ -146,12 +190,18 @@ BEGIN
       'pending'
     )
     ON CONFLICT (template_id, scheduled_date) DO NOTHING;
+
     
     IF FOUND THEN
       inserted_count := inserted_count + 1;
+
     END IF;
+
   END LOOP;
+
   
   RETURN inserted_count;
+
 END;
+
 $$;

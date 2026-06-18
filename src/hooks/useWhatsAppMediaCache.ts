@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseUrl } from "@/integrations/supabase/runtime";
 
-const SUPABASE_URL = "https://ejwpfztkspbvmuwwiwmk.supabase.co";
+const SUPABASE_URL = getSupabaseUrl();
 const BUCKET_NAME = "whatsapp-media-cache";
 
 interface CacheMediaParams {

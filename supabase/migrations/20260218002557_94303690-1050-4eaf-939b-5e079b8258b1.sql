@@ -1,6 +1,6 @@
 
--- Fix: Use employees.team_id for squad membership (actual data model)
--- The team_members table is secondary; employees.team_id is the primary linkage
+-- Fix: Use employees.team_id for squad membership (actual data model).
+-- The team_members table is secondary; employees.team_id is the primary linkage.
 
 CREATE OR REPLACE FUNCTION public.is_squad_member(_user_id uuid, _team_id uuid)
 RETURNS boolean
@@ -17,6 +17,7 @@ AS $$
       AND e.status = 'active'
   )
 $$;
+
 
 CREATE OR REPLACE FUNCTION public.get_user_team_ids(_user_id uuid)
 RETURNS SETOF uuid

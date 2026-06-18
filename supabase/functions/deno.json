@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "test": "deno test --allow-all",
+    "test:shared": "deno test --allow-all _shared/__tests__/"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window", "deno.unstable", "dom"],
+    "strict": false
+  }
+}

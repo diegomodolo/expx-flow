@@ -1,4 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+  type SystemConfigTools,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,10 +77,19 @@ serve(async (req) => {
   }
 
   try {
-    const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
-    if (!APIFY_TOKEN) {
-      throw new Error("APIFY_API_TOKEN not configured");
-    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const toolsCfg = await getSystemConfig<SystemConfigTools>(
+      supabase,
+      "tools",
+    );
+    const APIFY_TOKEN = resolveCredential(
+      Deno.env.get("APIFY_API_TOKEN"),
+      toolsCfg?.apify_api_token,
+      "Apify API Token não configurado. Acesse Configurações > Sistema > Ferramentas.",
+    );
 
     const body: ProspectRequest = await req.json();
     const {

@@ -17,7 +17,9 @@ BEGIN
     COALESCE(AVG(c.ctr), 0)::numeric AS avg_ctr
   FROM public.campaigns c
   WHERE c.company_id = p_company_id;
+
   -- Removed: AND c.is_active = true
   -- Now sums ALL campaigns to match clients page logic
 END;
+
 $$;

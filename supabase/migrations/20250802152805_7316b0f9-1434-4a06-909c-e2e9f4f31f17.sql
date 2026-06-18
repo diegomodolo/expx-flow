@@ -2,6 +2,7 @@
 -- Isso permite que o mesmo usuário seja colaborador em múltiplas empresas
 ALTER TABLE public.employees DROP CONSTRAINT IF EXISTS employees_email_key;
 
+
 -- Verificar se a constraint composta existe, se não, criar ela
 -- Esta constraint garante que não haja duplicação dentro da mesma empresa
 DO $$ 

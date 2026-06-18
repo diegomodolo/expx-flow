@@ -11,6 +11,7 @@ AND EXISTS (
   AND gc2.period ~ '^[0-9]+$'
 );
 
+
 -- Update remaining text-based periods to numeric format
 UPDATE google_campaigns
 SET period = CASE period

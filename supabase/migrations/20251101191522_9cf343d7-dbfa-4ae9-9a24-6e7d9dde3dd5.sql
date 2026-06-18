@@ -9,6 +9,7 @@ INSERT INTO funnel_block_types (name, display_name, category, icon, color, defau
 ('influencers', 'Influenciadores / Parcerias', 'descoberta', 'users', '#E91E63', 'Co-marketing e influenciadores digitais'),
 ('blog_landing', 'Landing Page de Blog', 'descoberta', 'file-text', '#3B82F6', 'Atração por artigos de blog otimizados em SEO');
 
+
 -- 📚 NUTRIÇÃO / EDUCAÇÃO (Meio do funil)
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description) VALUES
 ('checklist_template', 'Checklist / Template', 'nutricao', 'list-checks', '#8B5CF6', 'Material prático de alto valor percebido'),
@@ -19,6 +20,7 @@ INSERT INTO funnel_block_types (name, display_name, category, icon, color, defau
 ('educational_podcast', 'Podcast Educativo', 'nutricao', 'mic', '#14B8A6', 'Conteúdo recorrente com storytelling técnico'),
 ('case_study', 'Artigo Técnico / Case', 'nutricao', 'file-badge', '#3B82F6', 'Conteúdo aprofundado para validar autoridade');
 
+
 -- 🧩 QUALIFICAÇÃO / DIAGNÓSTICO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description) VALUES
 ('advanced_form', 'Formulário Avançado', 'qualificacao', 'clipboard-list', '#6366F1', 'Captação com lógica condicional (Typeform, Tally)'),
@@ -27,6 +29,7 @@ INSERT INTO funnel_block_types (name, display_name, category, icon, color, defau
 ('whatsapp_bot', 'WhatsApp Bot', 'qualificacao', 'message-circle', '#25D366', 'Fluxo automatizado de qualificação (n8n/Twilio)'),
 ('maturity_test', 'Teste de Maturidade', 'qualificacao', 'chart-bar', '#F59E0B', 'Diagnóstico estratégico por pontuação'),
 ('calendar_integration', 'Agenda Integrada', 'qualificacao', 'calendar', '#3B82F6', 'Sincronização de agendamentos (Google Calendar)');
+
 
 -- 💰 PROPOSTA / AVANÇO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description) VALUES
@@ -37,6 +40,7 @@ INSERT INTO funnel_block_types (name, display_name, category, icon, color, defau
 ('followup_automation', 'Follow-up SMS/WhatsApp', 'proposta', 'phone', '#EA580C', 'Automação de lembretes'),
 ('checkout', 'Pagamento / Checkout', 'proposta', 'credit-card', '#10B981', 'Link de pagamento integrado (Stripe, Mercado Pago)');
 
+
 -- 🔁 PÓS-VENDA / RETENÇÃO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description) VALUES
 ('onboarding', 'Onboarding Automatizado', 'pos-venda', 'rocket', '#8B5CF6', 'Primeiras etapas após a compra'),
@@ -46,6 +50,7 @@ INSERT INTO funnel_block_types (name, display_name, category, icon, color, defau
 ('referral_program', 'Programa de Indicação', 'pos-venda', 'gift', '#10B981', 'Recompensa por indicações'),
 ('renewal_upsell', 'Renovação / Upsell', 'pos-venda', 'repeat', '#6366F1', 'Reativação e venda recorrente');
 
+
 -- ⚙️ AUTOMAÇÃO / SUPORTE TÉCNICO
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description) VALUES
 ('webhook', 'Webhook / API', 'automacao', 'plug', '#64748B', 'Envio de dados entre sistemas'),
@@ -53,6 +58,7 @@ INSERT INTO funnel_block_types (name, display_name, category, icon, color, defau
 ('lead_scoring', 'Lead Scoring', 'automacao', 'target', '#DC2626', 'Classificação automática de leads'),
 ('ai_assistant', 'AI Assistant / Copiloto', 'automacao', 'bot-message-square', '#8B5CF6', 'Agente de IA com contexto do funil'),
 ('analytics_dashboard', 'Relatórios e Dashboards', 'automacao', 'bar-chart-3', '#059669', 'Métricas de desempenho (Data Studio, Looker)');
+
 
 -- 🌐 SUPORTE A MÍDIAS E EVENTOS
 INSERT INTO funnel_block_types (name, display_name, category, icon, color, default_description) VALUES

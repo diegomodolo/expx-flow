@@ -19,39 +19,44 @@ CREATE TABLE IF NOT EXISTS public.user_activity_logs (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+
 -- Índices para queries comuns
 CREATE INDEX IF NOT EXISTS idx_user_activity_logs_company_created
   ON public.user_activity_logs (company_id, created_at DESC);
 
+
 CREATE INDEX IF NOT EXISTS idx_user_activity_logs_company_user
   ON public.user_activity_logs (company_id, user_id, created_at DESC);
+
 
 CREATE INDEX IF NOT EXISTS idx_user_activity_logs_event_type
   ON public.user_activity_logs (company_id, event_type, created_at DESC);
 
+
 -- RLS
 ALTER TABLE public.user_activity_logs ENABLE ROW LEVEL SECURITY;
-
--- Qualquer membro autenticado pode inserir logs para sua própria empresa.
--- Usa get_user_company_ids() (SECURITY DEFINER) para evitar subquery direta
--- em company_members (que tem RLS ativo).
-CREATE POLICY "members_insert_activity_logs"
+DO $$ BEGIN
+  CREATE POLICY "members_insert_activity_logs"
   ON public.user_activity_logs FOR INSERT
   TO authenticated
   WITH CHECK (
     company_id IN (SELECT get_user_company_ids(auth.uid()))
     AND user_id = auth.uid()
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Apenas owners podem ler os logs da empresa.
--- Usa is_company_owner() (SECURITY DEFINER) para evitar subquery direta
--- em company_members (que tem RLS ativo).
-CREATE POLICY "owners_select_activity_logs"
+DO $$ BEGIN
+  CREATE POLICY "owners_select_activity_logs"
   ON public.user_activity_logs FOR SELECT
   TO authenticated
   USING (
     is_company_owner(auth.uid(), company_id)
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Nota: esta tabela é append-only por design.
 -- Não há políticas de UPDATE ou DELETE — logs nunca devem ser modificados ou removidos.

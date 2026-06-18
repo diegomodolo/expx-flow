@@ -14,11 +14,14 @@ ADD COLUMN expected_close_date TIMESTAMPTZ,
 ADD COLUMN quantity INTEGER DEFAULT 1,
 ADD COLUMN responsible_id UUID REFERENCES crm_users(id),
 ADD COLUMN workflow_id TEXT;
-
 -- Índices para performance
-CREATE INDEX idx_crm_leads_temperature ON crm_leads(temperature);
-CREATE INDEX idx_crm_leads_responsible ON crm_leads(responsible_id);
-CREATE INDEX idx_crm_leads_expected_close ON crm_leads(expected_close_date);
+CREATE INDEX IF NOT EXISTS idx_crm_leads_temperature ON crm_leads(temperature);;
+
+CREATE INDEX IF NOT EXISTS idx_crm_leads_responsible ON crm_leads(responsible_id);;
+
+CREATE INDEX IF NOT EXISTS idx_crm_leads_expected_close ON crm_leads(expected_close_date);;
+
+
 
 -- Tabela de Tags
 CREATE TABLE IF NOT EXISTS crm_tags (
@@ -31,6 +34,7 @@ CREATE TABLE IF NOT EXISTS crm_tags (
   CONSTRAINT unique_tag_name_per_workspace UNIQUE(workspace_id, name)
 );
 
+
 -- Tabela de relacionamento Lead-Tags (muitos para muitos)
 CREATE TABLE IF NOT EXISTS crm_lead_tags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -41,33 +45,44 @@ CREATE TABLE IF NOT EXISTS crm_lead_tags (
   CONSTRAINT unique_lead_tag UNIQUE(lead_id, tag_id)
 );
 
+
 -- RLS Policies para tags
 ALTER TABLE crm_tags ENABLE ROW LEVEL SECURITY;
-ALTER TABLE crm_lead_tags ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Workspace users can manage tags"
+ALTER TABLE crm_lead_tags ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can manage tags"
   ON crm_tags FOR ALL
   USING (workspace_id IN (
     SELECT id FROM crm_workspaces WHERE is_active = true
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Workspace users can manage lead tags"
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can manage lead tags"
   ON crm_lead_tags FOR ALL
   USING (lead_id IN (
     SELECT id FROM crm_leads WHERE workspace_id IN (
       SELECT id FROM crm_workspaces WHERE is_active = true
     )
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can manage tags"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage tags"
   ON crm_tags FOR ALL
   USING (workspace_id IN (
     SELECT w.id FROM crm_workspaces w
     JOIN company_members cm ON cm.company_id = w.company_id
     WHERE cm.user_id = auth.uid()
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can manage lead tags"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage lead tags"
   ON crm_lead_tags FOR ALL
   USING (lead_id IN (
     SELECT l.id FROM crm_leads l
@@ -75,11 +90,17 @@ CREATE POLICY "Company members can manage lead tags"
     JOIN company_members cm ON cm.company_id = w.company_id
     WHERE cm.user_id = auth.uid()
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Índices para tags
-CREATE INDEX idx_crm_tags_workspace ON crm_tags(workspace_id);
-CREATE INDEX idx_crm_lead_tags_lead ON crm_lead_tags(lead_id);
-CREATE INDEX idx_crm_lead_tags_tag ON crm_lead_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_crm_tags_workspace ON crm_tags(workspace_id);;
+
+CREATE INDEX IF NOT EXISTS idx_crm_lead_tags_lead ON crm_lead_tags(lead_id);;
+
+CREATE INDEX IF NOT EXISTS idx_crm_lead_tags_tag ON crm_lead_tags(tag_id);;
+
+
 
 -- Tabela de Anexos
 CREATE TABLE IF NOT EXISTS crm_lead_attachments (
@@ -94,18 +115,22 @@ CREATE TABLE IF NOT EXISTS crm_lead_attachments (
   is_private BOOLEAN DEFAULT false
 );
 
+
 -- RLS Policy para anexos
 ALTER TABLE crm_lead_attachments ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Workspace users can manage attachments"
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can manage attachments"
   ON crm_lead_attachments FOR ALL
   USING (lead_id IN (
     SELECT id FROM crm_leads WHERE workspace_id IN (
       SELECT id FROM crm_workspaces WHERE is_active = true
     )
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can manage attachments"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage attachments"
   ON crm_lead_attachments FOR ALL
   USING (lead_id IN (
     SELECT l.id FROM crm_leads l
@@ -113,27 +138,37 @@ CREATE POLICY "Company members can manage attachments"
     JOIN company_members cm ON cm.company_id = w.company_id
     WHERE cm.user_id = auth.uid()
   ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Índices para anexos
-CREATE INDEX idx_crm_attachments_lead ON crm_lead_attachments(lead_id);
-CREATE INDEX idx_crm_attachments_uploaded_by ON crm_lead_attachments(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_crm_attachments_lead ON crm_lead_attachments(lead_id);;
+
+CREATE INDEX IF NOT EXISTS idx_crm_attachments_uploaded_by ON crm_lead_attachments(uploaded_by);;
+
+
 
 -- Criar bucket para anexos de leads
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('crm-lead-attachments', 'crm-lead-attachments', false)
 ON CONFLICT (id) DO NOTHING;
-
--- Policy para upload
-CREATE POLICY "Workspace users can upload attachments"
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can upload attachments"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'crm-lead-attachments');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policy para download
-CREATE POLICY "Workspace users can view attachments"
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can view attachments"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'crm-lead-attachments');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policy para deletar
-CREATE POLICY "Workspace users can delete attachments"
+DO $$ BEGIN
+  CREATE POLICY "Workspace users can delete attachments"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'crm-lead-attachments');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

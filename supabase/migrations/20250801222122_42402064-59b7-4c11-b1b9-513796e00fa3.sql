@@ -3,6 +3,7 @@ ALTER TABLE public.campaigns
 ADD COLUMN IF NOT EXISTS spend NUMERIC DEFAULT 0,
 ADD COLUMN IF NOT EXISTS cpa NUMERIC DEFAULT 0;
 
+
 -- Update the trigger function to also calculate CPA when campaigns change
 CREATE OR REPLACE FUNCTION public.update_client_stats()
 RETURNS trigger
@@ -25,7 +26,10 @@ BEGIN
             WHERE client_id = COALESCE(NEW.client_id, OLD.client_id)
         )
     WHERE id = COALESCE(NEW.client_id, OLD.client_id);
+
     
     RETURN COALESCE(NEW, OLD);
+
 END;
+
 $function$;

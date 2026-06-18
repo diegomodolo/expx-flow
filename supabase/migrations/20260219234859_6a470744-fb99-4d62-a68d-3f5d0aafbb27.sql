@@ -13,7 +13,9 @@ BEGIN
     WHERE user_id = auth.uid() AND company_id = p_company_id
   ) THEN
     RAISE EXCEPTION 'not authorized';
+
   END IF;
+
 
   -- Update the session, ensuring it belongs to the correct company
   UPDATE public.task_time_tracking
@@ -21,14 +23,17 @@ BEGIN
   WHERE id = p_session_id
     AND company_id = p_company_id
     AND ended_at IS NULL;
+
 END;
+
 $$;
+
 
 -- Also update RLS to allow company members to update sessions in their company
 -- (needed for manual stop of any session, including agent sessions)
 DROP POLICY IF EXISTS "Users can update their own time tracking" ON public.task_time_tracking;
-
-CREATE POLICY "Company members can update time tracking in their company"
+DO $$ BEGIN
+  CREATE POLICY "Company members can update time tracking in their company"
 ON public.task_time_tracking
 FOR UPDATE
 TO authenticated
@@ -42,3 +47,5 @@ WITH CHECK (
     SELECT cm.company_id FROM company_members cm WHERE cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

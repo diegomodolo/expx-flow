@@ -4,6 +4,7 @@ ADD COLUMN IF NOT EXISTS receives_alerts BOOLEAN DEFAULT true,
 ADD COLUMN IF NOT EXISTS receives_reports BOOLEAN DEFAULT true,
 ADD COLUMN IF NOT EXISTS profile_type TEXT DEFAULT 'cliente';
 
+
 -- Update existing records to have default values
 UPDATE whatsapp_client_contacts 
 SET receives_alerts = true, receives_reports = true, profile_type = 'cliente'

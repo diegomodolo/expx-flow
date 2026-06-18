@@ -1,7 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  functionUrl,
+  getSupabaseAnonKey,
+} from "@/integrations/supabase/runtime";
 
-export type CarouselType = "tutorial" | "comparison" | "behind_scenes" | "curated_list";
+export type CarouselType =
+  | "tutorial"
+  | "comparison"
+  | "behind_scenes"
+  | "curated_list";
 
 export interface PreGeneratedSlide {
   slideNumber: number;
@@ -35,8 +43,7 @@ type StreamEvent =
   | { type: "failed"; message: string };
 
 function getStreamUrl() {
-  const base = import.meta.env.VITE_SUPABASE_URL;
-  return `${base}/functions/v1/daily-carousel-generator-stream`;
+  return functionUrl("daily-carousel-generator-stream");
 }
 
 export function useCarouselGenerationStream() {
@@ -78,7 +85,7 @@ export function useCarouselGenerationStream() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${getSupabaseAnonKey()}`,
           },
           body: JSON.stringify({
             client_id: clientId,
@@ -93,7 +100,9 @@ export function useCarouselGenerationStream() {
         });
 
         if (resp.status === 429) {
-          toast.error("Limite de requisições atingido. Tente novamente em alguns minutos.");
+          toast.error(
+            "Limite de requisições atingido. Tente novamente em alguns minutos.",
+          );
           return;
         }
         if (resp.status === 402) {
@@ -146,7 +155,7 @@ export function useCarouselGenerationStream() {
         abortRef.current = null;
       }
     },
-    []
+    [],
   );
 
   return useMemo(
@@ -155,6 +164,6 @@ export function useCarouselGenerationStream() {
       start,
       cancel,
     }),
-    [isGenerating, start, cancel]
+    [isGenerating, start, cancel],
   );
 }

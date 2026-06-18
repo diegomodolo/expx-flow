@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -29,6 +30,24 @@ export const useFacebookIntegration = () => {
   const { toast } = useToast();
   const { activeCompany } = useCompany();
 
+  // Busca app_id global (system_config_facebook) — singleton owner-only.
+  const { data: facebookConfig } = useQuery({
+    queryKey: ["system_config", "facebook"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("system_config_facebook")
+        .select("app_id, graph_api_version")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        app_id: string | null;
+        graph_api_version: string;
+      } | null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const getAuthUrl = () => {
     if (!activeCompany) {
       toast({
@@ -39,20 +58,24 @@ export const useFacebookIntegration = () => {
       return null;
     }
 
-    const facebookAppId = "1118192076871259"; // Your Facebook App ID
+    // Self-host: busca app_id do banco (system_config_facebook); fallback env.
+    const facebookAppId =
+      facebookConfig?.app_id ||
+      (import.meta.env.VITE_FACEBOOK_APP_ID as string | undefined) ||
+      "";
 
-    // Determine redirect URI based on current domain
-    const origin = window.location.origin;
-    let redirectUri = "";
-
-    if (
-      origin.includes("expxflow.com.br") ||
-      origin.includes("controledetrafego.com.br")
-    ) {
-      redirectUri = `${origin}/auth/callback`;
-    } else {
-      redirectUri = "https://expxflow.com.br/auth/callback";
+    if (!facebookAppId) {
+      toast({
+        title: "Erro",
+        description:
+          "Facebook App ID não configurado. Acesse Configurações > Sistema > Facebook.",
+        variant: "destructive",
+      });
+      return null;
     }
+
+    // Redirect URI dinâmico (próprio domínio da instalação).
+    const redirectUri = `${window.location.origin}/auth/callback`;
 
     const params = new URLSearchParams({
       client_id: facebookAppId,

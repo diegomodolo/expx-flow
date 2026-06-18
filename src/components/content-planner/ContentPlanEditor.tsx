@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  functionUrl,
+  getSupabaseAnonKey,
+} from "@/integrations/supabase/runtime";
+import {
   useContentPlans,
   ContentPlan,
   ContentPlanPost,
@@ -275,17 +279,14 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
         caption: post.caption,
       }));
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-portuguese`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ posts: postsData }),
+      const response = await fetch(functionUrl("validate-portuguese"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getSupabaseAnonKey()}`,
         },
-      );
+        body: JSON.stringify({ posts: postsData }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -385,17 +386,14 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
 
     if (hasAnyCaptions) {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-creative-caption`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({ captions }),
+        const response = await fetch(functionUrl("analyze-creative-caption"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getSupabaseAnonKey()}`,
           },
-        );
+          body: JSON.stringify({ captions }),
+        });
 
         if (response.ok) {
           const data = await response.json();

@@ -1,5 +1,5 @@
 -- Criar tabela para armazenar criativos visuais gerados
-CREATE TABLE public.visual_creatives (
+CREATE TABLE IF NOT EXISTS public.visual_creatives (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL,
   client_id UUID NOT NULL,
@@ -16,13 +16,14 @@ CREATE TABLE public.visual_creatives (
   status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('generating', 'completed', 'failed')),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Habilitar RLS
 ALTER TABLE public.visual_creatives ENABLE ROW LEVEL SECURITY;
-
--- Políticas RLS para criativos visuais
-CREATE POLICY "Company members can view visual creatives" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can view visual creatives" 
 ON public.visual_creatives 
 FOR SELECT 
 USING (company_id IN (
@@ -30,8 +31,11 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can create visual creatives" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can create visual creatives" 
 ON public.visual_creatives 
 FOR INSERT 
 WITH CHECK (company_id IN (
@@ -39,8 +43,11 @@ WITH CHECK (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can update visual creatives" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can update visual creatives" 
 ON public.visual_creatives 
 FOR UPDATE 
 USING (company_id IN (
@@ -48,8 +55,11 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can delete visual creatives" 
+DO $$ BEGIN
+  CREATE POLICY "Company members can delete visual creatives" 
 ON public.visual_creatives 
 FOR DELETE 
 USING (company_id IN (
@@ -57,8 +67,10 @@ USING (company_id IN (
   FROM company_members
   WHERE company_members.user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para atualizar updated_at
+DROP TRIGGER IF EXISTS update_visual_creatives_updated_at ON public.visual_creatives;
 CREATE TRIGGER update_visual_creatives_updated_at
 BEFORE UPDATE ON public.visual_creatives
 FOR EACH ROW

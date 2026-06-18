@@ -17,7 +17,9 @@ AS $$
   FROM public.campaigns c
   WHERE c.company_id = p_company_id
     AND c.is_active = true;
+
 $$;
+
 
 CREATE OR REPLACE FUNCTION public.social_tv_featured_client_aggregates(p_company_id uuid)
 RETURNS TABLE(
@@ -42,4 +44,5 @@ AS $$
   GROUP BY c.client_id
   ORDER BY total_spend DESC
   LIMIT 1;
+
 $$;

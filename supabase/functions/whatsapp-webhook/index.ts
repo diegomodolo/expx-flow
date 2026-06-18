@@ -770,9 +770,7 @@ async function handleReactionEvent(
           status: 200,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin":
-              Deno.env.get("FRONTEND_URL") ??
-              "https://controledetrafego.com.br",
+            "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "*",
           },
         },
       );
@@ -801,9 +799,7 @@ async function handleReactionEvent(
           status: 200,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin":
-              Deno.env.get("FRONTEND_URL") ??
-              "https://controledetrafego.com.br",
+            "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "*",
           },
         },
       );
@@ -892,9 +888,7 @@ async function handleMessageEditEvent(
           status: 200,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin":
-              Deno.env.get("FRONTEND_URL") ??
-              "https://controledetrafego.com.br",
+            "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "*",
           },
         },
       );
@@ -949,9 +943,7 @@ async function handleMessageEditEvent(
           status: 200,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin":
-              Deno.env.get("FRONTEND_URL") ??
-              "https://controledetrafego.com.br",
+            "Access-Control-Allow-Origin": Deno.env.get("FRONTEND_URL") ?? "*",
           },
         },
       );

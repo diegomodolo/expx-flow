@@ -1,0 +1,8 @@
+# config.toml de fixture para o teste do gerador de manifesto.
+project_id = "<FIXTURE>"
+
+[functions.baz]
+verify_jwt = false
+
+[api]
+enabled = true

@@ -17,6 +17,7 @@ WHERE l.company_segment IS NOT NULL
       AND LOWER(s.name) = LOWER(l.company_segment)
   );
 
+
 -- Vincular leads aos segmentos correspondentes (usando 'auto' que é um valor permitido)
 INSERT INTO lead_segment_assignments (lead_id, segment_id, assigned_by, assigned_at)
 SELECT 

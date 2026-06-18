@@ -15,12 +15,18 @@ ADD COLUMN IF NOT EXISTS checklist jsonb DEFAULT '[]'::jsonb,
 ADD COLUMN IF NOT EXISTS due_date timestamp with time zone,
 ADD COLUMN IF NOT EXISTS completed_at timestamp with time zone;
 
+
 -- Criar índices para melhorar performance
 CREATE INDEX IF NOT EXISTS idx_tasks_origin ON public.tasks(origin);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_related_campaign ON public.tasks(related_campaign_id);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_related_client ON public.tasks(related_client_id);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_status_priority ON public.tasks(status, priority);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON public.tasks(due_date);
+
 
 -- Função para criar tarefas automáticas baseadas em alertas
 CREATE OR REPLACE FUNCTION public.create_task_from_alert(
@@ -38,30 +44,47 @@ SET search_path = 'public'
 AS $$
 DECLARE
   _task_id uuid;
+
   _title text;
+
   _priority task_priority;
+
   _due_date timestamp with time zone;
+
   _team_id uuid;
+
   _responsible_user_id uuid;
+
 BEGIN
   -- Determinar título baseado no tipo de alerta
   CASE _alert_type
     WHEN 'high_cpa' THEN 
       _title := 'Otimizar CPA Alto';
+
       _priority := 'high';
+
     WHEN 'low_performance' THEN 
       _title := 'Revisar Performance Baixa';
+
       _priority := 'high';
+
     WHEN 'budget_exceeded' THEN 
       _title := 'Budget Excedido - Ação Necessária';
+
       _priority := 'high';
+
     WHEN 'scale_opportunity' THEN 
       _title := 'Oportunidade de Escalar Campanha';
+
       _priority := 'medium';
+
     ELSE 
       _title := 'Ação Necessária';
+
       _priority := 'medium';
+
   END CASE;
+
 
   -- Definir prazo baseado na prioridade
   _due_date := CASE _priority
@@ -70,11 +93,13 @@ BEGIN
     ELSE now() + interval '7 days'
   END;
 
+
   -- Buscar equipe responsável (primeira equipe da empresa)
   SELECT id INTO _team_id 
   FROM teams 
   WHERE company_id = _company_id 
   LIMIT 1;
+
 
   -- Buscar responsável (primeiro membro da equipe ou admin da empresa)
   SELECT user_id INTO _responsible_user_id
@@ -82,6 +107,7 @@ BEGIN
   WHERE company_id = _company_id
     AND role IN ('owner', 'admin')
   LIMIT 1;
+
 
   -- Criar a tarefa
   INSERT INTO tasks (
@@ -118,9 +144,13 @@ BEGIN
     0
   ) RETURNING id INTO _task_id;
 
+
   RETURN _task_id;
+
 END;
+
 $$;
+
 
 -- Função para atualizar progresso de tarefas
 CREATE OR REPLACE FUNCTION public.update_task_progress()
@@ -133,24 +163,35 @@ BEGIN
   -- Se status mudou para concluído, definir progresso como 100% e data de conclusão
   IF NEW.status = 'done' AND OLD.status != 'done' THEN
     NEW.progress := 100;
+
     NEW.completed_at := now();
+
   END IF;
+
 
   -- Se status mudou de concluído para outro, remover data de conclusão
   IF OLD.status = 'done' AND NEW.status != 'done' THEN
     NEW.completed_at := NULL;
+
   END IF;
 
+
   RETURN NEW;
+
 END;
+
 $$;
 
+
 -- Criar trigger para atualizar progresso automaticamente
+DROP TRIGGER IF EXISTS update_task_progress_trigger ON public.tasks;
 DROP TRIGGER IF EXISTS update_task_progress_trigger ON public.tasks;
 CREATE TRIGGER update_task_progress_trigger
   BEFORE UPDATE ON public.tasks
   FOR EACH ROW
   EXECUTE FUNCTION public.update_task_progress();
+
+
 
 -- Criar view para estatísticas de tarefas (usando os valores corretos do enum)
 CREATE OR REPLACE VIEW public.task_stats AS

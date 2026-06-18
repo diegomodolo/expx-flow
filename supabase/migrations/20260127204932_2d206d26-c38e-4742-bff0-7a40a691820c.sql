@@ -1,6 +1,7 @@
 -- Drop and recreate function with new return type
 DROP FUNCTION IF EXISTS get_problematic_urls_for_tv(uuid);
 
+
 CREATE OR REPLACE FUNCTION get_problematic_urls_for_tv(p_company_id UUID)
 RETURNS TABLE (
   url_id UUID,
@@ -57,5 +58,7 @@ BEGIN
       ELSE 5 
     END,
     uc.active_campaign_count DESC;
+
 END;
+
 $$ LANGUAGE plpgsql;

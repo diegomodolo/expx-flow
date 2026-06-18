@@ -1,5 +1,5 @@
 -- Create system_alerts table for centralized alert management
-CREATE TABLE public.system_alerts (
+CREATE TABLE IF NOT EXISTS public.system_alerts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL,
@@ -15,36 +15,50 @@ CREATE TABLE public.system_alerts (
   resolved_at TIMESTAMPTZ,
   resolved_by UUID,
   created_at TIMESTAMPTZ DEFAULT NOW()
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.system_alerts ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Users can view alerts from their companies"
+DO $$ BEGIN
+  CREATE POLICY "Users can view alerts from their companies"
 ON public.system_alerts
 FOR SELECT
 USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update alerts from their companies"
+DO $$ BEGIN
+  CREATE POLICY "Users can update alerts from their companies"
 ON public.system_alerts
 FOR UPDATE
 USING (
   company_id IN (SELECT company_id FROM public.company_members WHERE user_id = auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Service role can insert alerts"
+DO $$ BEGIN
+  CREATE POLICY "Service role can insert alerts"
 ON public.system_alerts
 FOR INSERT
 WITH CHECK (true);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Indexes for performance
-CREATE INDEX idx_system_alerts_company_id ON public.system_alerts(company_id);
-CREATE INDEX idx_system_alerts_is_read ON public.system_alerts(is_read) WHERE is_read = false;
-CREATE INDEX idx_system_alerts_severity ON public.system_alerts(severity);
-CREATE INDEX idx_system_alerts_created_at ON public.system_alerts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_system_alerts_company_id ON public.system_alerts(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_system_alerts_is_read ON public.system_alerts(is_read) WHERE is_read = false;;
+
+CREATE INDEX IF NOT EXISTS idx_system_alerts_severity ON public.system_alerts(severity);;
+
+CREATE INDEX IF NOT EXISTS idx_system_alerts_created_at ON public.system_alerts(created_at DESC);;
+
+
 
 -- Add new notification type to whatsapp-alerts helper
--- This is handled in the buildAlertMessage function
+-- This is handled in the buildAlertMessage function;

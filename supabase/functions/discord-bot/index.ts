@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredentialOptional,
+  type SystemConfigDiscord,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,19 +15,38 @@ const corsHeaders = {
 const DISCORD_API = "https://discord.com/api/v10";
 
 async function getBotToken(
-  supabase: unknown,
+  supabase: Parameters<typeof getSystemConfig>[0],
   companyId?: string,
 ): Promise<string | null> {
   if (companyId) {
-    const { data } = await supabase
-      .from("discord_config")
+    const qb = supabase.from("discord_config") as unknown as {
+      select: (c: string) => {
+        eq: (
+          col: string,
+          val: unknown,
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { bot_token: string | null } | null;
+            error: { message: string } | null;
+          }>;
+        };
+      };
+    };
+    const { data } = await qb
       .select("bot_token")
       .eq("company_id", companyId)
       .maybeSingle();
     if (data?.bot_token) return data.bot_token;
   }
-  // Fallback to env secret
-  return Deno.env.get("DISCORD_BOT_TOKEN") || null;
+  // Fallback global: env > system_config_discord
+  const sysCfg = await getSystemConfig<SystemConfigDiscord>(
+    supabase,
+    "discord",
+  );
+  return resolveCredentialOptional(
+    Deno.env.get("DISCORD_BOT_TOKEN"),
+    sysCfg?.bot_token,
+  );
 }
 
 serve(async (req) => {

@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -169,19 +174,29 @@ serve(async (req) => {
       `Exporting ${slidesWithImages.length} slides to Google Slides for script: ${scriptTitle}`,
     );
 
-    // Get GCP credentials
-    const gcpCredentialsJson = Deno.env.get("GCP_SERVICE_ACCOUNT_JSON");
-    if (!gcpCredentialsJson) {
-      return new Response(
-        JSON.stringify({ error: "GCP credentials not configured" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+    // Get GCP credentials (env > banco system_config_google)
+    const configSupabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(
+      configSupabase,
+      "google",
+    );
+    const gcpCredentialsJson = resolveCredential(
+      Deno.env.get("GCP_SERVICE_ACCOUNT_JSON"),
+      gCfg?.gcp_service_account_json,
+      "Conta de serviço Google Cloud (GCP) não configurada. Acesse Configurações > Sistema > Google.",
+    );
+
+    let credentials;
+    try {
+      credentials = JSON.parse(gcpCredentialsJson);
+    } catch {
+      throw new Error(
+        "JSON da conta de serviço Google Cloud (GCP) inválido. Acesse Configurações > Sistema > Google e corrija o conteúdo.",
       );
     }
-
-    const credentials = JSON.parse(gcpCredentialsJson);
     const accessToken = await getGoogleAccessToken(credentials);
 
     console.log("Got access token, creating presentation...");

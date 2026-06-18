@@ -1,44 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="https://i.imgur.com/RMzwUaa.png" type="image/png">
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/logo-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Expx Flow</title>
-    <meta name="description" content="Sistema de gestão de campanhas e tráfego" />
+    <meta name="description" content="Plataforma de automação de marketing e gestão de tráfego" />
     <meta name="author" content="Expx Flow" />
 
     <meta property="og:title" content="Expx Flow" />
-    <meta property="og:description" content="Sistema de gestão de campanhas e tráfego" />
+    <meta property="og:description" content="Plataforma de automação de marketing e gestão de tráfego" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://i.imgur.com/EVjvxxM.png" />
+    <meta property="og:image" content="/logo-full.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://i.imgur.com/EVjvxxM.png" />
-    
+    <meta name="twitter:image" content="/logo-full.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   </head>
 
   <body>
+    <!--
+      Self-host: Facebook JS SDK init dinâmico.
+      O App ID é lido de import.meta.env.VITE_FACEBOOK_APP_ID (definido pelo cliente).
+      Quando vazio, o SDK não é carregado (funcionalidade Facebook fica desabilitada
+      até o cliente configurar em /configuracoes/sistema).
+    -->
     <script>
-      window.fbAsyncInit = function() {
-        FB.init({
-          appId      : '1442283340343262',
-          xfbml      : true,
-          version    : 'v23.0'
-        });
-        FB.AppEvents.logPageView();
-      };
-
-      (function(d, s, id){
-         var js, fjs = d.getElementsByTagName(s)[0];
-         if (d.getElementById(id)) {return;}
-         js = d.createElement(s); js.id = id;
-         js.src = "https://connect.facebook.net/en_US/sdk.js";
-         fjs.parentNode.insertBefore(js, fjs);
-       }(document, 'script', 'facebook-jssdk'));
+      (function () {
+        var FB_APP_ID = "%VITE_FACEBOOK_APP_ID%";
+        // Vite substitui %VITE_FACEBOOK_APP_ID% no build; em dev usa env local.
+        if (typeof window !== "undefined" && window.__VITE_ENV__ && window.__VITE_ENV__.VITE_FACEBOOK_APP_ID) {
+          FB_APP_ID = window.__VITE_ENV__.VITE_FACEBOOK_APP_ID;
+        }
+        // Fallback runtime: tentar ler do import.meta.env injetado pelo Vite
+        if (!FB_APP_ID || FB_APP_ID === "%VITE_FACEBOOK_APP_ID%") {
+          try {
+            FB_APP_ID = (window.__env && window.__env.VITE_FACEBOOK_APP_ID) || "";
+          } catch (e) {
+            FB_APP_ID = "";
+          }
+        }
+        if (!FB_APP_ID) {
+          // Self-host: sem App ID configurado, não carrega o SDK.
+          return;
+        }
+        window.fbAsyncInit = function () {
+          FB.init({
+            appId: FB_APP_ID,
+            xfbml: true,
+            version: "v21.0",
+          });
+          FB.AppEvents.logPageView();
+        };
+        (function (d, s, id) {
+          var js,
+            fjs = d.getElementsByTagName(s)[0];
+          if (d.getElementById(id)) {
+            return;
+          }
+          js = d.createElement(s);
+          js.id = id;
+          js.src = "https://connect.facebook.net/pt_BR/sdk.js";
+          fjs.parentNode.insertBefore(js, fjs);
+        })(document, "script", "facebook-jssdk");
+      })();
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

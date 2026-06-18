@@ -2,9 +2,10 @@
 -- 1. Add employee_id to team_members to link members to employees/users
 ALTER TABLE public.team_members
 ADD COLUMN employee_id UUID REFERENCES public.employees(id) ON DELETE SET NULL;
-
 -- Create index for performance
-CREATE INDEX idx_team_members_employee_id ON public.team_members(employee_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_employee_id ON public.team_members(employee_id);;
+
+
 
 -- 2. Security definer function: check if user belongs to a specific team
 CREATE OR REPLACE FUNCTION public.is_squad_member(_user_id uuid, _team_id uuid)
@@ -23,6 +24,7 @@ AS $$
   )
 $$;
 
+
 -- 3. Security definer function: check if user belongs to ANY team in a company
 CREATE OR REPLACE FUNCTION public.get_user_team_ids(_user_id uuid)
 RETURNS SETOF uuid
@@ -36,6 +38,7 @@ AS $$
   JOIN public.employees e ON e.id = tm.employee_id
   WHERE e.user_id = _user_id
 $$;
+
 
 -- 4. Security definer function: check if user is owner of a company
 CREATE OR REPLACE FUNCTION public.is_company_owner(_user_id uuid, _company_id uuid)
@@ -52,6 +55,7 @@ AS $$
       AND role = 'owner'
   )
 $$;
+
 
 -- 5. Security definer: check if user is leader of a team
 CREATE OR REPLACE FUNCTION public.is_team_leader(_user_id uuid, _team_id uuid)
@@ -70,19 +74,17 @@ AS $$
   )
 $$;
 
+
 -- ============================================================
 -- 6. UPDATE RLS for internal_channels
 -- ============================================================
 
 -- Drop existing policies
 DROP POLICY IF EXISTS "Users can view channels of their company" ON public.internal_channels;
-DROP POLICY IF EXISTS "Users can create channels in their company" ON public.internal_channels;
 
--- New SELECT policy: 
---   general channels → visible to all company members
---   squad channels → visible only to squad members, leaders, or company owners
---   client channels → visible to company members (existing behavior)
-CREATE POLICY "Users can view accessible channels"
+DROP POLICY IF EXISTS "Users can create channels in their company" ON public.internal_channels;
+DO $$ BEGIN
+  CREATE POLICY "Users can view accessible channels"
 ON public.internal_channels
 FOR SELECT
 TO authenticated
@@ -104,25 +106,31 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- INSERT policy: only owners and leaders can create squad channels
-CREATE POLICY "Users can create channels in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create channels in their company"
 ON public.internal_channels
 FOR INSERT
 TO authenticated
 WITH CHECK (
   is_company_member(auth.uid(), company_id)
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- ============================================================
 -- 7. UPDATE RLS for internal_messages (restrict to accessible channels)
 -- ============================================================
 
 DROP POLICY IF EXISTS "Users can view messages in their company channels" ON public.internal_messages;
-DROP POLICY IF EXISTS "Users can send messages in their company channels" ON public.internal_messages;
 
--- SELECT: user can only see messages in channels they can access
-CREATE POLICY "Users can view messages in accessible channels"
+DROP POLICY IF EXISTS "Users can send messages in their company channels" ON public.internal_messages;
+DO $$ BEGIN
+  CREATE POLICY "Users can view messages in accessible channels"
 ON public.internal_messages
 FOR SELECT
 TO authenticated
@@ -145,9 +153,11 @@ USING (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- INSERT: user can only send messages in channels they can access
-CREATE POLICY "Users can send messages in accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can send messages in accessible channels"
 ON public.internal_messages
 FOR INSERT
 TO authenticated
@@ -171,6 +181,10 @@ WITH CHECK (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- ============================================================
 -- 8. UPDATE RLS for clients (squad-based filtering)
@@ -178,12 +192,8 @@ WITH CHECK (
 
 -- Drop existing company-wide SELECT policy
 DROP POLICY IF EXISTS "Company members can view clients" ON public.clients;
-
--- New SELECT policy: 
---   Owners see all clients in the company
---   Squad members see only clients assigned to their squads (via team_id)
---   Clients without team_id are visible to all company members
-CREATE POLICY "Users can view clients based on squad"
+DO $$ BEGIN
+  CREATE POLICY "Users can view clients based on squad"
 ON public.clients
 FOR SELECT
 TO authenticated
@@ -201,6 +211,10 @@ USING (
     OR is_team_leader(auth.uid(), team_id)
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Keep the existing public dashboard_token policy
 -- Keep existing INSERT/UPDATE/DELETE policies (company-wide)
@@ -209,8 +223,8 @@ USING (
 -- 9. Enable RLS on team_members
 -- ============================================================
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Company members can view team members"
+DO $$ BEGIN
+  CREATE POLICY "Company members can view team members"
 ON public.team_members
 FOR SELECT
 TO authenticated
@@ -221,8 +235,11 @@ USING (
       AND is_company_member(auth.uid(), t.company_id)
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Company members can manage team members"
+DO $$ BEGIN
+  CREATE POLICY "Company members can manage team members"
 ON public.team_members
 FOR ALL
 TO authenticated
@@ -233,3 +250,5 @@ USING (
       AND is_company_member(auth.uid(), t.company_id)
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

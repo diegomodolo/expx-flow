@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { functionUrl } from "@/integrations/supabase/runtime";
 import {
   Card,
   CardContent,
@@ -425,7 +426,7 @@ export const ApiKeysSettings = () => {
           <div className="space-y-2">
             <h4 className="font-medium">Capturar Lead</h4>
             <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
-              {`POST https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-capture-api
+              {`POST ${functionUrl("lead-capture-api")}
 Headers:
   X-API-Key: lih_xxxxx...
   Content-Type: application/json`}
@@ -673,7 +674,7 @@ Headers:
           <div className="space-y-2 pt-4 border-t">
             <h4 className="font-medium">Atualizar Conversão</h4>
             <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
-              {`PATCH https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-conversion-api
+              {`PATCH ${functionUrl("lead-conversion-api")}
 Headers:
   X-API-Key: lih_xxxxx...
   Content-Type: application/json

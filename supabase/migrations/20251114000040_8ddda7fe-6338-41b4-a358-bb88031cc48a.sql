@@ -1,9 +1,8 @@
 -- Remove o check constraint antigo
 ALTER TABLE campaign_automation_rules 
 DROP CONSTRAINT IF EXISTS campaign_automation_rules_action_type_check;
-
--- Adiciona o novo check constraint com as ações de duplicação
-ALTER TABLE campaign_automation_rules
+DO $$ BEGIN
+  ALTER TABLE campaign_automation_rules
 ADD CONSTRAINT campaign_automation_rules_action_type_check 
 CHECK (action_type IN (
   'pause_campaign',
@@ -21,3 +20,5 @@ CHECK (action_type IN (
   'duplicate_ad',
   'notify_only'
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

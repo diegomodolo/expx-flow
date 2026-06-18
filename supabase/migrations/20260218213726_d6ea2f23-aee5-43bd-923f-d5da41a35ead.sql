@@ -4,6 +4,7 @@ SET user_id = ia_agent_id
 WHERE ia_agent_id IS NOT NULL 
   AND user_id != ia_agent_id;
 
+
 -- Also update task_board_columns that were created with the wrong user_id
 -- We need to check if columns already exist for the agent id before migrating
 DO $$

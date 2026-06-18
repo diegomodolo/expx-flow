@@ -9,14 +9,19 @@ BEGIN
   INSERT INTO public.internal_channels (company_id, name, channel_type, reference_id, icon)
   VALUES (NEW.company_id, NEW.name, 'squad', NEW.id, '👥')
   ON CONFLICT DO NOTHING;
-  RETURN NEW;
-END;
-$$;
 
+  RETURN NEW;
+
+END;
+
+$$;
+DROP TRIGGER IF EXISTS trg_auto_create_channel_for_team ON public.teams;
 CREATE TRIGGER trg_auto_create_channel_for_team
 AFTER INSERT ON public.teams
 FOR EACH ROW
 EXECUTE FUNCTION public.auto_create_channel_for_team();
+
+
 
 -- Also sync name changes
 CREATE OR REPLACE FUNCTION public.auto_update_channel_for_team()
@@ -30,15 +35,21 @@ BEGIN
     UPDATE public.internal_channels
     SET name = NEW.name
     WHERE reference_id = NEW.id AND channel_type = 'squad';
-  END IF;
-  RETURN NEW;
-END;
-$$;
 
+  END IF;
+
+  RETURN NEW;
+
+END;
+
+$$;
+DROP TRIGGER IF EXISTS trg_auto_update_channel_for_team ON public.teams;
 CREATE TRIGGER trg_auto_update_channel_for_team
 AFTER UPDATE ON public.teams
 FOR EACH ROW
 EXECUTE FUNCTION public.auto_update_channel_for_team();
+
+
 
 -- Backfill: create channels for any existing squads that don't have one yet
 INSERT INTO public.internal_channels (company_id, name, channel_type, reference_id, icon)

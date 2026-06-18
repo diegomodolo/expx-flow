@@ -5,7 +5,7 @@
 -- notificações WhatsApp automaticamente.
 --
 -- IMPORTANTE: Execute este SQL no SQL Editor do Supabase
--- https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/sql/new
+-- https://supabase.com/dashboard/project/SEU_PROJETO/sql/new
 -- ============================================
 
 -- 1. Habilitar extensões necessárias (se ainda não estiverem habilitadas)
@@ -21,10 +21,10 @@ SELECT cron.schedule(
   '*/5 * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/process-whatsapp-notifications',
+    url := 'https://SEU_PROJETO.supabase.co/functions/v1/process-whatsapp-notifications',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ'
+      'Authorization', 'Bearer <SUA_ANON_KEY>'
     ),
     body := '{}'::jsonb
   ) as request_id;

@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+  resolveCredentialOptional,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +29,11 @@ serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(
+      supabaseClient,
+      "google",
     );
 
     const authHeader = req.headers.get("Authorization");
@@ -55,12 +66,20 @@ serve(async (req) => {
 
     if (action === "exchange") {
       // Exchange authorization code for tokens
-      const clientId = Deno.env.get("GOOGLE_ADS_CLIENT_ID");
-      const clientSecret = Deno.env.get("GOOGLE_ADS_CLIENT_SECRET");
+      const clientId = resolveCredential(
+        Deno.env.get("GOOGLE_ADS_CLIENT_ID"),
+        gCfg?.ads_client_id,
+        "Google Ads Client ID não configurado. Acesse Configurações > Sistema > Google.",
+      );
+      const clientSecret = resolveCredential(
+        Deno.env.get("GOOGLE_ADS_CLIENT_SECRET"),
+        gCfg?.ads_client_secret,
+        "Google Ads Client Secret não configurado. Acesse Configurações > Sistema > Google.",
+      );
 
       // Garantir que não há espaços em branco
-      const cleanClientId = clientId?.trim();
-      const cleanClientSecret = clientSecret?.trim();
+      const cleanClientId = clientId.trim();
+      const cleanClientSecret = clientSecret.trim();
       const cleanRedirectUri = redirectUri?.trim();
 
       console.log("Token exchange request:", {
@@ -173,7 +192,10 @@ serve(async (req) => {
 
       // Buscar contas acessíveis do Google Ads automaticamente
       console.log("Fetching accessible Google Ads accounts...");
-      const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
+      const developerToken = resolveCredentialOptional(
+        Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+        gCfg?.ads_developer_token,
+      );
 
       if (!developerToken) {
         console.warn(
@@ -485,7 +507,11 @@ serve(async (req) => {
         throw new Error("Integration not found");
       }
 
-      const developerToken = Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN");
+      const developerToken = resolveCredential(
+        Deno.env.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+        gCfg?.ads_developer_token,
+        "Google Ads Developer Token não configurado. Acesse Configurações > Sistema > Google.",
+      );
       if (!developerToken) {
         throw new Error("Developer token not configured");
       }
@@ -714,12 +740,16 @@ serve(async (req) => {
         );
       }
 
-      const clientId = Deno.env.get("GOOGLE_ADS_CLIENT_ID")?.trim();
-      const clientSecret = Deno.env.get("GOOGLE_ADS_CLIENT_SECRET")?.trim();
-
-      if (!clientId || !clientSecret) {
-        throw new Error("Google Ads OAuth credentials not configured");
-      }
+      const clientId = resolveCredential(
+        Deno.env.get("GOOGLE_ADS_CLIENT_ID"),
+        gCfg?.ads_client_id,
+        "Google Ads Client ID não configurado. Acesse Configurações > Sistema > Google.",
+      );
+      const clientSecret = resolveCredential(
+        Deno.env.get("GOOGLE_ADS_CLIENT_SECRET"),
+        gCfg?.ads_client_secret,
+        "Google Ads Client Secret não configurado. Acesse Configurações > Sistema > Google.",
+      );
 
       // Refresh the token
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {

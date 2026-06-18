@@ -1,17 +1,21 @@
 
 -- Drop ALL policies that depend on internal_channels.reference_id (direct or indirect)
 DROP POLICY IF EXISTS "Users can view accessible channels" ON public.internal_channels;
+
 DROP POLICY IF EXISTS "Users can create channels in their company" ON public.internal_channels;
+
 DROP POLICY IF EXISTS "Users can view messages in accessible channels" ON public.internal_messages;
+
 DROP POLICY IF EXISTS "Users can send messages in accessible channels" ON public.internal_messages;
+
 DROP POLICY IF EXISTS "Users can delete their own messages" ON public.internal_messages;
+
 
 -- Change reference_id from UUID to TEXT to support DM pair format (e.g. "uuid1:uuid2")
 ALTER TABLE public.internal_channels 
 ALTER COLUMN reference_id TYPE TEXT USING reference_id::text;
-
--- Recreate SELECT policy for channels, now including 'dm' type
-CREATE POLICY "Users can view accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can view accessible channels"
 ON public.internal_channels
 FOR SELECT
 USING (
@@ -33,15 +37,19 @@ USING (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Recreate INSERT policy for channels
-CREATE POLICY "Users can create channels in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create channels in their company"
 ON public.internal_channels
 FOR INSERT
 WITH CHECK (is_company_member(auth.uid(), company_id));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Recreate SELECT policy for messages (includes dm channels)
-CREATE POLICY "Users can view messages in accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can view messages in accessible channels"
 ON public.internal_messages
 FOR SELECT
 USING (
@@ -61,9 +69,11 @@ USING (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Recreate INSERT policy for messages (includes dm channels)
-CREATE POLICY "Users can send messages in accessible channels"
+DO $$ BEGIN
+  CREATE POLICY "Users can send messages in accessible channels"
 ON public.internal_messages
 FOR INSERT
 WITH CHECK (
@@ -84,9 +94,13 @@ WITH CHECK (
       )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Recreate DELETE policy for messages
-CREATE POLICY "Users can delete their own messages"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their own messages"
 ON public.internal_messages
 FOR DELETE
 USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

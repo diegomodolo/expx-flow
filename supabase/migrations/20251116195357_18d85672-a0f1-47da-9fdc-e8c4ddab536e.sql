@@ -1,11 +1,14 @@
 -- Adicionar coluna para dia de recarga (1-31) na tabela facebook_ad_accounts
 ALTER TABLE facebook_ad_accounts 
 ADD COLUMN IF NOT EXISTS recharge_day INTEGER;
-
--- Adicionar constraint para validar o range (1-31)
-ALTER TABLE facebook_ad_accounts
+DO $$ BEGIN
+  ALTER TABLE facebook_ad_accounts
 ADD CONSTRAINT check_recharge_day_range 
 CHECK (recharge_day IS NULL OR (recharge_day >= 1 AND recharge_day <= 31));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Comentário na coluna
 COMMENT ON COLUMN facebook_ad_accounts.recharge_day IS 

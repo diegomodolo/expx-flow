@@ -1,6 +1,8 @@
 -- Enable pg_cron and pg_net if not already enabled
 CREATE EXTENSION IF NOT EXISTS pg_cron;
+
 CREATE EXTENSION IF NOT EXISTS pg_net;
+
 
 -- Create cron job for daily ad generator scheduler (runs every hour)
 SELECT cron.schedule(
@@ -15,5 +17,6 @@ SELECT cron.schedule(
     ),
     body := '{}'::jsonb
   ) as request_id;
+
   $$
 );

@@ -1,3 +1,10 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
+import {
+  getSystemConfig,
+  resolveCredentialOptional,
+  type SystemConfigGithub,
+} from "../_shared/getSystemConfig.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -27,7 +34,7 @@ function generateFingerprint(message: string, stack: string | null): string {
   let hash = 0;
   for (let i = 0; i < raw.length; i++) {
     const chr = raw.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
+    hash = (hash << 5) - hash + chr;
     hash |= 0;
   }
   return Math.abs(hash).toString(36);
@@ -39,12 +46,36 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const githubPat = Deno.env.get("GITHUB_PAT");
-    const repoOwner = Deno.env.get("GITHUB_REPO_OWNER") || "bittencourtthulio";
-    const repoName = Deno.env.get("GITHUB_REPO_NAME") || "controledetrafego";
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
-    if (!githubPat) {
-      throw new Error("GITHUB_PAT not configured");
+    const ghCfg = await getSystemConfig<SystemConfigGithub>(supabase, "github");
+    const repoOwner = resolveCredentialOptional(
+      Deno.env.get("GITHUB_REPO_OWNER"),
+      ghCfg?.repo_owner,
+    );
+    const repoName = resolveCredentialOptional(
+      Deno.env.get("GITHUB_REPO_NAME"),
+      ghCfg?.repo_name,
+    );
+    const githubPat = resolveCredentialOptional(
+      Deno.env.get("GITHUB_PAT"),
+      ghCfg?.pat,
+    );
+
+    if (!repoOwner || !repoName || !githubPat) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Integração GitHub não configurada. Acesse Configurações > Sistema > GitHub.",
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const body: ErrorReport = await req.json();
@@ -55,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Check if similar issue already exists (open issues only)
     const searchQuery = encodeURIComponent(
-      `repo:${repoOwner}/${repoName} is:issue is:open label:auto-reported "${fingerprint}" in:body`
+      `repo:${repoOwner}/${repoName} is:issue is:open label:auto-reported "${fingerprint}" in:body`,
     );
     const searchResponse = await fetch(
       `https://api.github.com/search/issues?q=${searchQuery}&per_page=1`,
@@ -64,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
           Authorization: `Bearer ${githubPat}`,
           Accept: "application/vnd.github+json",
         },
-      }
+      },
     );
 
     if (searchResponse.ok) {
@@ -84,15 +115,19 @@ const handler = async (req: Request): Promise<Response> => {
             body: JSON.stringify({
               body: `**Nova ocorrencia deste erro**\n\n- **Quando:** ${timestamp}\n- **URL:** ${url}\n- **User Agent:** ${userAgent}`,
             }),
-          }
+          },
         );
 
         return new Response(
-          JSON.stringify({ success: true, duplicate: true, issue_number: existingIssue.number }),
+          JSON.stringify({
+            success: true,
+            duplicate: true,
+            issue_number: existingIssue.number,
+          }),
           {
             status: 200,
             headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
+          },
         );
       }
     }
@@ -133,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
           body: issueBody,
           labels: ["bug", "auto-reported", "claude-analyze"],
         }),
-      }
+      },
     );
 
     if (!ghResponse.ok) {
@@ -145,22 +180,23 @@ const handler = async (req: Request): Promise<Response> => {
     const ghData = await ghResponse.json();
 
     return new Response(
-      JSON.stringify({ success: true, issue_number: ghData.number, issue_url: ghData.html_url }),
+      JSON.stringify({
+        success: true,
+        issue_number: ghData.number,
+        issue_url: ghData.html_url,
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      },
     );
   } catch (error: unknown) {
     console.error("Auto-report error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ success: false, error: message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

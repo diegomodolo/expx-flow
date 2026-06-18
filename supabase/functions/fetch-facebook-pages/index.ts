@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  type SystemConfigFacebook,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +36,12 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const fbCfg = await getSystemConfig<SystemConfigFacebook>(
+      supabase,
+      "facebook",
+    );
+    const graphVersion = fbCfg?.graph_api_version || "v21.0";
+
     console.log(`Fetching Facebook pages for integration ${integrationId}`);
 
     // Get integration with access token
@@ -58,7 +68,7 @@ serve(async (req) => {
     // Fetch ALL Facebook pages the user manages (with pagination)
     let allPagesData: unknown[] = [];
     let nextUrl: string | null =
-      `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
+      `https://graph.facebook.com/${graphVersion}/me/accounts?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
 
     while (nextUrl) {
       console.log(
@@ -138,7 +148,7 @@ serve(async (req) => {
       if (page.instagram_business_account?.id) {
         try {
           const igResponse = await fetch(
-            `https://graph.facebook.com/v20.0/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`,
+            `https://graph.facebook.com/${graphVersion}/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`,
           );
 
           if (igResponse.ok) {
@@ -188,7 +198,7 @@ serve(async (req) => {
 
     try {
       const businessesResponse = await fetch(
-        `https://graph.facebook.com/v20.0/me/businesses?fields=id,name&limit=100&access_token=${accessToken}`,
+        `https://graph.facebook.com/${graphVersion}/me/businesses?fields=id,name&limit=100&access_token=${accessToken}`,
       );
 
       if (businessesResponse.ok) {
@@ -206,7 +216,7 @@ serve(async (req) => {
           // ========================================
           try {
             let bmPagesUrl: string | null =
-              `https://graph.facebook.com/v20.0/${business.id}/owned_pages?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
+              `https://graph.facebook.com/${graphVersion}/${business.id}/owned_pages?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
 
             while (bmPagesUrl) {
               const bmPagesResponse = await fetch(bmPagesUrl);
@@ -260,7 +270,7 @@ serve(async (req) => {
                   ) {
                     try {
                       const igResponse = await fetch(
-                        `https://graph.facebook.com/v20.0/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`,
+                        `https://graph.facebook.com/${graphVersion}/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`,
                       );
                       if (igResponse.ok) {
                         const igData = await igResponse.json();
@@ -317,7 +327,7 @@ serve(async (req) => {
           // Fetch client_pages (pages shared with the BM)
           try {
             let clientPagesUrl: string | null =
-              `https://graph.facebook.com/v20.0/${business.id}/client_pages?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
+              `https://graph.facebook.com/${graphVersion}/${business.id}/client_pages?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
 
             while (clientPagesUrl) {
               const clientPagesResponse = await fetch(clientPagesUrl);
@@ -364,7 +374,7 @@ serve(async (req) => {
                   ) {
                     try {
                       const igResponse = await fetch(
-                        `https://graph.facebook.com/v20.0/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`,
+                        `https://graph.facebook.com/${graphVersion}/${page.instagram_business_account.id}?fields=id,username,profile_picture_url,followers_count&access_token=${page.access_token}`,
                       );
                       if (igResponse.ok) {
                         const igData = await igResponse.json();
@@ -459,7 +469,7 @@ serve(async (req) => {
           // Fetch owned_instagram_accounts (accounts the BM owns)
           try {
             let ownedIgUrl: string | null =
-              `https://graph.facebook.com/v20.0/${business.id}/owned_instagram_accounts?fields=id,username,profile_picture_url,followers_count&limit=100&access_token=${accessToken}`;
+              `https://graph.facebook.com/${graphVersion}/${business.id}/owned_instagram_accounts?fields=id,username,profile_picture_url,followers_count&limit=100&access_token=${accessToken}`;
 
             while (ownedIgUrl) {
               const ownedIgResponse = await fetch(ownedIgUrl);
@@ -537,7 +547,7 @@ serve(async (req) => {
           // Fetch instagram_accounts (accounts the BM has access to, but may not own)
           try {
             let sharedIgUrl: string | null =
-              `https://graph.facebook.com/v20.0/${business.id}/instagram_accounts?fields=id,username,profile_picture_url,followers_count&limit=100&access_token=${accessToken}`;
+              `https://graph.facebook.com/${graphVersion}/${business.id}/instagram_accounts?fields=id,username,profile_picture_url,followers_count&limit=100&access_token=${accessToken}`;
 
             while (sharedIgUrl) {
               const sharedIgResponse = await fetch(sharedIgUrl);

@@ -1,6 +1,14 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { Resend } from "npm:resend@4.0.0";
+import {
+  getSystemConfig,
+  getAppUrl,
+  buildAppLink,
+  resolveCredentialOptional,
+  type SystemConfigEmail,
+  type SystemConfigApp,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,9 +33,18 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const [emailCfg, appCfg] = await Promise.all([
+      getSystemConfig<SystemConfigEmail>(supabase, "email"),
+      getSystemConfig<SystemConfigApp>(supabase, "app"),
+    ]);
+    const resendApiKey = resolveCredentialOptional(
+      Deno.env.get("RESEND_API_KEY"),
+      emailCfg?.resend_api_key,
+    );
+    const fromEmail = emailCfg?.from_email || "noreply@exemplo.com";
 
     const {
       email,
@@ -89,7 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 3. Gerar magic link
-    const finalRedirectTo = redirectTo || "https://controledetrafego.com.br/";
+    const finalRedirectTo = redirectTo || buildAppLink(appCfg, req, "/");
 
     const { data: magicLinkData, error: magicLinkError } =
       await supabase.auth.admin.generateLink({
@@ -112,7 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
     // 4. Enviar email com magic link
     if (!resendApiKey) {
       console.warn(
-        "RESEND_API_KEY not configured - invitation email will not be sent",
+        "Resend API Key não configurada — convite não enviado por email. Acesse Configurações > Sistema > Email.",
       );
     }
 
@@ -121,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
         const resend = new Resend(resendApiKey);
 
         await resend.emails.send({
-          from: `${companyName} <noreply@controledetrafego.com.br>`,
+          from: `${companyName} <${fromEmail}>`,
           to: [email],
           subject: `Bem-vindo(a) à ${companyName}! 🎉`,
           html: `
@@ -165,7 +182,7 @@ const handler = async (req: Request): Promise<Response> => {
                     🔑 Opção 2: Login Tradicional (caso o link não funcione)
                   </h3>
                   <p style="margin: 0 0 15px 0; color: #2d5e2d; font-size: 14px;">
-                    Use estas credenciais para fazer login em: <strong>https://controledetrafego.com.br</strong>
+                    Use estas credenciais para fazer login em: <strong>${getAppUrl(appCfg, req)}</strong>
                   </p>
                   <div style="background: #fff; padding: 15px; border-radius: 4px; margin: 10px 0;">
                     <p style="margin: 0; color: #333; font-size: 14px;"><strong>Email:</strong> ${email}</p>

@@ -40,5 +40,7 @@ BEGIN
   JOIN clients cl ON uc.client_id = cl.id
   WHERE uc.active_campaign_count > 0
   ORDER BY uc.active_campaign_count DESC, uc.validation_status;
+
 END;
+
 $$ LANGUAGE plpgsql;

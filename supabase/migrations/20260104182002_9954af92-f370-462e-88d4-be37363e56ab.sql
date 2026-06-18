@@ -1,5 +1,5 @@
 -- Create carousel_generation_schedules table
-CREATE TABLE public.carousel_generation_schedules (
+CREATE TABLE IF NOT EXISTS public.carousel_generation_schedules (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -36,10 +36,10 @@ CREATE TABLE public.carousel_generation_schedules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
   CONSTRAINT unique_carousel_schedule_per_client UNIQUE (client_id)
-);
+);;
 
 -- Create carousel_generation_queue table
-CREATE TABLE public.carousel_generation_queue (
+CREATE TABLE IF NOT EXISTS public.carousel_generation_queue (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -74,14 +74,16 @@ CREATE TABLE public.carousel_generation_queue (
   reviewed_by UUID,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.carousel_generation_schedules ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.carousel_generation_queue ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies for carousel_generation_schedules (using company_members like ad_generation_schedules)
-CREATE POLICY "Users can view their company carousel schedules"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company carousel schedules"
   ON public.carousel_generation_schedules
   FOR SELECT
   USING (
@@ -89,8 +91,11 @@ CREATE POLICY "Users can view their company carousel schedules"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert carousel schedules for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert carousel schedules for their company"
   ON public.carousel_generation_schedules
   FOR INSERT
   WITH CHECK (
@@ -98,8 +103,11 @@ CREATE POLICY "Users can insert carousel schedules for their company"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company carousel schedules"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company carousel schedules"
   ON public.carousel_generation_schedules
   FOR UPDATE
   USING (
@@ -107,8 +115,11 @@ CREATE POLICY "Users can update their company carousel schedules"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their company carousel schedules"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their company carousel schedules"
   ON public.carousel_generation_schedules
   FOR DELETE
   USING (
@@ -116,9 +127,11 @@ CREATE POLICY "Users can delete their company carousel schedules"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS Policies for carousel_generation_queue
-CREATE POLICY "Users can view their company carousels"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company carousels"
   ON public.carousel_generation_queue
   FOR SELECT
   USING (
@@ -126,8 +139,11 @@ CREATE POLICY "Users can view their company carousels"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert carousels for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert carousels for their company"
   ON public.carousel_generation_queue
   FOR INSERT
   WITH CHECK (
@@ -135,8 +151,11 @@ CREATE POLICY "Users can insert carousels for their company"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company carousels"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company carousels"
   ON public.carousel_generation_queue
   FOR UPDATE
   USING (
@@ -144,8 +163,11 @@ CREATE POLICY "Users can update their company carousels"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their company carousels"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their company carousels"
   ON public.carousel_generation_queue
   FOR DELETE
   USING (
@@ -153,24 +175,33 @@ CREATE POLICY "Users can delete their company carousels"
       SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
     )
   );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create indexes for performance
-CREATE INDEX idx_carousel_schedules_client ON public.carousel_generation_schedules(client_id);
-CREATE INDEX idx_carousel_schedules_company ON public.carousel_generation_schedules(company_id);
-CREATE INDEX idx_carousel_schedules_active ON public.carousel_generation_schedules(is_active);
+CREATE INDEX IF NOT EXISTS idx_carousel_schedules_client ON public.carousel_generation_schedules(client_id);;
 
-CREATE INDEX idx_carousel_queue_client ON public.carousel_generation_queue(client_id);
-CREATE INDEX idx_carousel_queue_company ON public.carousel_generation_queue(company_id);
-CREATE INDEX idx_carousel_queue_status ON public.carousel_generation_queue(status);
-CREATE INDEX idx_carousel_queue_type ON public.carousel_generation_queue(carousel_type);
-CREATE INDEX idx_carousel_queue_generated_at ON public.carousel_generation_queue(generated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_carousel_schedules_company ON public.carousel_generation_schedules(company_id);;
 
--- Create trigger for updated_at
+CREATE INDEX IF NOT EXISTS idx_carousel_schedules_active ON public.carousel_generation_schedules(is_active);;
+
+CREATE INDEX IF NOT EXISTS idx_carousel_queue_client ON public.carousel_generation_queue(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_carousel_queue_company ON public.carousel_generation_queue(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_carousel_queue_status ON public.carousel_generation_queue(status);;
+
+CREATE INDEX IF NOT EXISTS idx_carousel_queue_type ON public.carousel_generation_queue(carousel_type);;
+
+CREATE INDEX IF NOT EXISTS idx_carousel_queue_generated_at ON public.carousel_generation_queue(generated_at DESC);;
+
+DROP TRIGGER IF EXISTS update_carousel_schedules_updated_at ON public.carousel_generation_schedules;
 CREATE TRIGGER update_carousel_schedules_updated_at
   BEFORE UPDATE ON public.carousel_generation_schedules
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_carousel_queue_updated_at ON public.carousel_generation_queue;
 CREATE TRIGGER update_carousel_queue_updated_at
   BEFORE UPDATE ON public.carousel_generation_queue
   FOR EACH ROW

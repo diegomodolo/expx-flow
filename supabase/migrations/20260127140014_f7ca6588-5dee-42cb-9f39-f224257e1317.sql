@@ -6,11 +6,11 @@ CREATE TABLE IF NOT EXISTS public.super_admins (
   created_by UUID REFERENCES auth.users(id)
 );
 
+
 -- Habilitar RLS
 ALTER TABLE public.super_admins ENABLE ROW LEVEL SECURITY;
-
--- Política: apenas super admins podem ver a lista
-CREATE POLICY "Super admins can view super_admins list"
+DO $$ BEGIN
+  CREATE POLICY "Super admins can view super_admins list"
 ON public.super_admins
 FOR SELECT
 TO authenticated
@@ -21,9 +21,11 @@ USING (
     WHERE au.id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Política: apenas super admins podem inserir
-CREATE POLICY "Super admins can insert new super_admins"
+DO $$ BEGIN
+  CREATE POLICY "Super admins can insert new super_admins"
 ON public.super_admins
 FOR INSERT
 TO authenticated
@@ -34,9 +36,11 @@ WITH CHECK (
     WHERE au.id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Política: apenas super admins podem deletar
-CREATE POLICY "Super admins can delete super_admins"
+DO $$ BEGIN
+  CREATE POLICY "Super admins can delete super_admins"
 ON public.super_admins
 FOR DELETE
 TO authenticated
@@ -47,10 +51,15 @@ USING (
     WHERE au.id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
+
+
 
 -- Inserir seu email como primeiro super admin (substitua pelo email correto)
 INSERT INTO public.super_admins (email) VALUES ('admin@controledetrafego.com')
 ON CONFLICT (email) DO NOTHING;
+
 
 -- Função para verificar se usuário é super admin
 CREATE OR REPLACE FUNCTION public.is_super_admin(_user_id UUID)

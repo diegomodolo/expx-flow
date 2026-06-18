@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  functionUrl,
+  getSupabaseAnonKey,
+} from "@/integrations/supabase/runtime";
 import { useToast } from "@/hooks/use-toast";
 
 export interface SquadChatMessage {
@@ -42,19 +46,16 @@ export function useSquadChat(squadId: string) {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/squad-orchestrator`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ squadId, message }),
-          signal: abortController.signal,
-        }
-      );
+      const response = await fetch(functionUrl("squad-orchestrator"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token || getSupabaseAnonKey()}`,
+          apikey: getSupabaseAnonKey(),
+        },
+        body: JSON.stringify({ squadId, message }),
+        signal: abortController.signal,
+      });
 
       if (!response.ok) {
         const errText = await response.text();
@@ -157,7 +158,7 @@ export function useSquadChat(squadId: string) {
         }
       }
     } catch (err: unknown) {
-      if (err.name === 'AbortError') {
+      if (err.name === "AbortError") {
         setMessages((prev) => {
           const filtered = prev.filter((m) => !m.isThinking);
           return [

@@ -1,6 +1,5 @@
-
 -- Squads de Agentes de IA
-CREATE TABLE public.ia_agent_squads (
+CREATE TABLE IF NOT EXISTS public.ia_agent_squads (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -10,28 +9,41 @@ CREATE TABLE public.ia_agent_squads (
   status TEXT NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.ia_agent_squads ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view squads in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view squads in their company"
   ON public.ia_agent_squads FOR SELECT
   USING (company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create squads in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create squads in their company"
   ON public.ia_agent_squads FOR INSERT
   WITH CHECK (company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update squads in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update squads in their company"
   ON public.ia_agent_squads FOR UPDATE
   USING (company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete squads in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete squads in their company"
   ON public.ia_agent_squads FOR DELETE
   USING (company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Membros da squad
-CREATE TABLE public.ia_agent_squad_members (
+CREATE TABLE IF NOT EXISTS public.ia_agent_squad_members (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   squad_id UUID NOT NULL REFERENCES public.ia_agent_squads(id) ON DELETE CASCADE,
   agent_id UUID NOT NULL REFERENCES public.ia_agents(id) ON DELETE CASCADE,
@@ -40,28 +52,41 @@ CREATE TABLE public.ia_agent_squad_members (
   position_x DOUBLE PRECISION NOT NULL DEFAULT 0,
   position_y DOUBLE PRECISION NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.ia_agent_squad_members ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view squad members"
+DO $$ BEGIN
+  CREATE POLICY "Users can view squad members"
   ON public.ia_agent_squad_members FOR SELECT
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage squad members"
+DO $$ BEGIN
+  CREATE POLICY "Users can manage squad members"
   ON public.ia_agent_squad_members FOR INSERT
   WITH CHECK (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update squad members"
+DO $$ BEGIN
+  CREATE POLICY "Users can update squad members"
   ON public.ia_agent_squad_members FOR UPDATE
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete squad members"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete squad members"
   ON public.ia_agent_squad_members FOR DELETE
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Fluxos entre agentes
-CREATE TABLE public.ia_agent_squad_flows (
+CREATE TABLE IF NOT EXISTS public.ia_agent_squad_flows (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   squad_id UUID NOT NULL REFERENCES public.ia_agent_squads(id) ON DELETE CASCADE,
   source_member_id UUID NOT NULL REFERENCES public.ia_agent_squad_members(id) ON DELETE CASCADE,
@@ -69,28 +94,41 @@ CREATE TABLE public.ia_agent_squad_flows (
   label TEXT,
   condition TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.ia_agent_squad_flows ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view squad flows"
+DO $$ BEGIN
+  CREATE POLICY "Users can view squad flows"
   ON public.ia_agent_squad_flows FOR SELECT
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage squad flows"
+DO $$ BEGIN
+  CREATE POLICY "Users can manage squad flows"
   ON public.ia_agent_squad_flows FOR INSERT
   WITH CHECK (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update squad flows"
+DO $$ BEGIN
+  CREATE POLICY "Users can update squad flows"
   ON public.ia_agent_squad_flows FOR UPDATE
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete squad flows"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete squad flows"
   ON public.ia_agent_squad_flows FOR DELETE
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Execuções da squad
-CREATE TABLE public.ia_agent_squad_executions (
+CREATE TABLE IF NOT EXISTS public.ia_agent_squad_executions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   squad_id UUID NOT NULL REFERENCES public.ia_agent_squads(id) ON DELETE CASCADE,
   triggered_by UUID REFERENCES auth.users(id),
@@ -100,24 +138,34 @@ CREATE TABLE public.ia_agent_squad_executions (
   started_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.ia_agent_squad_executions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view squad executions"
+DO $$ BEGIN
+  CREATE POLICY "Users can view squad executions"
   ON public.ia_agent_squad_executions FOR SELECT
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create squad executions"
+DO $$ BEGIN
+  CREATE POLICY "Users can create squad executions"
   ON public.ia_agent_squad_executions FOR INSERT
   WITH CHECK (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update squad executions"
+DO $$ BEGIN
+  CREATE POLICY "Users can update squad executions"
   ON public.ia_agent_squad_executions FOR UPDATE
   USING (squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Passos individuais de execução
-CREATE TABLE public.ia_agent_squad_execution_steps (
+CREATE TABLE IF NOT EXISTS public.ia_agent_squad_execution_steps (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   execution_id UUID NOT NULL REFERENCES public.ia_agent_squad_executions(id) ON DELETE CASCADE,
   agent_id UUID NOT NULL REFERENCES public.ia_agents(id),
@@ -129,23 +177,33 @@ CREATE TABLE public.ia_agent_squad_execution_steps (
   started_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 ALTER TABLE public.ia_agent_squad_execution_steps ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view execution steps"
+DO $$ BEGIN
+  CREATE POLICY "Users can view execution steps"
   ON public.ia_agent_squad_execution_steps FOR SELECT
   USING (execution_id IN (SELECT id FROM public.ia_agent_squad_executions WHERE squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid()))));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage execution steps"
+DO $$ BEGIN
+  CREATE POLICY "Users can manage execution steps"
   ON public.ia_agent_squad_execution_steps FOR INSERT
   WITH CHECK (execution_id IN (SELECT id FROM public.ia_agent_squad_executions WHERE squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid()))));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update execution steps"
+DO $$ BEGIN
+  CREATE POLICY "Users can update execution steps"
   ON public.ia_agent_squad_execution_steps FOR UPDATE
   USING (execution_id IN (SELECT id FROM public.ia_agent_squad_executions WHERE squad_id IN (SELECT id FROM public.ia_agent_squads WHERE company_id IN (SELECT company_id FROM public.employees WHERE user_id = auth.uid()))));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_ia_agent_squads_updated_at ON public.ia_agent_squads;
 CREATE TRIGGER update_ia_agent_squads_updated_at
   BEFORE UPDATE ON public.ia_agent_squads
   FOR EACH ROW

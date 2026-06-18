@@ -1,8 +1,7 @@
 -- Drop existing insert policy and create a more permissive one
 DROP POLICY IF EXISTS "Users can create presentations in their company" ON public.campaign_presentations;
-
--- Create new insert policy that allows authenticated users to insert if they own the company or are a member
-CREATE POLICY "Users can create presentations in their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can create presentations in their company"
 ON public.campaign_presentations
 FOR INSERT
 WITH CHECK (
@@ -16,3 +15,5 @@ WITH CHECK (
     )
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

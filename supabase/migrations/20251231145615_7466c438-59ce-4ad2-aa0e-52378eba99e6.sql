@@ -3,6 +3,7 @@ insert into storage.buckets (id, name, public)
 values ('visual-creatives', 'visual-creatives', true)
 on conflict (id) do nothing;
 
+
 -- Allow public read access to objects in this bucket (needed for getPublicUrl usage)
 -- Note: storage.objects already has RLS enabled in Supabase projects.
 do $$
@@ -18,5 +19,7 @@ begin
     on storage.objects
     for select
     using (bucket_id = 'visual-creatives');
+
   end if;
+
 end $$;

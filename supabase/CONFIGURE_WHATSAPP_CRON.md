@@ -18,7 +18,7 @@ O CRON job executa a cada **5 minutos** e:
 
 ### Passo 1: Acessar o SQL Editor
 
-Acesse: https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/sql/new
+Acesse: https://supabase.com/dashboard/project/SEU_PROJETO/sql/new
 
 ### Passo 2: Executar o SQL
 
@@ -38,10 +38,10 @@ SELECT cron.schedule(
   '*/5 * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/process-whatsapp-notifications',
+    url := 'https://SEU_PROJETO.supabase.co/functions/v1/process-whatsapp-notifications',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqd3BmenRrc3Bidm11d3dpd21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTU3MDMsImV4cCI6MjA2OTYzMTcwM30.ffDBwGCtpR0h8oWp9dxk4PbznNzf7h-vnyhbAUyxFOQ'
+      'Authorization', 'Bearer <SUA_ANON_KEY>'
     ),
     body := '{}'::jsonb
   ) as request_id;
@@ -58,32 +58,37 @@ SELECT * FROM cron.job WHERE jobname = 'whatsapp-notifications-scheduler';
 ## Comandos de Manutenção
 
 ### Ver todos os jobs agendados
+
 ```sql
 SELECT * FROM cron.job;
 ```
 
 ### Ver histórico de execuções
+
 ```sql
-SELECT * FROM cron.job_run_details 
-ORDER BY start_time DESC 
+SELECT * FROM cron.job_run_details
+ORDER BY start_time DESC
 LIMIT 20;
 ```
 
 ### Pausar temporariamente
+
 ```sql
-UPDATE cron.job 
-SET active = false 
+UPDATE cron.job
+SET active = false
 WHERE jobname = 'whatsapp-notifications-scheduler';
 ```
 
 ### Reativar
+
 ```sql
-UPDATE cron.job 
-SET active = true 
+UPDATE cron.job
+SET active = true
 WHERE jobname = 'whatsapp-notifications-scheduler';
 ```
 
 ### Remover completamente
+
 ```sql
 SELECT cron.unschedule('whatsapp-notifications-scheduler');
 ```
@@ -93,34 +98,38 @@ SELECT cron.unschedule('whatsapp-notifications-scheduler');
 ### Job não está executando
 
 1. Verifique se o job está ativo:
+
 ```sql
-SELECT jobname, active FROM cron.job 
+SELECT jobname, active FROM cron.job
 WHERE jobname = 'whatsapp-notifications-scheduler';
 ```
 
 2. Verifique erros recentes:
+
 ```sql
-SELECT * FROM cron.job_run_details 
-WHERE jobname = 'whatsapp-notifications-scheduler' 
-ORDER BY start_time DESC 
+SELECT * FROM cron.job_run_details
+WHERE jobname = 'whatsapp-notifications-scheduler'
+ORDER BY start_time DESC
 LIMIT 5;
 ```
 
 ### Mensagens não estão sendo enviadas
 
 1. Verifique os logs da edge function:
-   https://supabase.com/dashboard/project/ejwpfztkspbvmuwwiwmk/functions/process-whatsapp-notifications/logs
+   https://supabase.com/dashboard/project/SEU_PROJETO/functions/process-whatsapp-notifications/logs
 
 2. Verifique a tabela de execuções:
+
 ```sql
-SELECT * FROM whatsapp_execution_log 
-ORDER BY executed_at DESC 
+SELECT * FROM whatsapp_execution_log
+ORDER BY executed_at DESC
 LIMIT 10;
 ```
 
 3. Verifique se existem triggers ativos:
+
 ```sql
-SELECT t.*, s.next_execution_at 
+SELECT t.*, s.next_execution_at
 FROM whatsapp_notification_triggers t
 JOIN whatsapp_trigger_schedules s ON s.trigger_id = t.id
 WHERE t.is_active = true;

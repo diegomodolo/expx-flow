@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+  type SystemConfigTools,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,8 +93,17 @@ Deno.serve(async (req) => {
     );
 
     // Chamar API4Com
+    const toolsCfg = await getSystemConfig<SystemConfigTools>(
+      supabase,
+      "tools",
+    );
+    const api4comBaseUrl = resolveCredential(
+      Deno.env.get("API4COM_BASE_URL"),
+      toolsCfg?.api4com_base_url,
+      "API4Com base URL não configurada. Acesse Configurações > Sistema > Ferramentas.",
+    );
     const api4comResponse = await fetch(
-      "https://api.api4com.com/api/v1/dialer",
+      `${api4comBaseUrl.replace(/\/+$/, "")}/api/v1/dialer`,
       {
         method: "POST",
         headers: {

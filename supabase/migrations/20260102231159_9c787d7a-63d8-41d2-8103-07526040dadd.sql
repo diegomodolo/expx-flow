@@ -1,11 +1,15 @@
--- Create enum for ad generation types
-CREATE TYPE ad_generation_type AS ENUM ('clone', 'concept', 'iteration');
+DO $$ BEGIN
+  CREATE TYPE ad_generation_type AS ENUM ('clone', 'concept', 'iteration');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- Create enum for ad generation status
-CREATE TYPE ad_generation_status AS ENUM ('pending', 'approved', 'rejected', 'published');
+DO $$ BEGIN
+  CREATE TYPE ad_generation_status AS ENUM ('pending', 'approved', 'rejected', 'published');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Table for storing generated ads queue for review
-CREATE TABLE public.ad_generation_queue (
+CREATE TABLE IF NOT EXISTS public.ad_generation_queue (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -26,10 +30,10 @@ CREATE TABLE public.ad_generation_queue (
   meta_ad_id TEXT NULL, -- ID from Meta after publishing
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
 
 -- Table for client ad generation schedules
-CREATE TABLE public.ad_generation_schedules (
+CREATE TABLE IF NOT EXISTS public.ad_generation_schedules (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -47,10 +51,10 @@ CREATE TABLE public.ad_generation_schedules (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(client_id)
-);
+);;
 
 -- Table for tracking winning ads
-CREATE TABLE public.ad_performance_winners (
+CREATE TABLE IF NOT EXISTS public.ad_performance_winners (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -70,10 +74,10 @@ CREATE TABLE public.ad_performance_winners (
   last_analyzed_at TIMESTAMPTZ NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
 
 -- Table for market research insights
-CREATE TABLE public.market_research_insights (
+CREATE TABLE IF NOT EXISTS public.market_research_insights (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -90,98 +94,135 @@ CREATE TABLE public.market_research_insights (
   last_used_at TIMESTAMPTZ NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.ad_generation_queue ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ad_generation_schedules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ad_performance_winners ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.market_research_insights ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for ad_generation_queue
-CREATE POLICY "Users can view their company's ad queue"
+ALTER TABLE public.ad_generation_schedules ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.ad_performance_winners ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.market_research_insights ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company's ad queue"
 ON public.ad_generation_queue FOR SELECT
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert ads to their company's queue"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert ads to their company's queue"
 ON public.ad_generation_queue FOR INSERT
 WITH CHECK (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company's ad queue"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company's ad queue"
 ON public.ad_generation_queue FOR UPDATE
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete from their company's ad queue"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete from their company's ad queue"
 ON public.ad_generation_queue FOR DELETE
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS Policies for ad_generation_schedules
-CREATE POLICY "Users can view their company's schedules"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company's schedules"
 ON public.ad_generation_schedules FOR SELECT
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage their company's schedules"
+DO $$ BEGIN
+  CREATE POLICY "Users can manage their company's schedules"
 ON public.ad_generation_schedules FOR ALL
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS Policies for ad_performance_winners
-CREATE POLICY "Users can view their company's winners"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company's winners"
 ON public.ad_performance_winners FOR SELECT
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage their company's winners"
+DO $$ BEGIN
+  CREATE POLICY "Users can manage their company's winners"
 ON public.ad_performance_winners FOR ALL
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS Policies for market_research_insights
-CREATE POLICY "Users can view their company's insights"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company's insights"
 ON public.market_research_insights FOR SELECT
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can manage their company's insights"
+DO $$ BEGIN
+  CREATE POLICY "Users can manage their company's insights"
 ON public.market_research_insights FOR ALL
 USING (company_id IN (
   SELECT company_id FROM public.company_members WHERE user_id = auth.uid()
 ));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Indexes for performance
-CREATE INDEX idx_ad_queue_client_status ON public.ad_generation_queue(client_id, status);
-CREATE INDEX idx_ad_queue_scheduled ON public.ad_generation_queue(scheduled_for);
-CREATE INDEX idx_ad_schedules_next ON public.ad_generation_schedules(next_generation_at) WHERE is_active = true;
-CREATE INDEX idx_winners_client ON public.ad_performance_winners(client_id, is_winner);
-CREATE INDEX idx_insights_client ON public.market_research_insights(client_id, source_type);
+CREATE INDEX IF NOT EXISTS idx_ad_queue_client_status ON public.ad_generation_queue(client_id, status);;
 
--- Triggers for updated_at
+CREATE INDEX IF NOT EXISTS idx_ad_queue_scheduled ON public.ad_generation_queue(scheduled_for);;
+
+CREATE INDEX IF NOT EXISTS idx_ad_schedules_next ON public.ad_generation_schedules(next_generation_at) WHERE is_active = true;;
+
+CREATE INDEX IF NOT EXISTS idx_winners_client ON public.ad_performance_winners(client_id, is_winner);;
+
+CREATE INDEX IF NOT EXISTS idx_insights_client ON public.market_research_insights(client_id, source_type);;
+
+DROP TRIGGER IF EXISTS update_ad_queue_updated_at ON public.ad_generation_queue;
 CREATE TRIGGER update_ad_queue_updated_at
 BEFORE UPDATE ON public.ad_generation_queue
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_ad_schedules_updated_at ON public.ad_generation_schedules;
 CREATE TRIGGER update_ad_schedules_updated_at
 BEFORE UPDATE ON public.ad_generation_schedules
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_ad_winners_updated_at ON public.ad_performance_winners;
 CREATE TRIGGER update_ad_winners_updated_at
 BEFORE UPDATE ON public.ad_performance_winners
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_market_insights_updated_at ON public.market_research_insights;
 CREATE TRIGGER update_market_insights_updated_at
 BEFORE UPDATE ON public.market_research_insights
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

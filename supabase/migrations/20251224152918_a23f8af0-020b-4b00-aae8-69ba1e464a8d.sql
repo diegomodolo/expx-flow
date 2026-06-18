@@ -1,5 +1,5 @@
 -- Tabela de configurações de postagem automática do Instagram
-CREATE TABLE public.instagram_auto_post_configs (
+CREATE TABLE IF NOT EXISTS public.instagram_auto_post_configs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -25,10 +25,10 @@ CREATE TABLE public.instagram_auto_post_configs (
   
   -- Garantir apenas uma config por cliente
   UNIQUE(client_id)
-);
+);;
 
 -- Tabela de postagens geradas/publicadas
-CREATE TABLE public.instagram_auto_posts (
+CREATE TABLE IF NOT EXISTS public.instagram_auto_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   config_id UUID NOT NULL REFERENCES public.instagram_auto_post_configs(id) ON DELETE CASCADE,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -47,77 +47,111 @@ CREATE TABLE public.instagram_auto_posts (
   
   -- Metadados
   created_at TIMESTAMPTZ DEFAULT now()
-);
+);;
 
 -- Índices para performance
-CREATE INDEX idx_instagram_auto_post_configs_client ON public.instagram_auto_post_configs(client_id);
-CREATE INDEX idx_instagram_auto_post_configs_enabled ON public.instagram_auto_post_configs(is_enabled) WHERE is_enabled = true;
-CREATE INDEX idx_instagram_auto_post_configs_next_post ON public.instagram_auto_post_configs(next_post_at) WHERE is_enabled = true;
+CREATE INDEX IF NOT EXISTS idx_instagram_auto_post_configs_client ON public.instagram_auto_post_configs(client_id);;
 
-CREATE INDEX idx_instagram_auto_posts_config ON public.instagram_auto_posts(config_id);
-CREATE INDEX idx_instagram_auto_posts_status ON public.instagram_auto_posts(status);
-CREATE INDEX idx_instagram_auto_posts_scheduled ON public.instagram_auto_posts(scheduled_at) WHERE status = 'pending';
-CREATE INDEX idx_instagram_auto_posts_client ON public.instagram_auto_posts(client_id);
+CREATE INDEX IF NOT EXISTS idx_instagram_auto_post_configs_enabled ON public.instagram_auto_post_configs(is_enabled) WHERE is_enabled = true;;
 
--- Trigger para atualizar updated_at
+CREATE INDEX IF NOT EXISTS idx_instagram_auto_post_configs_next_post ON public.instagram_auto_post_configs(next_post_at) WHERE is_enabled = true;;
+
+CREATE INDEX IF NOT EXISTS idx_instagram_auto_posts_config ON public.instagram_auto_posts(config_id);;
+
+CREATE INDEX IF NOT EXISTS idx_instagram_auto_posts_status ON public.instagram_auto_posts(status);;
+
+CREATE INDEX IF NOT EXISTS idx_instagram_auto_posts_scheduled ON public.instagram_auto_posts(scheduled_at) WHERE status = 'pending';;
+
+CREATE INDEX IF NOT EXISTS idx_instagram_auto_posts_client ON public.instagram_auto_posts(client_id);;
+
+DROP TRIGGER IF EXISTS update_instagram_auto_post_configs_updated_at ON public.instagram_auto_post_configs;
 CREATE TRIGGER update_instagram_auto_post_configs_updated_at
   BEFORE UPDATE ON public.instagram_auto_post_configs
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+
+
 -- Habilitar RLS
 ALTER TABLE public.instagram_auto_post_configs ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.instagram_auto_posts ENABLE ROW LEVEL SECURITY;
-
--- Políticas RLS para instagram_auto_post_configs
-CREATE POLICY "Users can view configs from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view configs from their company"
   ON public.instagram_auto_post_configs
   FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert configs for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert configs for their company"
   ON public.instagram_auto_post_configs
   FOR INSERT
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update configs from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update configs from their company"
   ON public.instagram_auto_post_configs
   FOR UPDATE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete configs from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete configs from their company"
   ON public.instagram_auto_post_configs
   FOR DELETE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Políticas RLS para instagram_auto_posts
-CREATE POLICY "Users can view posts from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can view posts from their company"
   ON public.instagram_auto_posts
   FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert posts for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert posts for their company"
   ON public.instagram_auto_posts
   FOR INSERT
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update posts from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can update posts from their company"
   ON public.instagram_auto_posts
   FOR UPDATE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete posts from their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete posts from their company"
   ON public.instagram_auto_posts
   FOR DELETE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Política para service role (edge functions)
-CREATE POLICY "Service role full access to configs"
+DO $$ BEGIN
+  CREATE POLICY "Service role full access to configs"
   ON public.instagram_auto_post_configs
   FOR ALL
   USING (auth.jwt() ->> 'role' = 'service_role');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Service role full access to posts"
+DO $$ BEGIN
+  CREATE POLICY "Service role full access to posts"
   ON public.instagram_auto_posts
   FOR ALL
   USING (auth.jwt() ->> 'role' = 'service_role');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

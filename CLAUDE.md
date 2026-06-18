@@ -300,7 +300,7 @@ Apenas 6 commands. Todos delegam ao agente **orquestrador**, que distribui o tra
 | `debug-data`        | Diagnostico sistematico quando dados nao aparecem no frontend     |
 | `write-test`        | Teste com mocks e providers                                       |
 
-**Skills de contexto** (uma por modulo, em `.claude/skills/<modulo>/SKILL.md`): ai-gateway, apresentacao, carousel-studio, command-center, kanban-tarefas, ligacoes-api4com, pageheader, publicacao-social, squads, workspace.
+**Skills de contexto** (uma por modulo, em `.claude/skills/<modulo>/SKILL.md`): ai-gateway, apresentacao, carousel-studio, command-center, kanban-tarefas, ligacoes-api4com, pageheader, publicacao-social, self-hosting, squads, workspace.
 
 ## Hooks Automaticos (.claude/hooks/)
 

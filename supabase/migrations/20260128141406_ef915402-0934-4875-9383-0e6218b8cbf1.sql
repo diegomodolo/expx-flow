@@ -1,5 +1,5 @@
 -- Create table for AI chat messages per WhatsApp conversation
-CREATE TABLE public.whatsapp_ai_chat_messages (
+CREATE TABLE IF NOT EXISTS public.whatsapp_ai_chat_messages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   conversation_id UUID NOT NULL REFERENCES public.whatsapp_conversations(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -8,13 +8,14 @@ CREATE TABLE public.whatsapp_ai_chat_messages (
   content TEXT NOT NULL,
   source_message_id UUID NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.whatsapp_ai_chat_messages ENABLE ROW LEVEL SECURITY;
-
--- Create policies - using same pattern as whatsapp_conversations
-CREATE POLICY "Users can view AI chat messages from conversations they have access to"
+DO $$ BEGIN
+  CREATE POLICY "Users can view AI chat messages from conversations they have access to"
 ON public.whatsapp_ai_chat_messages
 FOR SELECT
 USING (
@@ -24,8 +25,11 @@ USING (
     AND wc.company_id = whatsapp_ai_chat_messages.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can create AI chat messages"
+DO $$ BEGIN
+  CREATE POLICY "Users can create AI chat messages"
 ON public.whatsapp_ai_chat_messages
 FOR INSERT
 WITH CHECK (
@@ -35,12 +39,18 @@ WITH CHECK (
     AND wc.company_id = whatsapp_ai_chat_messages.company_id
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their own AI chat messages"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their own AI chat messages"
 ON public.whatsapp_ai_chat_messages
 FOR DELETE
 USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Create indexes for faster queries
-CREATE INDEX idx_whatsapp_ai_chat_messages_conversation ON public.whatsapp_ai_chat_messages(conversation_id);
-CREATE INDEX idx_whatsapp_ai_chat_messages_company ON public.whatsapp_ai_chat_messages(company_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_ai_chat_messages_conversation ON public.whatsapp_ai_chat_messages(conversation_id);;
+
+CREATE INDEX IF NOT EXISTS idx_whatsapp_ai_chat_messages_company ON public.whatsapp_ai_chat_messages(company_id);;

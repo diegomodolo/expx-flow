@@ -1,5 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0";
 import { Resend } from "npm:resend@4.0.0";
+import {
+  getSystemConfig,
+  getAppUrl,
+  buildAppLink,
+  resolveCredential,
+  type SystemConfigEmail,
+  type SystemConfigApp,
+} from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +32,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     // Verificar autenticação
     const authHeader = req.headers.get("Authorization");
@@ -74,6 +81,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const [emailCfg, appCfg] = await Promise.all([
+      getSystemConfig<SystemConfigEmail>(supabase, "email"),
+      getSystemConfig<SystemConfigApp>(supabase, "app"),
+    ]);
+    const resendApiKey = resolveCredential(
+      Deno.env.get("RESEND_API_KEY"),
+      emailCfg?.resend_api_key,
+      "Resend API Key não configurada. Acesse Configurações > Sistema > Email.",
+    );
+    const fromEmail = emailCfg?.from_email || "noreply@exemplo.com";
+
     // Verificar se o colaborador pertence a uma empresa do admin
     const companyIds = memberCheck.map((m) => m.company_id);
     const { data: employeeCheck } = await supabase
@@ -117,7 +135,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         type: "magiclink",
         email: email,
         options: {
-          redirectTo: "https://controledetrafego.com.br/",
+          redirectTo: buildAppLink(appCfg, req, "/"),
           data: {
             full_name: name,
             company_name: companyName,
@@ -131,10 +149,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // Enviar email
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY não configurada");
-    }
-
     const resend = new Resend(resendApiKey);
 
     const credentialsSection = tempPassword
@@ -145,7 +159,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           🔑 Opção 2: Login Tradicional
         </h3>
         <p style="margin: 0 0 15px 0; color: #2d5e2d; font-size: 14px;">
-          Use estas credenciais para fazer login em: <strong>https://controledetrafego.com.br</strong>
+           Use estas credenciais para fazer login em: <strong>${getAppUrl(appCfg, req)}</strong>
         </p>
         <div style="background: #fff; padding: 15px; border-radius: 4px; margin: 10px 0;">
           <p style="margin: 0; color: #333; font-size: 14px;"><strong>Email:</strong> ${email}</p>
@@ -159,7 +173,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       : "";
 
     await resend.emails.send({
-      from: `${companyName} <noreply@controledetrafego.com.br>`,
+      from: `${companyName} <${fromEmail}>`,
       to: [email],
       subject: `🔄 Reenvio: Seu acesso à ${companyName}`,
       html: `

@@ -20,15 +20,18 @@ AS $$
     SELECT 1 FROM workspace_folders
     WHERE id = _resource_id AND created_by = _user_id AND _resource_type = 'folder'
   );
+
 $$;
+
 
 -- Drop old policy
 DROP POLICY IF EXISTS "Users can create shares for owned resources" ON public.workspace_shares;
-
--- Recreate with SECURITY DEFINER function (no circular RLS dependency)
-CREATE POLICY "Users can create shares for owned resources"
+DO $$ BEGIN
+  CREATE POLICY "Users can create shares for owned resources"
 ON public.workspace_shares FOR INSERT
 WITH CHECK (
   shared_by = auth.uid()
   AND user_owns_workspace_resource(resource_type, resource_id, auth.uid())
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;

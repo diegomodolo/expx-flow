@@ -19,5 +19,7 @@ BEGIN
   WHERE clp.company_id = p_company_id
   GROUP BY clp.cnae_code
   ORDER BY lead_count DESC;
+
 END;
+
 $$;

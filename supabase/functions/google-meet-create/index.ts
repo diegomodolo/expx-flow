@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  getSystemConfig,
+  resolveCredential,
+} from "../_shared/getSystemConfig.ts";
+import type { SystemConfigGoogle } from "../_shared/getSystemConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,8 +55,20 @@ async function getValidAccessToken(
 
   if (expiresAt.getTime() - now.getTime() < bufferMs) {
     console.log("Token expired or expiring soon, refreshing...");
-    const clientId = Deno.env.get("GOOGLE_MEET_CLIENT_ID")?.trim();
-    const clientSecret = Deno.env.get("GOOGLE_MEET_CLIENT_SECRET")?.trim();
+    const gCfg = await getSystemConfig<SystemConfigGoogle>(
+      supabaseClient as { from: (t: string) => unknown },
+      "google",
+    );
+    const clientId = resolveCredential(
+      Deno.env.get("GOOGLE_MEET_CLIENT_ID"),
+      gCfg?.meet_client_id,
+      "Google Meet Client ID não configurado. Acesse Configurações > Sistema > Google.",
+    );
+    const clientSecret = resolveCredential(
+      Deno.env.get("GOOGLE_MEET_CLIENT_SECRET"),
+      gCfg?.meet_client_secret,
+      "Google Meet Client Secret não configurado. Acesse Configurações > Sistema > Google.",
+    );
 
     if (!clientId || !clientSecret) {
       throw new Error("Google OAuth credentials not configured");

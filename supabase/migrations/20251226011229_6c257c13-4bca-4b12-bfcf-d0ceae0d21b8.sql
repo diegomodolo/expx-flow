@@ -9,4 +9,5 @@ AS $$
   FROM public.cnae_lead_pool clp
   WHERE clp.company_id = p_company_id
     AND clp.cnae_code IS NOT NULL;
+
 $$;

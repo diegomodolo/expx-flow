@@ -10,8 +10,10 @@ SET
   weight_digital_maturity = 0.20,
   updated_at = NOW();
 
+
 -- Deletar todas as regras antigas (serão recriadas com valores corretos)
 DELETE FROM lead_qualification_rules;
+
 
 -- Inserir novas regras de Company Fit (dimensão principal para ListaCNAE)
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
@@ -25,6 +27,7 @@ SELECT
   true
 FROM lead_qualification_weights;
 
+
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 
   company_id,
@@ -35,6 +38,7 @@ SELECT
   15,
   true
 FROM lead_qualification_weights;
+
 
 -- Porte da empresa - DEMAIS (empresas maiores)
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
@@ -48,6 +52,7 @@ SELECT
   true
 FROM lead_qualification_weights;
 
+
 -- Porte da empresa - EPP
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 
@@ -59,6 +64,7 @@ SELECT
   20,
   true
 FROM lead_qualification_weights;
+
 
 -- Porte da empresa - ME
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
@@ -72,6 +78,7 @@ SELECT
   true
 FROM lead_qualification_weights;
 
+
 -- Capital Social alto (>= 100000)
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 
@@ -83,6 +90,7 @@ SELECT
   25,
   true
 FROM lead_qualification_weights;
+
 
 -- Capital Social médio (>= 50000)
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
@@ -96,6 +104,7 @@ SELECT
   true
 FROM lead_qualification_weights;
 
+
 -- Capital Social baixo (>= 10000)
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 
@@ -107,6 +116,7 @@ SELECT
   10,
   true
 FROM lead_qualification_weights;
+
 
 -- Não é MEI (empresa mais estruturada)
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
@@ -120,6 +130,7 @@ SELECT
   true
 FROM lead_qualification_weights;
 
+
 -- Regras de Contact Quality - email existe (qualquer email)
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 
@@ -131,6 +142,7 @@ SELECT
   50,
   true
 FROM lead_qualification_weights;
+
 
 -- Regras de Contact Quality - telefone existe
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
@@ -144,6 +156,7 @@ SELECT
   true
 FROM lead_qualification_weights;
 
+
 -- Regras de Digital Maturity - Capital alto indica estrutura
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 
@@ -156,6 +169,7 @@ SELECT
   true
 FROM lead_qualification_weights;
 
+
 -- Regras de Digital Maturity - Porte maior indica estrutura
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 
@@ -167,6 +181,7 @@ SELECT
   30,
   true
 FROM lead_qualification_weights;
+
 
 INSERT INTO lead_qualification_rules (company_id, dimension, field, operator, value, score_contribution, is_active)
 SELECT 

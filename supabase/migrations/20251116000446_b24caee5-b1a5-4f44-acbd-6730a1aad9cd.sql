@@ -1,9 +1,10 @@
 -- Adicionar campo client_id na tabela google_ads_accounts para associar contas a clientes
 ALTER TABLE google_ads_accounts 
 ADD COLUMN client_id uuid REFERENCES clients(id) ON DELETE SET NULL;
-
 -- Adicionar índice para melhorar performance
-CREATE INDEX idx_google_ads_accounts_client_id ON google_ads_accounts(client_id);
+CREATE INDEX IF NOT EXISTS idx_google_ads_accounts_client_id ON google_ads_accounts(client_id);;
+
+
 
 -- Adicionar campo time_zone se não existir
 DO $$ 

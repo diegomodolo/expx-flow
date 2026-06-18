@@ -16,13 +16,19 @@ CREATE TABLE IF NOT EXISTS public.carousel_studio_templates (
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
 
+
 ALTER TABLE public.carousel_studio_templates ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "carousel_studio_templates: company members" ON public.carousel_studio_templates
+DO $$ BEGIN
+  CREATE POLICY "carousel_studio_templates: company members" ON public.carousel_studio_templates
   FOR ALL USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
+DROP TRIGGER IF EXISTS set_carousel_studio_templates_updated_at ON public.carousel_studio_templates;
 CREATE TRIGGER set_carousel_studio_templates_updated_at
   BEFORE UPDATE ON public.carousel_studio_templates
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.carousel_studio_templates TO authenticated;

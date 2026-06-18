@@ -1,5 +1,5 @@
 -- Tabela para armazenar feeds RSS
-CREATE TABLE public.instagram_autopost_rss_feeds (
+CREATE TABLE IF NOT EXISTS public.instagram_autopost_rss_feeds (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   config_id UUID NOT NULL REFERENCES public.instagram_auto_post_configs(id) ON DELETE CASCADE,
   feed_url TEXT NOT NULL,
@@ -11,10 +11,10 @@ CREATE TABLE public.instagram_autopost_rss_feeds (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(config_id, feed_url)
-);
+);;
 
 -- Tabela para armazenar itens/artigos do RSS
-CREATE TABLE public.instagram_autopost_rss_items (
+CREATE TABLE IF NOT EXISTS public.instagram_autopost_rss_items (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   feed_id UUID NOT NULL REFERENCES public.instagram_autopost_rss_feeds(id) ON DELETE CASCADE,
   config_id UUID NOT NULL REFERENCES public.instagram_auto_post_configs(id) ON DELETE CASCADE,
@@ -26,14 +26,16 @@ CREATE TABLE public.instagram_autopost_rss_items (
   is_selected BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(feed_id, guid)
-);
+);;
+
+
 
 -- Enable RLS
 ALTER TABLE public.instagram_autopost_rss_feeds ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.instagram_autopost_rss_items ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for feeds
-CREATE POLICY "Users can view RSS feeds for their configs" 
+ALTER TABLE public.instagram_autopost_rss_items ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view RSS feeds for their configs" 
 ON public.instagram_autopost_rss_feeds FOR SELECT 
 USING (
   EXISTS (
@@ -42,8 +44,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert RSS feeds for their configs" 
+DO $$ BEGIN
+  CREATE POLICY "Users can insert RSS feeds for their configs" 
 ON public.instagram_autopost_rss_feeds FOR INSERT 
 WITH CHECK (
   EXISTS (
@@ -52,8 +57,11 @@ WITH CHECK (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update RSS feeds for their configs" 
+DO $$ BEGIN
+  CREATE POLICY "Users can update RSS feeds for their configs" 
 ON public.instagram_autopost_rss_feeds FOR UPDATE 
 USING (
   EXISTS (
@@ -62,8 +70,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete RSS feeds for their configs" 
+DO $$ BEGIN
+  CREATE POLICY "Users can delete RSS feeds for their configs" 
 ON public.instagram_autopost_rss_feeds FOR DELETE 
 USING (
   EXISTS (
@@ -72,9 +83,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- RLS Policies for items
-CREATE POLICY "Users can view RSS items for their configs" 
+DO $$ BEGIN
+  CREATE POLICY "Users can view RSS items for their configs" 
 ON public.instagram_autopost_rss_items FOR SELECT 
 USING (
   EXISTS (
@@ -83,8 +96,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update RSS items for their configs" 
+DO $$ BEGIN
+  CREATE POLICY "Users can update RSS items for their configs" 
 ON public.instagram_autopost_rss_items FOR UPDATE 
 USING (
   EXISTS (
@@ -93,8 +109,11 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete RSS items for their configs" 
+DO $$ BEGIN
+  CREATE POLICY "Users can delete RSS items for their configs" 
 ON public.instagram_autopost_rss_items FOR DELETE 
 USING (
   EXISTS (
@@ -103,23 +122,33 @@ USING (
     WHERE c.id = config_id AND cm.user_id = auth.uid()
   )
 );
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Service role policies for edge functions
-CREATE POLICY "Service role can manage RSS feeds" 
+DO $$ BEGIN
+  CREATE POLICY "Service role can manage RSS feeds" 
 ON public.instagram_autopost_rss_feeds FOR ALL 
 USING (auth.jwt() ->> 'role' = 'service_role');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Service role can manage RSS items" 
+DO $$ BEGIN
+  CREATE POLICY "Service role can manage RSS items" 
 ON public.instagram_autopost_rss_items FOR ALL 
 USING (auth.jwt() ->> 'role' = 'service_role');
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
 -- Indexes
-CREATE INDEX idx_rss_feeds_config_id ON public.instagram_autopost_rss_feeds(config_id);
-CREATE INDEX idx_rss_items_feed_id ON public.instagram_autopost_rss_items(feed_id);
-CREATE INDEX idx_rss_items_config_id ON public.instagram_autopost_rss_items(config_id);
-CREATE INDEX idx_rss_items_published_at ON public.instagram_autopost_rss_items(published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rss_feeds_config_id ON public.instagram_autopost_rss_feeds(config_id);;
 
--- Trigger for updated_at
+CREATE INDEX IF NOT EXISTS idx_rss_items_feed_id ON public.instagram_autopost_rss_items(feed_id);;
+
+CREATE INDEX IF NOT EXISTS idx_rss_items_config_id ON public.instagram_autopost_rss_items(config_id);;
+
+CREATE INDEX IF NOT EXISTS idx_rss_items_published_at ON public.instagram_autopost_rss_items(published_at DESC);;
+
+DROP TRIGGER IF EXISTS update_rss_feeds_updated_at ON public.instagram_autopost_rss_feeds;
 CREATE TRIGGER update_rss_feeds_updated_at
   BEFORE UPDATE ON public.instagram_autopost_rss_feeds
   FOR EACH ROW

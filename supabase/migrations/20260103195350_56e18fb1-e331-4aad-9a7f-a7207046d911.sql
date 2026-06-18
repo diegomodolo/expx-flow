@@ -4,7 +4,7 @@
 
 -- Table: creative_generation_schedules
 -- Stores the configuration for daily creative generation per client
-CREATE TABLE public.creative_generation_schedules (
+CREATE TABLE IF NOT EXISTS public.creative_generation_schedules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -34,11 +34,11 @@ CREATE TABLE public.creative_generation_schedules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
   UNIQUE(client_id)
-);
+);;
 
 -- Table: creative_generation_queue
 -- Stores generated creatives for social media
-CREATE TABLE public.creative_generation_queue (
+CREATE TABLE IF NOT EXISTS public.creative_generation_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -73,11 +73,11 @@ CREATE TABLE public.creative_generation_queue (
   
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
 
 -- Table: creative_generation_history
 -- Logs each generation execution
-CREATE TABLE public.creative_generation_history (
+CREATE TABLE IF NOT EXISTS public.creative_generation_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -93,7 +93,9 @@ CREATE TABLE public.creative_generation_history (
   
   executed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+);;
+
+
 
 -- ============================================
 -- RLS POLICIES
@@ -101,61 +103,87 @@ CREATE TABLE public.creative_generation_history (
 
 -- Enable RLS
 ALTER TABLE public.creative_generation_schedules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.creative_generation_queue ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.creative_generation_history ENABLE ROW LEVEL SECURITY;
 
--- Policies for creative_generation_schedules
-CREATE POLICY "Users can view their company creative schedules"
+ALTER TABLE public.creative_generation_queue ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.creative_generation_history ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company creative schedules"
   ON public.creative_generation_schedules FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert creative schedules for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert creative schedules for their company"
   ON public.creative_generation_schedules FOR INSERT
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company creative schedules"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company creative schedules"
   ON public.creative_generation_schedules FOR UPDATE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their company creative schedules"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their company creative schedules"
   ON public.creative_generation_schedules FOR DELETE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies for creative_generation_queue
-CREATE POLICY "Users can view their company creative queue"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company creative queue"
   ON public.creative_generation_queue FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert creatives for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert creatives for their company"
   ON public.creative_generation_queue FOR INSERT
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can update their company creatives"
+DO $$ BEGIN
+  CREATE POLICY "Users can update their company creatives"
   ON public.creative_generation_queue FOR UPDATE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can delete their company creatives"
+DO $$ BEGIN
+  CREATE POLICY "Users can delete their company creatives"
   ON public.creative_generation_queue FOR DELETE
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- Policies for creative_generation_history
-CREATE POLICY "Users can view their company creative history"
+DO $$ BEGIN
+  CREATE POLICY "Users can view their company creative history"
   ON public.creative_generation_history FOR SELECT
   USING (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
-CREATE POLICY "Users can insert creative history for their company"
+DO $$ BEGIN
+  CREATE POLICY "Users can insert creative history for their company"
   ON public.creative_generation_history FOR INSERT
   WITH CHECK (company_id IN (SELECT get_user_company_ids(auth.uid())));
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 
--- ============================================
--- TRIGGERS FOR updated_at
--- ============================================
-
+DROP TRIGGER IF EXISTS update_creative_generation_schedules_updated_at ON public.creative_generation_schedules;
 CREATE TRIGGER update_creative_generation_schedules_updated_at
   BEFORE UPDATE ON public.creative_generation_schedules
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_creative_generation_queue_updated_at ON public.creative_generation_queue;
 CREATE TRIGGER update_creative_generation_queue_updated_at
   BEFORE UPDATE ON public.creative_generation_queue
   FOR EACH ROW
@@ -165,15 +193,22 @@ CREATE TRIGGER update_creative_generation_queue_updated_at
 -- INDEXES
 -- ============================================
 
-CREATE INDEX idx_creative_schedules_client ON public.creative_generation_schedules(client_id);
-CREATE INDEX idx_creative_schedules_company ON public.creative_generation_schedules(company_id);
-CREATE INDEX idx_creative_schedules_active ON public.creative_generation_schedules(is_active, next_generation_at);
+CREATE INDEX IF NOT EXISTS idx_creative_schedules_client ON public.creative_generation_schedules(client_id);;
 
-CREATE INDEX idx_creative_queue_client ON public.creative_generation_queue(client_id);
-CREATE INDEX idx_creative_queue_company ON public.creative_generation_queue(company_id);
-CREATE INDEX idx_creative_queue_status ON public.creative_generation_queue(status);
-CREATE INDEX idx_creative_queue_generated_at ON public.creative_generation_queue(generated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_creative_schedules_company ON public.creative_generation_schedules(company_id);;
 
-CREATE INDEX idx_creative_history_client ON public.creative_generation_history(client_id);
-CREATE INDEX idx_creative_history_schedule ON public.creative_generation_history(schedule_id);
-CREATE INDEX idx_creative_history_executed_at ON public.creative_generation_history(executed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_creative_schedules_active ON public.creative_generation_schedules(is_active, next_generation_at);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_queue_client ON public.creative_generation_queue(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_queue_company ON public.creative_generation_queue(company_id);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_queue_status ON public.creative_generation_queue(status);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_queue_generated_at ON public.creative_generation_queue(generated_at DESC);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_history_client ON public.creative_generation_history(client_id);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_history_schedule ON public.creative_generation_history(schedule_id);;
+
+CREATE INDEX IF NOT EXISTS idx_creative_history_executed_at ON public.creative_generation_history(executed_at DESC);;
